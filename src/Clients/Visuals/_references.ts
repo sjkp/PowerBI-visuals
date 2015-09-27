@@ -170,6 +170,7 @@
 /// <reference path="visuals/samples/streamGraph.ts"/>
 /// <reference path="warnings/visualWarnings.ts"/>
 /// <reference path="cartesian/waterfallChart.ts"/>
+/// <reference path="visuals/heatMap.ts" />
 
 /// <reference path="tooltip.ts"/>
 

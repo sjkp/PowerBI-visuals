@@ -314,4 +314,11 @@ module powerbi.visuals.plugins {
         capabilities: samples.StreamGraph.capabilities,
         create: () => new samples.StreamGraph()
     };
+
+    export var heatMap: IVisualPlugin = {
+        name: 'heatMap',
+        watermarkKey: 'heatMap',
+        capabilities: HeatMapChart.capabilities,
+        create: () => new HeatMapChart()
+    };
 }
