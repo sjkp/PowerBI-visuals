@@ -229,12 +229,16 @@ module powerbi.visuals {
                             displayName: 'Blur',
                             type: { numeric: true }
                         },
+                        maxValue: {
+                            displayName: 'Max Intensity',
+                            type: { numeric: true }
+                        },
                         maxWidth: {
-                            displayName: 'Max Width',
+                            displayName: 'Canvas Width',
                             type: { numeric: true }
                         },
                         maxHeight: {
-                            displayName: 'Max Height',
+                            displayName: 'Canvas Height',
                             type: { numeric: true }
                         },
                     }
@@ -275,6 +279,7 @@ module powerbi.visuals {
         private defaultBackgroundUrl = "http://hotsreplay.com/Images/Map/Sky%20Temple.png";
         private canvasWidth: number = 680;
         private canvasHeight: number = 480;
+        private maxValue = 1;
 
         // Convert a DataView into a view model
         public static converter(dataView: DataView, colors: IDataColorPalette): HeatMapDataModel {
@@ -302,6 +307,7 @@ module powerbi.visuals {
                     index++;
                 }
             } else {
+                //For sandbox mode
                 xCol = 0;
                 yCol = 1;
                 iCol = 2;
@@ -309,34 +315,17 @@ module powerbi.visuals {
             var catDv: DataViewCategorical = dataView.categorical;
             var values = catDv.values;
             var dataPoints: HeatMapData[] = [];
-            //var legendData: LegendData = {
-            //    dataPoints: [],
-            //    title: values[0].source.displayName
-            //};
-            //Loop categroies
-            //for (var i = 0, iLen = values.length; i < iLen; i++) {
-            //    dataPoints.push([]);
-            //    legendData.dataPoints.push({
-            //        label: values[i].source.groupName,
-            //        color: colors.getColorByIndex(i).value,
-            //        icon: LegendIcon.Box,
-            //        selected: false,
-            //        identity: null
-            //    });
-                //Loop values per category
-                for (var k = 0, kLen = values[0].values.length; k < kLen; k++) {
-                    //var id = SelectionIdBuilder
-                    //    .builder()
-                    //    .withSeries(dataView.categorical.values, dataView.categorical.values[i])
-                    //    .createSelectionId();
-                    dataPoints.push({
-                        x: values[xCol].values[k],
-                        y: values[yCol].values[k],
-                        i: iCol !== -1 ? values[iCol].values[k] : 1
-                    });
-                }
-            //}
-                console.log(dataPoints);
+
+            for (var k = 0, kLen = values[0].values.length; k < kLen; k++) {
+
+                dataPoints.push({
+                    x: values[xCol].values[k],
+                    y: values[yCol].values[k],
+                    i: iCol !== -1 ? values[iCol].values[k] : 1
+                });
+            }
+
+            //console.log(dataPoints);
             return {
                 dataArray: dataPoints
             };
@@ -354,11 +343,12 @@ module powerbi.visuals {
 
         /* Called for data, size, formatting changes*/ 
         public update(options: VisualUpdateOptions) {
-            this.dataView = options.dataViews[0];
+            this.dataView = options.dataViews[0];            
             this.updateBackgroundUrl();
             this.updateCanvasSize();
             this.currentViewport = options.viewport;
             this.updateInternal(false);
+            this.heatMap.max(HeatMapChart.getFieldNumber(this.dataView, 'general', 'maxValue', this.maxValue));
             this.heatMap.radius(HeatMapChart.getFieldNumber(this.dataView, 'general', 'radius', 5), HeatMapChart.getFieldNumber(this.dataView, 'general', 'blur', 5));
             var data = HeatMapChart.converter(this.dataView, this.colors);
             this.heatMap.clear();
@@ -370,13 +360,14 @@ module powerbi.visuals {
         }       
 
         /*About to remove your visual, do clean up here */ 
-        public destroy() { }
+        public destroy() {
+
+        }
 
         /* Called when the view port resizes */
         public onResizing(viewport: IViewport): void {
             if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
                 this.currentViewport = viewport;
-                //this.renderLegend(this.legendData);
                 this.updateInternal(false /* dataChanged */);
             }
         }
@@ -397,6 +388,7 @@ module powerbi.visuals {
                             blur: HeatMapChart.getFieldNumber(dataView, 'general', 'blur'),
                             maxWidth: HeatMapChart.getFieldNumber(dataView, 'general', 'maxWidth', 600),
                             maxHeight: HeatMapChart.getFieldNumber(dataView, 'general', 'maxHeight', 480),
+                            maxValue: HeatMapChart.getFieldNumber(dataView, 'general', 'maxValue', 1)
                         }
                     };
                     instances.push(general);
@@ -436,7 +428,7 @@ module powerbi.visuals {
                 this.canvas.css('background-size', '100% 100%');
                 this.backgroundUrl = newBackgroundUrl;
             }
-        }
+        }           
 
         private updateCanvasSize()
         {
@@ -454,7 +446,9 @@ module powerbi.visuals {
                 (<HTMLCanvasElement>this.canvas[0]).height = newHeight;
                 updated = true;
             }
-            this.heatMap = new SimpleHeatMap(this.canvas[0]);
+            if (updated) {
+                this.heatMap = new SimpleHeatMap(this.canvas[0]);
+            }
         }
 
         private updateInternal(redraw: boolean): void {
@@ -495,16 +489,3 @@ module powerbi.visuals {
         }
     }
 }
-
-/* Creating IVisualPlugin that is used to represent IVisual. */
-//
-// Uncomment it to see your plugin in "PowerBIVisualsPlayground" plugins list
-// Remember to finally move it to plugins.ts
-//
-//module powerbi.visuals.plugins {
-//    export var heatMap: IVisualPlugin = {
-//        name: 'heatMap',
-//        capabilities: heatMap.capabilities,
-//        create: () => new heatMap()
-//    };
-//}
