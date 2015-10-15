@@ -27,7 +27,6 @@
 /// <reference path="../../../_references.ts"/>
 
 module powerbi.visuals.controls {
-
     export module HTMLElementUtils {
         export function clearChildren(element: HTMLElement): void {
             if (!element) {
@@ -104,6 +103,7 @@ module powerbi.visuals.controls {
 }
 
 module powerbi.visuals.controls.internal {
+    import DomFactory = InJs.DomFactory;
 
     export module TablixUtils {
 
@@ -162,7 +162,12 @@ module powerbi.visuals.controls.internal {
             debug.assertValue(kpiStatusGraphic, 'kpiStatusGraphic');
             debug.assertValue(kpiValue, 'kpiValue');
             let className: string = KpiUtil.getClassForKpi(kpiStatusGraphic, kpiValue) || '';
-            return $('<div class="' + className + '" style="display: inline-block, vertical-align: sub"></div>');
+            return DomFactory.div()
+                .addClass(className)
+                .css({
+                    'display': 'inline-block',
+                    'vertical-align': 'sub'
+                });
         }
 
         export function isValidStatusGraphic(kpiStatusGraphic: string, kpiValue: string): boolean {

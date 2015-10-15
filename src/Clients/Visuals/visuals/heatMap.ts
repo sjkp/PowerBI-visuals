@@ -307,9 +307,12 @@ module powerbi.visuals {
         // Convert a DataView into a view model
         public static converter(dataView: DataView, colors: IDataColorPalette): HeatMapDataModel {
             console.log('converter', dataView);
+            var dataPoints: HeatMapData[] = [];
             var xCol, yCol, iCol;
             xCol = yCol = iCol = -1;
             var index = 0;
+            var catDv: DataViewCategorical = dataView.categorical;
+            var values = catDv.values;
             if (typeof (dataView.metadata.columns[0].roles) !== 'undefined') {
                 for (var i = 0; i < dataView.metadata.columns.length; i++) {
                     var colRole = Object.keys(dataView.metadata.columns[i].roles)[0];
@@ -334,10 +337,15 @@ module powerbi.visuals {
                 xCol = 0;
                 yCol = 1;
                 iCol = 2;
+                if (typeof (values[xCol]) === 'undefined' ||
+                    typeof (values[yCol]) === 'undefined' ||
+                    (iCol !== -1 && typeof (values[iCol]) === 'undefined'))
+                {
+                    return {
+                        dataArray: dataPoints
+                    };
+                }
             }
-            var catDv: DataViewCategorical = dataView.categorical;
-            var values = catDv.values;
-            var dataPoints: HeatMapData[] = [];
 
             for (var k = 0, kLen = values[0].values.length; k < kLen; k++) {
 
@@ -348,7 +356,6 @@ module powerbi.visuals {
                 });
             }
 
-            //console.log(dataPoints);
             return {
                 dataArray: dataPoints
             };
@@ -366,10 +373,15 @@ module powerbi.visuals {
 
         /* Called for data, size, formatting changes*/ 
         public update(options: VisualUpdateOptions) {
-            this.dataView = options.dataViews[0];            
+            this.dataView = options.dataViews[0];      
+            this.currentViewport = options.viewport;      
             this.updateBackgroundUrl();
-            this.updateCanvasSize();
-            this.currentViewport = options.viewport;
+            this.redrawCanvas();            
+            
+        }   
+        
+        public redrawCanvas() {
+            //this.updateCanvasSize();
             this.updateInternal(false);
             this.heatMap.max(HeatMapChart.getFieldNumber(this.dataView, 'general', 'maxValue', this.maxValue));
             this.heatMap.radius(HeatMapChart.getFieldNumber(this.dataView, 'general', 'radius', 5), HeatMapChart.getFieldNumber(this.dataView, 'general', 'blur', 5));
@@ -379,8 +391,7 @@ module powerbi.visuals {
                 return [s.x, s.y, s.i];
             }));
             this.heatMap.draw();
-            
-        }       
+        }    
 
         /*About to remove your visual, do clean up here */ 
         public destroy() {
@@ -407,14 +418,14 @@ module powerbi.visuals {
                         selector: null,
                         properties: {
                             backgroundUrl: HeatMapChart.getFieldText(dataView, 'general', 'backgroundUrl', ''),
-                            radius: HeatMapChart.getFieldNumber(dataView, 'general', 'radius'),
-                            blur: HeatMapChart.getFieldNumber(dataView, 'general', 'blur'),
-                            maxWidth: HeatMapChart.getFieldNumber(dataView, 'general', 'maxWidth', 600),
-                            maxHeight: HeatMapChart.getFieldNumber(dataView, 'general', 'maxHeight', 480),
+                            radius: HeatMapChart.getFieldNumber(dataView, 'general', 'radius',5),
+                            blur: HeatMapChart.getFieldNumber(dataView, 'general', 'blur',15),
+//                            maxWidth: HeatMapChart.getFieldNumber(dataView, 'general', 'maxWidth', this.canvasWidth),
+//                            maxHeight: HeatMapChart.getFieldNumber(dataView, 'general', 'maxHeight', this.canvasHeight),
                             maxValue: HeatMapChart.getFieldNumber(dataView, 'general', 'maxValue', 1)
                         }
                     };
-                    instances.push(general);
+                    instances.push(general); 
                     break;               
             }
 
@@ -441,7 +452,39 @@ module powerbi.visuals {
             this.canvas = $('<canvas class="myclass" width="' + this.canvasWidth+'" height="'+this.canvasHeight+'">');
             this.updateBackgroundUrl();
             $(container).append(this.canvas);
+            this.writeHelpOnCanvas();
             this.updateInternal(false);
+        }
+
+        private writeHelpOnCanvas(): void {
+            var canvas = <HTMLCanvasElement>this.canvas[0];
+            var context = canvas.getContext("2d");
+            context.font = 'bold 10pt Calibri';
+            function wrapText(context, text, x, y, maxWidth, lineHeight) {
+                var words = text.split(' ');
+                var line = '';
+
+                for (var n = 0; n < words.length; n++) {
+                    var testLine = line + words[n] + ' ';
+                    var metrics = context.measureText(testLine);
+                    var testWidth = metrics.width;
+                    if (testWidth > maxWidth && n > 0) {
+                        context.fillText(line, x, y);
+                        line = words[n] + ' ';
+                        y += lineHeight;
+                    }
+                    else {
+                        line = testLine;
+                    }
+                }
+                context.fillText(line, x, y);
+            }
+            var border = 60;
+            var maxWidth = this.canvasWidth - border;
+            var lineHeight = 20;
+            var x = (this.canvasWidth - maxWidth) / 2;
+            var y = border;
+            wrapText(context, 'Select a background image, the width and height of the image should match the maximum x,y data points in the dataset.', x, y, maxWidth, lineHeight);
         }
 
         private updateBackgroundUrl() {
@@ -450,20 +493,29 @@ module powerbi.visuals {
                 this.canvas.css('background', 'url("' + newBackgroundUrl + '")');
                 this.canvas.css('background-size', '100% 100%');
                 this.backgroundUrl = newBackgroundUrl;
+                var img = new Image();
+                var self = this;
+                img.onload = function () {
+                    self.updateCanvasSize(this.width, this.height);
+                    //HeatMapChart.setFieldNumber(self.dataView, 'general', 'maxWidth', this.width);
+                    //HeatMapChart.setFieldNumber(self.dataView, 'general', 'maxHeight', this.height);
+                    self.redrawCanvas();                    
+                };
+                img.src = newBackgroundUrl;
             }
         }           
 
-        private updateCanvasSize()
+        private updateCanvasSize(newWidth: number, newHeight: number)
         {
             var updated = false;
-            var newWidth = HeatMapChart.getFieldNumber(this.dataView, 'general', 'maxWidth', this.canvasWidth);
+            //var newWidth = HeatMapChart.getFieldNumber(this.dataView, 'general', 'maxWidth', this.canvasWidth);
             if (this.canvasWidth !== newWidth) {
                 this.canvasWidth = newWidth;
                 (<HTMLCanvasElement>this.canvas[0]).width = newWidth;
                 updated = true;
             }
 
-            var newHeight = HeatMapChart.getFieldNumber(this.dataView, 'general', 'maxHeight', this.canvasHeight);
+            //var newHeight = HeatMapChart.getFieldNumber(this.dataView, 'general', 'maxHeight', this.canvasHeight);
             if (this.canvasHeight !== newHeight ) {
                 this.canvasHeight = newHeight;
                 (<HTMLCanvasElement>this.canvas[0]).height = newHeight;

@@ -313,7 +313,11 @@ module powerbitests {
     });
 
     describe("Slicer Interactivity", () => {
-        var v: powerbi.IVisual, element: JQuery, slicers: JQuery, slicerCheckboxInput: JQuery;
+        var v: powerbi.IVisual;
+        var element: JQuery;
+        var slicerText: JQuery;
+        var slicerCheckbox: JQuery;
+        var slicerCheckboxInput: JQuery;
         var hostServices: powerbi.IVisualHostServices;
         var clearSelectionSpy: jasmine.Spy;
         var originalRequestAnimationFrameCallback: (callback: Function) => number;
@@ -353,9 +357,11 @@ module powerbitests {
 
             v.onDataChanged(interactiveDataViewOptions);
             jasmine.clock().tick(0);
-            slicers = $(".slicerText");
 
+            slicerText = $(".slicerText");
+            slicerCheckbox = $(".slicerCheckbox");
             slicerCheckboxInput = $(".slicerCheckbox").find("input");
+
             spyOn(hostServices, "onSelect").and.callThrough();
         });
 
@@ -364,13 +370,36 @@ module powerbitests {
             jasmine.clock().uninstall();
         });
 
-        xit("slicer item select", () => {
-            jasmine.clock().tick(0);
-            (<any>slicers.eq(1)).d3Click(0, 0);
+        describe("slicer item select", () => {
+            xit("by text", () => {
+                jasmine.clock().tick(0);
+                (<any>slicerText.eq(1)).d3Click(0, 0);
 
-            expect(slicers[1].style.color).toBe("rgb(33, 33, 33)");
+                expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
+                expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(true);
+                expect(slicerText[2].style.color).toBe("rgb(102, 102, 102)");
+                expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(false);
+
+                expect(hostServices.onSelect).toHaveBeenCalledWith(
+                    {
+                        data:
+                        [
+                            {
+                                data: [
+                                    interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                ]
+                            }
+                        ]
+                    });
+            });
+
+            xit("by checkbox", () => {
+            jasmine.clock().tick(0);
+            (<any>slicerCheckbox.eq(1)).d3Click(0, 0);
+
+            expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(true);
-            expect(slicers[2].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[2].style.color).toBe("rgb(102, 102, 102)");
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(false);
 
             expect(hostServices.onSelect).toHaveBeenCalledWith(
@@ -385,32 +414,33 @@ module powerbitests {
                     ]
                 });
         });
+        });
 
         xit("slicer item multi-select checkboxes", () => {
             jasmine.clock().tick(0);
-            (<any>slicers.eq(1)).d3Click(0, 0);
+            (<any>slicerText.eq(1)).d3Click(0, 0);
 
-            expect(slicers[1].style.color).toBe("rgb(33, 33, 33)");
-            expect(slicers[2].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
+            expect(slicerText[2].style.color).toBe("rgb(102, 102, 102)");
             expect(d3.select(slicerCheckboxInput[0]).property("checked")).toBe(false);
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(false);
 
-            (<any>slicers.last()).d3Click(0, 0);
-            expect(slicers[5].style.color).toBe("rgb(33, 33, 33)");
+            (<any>slicerText.last()).d3Click(0, 0);
+            expect(slicerText[5].style.color).toBe("rgb(33, 33, 33)");
             expect(d3.select(slicerCheckboxInput[5]).property("checked")).toBe(true);
         });
 
         xit("slicer item repeated selection", () => {
             jasmine.clock().tick(0);
-            (<any>slicers.eq(1)).d3Click(0, 0);
+            (<any>slicerText.eq(1)).d3Click(0, 0);
 
-            expect(slicers[1].style.color).toBe("rgb(33, 33, 33)");
+            expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
 
-            (<any>slicers.last()).d3Click(0, 0);
-            (<any>slicers.last()).d3Click(0, 0);
+            (<any>slicerText.last()).d3Click(0, 0);
+            (<any>slicerText.last()).d3Click(0, 0);
                 
-            expect(slicers[5].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[5].style.color).toBe("rgb(102, 102, 102)");
 
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[5]).property("checked")).toBe(false);
@@ -422,12 +452,12 @@ module powerbitests {
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(false);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(false);
 
-            (<any>slicers.eq(0)).d3Click(0, 0);
+            (<any>slicerText.eq(0)).d3Click(0, 0);
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[5]).property("checked")).toBe(true);
 
-            (<any>slicers.eq(1)).d3Click(0, 0);
+            (<any>slicerText.eq(1)).d3Click(0, 0);
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(false);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[5]).property("checked")).toBe(true);
@@ -439,28 +469,28 @@ module powerbitests {
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(false);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(false);
 
-            (<any>slicers.eq(0)).d3Click(0, 0);
+            (<any>slicerText.eq(0)).d3Click(0, 0);
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[5]).property("checked")).toBe(true);
             var partialSelect = $(".partiallySelected");
             expect(partialSelect.length).toBe(0);
 
-            (<any>slicers.eq(1)).d3Click(0, 0);
+            (<any>slicerText.eq(1)).d3Click(0, 0);
             partialSelect = $(".partiallySelected");
             expect(partialSelect.length).toBe(1);
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(false);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(true);
             expect(d3.select(slicerCheckboxInput[5]).property("checked")).toBe(true);
 
-            (<any>slicers.eq(0)).d3Click(0, 0);
+            (<any>slicerText.eq(0)).d3Click(0, 0);
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(false);
             expect(d3.select(slicerCheckboxInput[2]).property("checked")).toBe(false);
             expect(d3.select(slicerCheckboxInput[5]).property("checked")).toBe(false);
             var partialSelect = $(".partiallySelected");
             expect(partialSelect.length).toBe(0);
 
-            (<any>slicers.eq(1)).d3Click(0, 0);
+            (<any>slicerText.eq(1)).d3Click(0, 0);
             partialSelect = $(".partiallySelected");
             expect(partialSelect.length).toBe(1);
             expect(d3.select(slicerCheckboxInput[1]).property("checked")).toBe(true);
@@ -473,22 +503,22 @@ module powerbitests {
             var clearBtn = $(".clear");
 
             // Slicer click
-            (<any>slicers.eq(1)).d3Click(0, 0);
-            expect(slicers[1].style.color).toBe("rgb(33, 33, 33)");
-            expect(slicers[2].style.color).toBe("rgb(102, 102, 102)");
+            (<any>slicerText.eq(1)).d3Click(0, 0);
+            expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
+            expect(slicerText[2].style.color).toBe("rgb(102, 102, 102)");
 
-            (<any>slicers.last()).d3Click(0, 0);
-            expect(slicers[5].style.color).toBe("rgb(33, 33, 33)");
+            (<any>slicerText.last()).d3Click(0, 0);
+            expect(slicerText[5].style.color).toBe("rgb(33, 33, 33)");
 
             /* Slicer clear */
             (<any>clearBtn.first()).d3Click(0, 0);
 
-            expect(slicers[0].style.color).toBe("rgb(102, 102, 102)");
-            expect(slicers[1].style.color).toBe("rgb(102, 102, 102)");
-            expect(slicers[2].style.color).toBe("rgb(102, 102, 102)");
-            expect(slicers[3].style.color).toBe("rgb(102, 102, 102)");
-            expect(slicers[4].style.color).toBe("rgb(102, 102, 102)");
-            expect(slicers[5].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[0].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[1].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[2].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[3].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[4].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[5].style.color).toBe("rgb(102, 102, 102)");
                 
             expect(hostServices.onSelect).toHaveBeenCalledWith({ data: [] });
         });
@@ -497,10 +527,10 @@ module powerbitests {
             jasmine.clock().tick(0);
             var event = document.createEvent("Event");
             event.initEvent("mouseover", true, true);
-            slicers[0].dispatchEvent(event);
+            slicerText[0].dispatchEvent(event);
 
-            expect(slicers[0].style.color).toBe("rgb(33, 33, 33)");
-            expect(slicers[1].style.color).toBe("rgb(102, 102, 102)");
+            expect(slicerText[0].style.color).toBe("rgb(33, 33, 33)");
+            expect(slicerText[1].style.color).toBe("rgb(102, 102, 102)");
             expect(d3.select(slicerCheckboxInput[0]).property("checked")).toBe(false);
         });
 
@@ -510,26 +540,26 @@ module powerbitests {
             // mouseover, mouseout
             var mouseOverEvent = document.createEvent("Event");
             mouseOverEvent.initEvent("mouseover", true, true);
-            slicers[0].dispatchEvent(mouseOverEvent);
-            expect(slicers[0].style.color).toBe("rgb(33, 33, 33)");
+            slicerText[0].dispatchEvent(mouseOverEvent);
+            expect(slicerText[0].style.color).toBe("rgb(33, 33, 33)");
 
             var mouseOutEvent = document.createEvent("Event");
             mouseOutEvent.initEvent("mouseout", true, true);
-            slicers[0].dispatchEvent(mouseOutEvent);
-            expect(slicers[0].style.color).toBe("rgb(102, 102, 102)");
+            slicerText[0].dispatchEvent(mouseOutEvent);
+            expect(slicerText[0].style.color).toBe("rgb(102, 102, 102)");
 
-            (<any>slicers.eq(1)).d3Click(0, 0);
-            expect(slicers[1].style.color).toBe("rgb(33, 33, 33)");
+            (<any>slicerText.eq(1)).d3Click(0, 0);
+            expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
 
             var mouseOverEvent1 = document.createEvent("Event");
             mouseOverEvent1.initEvent("mouseover", true, true);
-            slicers[1].dispatchEvent(mouseOverEvent1);
-            expect(slicers[1].style.color).toBe("rgb(33, 33, 33)");
+            slicerText[1].dispatchEvent(mouseOverEvent1);
+            expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
 
             var mouseOutEvent1 = document.createEvent("Event");
             mouseOutEvent1.initEvent("mouseout", true, true);
-            slicers[1].dispatchEvent(mouseOutEvent1);
-            expect(slicers[1].style.color).toBe("rgb(33, 33, 33)");
+            slicerText[1].dispatchEvent(mouseOutEvent1);
+            expect(slicerText[1].style.color).toBe("rgb(33, 33, 33)");
         });
 
         it("slicer loadMoreData noSegment", () => {
@@ -621,7 +651,7 @@ module powerbitests {
             v.onDataChanged(interactiveDataViewOptionWithCreate);
             jasmine.clock().tick(0);
             expect(renderSpy).toHaveBeenCalled();
-       });
+        });
 
         xit('show hide header test', () => {
             jasmine.clock().tick(0);

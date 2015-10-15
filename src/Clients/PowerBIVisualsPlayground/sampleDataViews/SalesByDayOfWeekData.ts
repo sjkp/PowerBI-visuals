@@ -39,12 +39,13 @@ module powerbi.visuals.sampleDataViews {
             'dataDotStackedColumnComboChart',
             'lineStackedColumnComboChart',
             'lineClusteredColumnComboChart',
-            'asterPlot'
+            'asterPlot',
+            'radarChart'
         ];
         
         private sampleData1 = [
-            [742731.43, 162066.43, 283085.78, 300263.49, 376074.57, 814724.34],
-            [123455.43, 40566.43, 200457.78, 5000.49, 320000.57, 450000.34]
+            [742731.43, 162066.43, 283085.78, 300263.49, 376074.57, 814724.34, 570921.34],
+            [123455.43, 40566.43, 200457.78, 5000.49, 320000.57, 450000.34, 140832.67]
         ];
 
         private sampleMin1: number = 30000;

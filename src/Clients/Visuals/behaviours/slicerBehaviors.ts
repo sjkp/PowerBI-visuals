@@ -47,9 +47,10 @@ module powerbi.visuals {
         public bindEvents(options: SlicerBehaviorOptions, selectionHandler: ISelectionHandler): void {
             let filterPropertyId = slicerProps.filterPropertyIdentifier;
             let slicers = options.slicerItemContainers;
-            let slicerItemLabels = this.slicerItemLabels = options.slicerItemLabels;
-            this.slicerItemInputs = options.slicerItemInputs;
             let slicerClear = options.slicerClear;
+
+            this.slicerItemLabels = options.slicerItemLabels;
+            this.slicerItemInputs = options.slicerItemInputs;
             this.dataPoints = options.dataPoints;
             this.interactivityService = options.interactivityService;
             this.slicerSettings = options.slicerSettings;
@@ -66,7 +67,7 @@ module powerbi.visuals {
                 this.renderMouseover();
             });
 
-            slicerItemLabels.on("click", (d: SlicerDataPoint) => {
+            slicers.on("click", (d: SlicerDataPoint) => {
                 d3.event.preventDefault();
                 if (d.isSelectAllDataPoint) {
                     selectionHandler.toggleSelectionModeInversion();

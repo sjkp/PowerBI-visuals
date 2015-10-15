@@ -100,7 +100,7 @@ module powerbi.visuals {
 
             let visualByDefault = jsCommon.Utility.getURLParamValue('visual');
             if (visualByDefault) {
-                $('.topBar, #options').css({ "display": "none" });
+                //$('.topBar, #options').css({ "display": "none" });
                 Playground.onVisualTypeSelection(visualByDefault.toString());
             } else {
                 this.onVisualTypeSelection($('#visualTypes').val());

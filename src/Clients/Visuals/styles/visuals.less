@@ -1791,3 +1791,69 @@ div.ql-toolbar {
         }
     }
 }
+
+.radarChart {
+    .axis {
+        path, line {
+            fill: none;
+            stroke: grey;
+            stroke-width: 1px;
+        }
+
+        text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+    }
+    .segments {
+        path, line {
+            fill: none;
+            stroke: grey;
+            stroke-opacity: 0.75;
+            stroke-width: 0.3px;
+        }
+    }
+}
+
+.dotPlot {
+    .axis{
+        path, line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+    }
+}
+
+.histogram {
+    @histogramAxesColor: @neutralSecondaryAltColor;
+    @histogramLegendTextColor: @blackColor;
+
+    font-family: @regularFontFamily;
+
+    .axis, .legends {
+        path, line {
+            fill: none;
+            stroke: @histogramAxesColor;
+            shape-rendering: crispEdges;
+        }
+
+        text {
+            fill: @histogramAxesColor;
+            font-size: 11px;
+        }
+    }
+
+    .legends {
+        text {
+            font-size: 12px;
+            fill: @histogramLegendTextColor;
+            text-anchor: middle;
+        }
+    }
+}
