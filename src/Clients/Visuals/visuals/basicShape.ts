@@ -31,7 +31,6 @@ module powerbi.visuals {
         general: BasicShapeDataViewObject;
         line: LineObject;
         fill: FillObject;
-        lockAspect: LockAspectObject;
         rotation: RotationObject;
     }
 
@@ -45,10 +44,6 @@ module powerbi.visuals {
     export interface FillObject extends DataViewObject {
         transparency: number;
         fillColor: Fill;
-        show: boolean;
-    }
-
-    export interface LockAspectObject extends DataViewObject {
         show: boolean;
     }
 
@@ -69,7 +64,6 @@ module powerbi.visuals {
         showFill: boolean;
         fillColor: string;
         shapeTransparency: number;
-        lockAspectRatio: boolean;
         roundEdge: number;
         angle: number;
     }
@@ -80,9 +74,10 @@ module powerbi.visuals {
         private data: BasicShapeData;
         private selection: D3.Selection;
 
-        public static DefaultShape: string = powerbi.basicShapeType.rectangle;
+        public static DefaultShape: string = basicShapeType.rectangle;
         public static DefaultStrokeColor: string = '#00B8AA';
         public static DefaultFillColor: string = '#E6E6E6';
+        public static DefaultFillShowValue: boolean = true; 
         public static DefaultFillTransValue: number = 100;
         public static DefaultWeightValue: number = 3;
         public static DefaultLineTransValue: number = 100;
@@ -127,7 +122,7 @@ module powerbi.visuals {
         }
         /**property for showing the fill properties */
         get showFill(): boolean {
-            return this.data ? this.data.showFill : true;
+            return this.data ? this.data.showFill : BasicShapeVisual.DefaultFillShowValue;
         }
         set showFill(show: boolean) {
             this.data.showFill = show;
@@ -146,19 +141,12 @@ module powerbi.visuals {
         set shapeTransparency(trans: number) {
             this.data.shapeTransparency = trans;
         }
-        /**property for showing the lock aspect ratio */
-        get lockAspectRatio(): boolean {
-            return this.data ? this.data.lockAspectRatio : false;
-        }
-        set lockAspectRatio(show: boolean) {
-            this.data.lockAspectRatio = show;
-        }
         /**property for the shape angle */
         get angle(): number {
             return this.data ? this.data.angle : BasicShapeVisual.DefaultAngle;
         }
         set angle(angle: number) {
-            this.data.angle = angle;
+            this.data.angle = this.scaleTo360Deg(angle);
         }
 
         public init(options: VisualInitOptions) {
@@ -190,20 +178,32 @@ module powerbi.visuals {
         private getDataFromDataView(dataViewObject: BasicShapeDataViewObjects): BasicShapeData {
             if (dataViewObject) {
                 return {
-                    shapeType: dataViewObject.general !== undefined && dataViewObject.general.shapeType !== undefined ? dataViewObject.general.shapeType : this.shapeType,
-                    lineColor: dataViewObject.line !== undefined && dataViewObject.line.lineColor !== undefined ? dataViewObject.line.lineColor.solid.color : this.lineColor,
-                    lineTransparency: dataViewObject.line !== undefined && dataViewObject.line.transparency !== undefined ? dataViewObject.line.transparency : this.lineTransparency,
-                    lineWeight: dataViewObject.line !== undefined && dataViewObject.line.weight !== undefined ? dataViewObject.line.weight : this.lineWeight,
-                    roundEdge: dataViewObject.line !== undefined && dataViewObject.line.roundEdge !== undefined ? dataViewObject.line.roundEdge : this.roundEdge,
-                    shapeTransparency: dataViewObject.fill !== undefined && dataViewObject.fill.transparency !== undefined ? dataViewObject.fill.transparency : this.shapeTransparency,
-                    fillColor: dataViewObject.fill !== undefined && dataViewObject.fill.fillColor !== undefined ? dataViewObject.fill.fillColor.solid.color : this.fillColor,
-                    showFill: dataViewObject.fill !== undefined && dataViewObject.fill.show !== undefined ? dataViewObject.fill.show : this.showFill,
-                    lockAspectRatio: dataViewObject.lockAspect !== undefined && dataViewObject.lockAspect.show !== undefined ? dataViewObject.lockAspect.show : this.lockAspectRatio,
-                    angle: dataViewObject.rotation !== undefined && dataViewObject.rotation.angle !== undefined ? dataViewObject.rotation.angle : this.angle
+                    shapeType: DataViewObjects.getValue(dataViewObject, basicShapeProps.general.shapeType, BasicShapeVisual.DefaultShape),
+                    lineColor: this.getValueFromColor(DataViewObjects.getValue(dataViewObject, basicShapeProps.line.lineColor, BasicShapeVisual.DefaultStrokeColor)),
+                    lineTransparency: DataViewObjects.getValue(dataViewObject, basicShapeProps.line.transparency, BasicShapeVisual.DefaultLineTransValue),
+                    lineWeight: DataViewObjects.getValue(dataViewObject, basicShapeProps.line.weight, BasicShapeVisual.DefaultWeightValue),
+                    roundEdge: DataViewObjects.getValue(dataViewObject, basicShapeProps.line.roundEdge, BasicShapeVisual.DefaultRoundEdgeValue),
+                    shapeTransparency: DataViewObjects.getValue(dataViewObject, basicShapeProps.fill.transparency, BasicShapeVisual.DefaultFillTransValue),
+                    fillColor: this.getValueFromColor(DataViewObjects.getValue(dataViewObject, basicShapeProps.fill.fillColor, BasicShapeVisual.DefaultFillColor)),
+                    showFill: DataViewObjects.getValue(dataViewObject, basicShapeProps.fill.show, BasicShapeVisual.DefaultFillShowValue),
+                    angle: this.scaleTo360Deg(DataViewObjects.getValue(dataViewObject, basicShapeProps.rotation.angle, BasicShapeVisual.DefaultAngle))
                 };
             }
 
             return null;
+        }
+
+        private scaleTo360Deg(angle: number): number {
+            if (angle !== 0 && (Math.abs(angle) % 360) === 0) return angle;
+
+            angle = angle % 360;
+            angle = (angle + 360) % 360;
+
+            return angle;
+        }
+
+        private getValueFromColor(color: any): string {
+            return color.solid ? color.solid.color : color;
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
@@ -220,13 +220,14 @@ module powerbi.visuals {
                         },
                         objectName: options.objectName
                     };
-                    if (this.data.shapeType === powerbi.basicShapeType.rectangle) {
+                    if (this.data.shapeType === basicShapeType.rectangle) {
                         instance.properties['roundEdge'] = this.roundEdge;
                     }
 
                     objectInstances.push(instance);
                     return objectInstances;
                 case 'fill':
+                    if (this.shapeType !== basicShapeType.line) {
                     objectInstances.push({
                         selector: null,
                         properties: {
@@ -236,17 +237,7 @@ module powerbi.visuals {
                         },
                         objectName: options.objectName
                     });
-
-                    return objectInstances;
-                case 'lockAspect':
-                    objectInstances.push({
-                        selector: null,
-                        properties: {
-                            show: this.lockAspectRatio
-                        },
-                        objectName: options.objectName
-                    });
-
+                    }
                     return objectInstances;
                 case 'rotation':
                     objectInstances.push({
@@ -268,24 +259,24 @@ module powerbi.visuals {
             this.selection.html('');
             
             switch (this.shapeType) {
-                case powerbi.basicShapeType.rectangle:
-                    shapeFactory.createRectangle(
+                case basicShapeType.rectangle:
+                    ShapeFactory.createRectangle(
                         this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
                     break;
-                case powerbi.basicShapeType.oval:
-                    shapeFactory.createOval(
+                case basicShapeType.oval:
+                    ShapeFactory.createOval(
                         this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
                     break;
-                case powerbi.basicShapeType.line:
-                    shapeFactory.createLine(
+                case basicShapeType.line:
+                    ShapeFactory.createLine(
                         this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
                     break;
-                case powerbi.basicShapeType.arrow:
-                    shapeFactory.createUpArrow(
+                case basicShapeType.arrow:
+                    ShapeFactory.createUpArrow(
                         this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
                     break;
-                case powerbi.basicShapeType.triangle:
-                    shapeFactory.createTriangle(
+                case basicShapeType.triangle:
+                    ShapeFactory.createTriangle(
                         this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
                     break;
                 default:

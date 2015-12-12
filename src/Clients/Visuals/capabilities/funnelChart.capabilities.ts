@@ -27,27 +27,31 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var funnelChartCapabilities: VisualCapabilities = {
+    export const funnelChartCapabilities: VisualCapabilities = {
         dataRoles: [
             {
                 name: 'Category',
                 kind: VisualDataRoleKind.Grouping,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Group'),
+                description: data.createDisplayNameGetter('Role_DisplayName_GroupFunnelDescription')
             }, {
                 name: 'Y',
                 kind: VisualDataRoleKind.Measure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Values'),
+                description: data.createDisplayNameGetter('Role_DisplayName_ValuesDescription'),
+                requiredTypes: [{ numeric: true }, { integer: true }],
             }, {
                 name: 'Gradient',
                 kind: VisualDataRoleKind.Measure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Gradient'),
+                description: data.createDisplayNameGetter('Role_DisplayName_GradientDescription'),
+                requiredTypes: [{ numeric: true }, { integer: true }],
             }
         ],
         dataViewMappings: [{
             conditions: [
                 // NOTE: Ordering of the roles prefers to add measures to Y before Gradient.
                 { 'Category': { max: 0 }, 'Gradient': { max: 0 } },
-                { 'Category': { max: 0 }, 'Y': { max: 1 }, 'Gradient': { max: 0 } },
                 { 'Category': { max: 1 }, 'Y': { max: 1 }, 'Gradient': { max: 1 } },
             ],
             categorical: {
@@ -56,11 +60,8 @@ module powerbi.visuals {
                     dataReductionAlgorithm: { top: {} }
                 },
                 values: {
-                    group: {
-                        by: 'Series',
-                        select: [{ bind: { to: 'Y' } }, { bind: { to: 'Gradient' } }],
-                        dataReductionAlgorithm: { top: {} }
-                    }
+                    select: [{ for: { in: 'Y' } }, { bind: { to: 'Gradient' } }],
+                    dataReductionAlgorithm: { top: {} }
                 },
                 rowCount: { preferred: { min: 1 } }
             },
@@ -76,6 +77,7 @@ module powerbi.visuals {
             },
             dataPoint: {
                 displayName: data.createDisplayNameGetter('Visual_DataPoint'),
+                description: data.createDisplayNameGetter('Visual_DataPointDescription'),
                 properties: {
                     defaultColor: {
                         displayName: data.createDisplayNameGetter('Visual_DefaultColor'),
@@ -100,6 +102,7 @@ module powerbi.visuals {
             },
             labels: {
                 displayName: data.createDisplayNameGetter('Visual_DataPointsLabels'),
+                description: data.createDisplayNameGetter('Visual_DataPointsLabelsDescription'),
                 properties: {
                     show: {
                         displayName: data.createDisplayNameGetter('Visual_Show'),
@@ -107,20 +110,27 @@ module powerbi.visuals {
                     },
                     color: {
                         displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
+                        description: data.createDisplayNameGetter('Visual_LabelsFillDescription'),
                         type: { fill: { solid: { color: true } } }
                     },
-
                     labelPosition: {
                         displayName: data.createDisplayNameGetter('Visual_Position'),
-                        type: { formatting: { labelPosition: true } }
+                        type: { enumeration: labelPosition.type }
                     },
                     labelDisplayUnits: {
                         displayName: data.createDisplayNameGetter('Visual_DisplayUnits'),
+                        description: data.createDisplayNameGetter('Visual_DisplayUnitsDescription'),
                         type: { formatting: { labelDisplayUnits: true } }
                     },
                     labelPrecision: {
                         displayName: data.createDisplayNameGetter('Visual_Precision'),
+                        description: data.createDisplayNameGetter('Visual_PrecisionDescription'),
+                        placeHolderText: data.createDisplayNameGetter('Visual_Precision_Auto'),
                         type: { numeric: true }
+                    },
+                    fontSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                        type: { formatting: { fontSize: true } }
                     },
                 }
             },
@@ -134,7 +144,7 @@ module powerbi.visuals {
         },
     };
 
-    export var funnelChartProps = {
+    export const funnelChartProps = {
         general: {
             formatString: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'formatString' },
         },

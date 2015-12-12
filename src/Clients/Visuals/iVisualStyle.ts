@@ -74,6 +74,9 @@ module powerbi {
         getSentimentColors(): IColorInfo[];
 
         getBasePickerColors(): IColorInfo[];
+
+        /** Gets all the colors for the color palette **/
+        getAllColors?(): IColorInfo[];
     }
 
     export interface IColorScale {
@@ -88,6 +91,8 @@ module powerbi {
 
         /** Returns a copy of the current scale. */
         clone(): IColorScale;
+
+        getDomain(): any[];
     }
 
     export interface IColorInfo extends IStyleInfo {

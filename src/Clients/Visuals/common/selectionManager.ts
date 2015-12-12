@@ -39,7 +39,7 @@ module powerbi.visuals.utility {
         }
 
         public select(selectionId: SelectionId, multiSelect: boolean = false): JQueryDeferred<SelectionId[]> {
-            var defered: JQueryDeferred<data.Selector[]> = $.Deferred();
+            let defered: JQueryDeferred<data.Selector[]> = $.Deferred();
 
             if (this.hostServices.shouldRetainSelection()) {
                 this.sendSelectionToHost([selectionId]);
@@ -58,7 +58,7 @@ module powerbi.visuals.utility {
         }
 
         public clear(): JQueryDeferred<{}> {
-            var defered = $.Deferred();
+            let defered = $.Deferred();
             this.selectedIds = [];
             this.sendSelectionToHost([]);
             defered.resolve();
@@ -70,13 +70,13 @@ module powerbi.visuals.utility {
         }
 
         private sendSelectionToHost(ids: SelectionId[]) {
-            var selectArgs: SelectEventArgs = {
+            let selectArgs: SelectEventArgs = {
                 data: ids
                     .filter((value: SelectionId) => value.hasIdentity())
                     .map((value: SelectionId) => value.getSelector())
             };
 
-            var data2: SelectorsByColumn[] = ids
+            let data2: SelectorsByColumn[] = ids
                 .filter((value: SelectionId) => value.getSelectorsByColumn() && value.hasIdentity())
                 .map((value: SelectionId) => value.getSelectorsByColumn());
 

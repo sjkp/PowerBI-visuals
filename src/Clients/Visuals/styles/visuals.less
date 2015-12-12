@@ -25,6 +25,7 @@
  */
 
 @import "sprites.less";
+@import "../../StyleLibrary/less/powervisuals-glyphs.less";
 @import "../../PowerBI/styles/colorPalette.less";
 @import "../../PowerBI/styles/fonts.less";
 @import "../../PowerBI/styles/mixins.less";
@@ -36,12 +37,11 @@
 @import (optional) "partitionMap.less";
 @import (optional) "sunburstChart.less";
 
-.slicerContainer {
+@defaultShapeRendering: crispEdges;
 
-    .slicerHeader {
-        margin: 0 0 0 8px;
-        box-sizing: border-box;
-    }
+.slicerHeader {
+    margin: 0 0 0 8px;
+    box-sizing: border-box;
 
     .headerText {
         color: @neutralPrimaryColor;
@@ -54,48 +54,110 @@
         float: none;
     }
 
+    .clear {
+        .sprite(@slicer-reset);
+        margin: 4px 2px;
+        float: right;
+        cursor: pointer;
+        display: block;
+        visibility: hidden;
+    }
+}
+
+.slicerContainer, .horizontalSlicerContainer {
+    &.hasSelection, &:hover {
+        .clear {
+            visibility: visible;
+        }   
+    }
+}
+
+.slicerContainer {
+
     .slicerItemContainer {
         margin: 2px 0 0 8px;
         box-sizing: border-box;
         white-space: nowrap;
+        cursor: pointer;
 
         * {
             display: table-cell;
-	        vertical-align: bottom;
+            vertical-align: bottom;
         }
 
-        &:hover .slicerCheckbox span::before {
-            opacity: 1;
+        img {
+            max-width:100px;
+            width:100%;
+        }
+
+        &:hover {
+            .slicerText {
+                color: @neutralDarkColor !important;
+            }
+
+            .slicerCheckbox {
+                span.checkbox {
+                    border-color: @neutralSecondaryColor;
+                }
+
+                &.selected span.checkbox {
+                    border-color: @neutralDarkColor;
+                }
+
+                &.partiallySelected span.checkbox::before {
+                    background-color: @neutralSecondaryColor;
+                }
+            }
         }
     }
 
     .slicerCheckbox {
         cursor: pointer;
+        vertical-align: middle;
 
         input {
             display: none;
         }
 
         span {
-            display: table-cell;
-        }
-
-        span::before {
-            content: '';
             display: inline-block;
-            vertical-align: middle;
-            .sprite(@slicer-checkbox);
-            opacity: 0.5;
+            width: 9px;
+            height: 9px;
+            border: 2px solid @neutralTertiaryAltColor;
+            box-shadow: inset 0px 0px 1px @neutralTertiaryAltColor;
         }
 
-        input:checked + span::before {
-            .sprite(@slicer-checkbox-selected);
-            opacity: 1;
+        &.selected {
+            border: none !important;
+
+            & + .slicerText {
+                color: @neutralDarkColor !important;
+            }
+
+            span.checkbox {
+                border-color: @neutralDarkColor;
+                background-color: @neutralDarkColor;
+                box-shadow: none;
+            }
         }
 
-        input.partiallySelected + span::before {
-            .sprite(@slicer-partially-selected);
-            opacity: 1;
+        &.partiallySelected {
+            span.checkbox {
+                background-color: transparent;
+                border-color: @neutralTertiaryAltColor;
+            }
+
+            span.checkbox::before {
+                content: '';
+                height: 3px;
+                width: 3px;
+                position: absolute;
+                display: inline-block;
+                margin: 3px 0 0px 3px;
+                background-color: @neutralTertiaryAltColor;
+                box-shadow: 0px 0px 2px @neutralTertiaryAltColor;
+                border: none;
+            }
         }
     }
 
@@ -104,13 +166,104 @@
         font-size: 14px;
     }
 
-    .clear {
-        .sprite(@slicer-reset);
-        // The total margin is referred in the slicer.ts file. Any changes to these values should also be updated in the ts file
-        margin: 4px 2px;
-        float: right;
-        cursor: pointer;
+    &.isMultiSelectEnabled .slicerCheckbox.selected:not(.partiallySelected) {
+        /* TODO: Use a checkmark glyph rather than drawing a custom one using transforms and offsets. */
+        span.checkbox::before {
+            content: '';
+            height: 8px;
+            width: 3px;
+            position: absolute;
+            display: inline-block;
+            margin: -2px 0 0 3px;
+            border-right: 2px solid @whiteColor;
+            border-bottom: 2px solid @whiteColor;
+            transform: rotate(45deg);
+        }
     }
+}
+
+.horizontalSlicerContainer {
+
+    .navigationArrow {
+        visibility: hidden;
+        background-color: white;
+
+        &.show {
+            visibility: visible;
+        }
+
+        &.right {
+            .sprite(@horizontal-slicer-right-arrow);
+        }
+
+        &.left {
+            .sprite(@horizontal-slicer-left-arrow);
+        }
+    }
+
+    .flexDisplay {
+        display: -ms-flexbox;
+        display: -moz-box;
+        display: flex;
+        -ms-flex-direction: row;
+        -moz-box-orient: horizontal;
+        flex-direction: row;
+    }
+
+    .slicerBody {
+        align-items: center;
+        -ms-flex-align: center;
+    }
+
+    .slicerItemsContainer {
+        vertical-align: top;
+    }
+
+    .slicerText {
+        display: -ms-flexbox;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-flex-direction: column;
+        -ms-flex-direction: column;
+        flex-direction: column;
+        -webkit-justify-content: center;
+        -ms-flex-pack: center;
+        justify-content: center;
+        -webkit-align-items: center;
+        -ms-flex-align: center;
+        align-items: center;
+
+        &.selected, &.partiallySelected {
+            color: @whiteColor !important;
+        }
+
+        &:hover {
+            background-color: @neutralLightColor !important;
+        }
+
+        &.selected {
+            background-color: rgba(51,51,51,1.0) !important;
+        }
+
+        &.partiallySelected {
+            background-color: rgba(51,51,51,0.6) !important;
+        }
+
+        &.selected:hover, &.partiallySelected:hover {
+            background-color: @neutralTertiaryAltColor !important;
+        }
+
+        > span {
+            text-align: center;
+        }
+    }
+}
+
+.overflowingText {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
 }
 
 .visual svg {
@@ -186,7 +339,7 @@
         .axis path, .axis line {
             fill: none;
             stroke: @neutralSecondaryAltColor;
-            shape-rendering: crispEdges;
+            shape-rendering: @defaultShapeRendering;
         }
     }
 
@@ -245,7 +398,7 @@
         .axis path, .axis line {
             fill: none;
             stroke: @neutralSecondaryAltColor;
-            shape-rendering: crispEdges;
+            shape-rendering: @defaultShapeRendering;
         }
     }
 }
@@ -270,14 +423,14 @@
         .axis path, .axis line {
             fill: none;
             stroke: @neutralSecondaryAltColor;
-            shape-rendering: crispEdges;
+            shape-rendering: @defaultShapeRendering;
         }
     }
 
     .waterfall-connector {
         stroke: @chartConnectorColor;
         stroke-width: 1px;
-        shape-rendering: crispEdges;
+        shape-rendering: @defaultShapeRendering;
     }
 }
 
@@ -302,13 +455,21 @@
     }
 
     .hover-line {
-        stroke: @chartAxisGridLineColor;
-        fill: rgba(235, 94, 94, 1.0);
+        stroke: @interactiveHoverLineColor;
+        pointer-events: none;
 
         .interactive {
-            stroke: @interactiveHoverLineColor;
             stroke-width: 3px;
             opacity: 1;
+        }
+
+        .selection-circle {
+            stroke: @chartAxisGridLineColor;
+        }
+
+        .circle-item {
+            stroke: none;
+            pointer-events: none;
         }
     }
 
@@ -328,7 +489,7 @@
         .axis path, .axis line {
             fill: none;
             stroke: @neutralSecondaryAltColor;
-            shape-rendering: crispEdges;
+            shape-rendering: @defaultShapeRendering;
         }
 
         .line {
@@ -341,7 +502,7 @@
 
 .funnelChart {
     line {
-        shape-rendering: crispEdges;
+        shape-rendering: @defaultShapeRendering;
     }
 
     .percentBars {
@@ -358,21 +519,15 @@
     }
 
     .axis {
-        path, line {
+        font-family: @regularFontFamily;
+        font-size: 11px;
+
+        path {
             fill: none;
-            stroke: #000;
         }
 
-        .data-labels {
-            font-size: 12px;
-        }
-
-        .tick line {
-            display: none;
-        }
-
-        .domain {
-            display: none;
+        .tick text {
+            fill: @neutralSecondaryAltColor;
         }
     }
 }
@@ -469,7 +624,7 @@
         .axis path, .axis line {
             fill: none;
             stroke: @neutralSecondaryAltColor;
-            shape-rendering: crispEdges;
+            shape-rendering: @defaultShapeRendering;
         }
     }
 }
@@ -502,8 +657,14 @@
         .axis path, .axis line {
             fill: none;
             stroke: @neutralSecondaryAltColor;
-            shape-rendering: crispEdges;
+            shape-rendering: @defaultShapeRendering;
         }
+    }
+
+    .play-axis-container {
+        position: absolute;
+        left: 16px;
+        bottom: 35px;
     }
 
     .button-container {
@@ -557,6 +718,10 @@
         right: 16px;
         color: @neutralSecondaryAltColor2;
         opacity: 0.5;
+        pointer-events: none;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
     }
 }
 
@@ -622,6 +787,8 @@
 
 .tablixContainer {
     overflow: auto;
+    /** Preserve previous dashboard tile font-size */
+    font-size: 11px;
 
     .bi-tablix {
         position: relative;
@@ -644,7 +811,6 @@
             margin: 0px;
             font-family: @semiboldFontFamily;
             color: @neutralSecondaryColor;
-            font-size: 14px;
             font-weight: normal;
         }
 
@@ -665,12 +831,20 @@
             border-bottom-width: 1pt;
             border-bottom-style: solid;
             border-bottom-color: #CCCCCC;
-            font-size: 16px;
             /* Having a right padding of 5px is crucial to make sure that we do not fire click events on the table column
                header (and trigger sorting) when resizing a column.  The allowed offset from the parent td's right border
                to trigger resizing is 4px (see TablixResizer.resizeHandleSize) and thus less than the 5px padding.
             */
             padding: 0px 5px 0px 10px;
+        }
+
+        .bi-table-column-header i {
+            visibility:hidden;
+        }
+
+        .bi-table-column-header.sorted i,
+        .bi-table-column-header:hover i {
+            visibility:visible;
         }
 
         .bi-table-cell-numeric {
@@ -683,14 +857,12 @@
             border-bottom-color: #E8E8E8;
             font-family: @semiboldFontFamily;
             color: @neutralPrimaryColor;
-            font-size: 14px;
             padding: 0px 0px 0px 10px;
         }
 
         .bi-table-last-row {
             font-family: @semiboldFontFamily;
             color: @neutralPrimaryColor;
-            font-size: 14px;
             padding: 0px 0px 0px 10px;
         }
 
@@ -700,7 +872,6 @@
             border-top-color: #CCCCCC;
             font-family: @boldFontFamily;
             color: @neutralPrimaryColor;
-            font-size: 14px;
             padding: 0px 5px 0px 10px;
         }
 
@@ -744,7 +915,6 @@
             text-align: right;
             font-family: @semiboldFontFamily;
             color: @neutralPrimaryColor;
-            font-size: 14px;
             padding: 0px 5px 0px 10px;
         }
 
@@ -802,7 +972,6 @@
             margin: 0px;
             font-family: @semiboldFontFamily;
             color: @neutralSecondaryColor;
-            font-size: 11px;
             font-weight: normal;
         }
 
@@ -823,7 +992,6 @@
             border-bottom-width: 1pt;
             border-bottom-style: solid;
             border-bottom-color: #CCCCCC;
-            font-size: 11px;
             padding: 0px 5px 0px 10px;
         }
 
@@ -837,14 +1005,12 @@
             border-bottom-color: #E8E8E8;
             font-family: @semiboldFontFamily;
             color: @neutralPrimaryColor;
-            font-size: 11px;
             padding: 0px 0px 0px 10px;
         }
 
         .bi-table-last-row {
             font-family: @semiboldFontFamily;
             color: @neutralPrimaryColor;
-            font-size: 11px;
             padding: 0px 0px 0px 10px;
         }
 
@@ -855,12 +1021,12 @@
             font-family: @regularFontFamily;
             font-weight: bold;
             color: @neutralPrimaryColor;
-            font-size: 11px;
             padding: 0px 5px 0px 10px;
         }
 
         .bi-tablix-header {
             padding: 0px 5px 0px 10px;
+            text-align: left;
         }
 
         .bi-tablix-row-header-leaf {
@@ -895,7 +1061,6 @@
             text-align: right;
             font-family: @regularFontFamily;
             color: @neutralPrimaryColor;
-            font-size: 11px;
             padding: 0px 5px 0px 10px;
         }
 
@@ -1006,6 +1171,7 @@
         .labels {
             font-family: @regularFontFamily;
             fill: @whiteColor;
+            pointer-events: none;
 
             .majorLabel {
                 font-size: 12px;
@@ -1017,293 +1183,11 @@
         }
     }
 
-    div {
-        &.kpiTrafficLightSingle0 {
-            .sprite(@kpi-traffic-light-single0)
-        }
-
-        &.kpiTrafficLightSingle1 {
-            .sprite(@kpi-traffic-light-single1)
-        }
-
-        &.kpiTrafficLightSingle2 {
-            .sprite(@kpi-traffic-light-single2)
-        }
-
-        &.kpiThreeFlagsColored0 {
-            .sprite(@kpi-three-flags-colored0)
-        }
-
-        &.kpiThreeFlagsColored1 {
-            .sprite(@kpi-three-flags-colored1)
-        }
-
-        &.kpiThreeFlagsColored2 {
-            .sprite(@kpi-three-flags-colored2)
-        }
-
-        &.kpiThreeStarsColored0 {
-            .sprite(@kpi-three-stars-colored0)
-        }
-
-        &.kpiThreeStarsColored1 {
-            .sprite(@kpi-three-stars-colored1)
-        }
-
-        &.kpiThreeStarsColored2 {
-            .sprite(@kpi-three-stars-colored2)
-        }
-
-        &.kpiThreeSymbolsUnCircledColored0 {
-            .sprite(@kpi-three-symbols-un-circled-colored0)
-        }
-
-        &.kpiThreeSymbolsUnCircledColored1 {
-            .sprite(@kpi-three-symbols-un-circled-colored1)
-        }
-
-        &.kpiThreeSymbolsUnCircledColored2 {
-            .sprite(@kpi-three-symbols-un-circled-colored2)
-        }
-
-        &.kpiRoadSigns0 {
-            .sprite(@kpi-road-signs0);
-        }
-
-        &.kpiRoadSigns1 {
-            .sprite(@kpi-road-signs1);
-        }
-
-        &.kpiRoadSigns2 {
-            .sprite(@kpi-road-signs2);
-        }
-
-        &.kpiTrafficLight0 {
-            .sprite(@kpi-traffic-light0);
-        }
-
-        &.kpiTrafficLight1 {
-            .sprite(@kpi-traffic-light1);
-        }
-
-        &.kpiTrafficLight2 {
-            .sprite(@kpi-traffic-light2);
-        }
-
-        &.kpiShapes0 {
-            .sprite(@kpi-shapes0);
-        }
-
-        &.kpiShapes1 {
-            .sprite(@kpi-shapes1);
-        }
-
-        &.kpiShapes2 {
-            .sprite(@kpi-shapes2);
-        }
-
-        &.kpiFiveBars0 {
-            .sprite(@kpi-five-bars-colored0);
-        }
-
-        &.kpiFiveBars1 {
-            .sprite(@kpi-five-bars-colored1);
-        }
-
-        &.kpiFiveBars2 {
-            .sprite(@kpi-five-bars-colored2);
-        }
-
-        &.kpiFiveBars3 {
-            .sprite(@kpi-five-bars-colored3);
-        }
-
-        &.kpiFiveBars4 {
-            .sprite(@kpi-five-bars-colored4);
-        }
-
-        &.kpiFiveBoxes0 {
-            .sprite(@kpi-five-boxes-colored0);
-        }
-
-        &.kpiFiveBoxes1 {
-            .sprite(@kpi-five-boxes-colored1);
-        }
-
-        &.kpiFiveBoxes2 {
-            .sprite(@kpi-five-boxes-colored2);
-        }
-
-        &.kpiFiveBoxes3 {
-            .sprite(@kpi-five-boxes-colored3);
-        }
-
-        &.kpiFiveBoxes4 {
-            .sprite(@kpi-five-boxes-colored4);
-        }
-
-        &.kpiGauge0 {
-            .sprite(@kpi-gauge-ascending0);
-        }
-
-        &.kpiGauge1 {
-            .sprite(@kpi-gauge-ascending1);
-        }
-
-        &.kpiGauge2 {
-            .sprite(@kpi-gauge-ascending2);
-        }
-
-        &.kpiGauge3 {
-            .sprite(@kpi-gauge-ascending3);
-        }
-
-        &.kpiGauge4 {
-            .sprite(@kpi-gauge-ascending4);
-        }
-
-        &.kpiTrafficLightSingleBig0 {
-            .sprite(@kpi-traffic-light-single0)
-        }
-
-        &.kpiTrafficLightSingleBig1 {
-            .sprite(@kpi-traffic-light-single1)
-        }
-
-        &.kpiTrafficLightSingleBig2 {
-            .sprite(@kpi-traffic-light-single2)
-        }
-
-        &.kpiThreeFlagsBigColored0 {
-            .sprite(@kpi-three-flags-colored0)
-        }
-
-        &.kpiThreeFlagsBigColored1 {
-            .sprite(@kpi-three-flags-colored1)
-        }
-
-        &.kpiThreeFlagsBigColored2 {
-            .sprite(@kpi-three-flags-colored2)
-        }
-
-        &.kpiThreeStarsBigColored0 {
-            .sprite(@kpi-three-stars-colored0)
-        }
-
-        &.kpiThreeStarsBigColored1 {
-            .sprite(@kpi-three-stars-colored1)
-        }
-
-        &.kpiThreeStarsBigColored2 {
-            .sprite(@kpi-three-stars-colored2)
-        }
-
-        &.kpiThreeSymbolsUnCircledBigColored0 {
-            .sprite(@kpi-three-symbols-un-circled-colored0)
-        }
-
-        &.kpiThreeSymbolsUnCircledBigColored1 {
-            .sprite(@kpi-three-symbols-un-circled-colored1)
-        }
-
-        &.kpiThreeSymbolsUnCircledBigColored2 {
-            .sprite(@kpi-three-symbols-un-circled-colored2)
-        }
-
-        &.kpiRoadSignsBig0 {
-            .sprite(@kpi-road-signs0);
-        }
-
-        &.kpiRoadSignsBig1 {
-            .sprite(@kpi-road-signs1);
-        }
-
-        &.kpiRoadSignsBig2 {
-            .sprite(@kpi-road-signs2);
-        }
-
-        &.kpiTrafficLightBig0 {
-            .sprite(@kpi-traffic-light0);
-        }
-
-        &.kpiTrafficLightBig1 {
-            .sprite(@kpi-traffic-light1);
-        }
-
-        &.kpiTrafficLightBig2 {
-            .sprite(@kpi-traffic-light2);
-        }
-
-        &.kpiShapesBig0 {
-            .sprite(@kpi-shapes0);
-        }
-
-        &.kpiShapesBig1 {
-            .sprite(@kpi-shapes1);
-        }
-
-        &.kpiShapesBig2 {
-            .sprite(@kpi-shapes2);
-        }
-
-        &.kpiFiveBarsBig0 {
-            .sprite(@kpi-five-bars-colored0);
-        }
-
-        &.kpiFiveBarsBig1 {
-            .sprite(@kpi-five-bars-colored1);
-        }
-
-        &.kpiFiveBarsBig2 {
-            .sprite(@kpi-five-bars-colored2);
-        }
-
-        &.kpiFiveBarsBig4 {
-            .sprite(@kpi-five-bars-colored3);
-        }
-
-        &.kpiFiveBarsBig5 {
-            .sprite(@kpi-five-bars-colored4);
-        }
-
-        &.kpiFiveBoxesBig0 {
-            .sprite(@kpi-five-boxes-colored0);
-        }
-
-        &.kpiFiveBoxesBig1 {
-            .sprite(@kpi-five-boxes-colored1);
-        }
-
-        &.kpiFiveBoxesBig2 {
-            .sprite(@kpi-five-boxes-colored2);
-        }
-
-        &.kpiFiveBoxesBig3 {
-            .sprite(@kpi-five-boxes-colored3);
-        }
-
-        &.kpiFiveBoxesBig4 {
-            .sprite(@kpi-five-boxes-colored4);
-        }
-
-        &.kpiGaugeBig0 {
-            .sprite(@kpi-gauge-ascending0);
-        }
-
-        &.kpiGaugeBig1 {
-            .sprite(@kpi-gauge-ascending1);
-        }
-
-        &.kpiGaugeBig2 {
-            .sprite(@kpi-gauge-ascending2);
-        }
-
-        &.kpiGaugeBig3 {
-            .sprite(@kpi-gauge-ascending3);
-        }
-
-        &.kpiGaugeBig4 {
-            .sprite(@kpi-gauge-ascending4);
+    .powervisuals-glyph {
+        font-size: inherit;
+
+        &.big-kpi {
+            font-size: 48px;
         }
     }
 }
@@ -1348,9 +1232,25 @@
         max-width: 390px;
     }
 
+    div.tooltip-header {
+        word-wrap: break-word;
+        max-width: 260px;
+        font-weight: bold;
+        color: @whiteColor;
+        letter-spacing: 1px;
+        padding-bottom: 4px;
+    }
+
     .tooltip-row {
         display: table-row;
         line-height: 16px;
+    }
+
+    div.tooltip-color-cell {
+        display: table-cell;
+        vertical-align: top;
+        max-width: 13px;
+        padding-right: 4px;
     }
 
     div.tooltip-title-cell {
@@ -1366,6 +1266,7 @@
     div.tooltip-value-cell {
         display: table-cell;
         word-wrap: break-word;
+        font-family: @regularFontFamily;
         max-width: 260px;
         font-weight: bold;
         color: @whiteColor;
@@ -1401,6 +1302,15 @@
     }
 }
 
+.labelGraphicsContext {
+    .label {
+        font-size: 12px;
+        text-anchor: middle;
+        font-family: @regularSecondaryFontFamily;
+    }
+}
+
+/* Kept around for funnel labels; can be removed once it's moved to the new system */
 .data-labels {
     font-size: 12px;
     text-anchor: middle;
@@ -1702,10 +1612,21 @@ div.ql-toolbar {
 
     &.sad {
         .owlGaugeBg {
-            .st0{ fill:#EF4137; }
-            .st1{ fill:#FAAF42; }
-            .st2{ fill:#F15B2A; }
-            .st3{ fill:#F15B2A; }
+            .st0 {
+                fill: #EF4137;
+            }
+
+            .st1 {
+                fill: #FAAF42;
+            }
+
+            .st2 {
+                fill: #F15B2A;
+            }
+
+            .st3 {
+                fill: #F15B2A;
+            }
         }
 
         .owlGaugeTail {
@@ -1715,10 +1636,21 @@ div.ql-toolbar {
 
     &.meh {
         .owlGaugeBg {
-            .st0{ fill:#F18D05; }
-            .st1{ fill:#FAAF42; }
-            .st2{ fill:#F15B2A; }
-            .st3{ fill:#F15B2A; }
+            .st0 {
+                fill: #F18D05;
+            }
+
+            .st1 {
+                fill: #FAAF42;
+            }
+
+            .st2 {
+                fill: #F15B2A;
+            }
+
+            .st3 {
+                fill: #F15B2A;
+            }
         }
 
         .owlGaugeTail {
@@ -1728,10 +1660,21 @@ div.ql-toolbar {
 
     &.happy {
         .owlGaugeBg {
-            .st0{ fill:#32742C; }
-            .st1{ fill:#D0D102; }
-            .st2{ fill:#61AE24; }
-            .st3{ fill:#23AA65; }
+            .st0 {
+                fill: #32742C;
+            }
+
+            .st1 {
+                fill: #D0D102;
+            }
+
+            .st2 {
+                fill: #61AE24;
+            }
+
+            .st3 {
+                fill: #23AA65;
+            }
         }
 
         .owlGaugeTail {
@@ -1740,7 +1683,7 @@ div.ql-toolbar {
     }
 
     > svg {
-        position:absolute;
+        position: absolute;
         transition: all 0.25s;
     }
 
@@ -1771,12 +1714,26 @@ div.ql-toolbar {
     }
 
     @keyframes owlTailAmbientAnimation {
-        0% { transform: rotate(2deg); }
-        50% { transform: rotate(-2deg); }
-        100% { transform: rotate(2deg); }
+        0% {
+            transform: rotate(2deg);
+        }
+
+        50% {
+            transform: rotate(-2deg);
+        }
+
+        100% {
+            transform: rotate(2deg);
+        }
     }
 }
-    
+
+
+.visual-sandbox {
+    border: none;
+    overflow: hidden;
+}
+
 .streamGraph {
     .axis{
         path, line {
@@ -1830,6 +1787,30 @@ div.ql-toolbar {
     }
 }
 
+.timeline {
+    .axis{
+        path, line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+    }
+}
+
+.sunBurstPercentage{
+    font-weight:bold;
+    opacity:0;
+}
+.sunBurstPercentageFixed{
+    font-weight:bold;
+    opacity:0;
+}
+
 .histogram {
     @histogramAxesColor: @neutralSecondaryAltColor;
     @histogramLegendTextColor: @blackColor;
@@ -1857,3 +1838,30 @@ div.ql-toolbar {
         }
     }
 }
+
+.areaRangeChart {
+    @areaRangeChartAxesColor: @neutralSecondaryAltColor;
+    @areaRangeChartLegendTextColor: @blackColor;
+
+    font-family: @regularFontFamily;
+
+    .axis {
+        path, line {
+            fill: none;
+            stroke: @areaRangeChartAxesColor;
+            shape-rendering: crispEdges;
+        }
+
+        text {
+            fill: @areaRangeChartAxesColor;
+            font-size: 11px;
+        }
+    }
+
+    .chart {
+        path, line {
+            stroke-width: 1;
+        }
+    }
+}
+

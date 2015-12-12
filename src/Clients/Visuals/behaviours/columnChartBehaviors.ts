@@ -32,7 +32,6 @@ module powerbi.visuals {
         bars: D3.Selection;
         mainGraphicsContext: D3.Selection;
         hasHighlights: boolean;
-        labelLayout: ILabelLayout;
         viewport: IViewport;
         axisOptions: ColumnAxisOptions;
         showLabel: boolean;
@@ -52,16 +51,8 @@ module powerbi.visuals {
 
         public renderSelection(hasSelection: boolean) {
             let options = this.options;
-            options.bars.style("fill-opacity",(d: ColumnChartDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && options.hasHighlights));
+            options.bars.style("fill-opacity", (d: ColumnChartDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && options.hasHighlights));
 
-            //selected column/bar chart have a different parameters for method getFillOpacity - labels of dimmed shapes should not be drawn, than there is a new filter that uses a new parameters
-            if (options.showLabel) {
-                options.labelLayout.filter = ((d: ColumnChartDataPoint) => dataLabelUtils.getColumnChartLabelFilter(d, hasSelection, options.hasHighlights, options.axisOptions, options.viewport.width));
-                dataLabelUtils.drawDefaultLabelsForDataPointChart(options.datapoints, options.mainGraphicsContext, options.labelLayout, options.viewport);
-            }
-            else {
-                dataLabelUtils.cleanDataLabels(options.mainGraphicsContext);
-            }
         }
     }
 } 

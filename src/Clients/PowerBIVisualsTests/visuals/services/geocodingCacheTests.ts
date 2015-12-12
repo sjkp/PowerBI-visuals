@@ -27,15 +27,15 @@
 /// <reference path="../../_references.ts"/>
 
 module powerbitests {
-    import IGeocodeCache = powerbi.visuals.BI.Services.IGeocodingCache;
-    import GeocodeQuery = powerbi.visuals.BI.Services.GeocodingManager.GeocodeQuery;
+    import IGeocodeCache = powerbi.visuals.services.IGeocodingCache;
+    import GeocodeQuery = powerbi.visuals.services.GeocodeQuery;
+    import createGeocodingCache = powerbi.visuals.services.createGeocodingCache;
 
     describe('General GeocodeCache Tests', () => {
-        var cache: IGeocodeCache;
-        var createGeocodingCache = powerbi.visuals.BI.Services.createGeocodingCache;
+        let cache: IGeocodeCache;
 
-        var maxCacheSize = 3000;
-        var maxCacheSizeOverflow = 100;
+        const maxCacheSize = 3000;
+        const maxCacheSizeOverflow = 100;
 
         beforeEach(() => {
             cache = createGeocodingCache(maxCacheSize, maxCacheSizeOverflow);
@@ -43,10 +43,10 @@ module powerbitests {
         });
 
         it('Cache Hit', () => {
-            var washingtonQuery = new GeocodeQuery("Washington", "State");
-            var washingtonCoord = { latitude: 10, longitude: 10 };
-            var utahQuery = new GeocodeQuery("Utah", "State");
-            var utahCoord = { latitude: 15, longitude: 15 };
+            let washingtonQuery = new GeocodeQuery("Washington", "State");
+            let washingtonCoord = { latitude: 10, longitude: 10 };
+            let utahQuery = new GeocodeQuery("Utah", "State");
+            let utahCoord = { latitude: 15, longitude: 15 };
             cache.registerCoordinates(washingtonQuery, washingtonCoord);
             cache.registerCoordinates(utahQuery, utahCoord);
 
@@ -55,11 +55,11 @@ module powerbitests {
         });
 
         it('Cache Miss', () => {
-            var washingtonQuery = new GeocodeQuery("Washington", "State");
-            var washingtonCoord = { latitude: 10, longitude: 10 };
-            var utahQuery = new GeocodeQuery("Utah", "State");
-            var utahCoord = { latitude: 15, longitude: 15 };
-            var newYorkQuery = new GeocodeQuery("New York", "State");
+            let washingtonQuery = new GeocodeQuery("Washington", "State");
+            let washingtonCoord = { latitude: 10, longitude: 10 };
+            let utahQuery = new GeocodeQuery("Utah", "State");
+            let utahCoord = { latitude: 15, longitude: 15 };
+            let newYorkQuery = new GeocodeQuery("New York", "State");
             cache.registerCoordinates(washingtonQuery, washingtonCoord);
             cache.registerCoordinates(utahQuery, utahCoord);
 
@@ -67,26 +67,28 @@ module powerbitests {
         });
 
         it('Local storage hit', () => {
-            var washingtonQuery = new GeocodeQuery("Washington", "State");
-            var washingtonCoord = { latitude: 10, longitude: 10 };
+            let washingtonQuery = new GeocodeQuery("Washington", "State");
+            let washingtonCoord = { latitude: 10, longitude: 10 };
             cache.registerCoordinates(washingtonQuery, washingtonCoord);
-            var newCache = createGeocodingCache(maxCacheSize, maxCacheSizeOverflow);
+            let newCache = createGeocodingCache(maxCacheSize, maxCacheSizeOverflow);
 
             expect(newCache.getCoordinates(washingtonQuery)).toEqual(washingtonCoord);
         });
 
         it('Doesnt crash on null coordinate', () => {
-            var tinyCache = createGeocodingCache(1, 1);
+            let tinyCache = createGeocodingCache(1, 1);
             tinyCache['geocodeCache']['null'] = null;
-            var washingtonQuery = new GeocodeQuery("Washington", "State");
-            var washingtonCoord = { latitude: 10, longitude: 10 };
+            let washingtonQuery = new GeocodeQuery("Washington", "State");
+            let washingtonCoord = { latitude: 10, longitude: 10 };
             tinyCache.registerCoordinates(washingtonQuery, washingtonCoord);
-            var utahQuery = new GeocodeQuery("Utah", "State");
-            var utahCoord = { latitude: 15, longitude: 15 };
+            let utahQuery = new GeocodeQuery("Utah", "State");
+            let utahCoord = { latitude: 15, longitude: 15 };
             tinyCache.registerCoordinates(utahQuery, utahCoord);
-            var newYorkQuery = new GeocodeQuery("New York", "State");
-            var newYorkCoords = { latitude: 20, longitude: 20 };
+            let newYorkQuery = new GeocodeQuery("New York", "State");
+            let newYorkCoords = { latitude: 20, longitude: 20 };
             tinyCache.registerCoordinates(newYorkQuery, newYorkCoords);
+
+            expect(tinyCache).toBeDefined();
         });
     });
 }

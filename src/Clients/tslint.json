@@ -67,6 +67,8 @@
     ],
     "no-static-this": false,
     "bi-duplicate-variable": false,
-    "no-equals-nan":  true
+    "no-equals-nan": true,
+    "no-underscore-prefix-for-variables": false,
+    "function-return-type-required": false
   }
 }

@@ -42,4 +42,5 @@ interface ErrorInfoKeyValuePair {
 interface ErrorDetails {
     message: string;
     additionalErrorInfo: ErrorInfoKeyValuePair[];
+    helpLink?: string;
 }

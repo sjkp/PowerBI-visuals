@@ -31,34 +31,34 @@ module powerbitests {
 
     describe('Ephemeral Storage Service', () => {
         it('get with existing key retrieves data', () => {
-            var storage = new EphemeralStorageService();
+            let storage = new EphemeralStorageService();
 
             storage.setData('key', 'value');
 
-            var value = storage.getData('key');
+            let value = storage.getData('key');
 
             expect(value).toBe('value');
         });
 
         it('get with non-existing key returns null', () => {
-            var storage = new EphemeralStorageService();
+            let storage = new EphemeralStorageService();
 
             storage.setData('key1', 'value');
 
-            var value = storage.getData('key2');
+            let value = storage.getData('key2');
 
             expect(value == null).toBeTruthy();
         });
 
         it('cache is cleared after interval', (done) => {
-            var timeout = 10;
-            var storage = new EphemeralStorageService(timeout);
+            let timeout = 10;
+            let storage = new EphemeralStorageService(timeout);
 
             storage.setData('key', 'value');
 
             setTimeout(() => {
                 // cache should be cleared by now
-                var value = storage.getData('key');
+                let value = storage.getData('key');
                 expect(value == null).toBeTruthy();
                 done();
             }, timeout + 10);

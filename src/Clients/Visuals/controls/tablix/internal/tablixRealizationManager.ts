@@ -246,11 +246,12 @@ module powerbi.visuals.controls.internal {
 
             let startColumnIndex: number = this._owner.dimension.getIntegerScrollOffset();
             let endColumnIndex: number = this._owner.dimension.getItemsCount();
-            this.itemsEstimatedContextualWidth = 0;
+            let columnCount = endColumnIndex - startColumnIndex;
 
             let startRowIndex: number = this._owner.otherLayoutManager.dimension.getIntegerScrollOffset();
-            let endRowIndex = Math.min(startRowIndex + this.rowRealizationManager.itemsToRealizeCount, this._owner.otherLayoutManager.dimension.getItemsCount() - 1);
-            let columnCount = endColumnIndex - startColumnIndex;
+            let endRowIndex = this._owner.otherLayoutManager.dimension.getItemsCount();
+
+            this.itemsEstimatedContextualWidth = 0;
 
             if (this._owner.alignToEnd) {
                 this.itemsToRealizeCount = columnCount;

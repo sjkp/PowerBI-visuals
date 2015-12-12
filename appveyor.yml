@@ -46,9 +46,5 @@ build_script:
 #---------------------------------#
 
 test_script:
-  - gulp build:visuals_tests
-  - gulp install:jasmine
-  - gulp install:phantomjs
-  - gulp combine:all
-  - gulp copy:dependencies_visuals_tests
-  - gulp run:test
+  - gulp build:visualsTests
+  - gulp run:test:visuals

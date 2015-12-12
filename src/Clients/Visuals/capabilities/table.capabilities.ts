@@ -27,10 +27,10 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var tableCapabilities: VisualCapabilities = {
+    export const tableCapabilities: VisualCapabilities = {
         dataRoles: [{
             name: 'Values',
-            kind: VisualDataRoleKind.GroupingOrMeasure
+            kind: VisualDataRoleKind.GroupingOrMeasure,
         }],
         objects: {
             general: {
@@ -38,6 +38,9 @@ module powerbi.visuals {
                 properties: {
                     formatString: {
                         type: { formatting: { formatString: true } },
+                    },
+                    columnWidth: {
+                        type: { numeric: true }
                     },
                     totals: {
                         type: { bool: true },
@@ -47,17 +50,18 @@ module powerbi.visuals {
                         type: { bool: true },
                         displayName: data.createDisplayNameGetter('Visual_Adjust_Column_Width')
                     },
-                    columnWidth: {
+                    textSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
                         type: { numeric: true }
-                    }
+                    },
                 },
-            }
+            },
         },
         dataViewMappings: [{
             table: {
                 rows: {
                     for: { in: 'Values' },
-                    dataReductionAlgorithm: { window: { count: 100 } }
+                    dataReductionAlgorithm: { window: { count: 500 } }
                 },
                 rowCount: { preferred: { min: 1 } }
             },
@@ -66,5 +70,6 @@ module powerbi.visuals {
             custom: {},
         },
         suppressDefaultTitle: true,
+        supportsSelection: false,
     };
 }

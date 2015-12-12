@@ -34,7 +34,7 @@
 
 module debug {
 
-    export var assertFailFunction: {
+    export let assertFailFunction: {
         (message: string): void;
     };
 
@@ -52,6 +52,15 @@ module debug {
      */
     export function assertValue<T>(value: T, message: string): void {
         if (value === null || value === undefined) {
+            assertFail(message || ('condition: ' + value));
+        }
+    }
+
+    /**
+     * Asserts that the value is neither null nor undefined, and has a length property that returns greater than zero, fails otherwise. 
+     */
+    export function assertNonEmpty<T>(value: T[], message: string): void {
+        if (!(value != null && value.length > 0)) {
             assertFail(message || ('condition: ' + value));
         }
     }

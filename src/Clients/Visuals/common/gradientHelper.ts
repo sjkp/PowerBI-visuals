@@ -48,7 +48,9 @@ module powerbi.visuals {
 
         import SQExprBuilder = powerbi.data.SQExprBuilder;
         import DataViewObjectPropertyDefinition = powerbi.data.DataViewObjectPropertyDefinition;
-        let DefaultMidColor: string = "#ffffff";
+        const DefaultMidColor: string = "#ffffff";
+        const DataPointPropertyIdentifier: string = "dataPoint";
+        const FillRulePropertyIdentifier: string = "fillRule";
 
         export function getFillRuleRole(objectDescs: powerbi.data.DataViewObjectDescriptors): string {
             if (!objectDescs)
@@ -58,7 +60,7 @@ module powerbi.visuals {
                 let objectDesc = objectDescs[objectName];
                 for (let propertyName in objectDesc.properties) {
                     let propertyDesc = objectDesc.properties[propertyName];
-                    if (propertyDesc.type && propertyDesc.type['fillRule']) {
+                    if (propertyDesc.type && propertyDesc.type[FillRulePropertyIdentifier]) {
                         return propertyDesc.rule.inputRole;
                     }
                 }
@@ -129,8 +131,8 @@ module powerbi.visuals {
 
         export function updateFillRule(propertyName: string, propertyValue: any, definitions: powerbi.data.DataViewObjectDefinitions): void {
 
-            let dataPointProperties: any = definitions["dataPoint"][0].properties;
-            let fillRule: FillRuleDefinition = <FillRuleDefinition>dataPointProperties.fillRule;
+            let dataPointObjectDefinition: data.DataViewObjectDefinition = data.DataViewObjectDefinitions.ensure(definitions, DataPointPropertyIdentifier, null);
+            let fillRule: FillRuleDefinition = getFillRule(definitions);
             let numericValueExpr: data.SQConstantExpr;
             let colorValueExpr: data.SQExpr;
 
@@ -171,11 +173,11 @@ module powerbi.visuals {
                 else {
                     fillRule = getLinearGradien2FillRuleDefinition(fillRule);
                 }
-                dataPointProperties.fillRule = fillRule;
+                dataPointObjectDefinition.properties[FillRulePropertyIdentifier] = fillRule;
             }
             else if (propertyName === "revertToDefault") {
                 fillRule = this.getDefaultFillRuleDefinition();
-                dataPointProperties.fillRule = fillRule;
+                dataPointObjectDefinition.properties[FillRulePropertyIdentifier] = fillRule;
             }
         }
 
@@ -189,10 +191,8 @@ module powerbi.visuals {
         }
 
         export function getFillRule(objectDefinitions: data.DataViewObjectDefinitions): FillRuleDefinition {
-            if (objectDefinitions && objectDefinitions["dataPoint"] && objectDefinitions["dataPoint"].length > 0 && objectDefinitions["dataPoint"][0].properties) {
-                return <FillRuleDefinition>objectDefinitions["dataPoint"][0].properties['fillRule'];
-            }
-            return null;
+            let fillRuleDefinition: FillRuleDefinition = data.DataViewObjectDefinitions.getValue(objectDefinitions, { objectName: DataPointPropertyIdentifier, propertyName: FillRulePropertyIdentifier }, null);
+            return fillRuleDefinition;
         }
 
         function getDefaultColors(): GradientColors {

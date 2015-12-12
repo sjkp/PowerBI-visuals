@@ -41,11 +41,34 @@ module powerbitests.helpers {
         dataViewSourceWithErrors: '{"descriptor":{"Select":[{"Kind":1,"Depth":0,"Value":"G0"},{"Kind":2,"Value":"M0","Subtotal":["A0"],"Min":["A2"],"Max":["A1"]}],"Expressions":{"Primary":{"Groupings":[{"Keys":[{"Source":{"Entity":"DimDate","Property":"Month Name"},"Select":0},{"Source":{"Entity":"DimDate","Property":"Month Number"},"Calc":"K0"}]}]}}},"dsr":{"DataShapes":[{"Id":"DS0","odata.error":{"code":"rsDataShapeQueryTranslationError","message":{"lang":"da-DK","value":"Data Shape Query translation failed with error code: \'InvalidExpression\'. Check the report server logs for more information."},"azure:values":[{"timestamp":"2015-01-15T07:44:45.8135124Z"},{"details":"Microsoft.ReportingServices.DataShapeQueryTranslation.DataShapeQueryTranslationException: Data Shape Query translation failed with error code: \'InvalidExpression\'. Check the report server logs for more information."},{"helpLink":"http://go.microsoft.com/fwlink/?LinkId=20476&EvtSrc=Microsoft.ReportingServ…Error&ProdName=Microsoft%20SQL%20Server%20Reporting%20Services&ProdVer=1.0"},{"productInfo":{"productName":"change this","productVersion":"1.0","productLocaleId":127,"operatingSystem":"OsIndependent","countryLocaleId":1033}},{"moreInformation":{"odata.error":{"code":"System.Exception","message":{"lang":"da-DK","value":"For more information about this error navigate to the report server on the local server machine, or enable remote errors"},"azure:values":[{"details":"System.Exception: For more information about this error navigate to the report server on the local server machine, or enable remote errors"}]}}}]}}]}}',
     };
 
-    export function testDom(height:string, width:string): JQuery {
-        var testhtml = '<div id="item" style="height: '+height+'px; width: '+width+'px;"></div>';
+    export function fireOnDataChanged(visual: powerbi.IVisual, dataOptions: powerbi.VisualDataChangedOptions): void {
+        visual.onDataChanged(dataOptions);
+
+        jasmine.clock().tick(0);
+    }
+
+    export function testDom(height: string, width: string): JQuery {
+        var testhtml = '<div id="item" style="height: ' + height + 'px; width: ' + width + 'px;"></div>';
         setFixtures(testhtml);
         var element = $('#item');
         return element;
+    }
+
+    /**
+     * Waits for some time and then Executes a function asynchronously
+     * @param {function} fn Function to be executed
+     * @param {number} delay Time to wait in milliseconds
+     */
+    export function executeWithDelay(fn: Function, delay: number): void {
+        // Uninstalling jasmine.clock() to enable using the following timer
+        jasmine.clock().uninstall();
+        // Waiting until scroll takes effect
+        setTimeout(() => {
+            // Calling the assert function
+            fn();
+        }, delay);
+        // installing the clock again
+        jasmine.clock().install();
     }
 
     export function isTranslateCloseTo(actualTranslate: string, expectedX: number, expectedY: number): boolean {
@@ -117,7 +140,7 @@ module powerbitests.helpers {
                 null);  // relatedTarget
 
             e.dispatchEvent(evt);
-        }); 
+        });
     };
 
     export function runWithImmediateAnimationFrames(func: () => void): void {
@@ -190,6 +213,42 @@ module powerbitests.helpers {
         return date;
     }
 
+    export function createMouseWheelEvent(eventName: string, delta: number): MouseWheelEvent {
+        let evt = document.createEvent("MouseEvents");
+        evt.initMouseEvent(
+            eventName,
+            true,  // boolean canBubbleArg,
+            true,  // boolean cancelableArg,
+            null,  // views::AbstractView viewArg,
+            120,   // long detailArg,
+            0,     // long screenXArg,
+            0,     // long screenYArg,
+            0,     // long clientXArg,
+            0,     // long clientYArg,
+            false, // boolean ctrlKeyArg,
+            false, // boolean altKeyArg,
+            false, // boolean shiftKeyArg,
+            false, // boolean metaKeyArg,
+            0,     // unsigned short buttonArg,
+            null   // EventTarget relatedTargetArg
+            );
+        let mouseEvt = <MouseWheelEvent>evt;
+        mouseEvt.wheelDelta = delta;
+
+        return mouseEvt;
+    }
+
+    /**
+    * The original string, which ended with '...' was always placed in the DOM
+    * CSS text-overflow property with value ellipsis was truncating the text visually
+    * This function verifies the width and visual truncation are working appropriately
+    */
+    export function verifyEllipsisActive($element: JQuery): void {
+        let element = $element.get(0);
+        expect($element.css('textOverflow')).toBe('ellipsis');
+        expect(element.offsetWidth).toBeLessThan(element.scrollWidth);
+    }
+
     /** 
     Checks if value is in the given range 
     @val Value to check
@@ -200,7 +259,28 @@ module powerbitests.helpers {
     export function isInRange(val: number, min: number, max: number): Boolean {
         return min <= val && val <= max;
     }
-    
+
+    export function assertColorsMatch(actual: string, expected: string, invert: boolean = false): boolean {
+        let rgbActual = jsCommon.Color.parseColorString(actual);
+        let rgbExpected = jsCommon.Color.parseColorString(expected);
+
+        if (invert)
+            return expect(rgbActual).not.toEqual(rgbExpected);
+        else
+            return expect(rgbActual).toEqual(rgbExpected);
+    }
+
+    export function verifyPositionAttributes(element: JQuery): void {
+        let checkAttrs = ['x', 'y', 'x1', 'x2', 'y1', 'y2'];
+        for (let attr of checkAttrs) {
+            let value = element.attr(attr);
+            if (!value)
+                continue;
+            let numericValue = parseInt(element.attr(attr), 10);
+            expect(isNaN(numericValue)).toBe(false);
+        }
+    }
+
     export class DataViewBuilder {
         private dataView: powerbi.DataView = { metadata: null };
 
@@ -358,85 +438,85 @@ module powerbitests.helpers {
             }
         }
     }
-    
+
     export class VisualBuilder {
         private height: number;
-        
+
         private width: number;
-        
+
         private pluginType: string;
-        
+
         private visualPluginService: powerbi.visuals.IVisualPluginService;
-        
+
         private visualHostService: powerbi.IVisualHostServices;
-        
+
         public get host(): powerbi.IVisualHostServices {
             return this.visualHostService;
         }
-        
+
         private visualStyle: powerbi.IVisualStyle;
-        
+
         private jQueryElement: JQuery;
-        
+
         public get element(): JQuery {
             return this.jQueryElement;
         }
-        
+
         private visualPlugin: powerbi.IVisual;
-        
+
         public get visual(): powerbi.IVisual {
             return this.visualPlugin;
         }
-        
+
         public transitionImmediate: boolean = true;
-        
+
         public interactivitySelection: boolean = false;
-        
+
         constructor(
             visualPluginService: powerbi.visuals.IVisualPluginService,
             pluginType: string,
             height: number = 500,
             width: number = 500
-        ) {
+            ) {
             this.visualPluginService = visualPluginService;
             this.pluginType = pluginType;
             this.height = height;
             this.width = width;
         }
-        
+
         private init(): void {
             this.createElement();
             this.createHost();
             this.createStyle();
             this.createVisual();
-            
+
             this.initVisual();
         }
-        
+
         private createElement(): void {
             this.jQueryElement = powerbitests.helpers.testDom(
                 this.height.toString(),
                 this.width.toString());
         }
-        
+
         private createHost(): void {
             this.visualHostService = powerbitests.mocks.createVisualHostServices();
         }
-        
+
         private createStyle(): void {
             this.visualStyle = powerbi.visuals.visualStyles.create();
         }
-        
+
         private createVisual(): void {
             if (this.visualPluginService)
-                this.visualPlugin = 
-                    this.visualPluginService.getPlugin(this.pluginType).create();
+                this.visualPlugin =
+                this.visualPluginService.getPlugin(this.pluginType).create();
         }
-        
+
         private initVisual(): void {
-            if(!this.visualPlugin)
+            if (!this.visualPlugin)
                 return;
-            
+
             this.visualPlugin.init({
                 element: this.jQueryElement,
                 host: this.visualHostService,
@@ -453,17 +533,17 @@ module powerbitests.helpers {
                 }
             });
         }
-        
+
         public setSize(height: number, width: number): void {
             this.height = height;
             this.width = width;
-            
+
             this.init();
         }
-        
+
         public build(): powerbi.IVisual {
             this.init();
-            
+
             return this.visualPlugin;
         }
     }

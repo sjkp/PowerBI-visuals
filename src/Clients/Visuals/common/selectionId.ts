@@ -40,6 +40,7 @@ module powerbi.visuals {
         // This is a new data structure to support drilling -- in the long term it should replace the 'selector' field
         private selectorsByColumn: SelectorsByColumn;
         private key: string;
+        private keyWithoutHighlight: string;
 
         public highlight: boolean;
 
@@ -47,6 +48,7 @@ module powerbi.visuals {
             this.selector = selector;
             this.highlight = highlight;
             this.key = JSON.stringify({ selector: selector ? Selector.getKey(selector) : null, highlight: highlight });
+            this.keyWithoutHighlight = JSON.stringify({ selector: selector ? Selector.getKey(selector) : null });
         }
 
         public equals(other: SelectionId): boolean {
@@ -87,6 +89,10 @@ module powerbi.visuals {
 
         public getKey(): string {
             return this.key;
+        }
+
+        public getKeyWithoutHighlight(): string {
+            return this.keyWithoutHighlight;
         }
         
         /**

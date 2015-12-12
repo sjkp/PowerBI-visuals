@@ -50,7 +50,14 @@ module powerbi.visuals {
         public getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.SQExpr[], value: string): string {
             return (this.fillProp && DataViewObjects.getFillColor(objects, this.fillProp))
                 || this.defaultDataPointColor
-                || this.colors.getColorScaleByKey(SQExprShortSerializer.serializeArray(fieldIds || [])).getColor(value).value;
+                || this.getColorScaleForSeries(fieldIds).getColor(value).value;
+        }
+
+        /**
+         * Gets the color scale for the given series.
+         */
+        public getColorScaleForSeries(fieldIds: powerbi.data.SQExpr[]): IColorScale {
+            return this.colors.getColorScaleByKey(SQExprShortSerializer.serializeArray(fieldIds || []));
         }
 
         /** 

@@ -32,24 +32,24 @@ module jsCommon {
      * Represents a lazily instantiated value.
      */
     export class Lazy<T> {
-        private _value: T;
-        private _factoryMethod: () => T;
+        private value: T;
+        private factoryMethod: () => T;
 
         constructor(factoryMethod: () => T) {
             Utility.throwIfNullOrUndefined(factoryMethod, this, 'constructor', 'factoryMethod');
 
-            this._factoryMethod = factoryMethod;
+            this.factoryMethod = factoryMethod;
         }
 
         public getValue(): T {
-            if (this._factoryMethod !== null) {
-                this._value = this._factoryMethod();
+            if (this.factoryMethod !== null) {
+                this.value = this.factoryMethod();
 
                 // Optimization: Release the factoryMethod, as it could be holding a large object graph.
-                this._factoryMethod = null;
+                this.factoryMethod = null;
             }
 
-            return this._value;
+            return this.value;
         }
     }
 }

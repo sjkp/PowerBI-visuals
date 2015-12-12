@@ -27,10 +27,11 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi {
+    import StringExtensions = jsCommon.StringExtensions;
 
-    var maxExponent = 24;
-    var defaultScientificBigNumbersBoundary = 1E14;
-    var scientificSmallNumbersBoundary = 1E-4;
+    const maxExponent = 24;
+    const defaultScientificBigNumbersBoundary = 1E14;
+    const scientificSmallNumbersBoundary = 1E-4;
 
     export class DisplayUnit {
         // Fields
@@ -121,11 +122,11 @@ module powerbi {
                 }
                 if (decimals != null) {
                     if (trailingZeros && format && DisplayUnitSystem.NUMBER_FORMAT.test(format)) {
-                        var formatWithPrecision = DisplayUnitSystem.getFormatWithPrecision(decimals);
+                        let formatWithPrecision = DisplayUnitSystem.getFormatWithPrecision(decimals);
                         //Using the regex below we can maintain the original format (with/without dot, $ etc.) while forcing precision.
-                        var regex = /^[a-zA-Z0-9- ]*$/.test(format) ?/.0*/g:/0\.0*/g;
+                        let regex = /^[a-zA-Z0-9- ]*$/.test(format) ?/.0*/g:/0\.0*/g;
                         format = format.replace(regex, formatWithPrecision);
-                        var decimalsForFormatting = this.getNumberOfDecimalsForFormatting(format, decimals);
+                        let decimalsForFormatting = this.getNumberOfDecimalsForFormatting(format, decimals);
                         return this.formatHelper(value, value, '', format, decimalsForFormatting, trailingZeros);
                     }
                     if (trailingZeros) {
@@ -180,15 +181,15 @@ module powerbi {
 
         private static getFormatWithPrecision(decimals?: number): string {
             if (decimals == null) return 'G';
-            return ",0." + jsCommon.StringExtensions.repeat('0',Math.abs(decimals));
+            return ",0." + StringExtensions.repeat('0',Math.abs(decimals));
         }
 
         /** Formats a single value by choosing an appropriate base for the DisplayUnitSystem before formatting. */
-        public formatSingleValue(value: number, format: string, decimals?: number): string {
+        public formatSingleValue(value: number, format: string, decimals?: number, trailingZeros?: boolean): string {
             // Change unit base to a value appropriate for this value
             this.update(this.shouldUseValuePrecision(value) ? Double.getPrecision(value, 8) : value);
 
-            return this.format(value, format, decimals);
+            return this.format(value, format, decimals, trailingZeros);
         }
 
         private shouldUseValuePrecision(value: number): boolean {
@@ -221,6 +222,15 @@ module powerbi {
             }
             return formatString;
         }
+
+        protected isScientific(value: number): boolean {
+            return value < - defaultScientificBigNumbersBoundary || value > defaultScientificBigNumbersBoundary ||
+                (-scientificSmallNumbersBoundary < value && value < scientificSmallNumbersBoundary && value !== 0);
+        }
+
+        protected hasScientitifcFormat(format: string): boolean {
+            return !format || format.toUpperCase().indexOf("E") < 0;
+        }
     }
 
     /** Provides a unit system that is defined by formatting in the model, and is suitable for visualizations shown in single number visuals in explore mode. */
@@ -245,17 +255,11 @@ module powerbi {
         // Methods
         public format(data: number, format: string, decimals?: number, trailingZeros?: boolean): string {
             // Use scientific format outside of the range
-            if (!this.displayUnit && this.isScientific(data) && !DisplayUnitSystem.UNSUPPORTED_FORMATS.test(format)) {
-                if (!format || format.toUpperCase().indexOf("E") < 0) {
+            if (!this.displayUnit && super.isScientific(data) && !DisplayUnitSystem.UNSUPPORTED_FORMATS.test(format)) {
+                if (super.hasScientitifcFormat(format))
                     format = "0.######E+0";
-                }
             }
             return super.format(data, format, decimals, trailingZeros);
-        }
-
-        private isScientific(value: number): boolean {
-            return value < - defaultScientificBigNumbersBoundary || value > defaultScientificBigNumbersBoundary ||
-                (-scientificSmallNumbersBoundary < value && value < scientificSmallNumbersBoundary && value !== 0);
         }
 
         public static reset(): void {
@@ -314,6 +318,7 @@ module powerbi {
         // Constants
         static UNSUPPORTED_FORMATS = /^(e\d*)$/i;
         static PERCENTAGE_FORMAT = '%';
+        static SUPPORTED_SCIENTIFIC_FORMATS = /^(0*\.*\,*#*-*)*$/i;
 
         private static _units: DisplayUnit[];
 
@@ -356,6 +361,24 @@ module powerbi {
                 DataLabelsDisplayUnitSystem._units = units.concat(createDisplayUnits(unitLookup, adjustMinBasedOnPreviousUnit));
             }
             return DataLabelsDisplayUnitSystem._units;
+        }
+
+        public format(data: number, format: string, decimals?: number, trailingZeros?: boolean): string {
+            // Use scientific format outside of the range
+            if (this.shouldFallbackToScientific(data, format)) {
+                if (trailingZeros && decimals)
+                    format = "0." + StringExtensions.repeat('0', Math.abs(decimals)) + "E+0";
+                else
+                    format = "0E+0";
+            }
+            return super.format(data, format, decimals, trailingZeros);
+        }
+
+        private shouldFallbackToScientific(value: number, format: string) {
+            return !this.displayUnit &&
+                super.isScientific(value) &&
+                (format ? DataLabelsDisplayUnitSystem.SUPPORTED_SCIENTIFIC_FORMATS.test(format) : true) &&
+                super.hasScientitifcFormat(format);
         }
     }
 

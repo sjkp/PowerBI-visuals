@@ -26,10 +26,7 @@
 
 /// <reference path="../_references.ts"/>
 
-module powerbi.visuals.BI.Services {
-    import GeocodeQuery = GeocodingManager.GeocodeQuery;
-    import IGeocodeCoordinate = GeocodingManager.IGeocodeCoordinate;
-
+module powerbi.visuals.services {
     interface IGeocodePair {
         query: GeocodeQuery;
         coordinate: IGeocodeCoordinate;
@@ -38,6 +35,7 @@ module powerbi.visuals.BI.Services {
     export interface IGeocodingCache {
         getCoordinates(query: GeocodeQuery): IGeocodeCoordinate;
         registerCoordinates(query: GeocodeQuery, coordinate: IGeocodeCoordinate): void;
+        registerCoordinates(query: GeocodeQuery, coordinate: IGeocodeBoundaryCoordinate): void;
     }
 
     export function createGeocodingCache(maxCacheSize: number, maxCacheSizeOverflow: number): IGeocodingCache {

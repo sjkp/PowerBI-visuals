@@ -31,7 +31,7 @@ module powerbitests {
     import DataViewTransform = powerbi.data.DataViewTransform;
 
     describe("dataRoleHelper tests", () => {
-        var dataViewBuilder: DataViewBuilder;
+        let dataViewBuilder: DataViewBuilder;
 
         beforeEach(() => {
             dataViewBuilder = new DataViewBuilder();
@@ -52,11 +52,11 @@ module powerbitests {
                 {displayName: "col4", isMeasure: true, roles: {"Y": true}}
             ];
 
-            var dataView: powerbi.DataView = dataViewBuilder.build();
+            let dataView: powerbi.DataView = dataViewBuilder.build();
 
-            var grouped = dataView.categorical.values.grouped();
+            let grouped = dataView.categorical.values.grouped();
 
-            var result = DataRoleHelper.getMeasureIndexOfRole(grouped, "InvalidRoleName");
+            let result = DataRoleHelper.getMeasureIndexOfRole(grouped, "InvalidRoleName");
             expect(result).toBe(-1);
 
             result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
@@ -77,11 +77,11 @@ module powerbitests {
                 { displayName: "col4", isMeasure: true }
             ];
 
-            var dataView: powerbi.DataView = dataViewBuilder.build();
+            let dataView: powerbi.DataView = dataViewBuilder.build();
 
-            var grouped = dataView.categorical.values.grouped();
+            let grouped = dataView.categorical.values.grouped();
 
-            var result = DataRoleHelper.getMeasureIndexOfRole(grouped, "InvalidRoleName");
+            let result = DataRoleHelper.getMeasureIndexOfRole(grouped, "InvalidRoleName");
             expect(result).toBe(-1);
 
             result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
@@ -102,11 +102,11 @@ module powerbitests {
                 {displayName: "col4", isMeasure: true}
             ];
 
-            var dataView: powerbi.DataView = dataViewBuilder.build();
+            let dataView: powerbi.DataView = dataViewBuilder.build();
 
-            var grouped = dataView.categorical.values.grouped();
+            let grouped = dataView.categorical.values.grouped();
 
-            var result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
+            let result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
             expect(result).toBe(-1);
         });
 
@@ -118,22 +118,22 @@ module powerbitests {
                 {displayName: "col2", isMeasure: true}
             ];
 
-            var dataView: powerbi.DataView = dataViewBuilder.build();
+            let dataView: powerbi.DataView = dataViewBuilder.build();
 
-            var grouped = dataView.categorical.values.grouped();
+            let grouped = dataView.categorical.values.grouped();
 
-            var result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "2nd measure");
+            let result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "2nd measure");
             expect(result).toBe(-1);
         });
 
         it("hasRoleInDataView", () => {
-            var dataViewMetadata: powerbi.DataViewMetadata = {
+            let dataViewMetadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: "col1", roles: { "Series": true } },
                     { displayName: "col2", isMeasure: true, roles: { "Size": true } },
                 ]
             };
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: dataViewMetadata
             };
             expect(DataRoleHelper.hasRoleInDataView(dataView, "Series")).toBe(true);
@@ -189,10 +189,10 @@ module powerbitests {
         private categoricalValues: any[] = [];
 
         private updateCategoricalValues() {
-            var categoricalValues: any[] = [];
+            let categoricalValues: any[] = [];
 
-            for (var i = 1; i < this.columns.length && (i - 1) < this.values.length; i++) {
-                var categoricalValue = this.values[i - 1];
+            for (let i = 1; i < this.columns.length && (i - 1) < this.values.length; i++) {
+                let categoricalValue = this.values[i - 1];
                 categoricalValue.source = this.columns[i];
 
                 categoricalValues.push(categoricalValue);

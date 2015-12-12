@@ -28,12 +28,12 @@
 
 module powerbi.visuals {
 
-    var BeautifiedFormat: { [x: string]: string } = {
+    const BeautifiedFormat: { [x: string]: string } = {
         '0.00 %;-0.00 %;0.00 %': 'Percentage',
         '0.0 %;-0.0 %;0.0 %': 'Percentage1',
     };
 
-    var defaultLocalizedStrings = {
+    const defaultLocalizedStrings = {
         'NullValue': '(Blank)',
         'BooleanTrue': 'True',
         'BooleanFalse': 'False',
@@ -57,6 +57,10 @@ module powerbi.visuals {
         'RichTextbox_Link_DefaultText': 'Link',
         'TableTotalLabel': 'Total',
         'Tooltip_HighlightedValueDisplayName': 'Highlighted',
+        'Funnel_PercentOfFirst': 'Percent of first',	
+        'Funnel_PercentOfPrevious': 'Percent of previous',
+        'Funnel_PercentOfFirst_Highlight': 'Percent of first (highlight)',
+        'Funnel_PercentOfPrevious_Highlight': 'Percent of previous (highlight)',
         // Geotagging strings
         'GeotaggingString_Continent': 'continent',
         'GeotaggingString_Continents': 'continents',
@@ -148,6 +152,7 @@ module powerbi.visuals {
         public setWarnings(warnings: IVisualWarning[]): void { }
         public setToolbar($toolbar: JQuery): void { }
         public shouldRetainSelection(): boolean { return false; }
+        public geocoder(): IGeocoder { return services.createGeocoder(); }
 
         private static beautify(format: string): string {
             let key = BeautifiedFormat[format];
@@ -167,5 +172,5 @@ module powerbi.visuals {
         }
     }
 
-    export var defaultVisualHostServices: IVisualHostServices = new DefaultVisualHostServices();
+    export const defaultVisualHostServices: IVisualHostServices = new DefaultVisualHostServices();
 } 

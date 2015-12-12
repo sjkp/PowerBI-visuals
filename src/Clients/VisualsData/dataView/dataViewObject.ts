@@ -92,5 +92,14 @@ module powerbi {
 
             return propertyValue;
         }
+
+        /** Gets the solid color from a fill property using only a propertyName */
+        export function getFillColorByPropertyName(objects: DataViewObjects, propertyName: string, defaultColor?: string): string {
+            let value: Fill = DataViewObject.getValue(objects, propertyName);
+            if (!value || !value.solid)
+                return defaultColor;
+
+            return value.solid.color;
+        }
     }
 }

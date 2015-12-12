@@ -29,7 +29,6 @@
 module powerbi.visuals.samples {
     export interface StreamData {
         dataPoints: StreamDataPoint[][];
-        legendData: LegendData;
     }
 
     export interface StreamDataPoint {
@@ -86,39 +85,25 @@ module powerbi.visuals.samples {
                     }
                 }
             },
-            //drilldown:{roles:['Series']}
+            drilldown:{roles:['Series']}
         };
 
         private static VisualClassName = 'streamGraph';
-        private static Layer: ClassAndSelector = {
-            class: 'layer',
-            selector: '.layer'
-        };
+        private static Layer: jsCommon.CssConstants.ClassAndSelector = jsCommon.CssConstants.createClassAndSelector('layer');
 
         private svg: D3.Selection;
         private axis: D3.Selection;
         private colors: IDataColorPalette;
         private selectionManager: utility.SelectionManager;
         private dataView: DataView;
-        private legend: ILegend;
 
         public static converter(dataView: DataView, colors: IDataColorPalette): StreamData {
             var catDv: DataViewCategorical = dataView.categorical;
             var values = catDv.values;
             var dataPoints: StreamDataPoint[][] = [];
-            var legendData: LegendData = {
-                dataPoints: [],
-                title: values[0].source.displayName
-            };
+            
             for (var i = 0, iLen = values.length; i < iLen; i++) {
                 dataPoints.push([]);
-                legendData.dataPoints.push({
-                    label: values[i].source.groupName,
-                    color: colors.getColorByIndex(i).value,
-                    icon: LegendIcon.Box,
-                    selected: false,
-                    identity: null
-                });
                 for (var k = 0, kLen = values[i].values.length; k < kLen; k++) {
                     var id = SelectionIdBuilder
                         .builder()
@@ -134,7 +119,6 @@ module powerbi.visuals.samples {
 
             return {
                 dataPoints: dataPoints,
-                legendData: legendData
             };
         }
 
@@ -148,8 +132,6 @@ module powerbi.visuals.samples {
             this.axis = this.svg.append("g");
 
             this.colors = options.style.colorPalette.dataColors;
-
-            this.legend = createLegend(element,false, null);
         }
 
         public update(options: VisualUpdateOptions) {
@@ -161,8 +143,6 @@ module powerbi.visuals.samples {
             var dataPoints = data.dataPoints;
             var viewport = options.viewport;
             var margins: IMargin = { left: 20, right: 20, bottom: 25, top: 25 };
-
-            this.legend.drawLegend(data.legendData, viewport);
 
             var height = options.viewport.height - margins.top;
 

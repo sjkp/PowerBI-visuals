@@ -31,9 +31,9 @@ module powerbitests {
     import ListViewOptions = powerbi.visuals.ListViewOptions;
     
     describe("List view tests", () => {
-        var listViewBuilder: ListViewBuilder;
+        let listViewBuilder: ListViewBuilder;
 
-        var data = [
+        let data = [
             { first: "Mickey", second: "Mouse" },
             { first: "Mini", second: "Mouse" },
             { first: "Daffy", second: "Duck" },
@@ -55,7 +55,7 @@ module powerbitests {
             listViewBuilder.buildHtmlListView();
 
             setTimeout(() => {
-                var itemCount = listViewBuilder.element.find(".item").length;
+                let itemCount = listViewBuilder.element.find(".item").length;
                 expect(itemCount).toBeGreaterThan(0);
                 expect(itemCount).toBeLessThan(9); // Some should be virtualized, so shouldn"t show all 9 items
                 done();
@@ -66,12 +66,12 @@ module powerbitests {
             listViewBuilder.isSpy = true;
             listViewBuilder.buildHtmlListView();
             setTimeout(() => {
-                var lastElem = listViewBuilder.element.find(".item").last().text();
+                let lastElem = listViewBuilder.element.find(".item").last().text();
 
                 expect(lastElem).not.toEqual("-->Sachin-->Patney");
                 listViewBuilder.element.scrollTop(1000);
                 setTimeout(() => {
-                    var lastElem2 = listViewBuilder.element.find(".item").last().text();
+                    let lastElem2 = listViewBuilder.element.find(".item").last().text();
                     expect(lastElem2).toEqual("-->Sachin-->Patney");
                     expect(listViewBuilder.spy).toHaveBeenCalled();
                     done();
@@ -160,7 +160,7 @@ module powerbitests {
         }
 
         private buildHtmlListViewOptions() {
-            var rowEnter = (rowSelection: D3.Selection) => {
+            let rowEnter = (rowSelection: D3.Selection) => {
                 rowSelection
                     .append("div")
                     .style("height", "30px")
@@ -173,7 +173,7 @@ module powerbitests {
                     .append("span");
             };
 
-            var rowUpdate = (rowSelection: D3.Selection) => {
+            let rowUpdate = (rowSelection: D3.Selection) => {
                 rowSelection
                     .selectAll(".item")
                     .selectAll("span")
@@ -199,9 +199,9 @@ module powerbitests {
         }
 
         private generateNestedData(tuples: any[]) {
-            var testData = [];
+            let testData = [];
 
-            for (var i = 0; i < this.data.length; i++) {
+            for (let i = 0; i < this.data.length; i++) {
                 testData.push({
                     id: i,
                     children: [

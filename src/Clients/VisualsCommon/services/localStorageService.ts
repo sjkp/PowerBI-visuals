@@ -37,7 +37,10 @@ module powerbi {
         public getData(key: string): any {
             try {
                 if (localStorage) {
-                    return JSON.parse(localStorage[key]);
+                    let value = localStorage[key];
+                    if (value) {
+                        return JSON.parse(value);
+                    }
                 }
             }
             catch (exception) {}
@@ -88,5 +91,5 @@ module powerbi {
     }
 
     export var localStorageService: IStorageService = new LocalStorageService();
-    export var ephemeralStorageService: IStorageService = new EphemeralStorageService();
+    export const ephemeralStorageService: IStorageService = new EphemeralStorageService();
 }

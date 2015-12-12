@@ -29,12 +29,6 @@
 module powerbi.visuals {
     import Utility = jsCommon.Utility;
 
-    export var imageScalingType = {
-        normal: "Normal",
-        fit: "Fit",
-        fill: "Fill"
-    };
-
     export interface ImageDataViewObjects extends DataViewObjects {
         general: ImageDataViewObject;
         imageScaling: ImageScalingDataViewObject;

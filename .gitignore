@@ -32,16 +32,20 @@ Docs
 # ThirdPartyIP
 src/Clients/Externals/ThirdPartyIP/JasmineJQuery/jasmine-jquery.js
 
-# Combine/Min Files
+# Combine/Min/PNG Files
 src/Clients/Visuals/images/visuals.sprites.png
 src/Clients/Visuals/styles/sprites.less
 src/Clients/PowerBIVisualsPlayground/**/*.js
 src/Clients/PowerBIVisualsPlayground/**/*.d.ts
 src/Clients/PowerBIVisualsPlayground/visuals.min.css
 src/Clients/PowerBIVisualsPlayground/visuals.css
+src/Clients/PowerBIVisualsPlayground/images/visuals.sprites.png
 
 # Test Files
 VisualsTests
 
 # Obj dirs
 src/Clients/**/obj/*.*
+
+# IDE temp data
+.sublime-gulp.cache

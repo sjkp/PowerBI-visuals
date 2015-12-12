@@ -77,12 +77,18 @@ To run sample app:
 Make sure you first follow the [Prerequisites](https://github.com/Microsoft/PowerBI-visuals#prerequisites) & [Onetime Setup](https://github.com/Microsoft/PowerBI-visuals#one-time-setup)
  
 To run sample app:
- 
-1. Run gulp task 
 
-```
-gulp run:playground
-``` 
+1. Build the project
+
+ ```
+ gulp build
+ ```
+2. Run gulp task 
+
+ ```
+ gulp run:playground
+ ``` 
+ 
 ### Running Build and Test
 
 Use the following commands to build and test:

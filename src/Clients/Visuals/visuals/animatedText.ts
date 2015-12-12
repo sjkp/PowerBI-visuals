@@ -2,7 +2,7 @@
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,14 +11,14 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
@@ -31,12 +31,12 @@ module powerbi.visuals {
         align?: string;
         maxFontSize?: number;
     }
-    
+
     /**
      * Base class for values that are animated when resized.
      */
     export class AnimatedText {
-        
+
         /** Note: Public for testability */
         public static formatStringProp: DataViewObjectPropertyIdentifier = {
             objectName: 'general',
@@ -56,10 +56,7 @@ module powerbi.visuals {
         public visualConfiguration: AnimatedTextConfigurationSettings;
         public metaDataColumn: DataViewMetadataColumn;
 
-        private mainText: ClassAndSelector = {
-            class: 'mainText',
-            selector: '.mainText'
-        };
+        private mainText: jsCommon.CssConstants.ClassAndSelector = jsCommon.CssConstants.createClassAndSelector('mainText');
 
         public constructor(name: string) {
             this.name = name;
@@ -176,7 +173,10 @@ module powerbi.visuals {
                 .attr({
                     'text-anchor': this.getTextAnchor(),
                     'font-size': fontHeight,
-                    'transform': SVGUtil.translate(translateX, translateY)
+                    'transform': SVGUtil.translate(translateX, translateY),
+                })
+                .style({
+                  'fill': this.style.titleText.color.value,
                 });
 
             if (endValue == null) {
@@ -200,6 +200,10 @@ module powerbi.visuals {
             }
 
             SVGUtil.flushAllD3TransitionsIfNeeded(animationOptions);
+        }
+
+        public setTextColor(color: string): void {
+            this.style.titleText.color.value = color;
         }
 
         public getSeedFontHeight(boundingWidth: number, boundingHeight: number) {

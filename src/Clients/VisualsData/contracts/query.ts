@@ -40,7 +40,7 @@ module powerbi.data {
         Version?: number;
         From: EntitySource[];
         Where: QueryFilter[];
-    }
+    }    
 
     export enum EntitySourceType {
         Table = 0,
@@ -62,7 +62,7 @@ module powerbi.data {
 
     export interface QuerySortClause {
         Expression: QueryExpressionContainer;
-        Direction: QuerySortDirection;
+        Direction: SortDirection;
     }
 
     export interface QueryExpressionContainer {
@@ -235,11 +235,6 @@ module powerbi.data {
         Variance = 8,
     }
 
-    export enum QuerySortDirection {
-        Ascending = 1,
-        Descending = 2,
-    }
-
     export enum QueryComparisonKind {
         Equal = 0,
         GreaterThan = 1,
@@ -248,9 +243,26 @@ module powerbi.data {
         LessThanOrEqual = 4,
     }
 
+    export interface DataQuery {
+        Commands: QueryCommand[];
+    }
+    
     export interface SemanticQueryDataShapeCommand {
         Query: QueryDefinition;
         Binding: DataShapeBinding;
+    }
+    
+    export interface QueryCommand {
+        SemanticQueryDataShapeCommand?: SemanticQueryDataShapeCommand;
+        ScriptVisualCommand?: ScriptVisualCommand;
+    }
+
+    export interface ScriptVisualCommand {
+        Script?: string;
+        RenderingEngine?: string;
+        ViewportWidthPx?: number;
+        ViewportHeightPx?: number;
+        Version?: number;
     }
 
     /** Defines semantic data types. */
@@ -300,6 +312,12 @@ module powerbi.data {
 
         /** The select projection name. */
         Name?: string;
+
+        /* If defined, this indicates the KPI class*/
+        kpiStatusGraphic?: string; // old version of kpi data
+
+        /* If defined, this indicates the KPI metadata*/
+        kpi?: DataViewKpiColumnMetadata;
     }
 
     export interface FilterMetadata {

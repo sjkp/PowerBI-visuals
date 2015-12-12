@@ -45,7 +45,10 @@ module powerbi.visuals {
      * Creates a clear an svg rect to catch clear clicks.
      */
     export function appendClearCatcher(selection: D3.Selection): D3.Selection {
-        return selection.append("rect").classed("clearCatcher", true).attr({ width: "100%", height: "100%" });
+        return selection
+            .append("rect")
+            .classed("clearCatcher", true)
+            .attr({ width: "100%", height: "100%" });
     }
 
     export function isCategoryColumnSelected(propertyId: DataViewObjectPropertyIdentifier, categories: DataViewCategoricalColumn, idx: number): boolean {
@@ -54,7 +57,7 @@ module powerbi.visuals {
             && DataViewObjects.getValue<boolean>(categories.objects[idx], propertyId);
     }
 
-    function dataHasSelection(data: SelectableDataPoint[]): boolean {
+    export function dataHasSelection(data: SelectableDataPoint[]): boolean {
         for (let i = 0, ilen = data.length; i < ilen; i++) {
             if (data[i].selected)
                 return true;
@@ -72,8 +75,10 @@ module powerbi.visuals {
      */
     export interface InteractivityServiceOptions {
         isLegend?: boolean;
+        isLabels?: boolean;
         overrideSelectionFromData?: boolean;
         hasSelectionOverride?: boolean;
+        slicerDefaultValueHandler?: SlicerDefaultValueHandler;
     }
 
     /**
@@ -98,8 +103,12 @@ module powerbi.visuals {
         /** Checks whether the selection mode is inverted or normal */
         isSelectionModeInverted(): boolean;
 
-        /** Sets whether the seleciton mode is inverted or normal */
+        /** Sets whether the selection mode is inverted or normal */
         setSelectionModeInverted(inverted: boolean): void;
+
+        setDefaultValueMode(useDefaultValue: boolean): void;
+
+        isDefaultValueEnabled(): boolean;
     }
 
     export interface ISelectionHandler {
@@ -119,17 +128,24 @@ module powerbi.visuals {
     export class InteractivityService implements IInteractivityService, ISelectionHandler {
         // References
         private hostService: IVisualHostServices;
-        private renderSelectionInVisual = () => { };
-        private renderSelectionInLegend = () => { };
+        private renderSelectionInVisual = _.noop;
+        private renderSelectionInLegend = _.noop;
+        private renderSelectionInLabels = _.noop;
 
         // Selection state
         private selectedIds: SelectionId[] = [];
         private isInvertedSelectionMode: boolean = false;
         private hasSelectionOverride: boolean;
         private behavior: any;
+        private slicerDefaultValueHandler: SlicerDefaultValueHandler;
+
+        // undefined means no default value is set
+        // True: apply default value. False: apply AnyValue.
+        private useDefaultValue: boolean;
 
         public selectableDataPoints: SelectableDataPoint[];
         public selectableLegendDataPoints: SelectableDataPoint[];
+        public selectableLabelsDataPoints: SelectableDataPoint[];
 
         constructor(hostServices: IVisualHostServices) {
             debug.assertValue(hostServices, 'hostServices');
@@ -146,17 +162,31 @@ module powerbi.visuals {
                 // Override selection state from data points if needed
                 this.takeSelectionStateFromDataPoints(dataPoints);
             }
-            if (options && options.isLegend) {
+            if (options){
+                if (options.isLegend) {
                 // Bind to legend data instead of normal data if isLegend
                 this.selectableLegendDataPoints = dataPoints;
                 this.renderSelectionInLegend = () => behavior.renderSelection(this.legendHasSelection());
             }
+                else if (options.isLabels) {
+                    //Bind to label data instead of normal data if isLabels
+                    this.selectableLabelsDataPoints = dataPoints;
+                    this.renderSelectionInLabels = () => behavior.renderSelection(this.labelsHasSelection());
+                }
             else {
                 this.selectableDataPoints = dataPoints;
                 this.renderSelectionInVisual = () => behavior.renderSelection(this.hasSelection());
             }
-            if (options && options.hasSelectionOverride != null) {
+                if (options.hasSelectionOverride != null) {
                 this.hasSelectionOverride = options.hasSelectionOverride;
+            }
+                if (options.slicerDefaultValueHandler) {
+                this.slicerDefaultValueHandler = options.slicerDefaultValueHandler;
+            }
+            } 
+            else {
+                this.selectableDataPoints = dataPoints;
+                this.renderSelectionInVisual = () => behavior.renderSelection(this.hasSelection());
             }
 
             // Bind to the behavior
@@ -171,6 +201,10 @@ module powerbi.visuals {
          * Sets the selected state of all selectable data points to false and invokes the behavior's select command.
          */
         public clearSelection(): void {
+            // if default value is already applied, don't clear the default selection
+            if (this.slicerDefaultValueHandler && this.slicerDefaultValueHandler.getDefaultValue() && this.useDefaultValue)
+                return;
+
             this.hasSelectionOverride = undefined;
             ArrayExtensions.clear(this.selectedIds);
             this.isInvertedSelectionMode = false;
@@ -179,10 +213,10 @@ module powerbi.visuals {
         }
 
         public applySelectionStateToData(dataPoints: SelectableDataPoint[]): boolean {
-            for (let i = 0, len = dataPoints.length; i < len; i++) {
-                var dataPoint = dataPoints[i];
-                dataPoint.selected = this.selectedIds.some((selectedId) => selectedId.includes(dataPoint.identity));
+            for (let dataPoint of dataPoints) {
+                dataPoint.selected = InteractivityService.checkDatapointAgainstSelectedIds(dataPoint, this.selectedIds);
             }
+
             return this.hasSelection();
         }
 
@@ -197,6 +231,10 @@ module powerbi.visuals {
             return this.selectableLegendDataPoints ? dataHasSelection(this.selectableLegendDataPoints) : false;
         }
 
+        public labelsHasSelection(): boolean {
+            return this.selectableLabelsDataPoints ? dataHasSelection(this.selectableLabelsDataPoints) : false;
+        }
+
         public isSelectionModeInverted(): boolean {
             return this.isInvertedSelectionMode;
         }
@@ -208,17 +246,20 @@ module powerbi.visuals {
         // ISelectionHandler Implementation
 
         public handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void {
+            this.useDefaultValue = false;
             this.select(dataPoint, multiSelect);
             this.sendSelectionToHost();
             this.renderAll();
         }
 
         public handleClearSelection(): void {
+            this.useDefaultValue = true;
             this.clearSelection();
             this.sendSelectionToHost();
         }
 
         public toggleSelectionModeInversion(): boolean {
+            this.useDefaultValue = false;
             let wasInInvertedMode = this.isInvertedSelectionMode;
             this.clearSelection();
             this.sendSelectionToHost();
@@ -229,9 +270,15 @@ module powerbi.visuals {
         }
 
         public persistSelectionFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): void {
-            this.hostService.persistProperties({
-                merge: this.createPropertiesWithFilter(filterPropertyIdentifier),
-            });
+            this.hostService.persistProperties(this.createChangeForFilterProperty(filterPropertyIdentifier));
+        }
+
+        public setDefaultValueMode(useDefaultValue: boolean): void {
+            this.useDefaultValue = useDefaultValue;
+        }
+
+        public isDefaultValueEnabled(): boolean {
+            return this.useDefaultValue;
         }
 
         // Private utility methods
@@ -239,6 +286,7 @@ module powerbi.visuals {
         private renderAll(): void {
             this.renderSelectionInVisual();
             this.renderSelectionInLegend();
+            this.renderSelectionInLabels();
         }
 
         /** Marks a data point as selected and syncs selection with the host. */
@@ -313,7 +361,7 @@ module powerbi.visuals {
         }
 
         /** Note: Public for UnitTesting */
-        public createPropertiesWithFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): VisualObjectInstance[] {
+        public createChangeForFilterProperty(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): VisualObjectInstancesToPersist {
             let properties: { [propertyName: string]: DataViewPropertyValue } = {};
             let selectors: data.Selector[] = [];
 
@@ -324,14 +372,34 @@ module powerbi.visuals {
                     .value();
             }
 
-            let filter = powerbi.data.Selector.filterFromSelector(selectors, this.isInvertedSelectionMode);
-                properties[filterPropertyIdentifier.propertyName] = filter;
-
-            return [<VisualObjectInstance> {
+            let instance = {
                 objectName: filterPropertyIdentifier.objectName,
                 selector: undefined,
                 properties: properties
-            }];
+            };
+
+            let filter = powerbi.data.Selector.filterFromSelector(selectors, this.isInvertedSelectionMode);
+
+            if (this.slicerDefaultValueHandler && this.slicerDefaultValueHandler.getDefaultValue()) {
+                // we explicitly check for true/false because undefine means no default value
+                if (this.useDefaultValue === true)
+                    filter = powerbi.data.SemanticFilter.getDefaultValueFilter(this.slicerDefaultValueHandler.getIdentityFields());
+                else if (_.isEmpty(selectors))
+                    filter = powerbi.data.SemanticFilter.getAnyValueFilter(this.slicerDefaultValueHandler.getIdentityFields());
+            }
+
+            if (filter == null) {
+                properties[filterPropertyIdentifier.propertyName] = {};
+                return <VisualObjectInstancesToPersist> {
+                    remove: [instance]
+                };
+            }
+            else {
+                properties[filterPropertyIdentifier.propertyName] = filter;
+                return <VisualObjectInstancesToPersist> {
+                    merge: [instance]
+                };
+            }
         }
 
         private sendSelectionToHost() {
@@ -384,33 +452,31 @@ module powerbi.visuals {
             let selectedIds = this.selectedIds;
             let selectableDataPoints = this.selectableDataPoints;
             let selectableLegendDataPoints = this.selectableLegendDataPoints;
+            let selectableLabelsDataPoints = this.selectableLabelsDataPoints;
             let foundMatchingId = false; // Checked only against the visual's data points; it's possible to have stuff selected in the visual that's not in the legend, but not vice-verse
 
-            if (!selectableDataPoints)
+            if (!selectableDataPoints && !selectableLegendDataPoints)
                 return;
 
-            for (let i = 0, ilen = selectableDataPoints.length; i < ilen; i++) {
-                var dataPoint = selectableDataPoints[i];
-                if (selectedIds.some((value: SelectionId) => value.includes(dataPoint.identity))) {
-                    if (!dataPoint.selected) {
-                        dataPoint.selected = true;
-                    }
+            if (selectableDataPoints) {
+                if (InteractivityService.updateSelectableDataPointsBySelectedIds(selectableDataPoints, selectedIds))
                     foundMatchingId = true;
-                }
-                else if (dataPoint.selected) {
-                    dataPoint.selected = false;
-                }
             }
 
             if (selectableLegendDataPoints) {
-                for (let i = 0, ilen = selectableLegendDataPoints.length; i < ilen; i++) {
-                    var legendDataPoint = selectableLegendDataPoints[i];
-                    if (selectedIds.some((value: SelectionId) => value.includes(legendDataPoint.identity))) {
-                        legendDataPoint.selected = true;
+                if (InteractivityService.updateSelectableDataPointsBySelectedIds(selectableLegendDataPoints, selectedIds))
+                    foundMatchingId = true;
+            }
+
+            if (selectableLabelsDataPoints) {
+                let labelsDataPoint: SelectableDataPoint;
+                for (let i = 0, ilen = selectableLabelsDataPoints.length; i < ilen; i++) {
+                    labelsDataPoint = selectableLabelsDataPoints[i];
+                    if (selectedIds.some((value: SelectionId) => value.includes(labelsDataPoint.identity))) {
+                        labelsDataPoint.selected = true;
                     }
-                    else if (legendDataPoint.selected) {
-                        legendDataPoint.selected = false;
-                    }
+                    else
+                        labelsDataPoint.selected = false;
                 }
             }
 
@@ -433,12 +499,7 @@ module powerbi.visuals {
             }
             else {
                 for (var dataPoint of selectableDataPoints) {
-                    if (selectedIds.some((value: SelectionId) => value.includes(dataPoint.identity))) {
-                        dataPoint.selected = false;
-                    }
-                    else if (!dataPoint.selected) {
-                        dataPoint.selected = true;
-                    }
+                    dataPoint.selected = !InteractivityService.checkDatapointAgainstSelectedIds(dataPoint, selectedIds);
                 }
             }
         }
@@ -446,6 +507,7 @@ module powerbi.visuals {
         private applyToAllSelectableDataPoints(action: (selectableDataPoint: SelectableDataPoint) => void) {
             let selectableDataPoints = this.selectableDataPoints;
             let selectableLegendDataPoints = this.selectableLegendDataPoints;
+            let selectableLabelsDataPoints = this.selectableLabelsDataPoints;
             if (selectableDataPoints) {
                 for (let dataPoint of selectableDataPoints) {
                     action(dataPoint);
@@ -457,6 +519,29 @@ module powerbi.visuals {
                     action(dataPoint);
                 }
             }
+
+            if (selectableLabelsDataPoints) {
+                for (let dataPoint of selectableLabelsDataPoints) {
+                    action(dataPoint);
+                }
+            }
+        }
+
+        private static updateSelectableDataPointsBySelectedIds(selectableDataPoints: SelectableDataPoint[], selectedIds: SelectionId[]): boolean {
+            let foundMatchingId = false;
+
+            for (let datapoint of selectableDataPoints) {
+                datapoint.selected = InteractivityService.checkDatapointAgainstSelectedIds(datapoint, selectedIds);
+
+                if (datapoint.selected)
+                    foundMatchingId = true;
+            }
+
+            return foundMatchingId;
+        }
+
+        private static checkDatapointAgainstSelectedIds(datapoint: SelectableDataPoint, selectedIds: SelectionId[]): boolean {
+            return selectedIds.some((value: SelectionId) => value.includes(datapoint.identity));
         }
     };
 }

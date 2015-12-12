@@ -27,7 +27,6 @@
 /// <reference path="../_references.ts"/>
 
 module powerbitests {
-    import ColorConvertor = powerbitests.utils.ColorUtility.convertFromRGBorHexToHex;
     import BasicShapeVisual = powerbi.visuals.BasicShapeVisual;
     import basicShapeCapabilities = powerbi.visuals.basicShapeCapabilities;
 
@@ -38,13 +37,6 @@ module powerbitests {
             let style = rotatedElement.attr('style');
             let rotate = RotateTransformStyleRegex.exec(style);
             return parseInt(rotate[1], 10);
-        };
-
-        export function colorMatch(actualColor: string, expectedColor: string): void {
-            let actualColorHex = ColorConvertor(actualColor).toUpperCase();
-            let expectedColorHex = ColorConvertor(expectedColor).toUpperCase();
-
-            expect(actualColorHex).toBe(expectedColorHex);
         };
 
         export function buildUpdateOptions(viewport: powerbi.IViewport, objects: powerbi.DataViewObjects): powerbi.VisualUpdateOptions {
@@ -63,7 +55,7 @@ module powerbitests {
     describe("basicShape Tests", () => {
 
         it('registered capabilities', () => {
-            var pluginCapabilities = powerbi.visuals.visualPluginFactory.create().getPlugin('basicShape').capabilities;
+            let pluginCapabilities = powerbi.visuals.visualPluginFactory.create().getPlugin('basicShape').capabilities;
             expect(pluginCapabilities.toString()).toBe(basicShapeCapabilities.toString());
         });
 
@@ -76,10 +68,10 @@ module powerbitests {
         });
 
         describe('rendering', () => {
-            var element: JQuery;
-            var viewport: powerbi.IViewport;
-            var options: powerbi.VisualInitOptions;
-            var basicShape: BasicShapeVisual;
+            let element: JQuery;
+            let viewport: powerbi.IViewport;
+            let options: powerbi.VisualInitOptions;
+            let basicShape: BasicShapeVisual;
 
             beforeEach(() => {
                 element = powerbitests.helpers.testDom('200', '300');
@@ -110,10 +102,10 @@ module powerbitests {
                 basicShape.update(visualUpdateOptions);
 
                 //Verifying the DOM
-                var rect = element.find('rect');
+                let rect = element.find('rect');
 
-                BasicShapeHelpers.colorMatch(rect.css('stroke'), BasicShapeVisual.DefaultStrokeColor); // lineColor
-                BasicShapeHelpers.colorMatch(rect.css('fill'), BasicShapeVisual.DefaultFillColor); // fillColor
+                helpers.assertColorsMatch(rect.css('stroke'), BasicShapeVisual.DefaultStrokeColor); // lineColor
+                helpers.assertColorsMatch(rect.css('fill'), BasicShapeVisual.DefaultFillColor); // fillColor
                 expect(rect.css('fill-opacity')).toBe((BasicShapeVisual.DefaultFillTransValue / 100).toString()); // shapeTransparency
             });
 
@@ -126,34 +118,70 @@ module powerbitests {
                 basicShape.update(visualUpdateOptions);
 
                 //Verifying the DOM
-                var rect = element.find('rect');
-                BasicShapeHelpers.colorMatch(rect.css('stroke'), "#00b8ad"); // lineColor
-                BasicShapeHelpers.colorMatch(rect.css('fill'), "#e6e6e4"); // fillColor
+                let rect = element.find('rect');
+                helpers.assertColorsMatch(rect.css('stroke'), "#00b8ad"); // lineColor
+                helpers.assertColorsMatch(rect.css('fill'), "#e6e6e4"); // fillColor
                 expect(rect.css('stroke-opacity')).toBe("0.75"); // lineTransparency
                 expect(rect.css('stroke-width')).toBe("15px"); // weight
                 expect(rect.css('fill-opacity')).toBeCloseTo("0.65", 1); // shapeTransparency
             });
 
-            /** 
-              * In Chrome and IE11, this test passes
-              * Running by command line via PhantomJS, this test fails
-              * In PhantomJS, for some reason, the style on the parent is not being set
-              * so the transform never happens and cannot be verified.
-              * http://sqlbuvsts01:8080/Main/SQL%20Server/_workitems/edit/5701900
-              */
-            //it('rect with rotation', () => {
-            //    let rotation = 270;
+            it('revert to default', () => {
+                let visualUpdateOptions = BasicShapeHelpers.buildUpdateOptions(viewport, {
+                    general: { shapeType: 'rectangle' },
+                    line: { lineColor: { solid: { color: '#00b8ad' } }, transparency: 75, weight: 15 },
+                    fill: { transparency: 65, fillColor: { solid: { color: '#e6e6e4' } } },
+                });
+                basicShape.update(visualUpdateOptions);
 
-            //    let visualUpdateOptions = BasicShapeHelpers.buildUpdateOptions(viewport, {
-            //        rotation: { angle: rotation },
-            //    });
-            //    basicShape.update(visualUpdateOptions);
+                //Verifying the DOM
+                let rect = element.find('rect');
+                helpers.assertColorsMatch(rect.css('stroke'), "#00b8ad"); // lineColor
+                helpers.assertColorsMatch(rect.css('fill'), "#e6e6e4"); // fillColor
+                expect(rect.css('stroke-opacity')).toBe("0.75"); // lineTransparency
+                expect(rect.css('stroke-width')).toBe("15px"); // weight
+                expect(rect.css('fill-opacity')).toBeCloseTo("0.65", 1); // shapeTransparency
 
-            //    //Verifying the DOM
-            //    var rect = element.find('rect');
-            //    var rotator = rect.parents('div[style*=transform]').eq(0);
-            //    expect(BasicShapeHelpers.getRotateFromStyle(rotator)).toBe(270);
-            //});
+                visualUpdateOptions = BasicShapeHelpers.buildUpdateOptions(viewport, {
+                    general: { shapeType: 'rectangle' },
+                });
+                basicShape.update(visualUpdateOptions);
+                rect = element.find('rect');
+                helpers.assertColorsMatch(rect.css('stroke'), "#00B8AA"); // lineColor
+                helpers.assertColorsMatch(rect.css('fill'), '#E6E6E6'); // fillColor
+                expect(rect.css('stroke-opacity')).toBe('1'); // lineTransparency
+                expect(rect.css('stroke-width')).toBe("3px"); // weight
+                expect(rect.css('fill-opacity')).toBe('1'); // shapeTransparency
+            });
+
+            it('Fill card is not shown on line shape type', () => {
+                let visualUpdateOptions = BasicShapeHelpers.buildUpdateOptions(viewport, {
+                    general: { shapeType: 'line' },
+                    line: { lineColor: { solid: { color: '#00b8ad' } }, transparency: 75, weight: 15 },
+                    fill: { transparency: 65, fillColor: { solid: { color: '#e6e6e4' } } }
+                });
+                basicShape.update(visualUpdateOptions);
+                let options = { objectName: 'line' };
+                let result = basicShape.enumerateObjectInstances(options);
+                expect(result.length).toBe(1);
+                options = { objectName: 'fill' };
+                result = basicShape.enumerateObjectInstances(options);
+                expect(result.length).toBe(0);
+            });
+            
+            it('rect with rotation', () => {
+                let rotation = 270;
+
+                let visualUpdateOptions = BasicShapeHelpers.buildUpdateOptions(viewport, {
+                    rotation: { angle: rotation },
+                });
+                basicShape.update(visualUpdateOptions);
+
+                //Verifying the DOM
+                let rect = element.find('rect');
+                let rotator = rect.parents('div[style*=transform]').eq(0);
+                expect(BasicShapeHelpers.getRotateFromStyle(rotator)).toBe(270);
+            });
         });
     });
 }

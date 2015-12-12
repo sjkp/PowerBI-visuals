@@ -26,88 +26,48 @@
 
 /// <reference path="../_references.ts"/>
 module powerbi.visuals {
-    export module shapeFactory {
+    export module ShapeFactory {
 
         export module ShapeFactoryConsts {
             export const PaddingConstRatio: number = 0.01;
+            export const TrianglePaddingConstRatio: number = 0.15;
+            export const TriangleEndPaddingConstRatio: number = 0.85;
             export const ShapeConstRatio: number = 1.0 - (ShapeFactoryConsts.PaddingConstRatio * 2);
             export const SmallPaddingConstValue: number = 10;
             export const OvalRadiusConst: number = 2;
             export const OvalRadiusConstPadding: number = 0.2;
+            export const ArrowLeftHeadPoint: Point = { x : 0.05, y : 0.42 };
+            export const ArrowMiddleHeadPoint: Point = { x: 0.5, y: 0.016 };
+            export const ArrowRightHeadPoint: Point = { x: 0.95, y: 0.42 };
+            export const ArrowRightMiddleHeadPoint: Point = { x: 0.764, y: 0.42 };
+            export const ArrowBottomRightPoint: Point = { x: 0.764, y: 0.993 }; 
+            export const ArrowBottomLeftPoint: Point = { x: 0.246, y: 0.993 };
+            export const ArrowLeftMiddleHeadPoint: Point = { x: 0.246, y: 0.42 };
         }
 
+        /** this function creates a rectangle svg   */
         export function createRectangle(data: BasicShapeData, viewportHeight: number, viewportWidth: number, selectedElement: D3.Selection, degrees: number): void {
-            let x = viewportWidth * ShapeFactoryConsts.PaddingConstRatio;
-            let y = viewportHeight * ShapeFactoryConsts.PaddingConstRatio;
-            let width = viewportWidth * ShapeFactoryConsts.ShapeConstRatio;
-            let height = viewportHeight * ShapeFactoryConsts.ShapeConstRatio;
+            let x = (viewportWidth * ShapeFactoryConsts.PaddingConstRatio) + (data.lineWeight / 2);
+            let y = (viewportHeight * ShapeFactoryConsts.PaddingConstRatio) + (data.lineWeight / 2);
+            let width = (viewportWidth * ShapeFactoryConsts.ShapeConstRatio) - (data.lineWeight);
+            let height = (viewportHeight * ShapeFactoryConsts.ShapeConstRatio) - (data.lineWeight);
+            let attrs = { x: x, y: y, width: width, height: height, rx: data.roundEdge, ry: data.roundEdge };
             let scale = getScale(width, height, degrees);
 
-            // create the inner path with the wanted shape
-            selectedElement
-                .append('div')
-                .style({
-                    'transform': 'rotate(' + degrees + 'deg) scale(' + scale + ')',
-                    'transform-origin': 'center'
-                })
-                .append('svg')
-                .attr({
-                    width: viewportWidth,
-                    height: viewportHeight
-                })
-                .append('rect')
-                .attr({
-                    x: x,
-                    y: y,
-                    width: width,
-                    height: height,
-                    rx: data.roundEdge,
-                    ry: data.roundEdge
-                })
-                .style({
-                    'vector-effect': 'non-scaling-stroke',
-                    'stroke-width': data.lineWeight + 'px',
-                    'stroke': data.lineColor,
-                    'stroke-opacity': data.lineTransparency / 100,
-                    'fill': data.fillColor,
-                    'fill-opacity': data.showFill === true ? data.shapeTransparency / 100 : 0
-                });
+            createShape(data, viewportHeight, viewportWidth, selectedElement, degrees, scale, 'rect', attrs);
         }
 
         /** this function creates a oval svg   */
         export function createOval(data: BasicShapeData, viewportHeight: number, viewportWidth: number, selectedElement: D3.Selection, degrees: number): void {
             let widthForCircle = (viewportWidth / ShapeFactoryConsts.OvalRadiusConst).toString();
             let heightForCircle = (viewportHeight / ShapeFactoryConsts.OvalRadiusConst).toString();
-            let radiusXForCircle = (viewportWidth / (ShapeFactoryConsts.OvalRadiusConst + ShapeFactoryConsts.OvalRadiusConstPadding));
-            let radiusYForCircle = (viewportHeight / (ShapeFactoryConsts.OvalRadiusConst + ShapeFactoryConsts.OvalRadiusConstPadding));
+            let radiusXForCircle = ((viewportWidth / (ShapeFactoryConsts.OvalRadiusConst + ShapeFactoryConsts.OvalRadiusConstPadding)) - data.lineWeight);
+            let radiusYForCircle = ((viewportHeight / (ShapeFactoryConsts.OvalRadiusConst + ShapeFactoryConsts.OvalRadiusConstPadding))- data.lineWeight);
+            let attrs = { cx: widthForCircle, cy: heightForCircle, rx: radiusXForCircle, ry: radiusYForCircle };
 
             let scale = getScale(viewportWidth, viewportHeight, degrees);
 
-            selectedElement
-                .append('div')
-                .style({
-                    'transform': 'rotate(' + degrees + 'deg) scale(' + scale + ')',
-                    'transform-origin': 'center'
-                })
-                .append('svg')
-                .attr({
-                    width: viewportWidth,
-                    height: viewportHeight
-                })
-                .append('ellipse')
-                .attr({
-                    cx: widthForCircle,
-                    cy: heightForCircle,
-                    rx: radiusXForCircle,
-                    ry: radiusYForCircle
-                })
-                .style({
-                    'vector-effect': 'non-scaling-stroke',
-                    'stroke-width': data.lineWeight + 'px',
-                    'stroke': data.lineColor,
-                    'fill': data.fillColor,
-                    'fill-opacity': data.showFill === true ? data.shapeTransparency / 100 : 0
-                });
+            createShape(data, viewportHeight, viewportWidth, selectedElement, degrees, scale, 'ellipse', attrs);
         }
 
         /** this function creates a line svg   */
@@ -178,103 +138,136 @@ module powerbi.visuals {
 
         /** this function creates a arrow svg   */
         export function createUpArrow(data: BasicShapeData, viewportHeight: number, viewportWidth: number, selectedElement: D3.Selection, degrees: number): void {
-            let lineData = [
-                { 'x': (viewportWidth * 0.050).toString(), 'y': (viewportHeight * 0.420).toString() },
-                { 'x': (viewportWidth * 0.500).toString(), 'y': (viewportHeight * 0.016).toString() },
-                { 'x': (viewportWidth * 0.950).toString(), 'y': (viewportHeight * 0.420).toString() },
-                { 'x': (viewportWidth * 0.764).toString(), 'y': (viewportHeight * 0.420).toString() },
-                { 'x': (viewportWidth * 0.764).toString(), 'y': (viewportHeight * 0.993).toString() },
-                { 'x': (viewportWidth * 0.246).toString(), 'y': (viewportHeight * 0.993).toString() },
-                { 'x': (viewportWidth * 0.246).toString(), 'y': (viewportHeight * 0.420).toString() },
+            let lineWeight = data.lineWeight;
+            let viewportHeightWeight = viewportHeight - lineWeight;
+            let viewportWidthWeight = viewportWidth - lineWeight;
+
+            let arrowPoints = [
+                { 'x': (viewportWidthWeight * ShapeFactoryConsts.ArrowLeftHeadPoint.x).toString(), 'y': (viewportHeightWeight * ShapeFactoryConsts.ArrowLeftHeadPoint.y).toString() },
+                { 'x': (viewportWidthWeight * ShapeFactoryConsts.ArrowMiddleHeadPoint.x).toString(), 'y': (viewportHeightWeight * ShapeFactoryConsts.ArrowMiddleHeadPoint.y).toString() },
+                { 'x': (viewportWidthWeight * ShapeFactoryConsts.ArrowRightHeadPoint.x).toString(), 'y': (viewportHeightWeight * ShapeFactoryConsts.ArrowRightHeadPoint.y).toString() },
+                { 'x': (viewportWidthWeight * ShapeFactoryConsts.ArrowRightMiddleHeadPoint.x).toString(), 'y': (viewportHeightWeight * ShapeFactoryConsts.ArrowRightMiddleHeadPoint.y).toString() },
+                { 'x': (viewportWidthWeight * ShapeFactoryConsts.ArrowBottomRightPoint.x).toString(), 'y': (viewportHeightWeight * ShapeFactoryConsts.ArrowBottomRightPoint.y).toString() },
+                { 'x': (viewportWidthWeight * ShapeFactoryConsts.ArrowBottomLeftPoint.x).toString(), 'y': (viewportHeightWeight * ShapeFactoryConsts.ArrowBottomLeftPoint.y).toString() },
+                { 'x': (viewportWidthWeight * ShapeFactoryConsts.ArrowLeftMiddleHeadPoint.x).toString(), 'y': (viewportHeightWeight * ShapeFactoryConsts.ArrowLeftMiddleHeadPoint.y).toString() },
             ];
 
             // create the inner path with the wanted shape
-            createPathFromArray(data, lineData, selectedElement, viewportHeight, viewportWidth, degrees);
+            createPathFromArray(data, arrowPoints, selectedElement, viewportHeight, viewportWidth, degrees);
         }
 
         /** this function creates a triangle svg   */
         export function createTriangle(data: BasicShapeData, viewportHeight: number, viewportWidth: number, selectedElement: D3.Selection, degrees: number): void {
-            let lineData = [
-                { 'x': '10', 'y': (viewportHeight - ShapeFactoryConsts.SmallPaddingConstValue).toString() },
-                { 'x': (viewportWidth / 2).toString(), 'y': '10' },
-                {
-                    'x': (viewportWidth - ShapeFactoryConsts.SmallPaddingConstValue).toString(),
-                    'y': (viewportHeight - ShapeFactoryConsts.SmallPaddingConstValue).toString(),
-                },
+            let lineWeight = data.lineWeight;
+            // remove the basic line weight
+            if (lineWeight > 3) {
+                lineWeight -= 3;
+            }
+
+            let firstPointX = ((viewportWidth + lineWeight) * ShapeFactoryConsts.TrianglePaddingConstRatio);
+            let firstPointY = (viewportHeight - ShapeFactoryConsts.SmallPaddingConstValue - lineWeight) < 0 ?
+                (viewportHeight - ShapeFactoryConsts.SmallPaddingConstValue) : (viewportHeight - ShapeFactoryConsts.SmallPaddingConstValue - lineWeight);
+            let secondPointY = ((viewportHeight + lineWeight) * ShapeFactoryConsts.TrianglePaddingConstRatio);
+            let thirdPointX = ((viewportWidth - lineWeight) * ShapeFactoryConsts.TriangleEndPaddingConstRatio) < 0 ?
+                (viewportWidth * ShapeFactoryConsts.TriangleEndPaddingConstRatio) : ((viewportWidth - lineWeight) * ShapeFactoryConsts.TriangleEndPaddingConstRatio);
+            let thirdPointY = (viewportHeight - ShapeFactoryConsts.SmallPaddingConstValue - lineWeight) < 0 ?
+                (viewportHeight - ShapeFactoryConsts.SmallPaddingConstValue) : (viewportHeight - lineWeight - ShapeFactoryConsts.SmallPaddingConstValue);
+            let secondPointX = ((firstPointX + thirdPointX) / 2);
+
+            if (firstPointX < 10) {
+                firstPointX = ShapeFactoryConsts.SmallPaddingConstValue;
+            }
+
+            if (secondPointY < 10) {
+                secondPointY = ShapeFactoryConsts.SmallPaddingConstValue;
+            }
+
+            let trianglePoints = [
+                { 'x': firstPointX, 'y': firstPointY },
+                { 'x': secondPointX, 'y': secondPointY },
+                { 'x': thirdPointX, 'y': thirdPointY },
             ];
 
-            createPathFromArray(data, lineData, selectedElement, viewportHeight, viewportWidth, degrees);
+            createPathFromArray(data, trianglePoints, selectedElement, viewportHeight, viewportWidth, degrees);
         }
 
         /** this funcion adds a path to an svg element from an array of points (x,y) */
         function createPathFromArray(data: BasicShapeData, points: Object[], selectedElement: D3.Selection, viewportHeight: number, viewportWidth: number, degrees: number): void {
-
-            let scale = getScale(viewportWidth, viewportHeight, degrees);
-
             let lineFunction = d3.svg.line()
                 .x(function (d) { return d.x; })
                 .y(function (d) { return d.y; })
                 .interpolate('linear');
+            let attrs = { d: lineFunction(points) + ' Z' };
 
+            let scale = getScale(viewportWidth, viewportHeight, degrees);
+
+            createShape(data, viewportHeight, viewportWidth, selectedElement, degrees, scale, 'path', attrs);
+        }
+
+        function createShape(data: BasicShapeData, viewportHeight: number, viewportWidth: number, selectedElement: D3.Selection, degrees: number, scale: number, shapeType: string, shapeAttrs: Object): void {
             selectedElement
                 .append('div')
                 .style({
                     'transform': 'rotate(' + degrees + 'deg) scale(' + scale + ')',
-                    'transform-origin': 'center'
+                    'transform-origin': 'center',
+                    // for testing with phantomjs we need the webkit prefix
+                    '-webkit-transform': 'rotate(' + degrees + 'deg) scale(' + scale + ')',
+                    '-webkit-transform-origin': 'center',
+                    'width': viewportWidth + 'px',
+                    'height': viewportHeight + 'px'
                 })
                 .append('svg')
                 .attr({
                     width: viewportWidth,
                     height: viewportHeight
                 })
-                .append('path').attr({
-                    d: lineFunction(points) + ' Z',
-                })
+                .append(shapeType)
+                .attr(shapeAttrs)
                 .style({
                     'vector-effect': 'non-scaling-stroke',
                     'stroke-width': data.lineWeight + 'px',
                     'stroke': data.lineColor,
+                    'stroke-opacity': data.lineTransparency / 100,
                     'fill': data.fillColor,
-                    'fill-opacity': data.showFill === true ? data.shapeTransparency / 100 : 0,
-                    'stroke-opacity': data.lineTransparency / 100
+                    'fill-opacity': data.showFill === true ? data.shapeTransparency / 100 : 0
                 });
         }
 
+        // this function return the scale to add to the shape. 
+        // it calculate it by the ratio of the original shape's diagonal and the shape's diagonal after rotate (the maximum diagonal that still fit to the container).
+        // it calculate the shape's diagonal by the rotate angle.
         function getScale(width: number, height: number, degrees: number): number {
             let originalWidth = width;
             let originalHeight = height;
-            let offsetAngle = Math.atan(width / height);
+            let offsetAngle = Math.atan2(height, width);
             let originalFactor = Math.sqrt(Math.pow(height, 2) + Math.pow(width, 2));
             let radians = (degrees / 180) * Math.PI;
 
             if (width >= height) {
-                let sum;
-
                 if (degrees < 90) {
-                    sum = radians - offsetAngle;
+                    radians += offsetAngle;
                 } else if (degrees < 180) {
-                    sum = radians + offsetAngle;
+                    radians -= offsetAngle;
                 } else if (degrees < 270) {
-                    sum = radians - offsetAngle;
+                    radians += offsetAngle;
                 } else {
-                    sum = radians + offsetAngle;
+                    radians -= offsetAngle;
                 }
 
-                return (originalHeight / Math.abs(Math.cos(sum))) / originalFactor;
-            } else {
-                let sum;
-
+                return (originalHeight / Math.abs(Math.sin(radians))) / originalFactor;
+            }
+            else {
                 if (degrees < 90) {
-                    sum = offsetAngle + radians;
+                    radians -= offsetAngle;
                 } else if (degrees < 180) {
-                    sum = radians - offsetAngle;
+                    radians += offsetAngle;
                 } else if (degrees < 270) {
-                    sum = offsetAngle + radians;
+                    radians -= offsetAngle;
                 } else {
-                    sum = radians - offsetAngle;
+                    radians += offsetAngle;
                 }
 
-                return (originalWidth / Math.abs(Math.sin(sum))) / originalFactor;
+                return (originalWidth / Math.abs(Math.cos(radians))) / originalFactor;
             }
         }
     }

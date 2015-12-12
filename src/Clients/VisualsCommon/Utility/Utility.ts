@@ -81,6 +81,10 @@ module jsCommon {
             return StringExtensions.normalizeCase(a).indexOf(normalizedSearchString) === 0;
         }
 
+        export function startsWith(a: string, b: string): boolean {
+            return a.indexOf(b) === 0;
+        }
+
         /** Determines whether a string contains a specified substring (while ignoring case). */
         export function containsIgnoreCase(source: string, substring: string): boolean {
             if (source == null)
@@ -494,20 +498,6 @@ module jsCommon {
             }
 
             return guid;
-        }
-
-        /**
-         * Generates a random 7 character string that is used as a connection group name.
-         * @returns A random connection group name.
-         */
-        public static generateConnectionGroupName(): string {
-            let name = "";
-            let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-            for (let i = 0; i < 7; i++)
-                name += possible.charAt(Math.floor(Math.random() * possible.length));
-
-            return name;
         }
 
         /**

@@ -27,12 +27,13 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var slicerCapabilities: VisualCapabilities = {
+    export const slicerCapabilities: VisualCapabilities = {
         dataRoles: [
             {
                 name: 'Values',
                 kind: VisualDataRoleKind.Grouping,
                 displayName: powerbi.data.createDisplayNameGetter('Role_DisplayName_Field'),
+                description: data.createDisplayNameGetter('Role_DisplayName_FieldDescription')
             }
         ],
         objects: {
@@ -51,6 +52,9 @@ module powerbi.visuals {
                             }
                         }
                     },
+                    defaultValue: {
+                        type: { expression: { defaultValue: true } },
+                    },
                     formatString: {
                         type: { formatting: { formatString: true } },
                     },
@@ -61,6 +65,23 @@ module powerbi.visuals {
                     outlineWeight: {
                         displayName: data.createDisplayNameGetter('Visual_outlineWeight'),
                         type: { numeric: true }
+                    },
+                    orientation: {
+                        displayName: data.createDisplayNameGetter('Slicer_Orientation'),
+                        type: { enumeration: slicerOrientation.type }
+                    },
+                },
+            },
+            selection: {
+                displayName: data.createDisplayNameGetter('Visual_SelectionControls'),
+                properties: {
+                    selectAllCheckboxEnabled: {
+                        displayName: data.createDisplayNameGetter('Visual_SelectAll'),
+                        type: { bool: true }
+                    },
+                    singleSelect: {
+                        displayName: data.createDisplayNameGetter('Visual_SingleSelect'),
+                        type: { bool: true }
                     }
                 },
             },
@@ -81,7 +102,7 @@ module powerbi.visuals {
                     },
                     outline: {
                         displayName: data.createDisplayNameGetter('Visual_Outline'),
-                        type: { formatting: { outline: true } }
+                        type: { enumeration: outline.type }
                     },
                     textSize: {
                         displayName: data.createDisplayNameGetter('Visual_TextSize'),
@@ -89,8 +110,8 @@ module powerbi.visuals {
                     },
                 }
             },
-            Rows: {
-                displayName: data.createDisplayNameGetter('Role_DisplayName_Rows'),
+            items: {
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Items'),
                 properties: {
                     fontColor: {
                         displayName: data.createDisplayNameGetter('Visual_FontColor'),
@@ -102,7 +123,7 @@ module powerbi.visuals {
                     },
                     outline: {
                         displayName: data.createDisplayNameGetter('Visual_Outline'),
-                        type: { formatting: { outline: true } }
+                        type: { enumeration: outline.type }
                     },
                     textSize: {
                         displayName: data.createDisplayNameGetter('Visual_TextSize'),
@@ -129,10 +150,15 @@ module powerbi.visuals {
     };
 
     // TODO: Generate these from above, defining twice just introduces potential for error
-    export var slicerProps = {
+    export const slicerProps = {
         general: {
             outlineColor: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'outlineColor' },
-            outlineWeight: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'outlineWeight' }
+            outlineWeight: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'outlineWeight' },
+            orientation: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'orientation' },
+        },
+        selection: {
+            selectAllCheckboxEnabled: <DataViewObjectPropertyIdentifier>{ objectName: 'selection', propertyName: 'selectAllCheckboxEnabled' },
+            singleSelect: <DataViewObjectPropertyIdentifier>{ objectName: 'selection', propertyName: 'singleSelect' }
         },
         header: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'show' },
@@ -141,16 +167,16 @@ module powerbi.visuals {
             outline: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'outline' },
             textSize: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'textSize' },
         },
-        Rows: {
-            fontColor: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'fontColor' },
-            background: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'background' },
-            outline: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'outline' },
-            textSize: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'textSize' },
+        items: {
+            fontColor: <DataViewObjectPropertyIdentifier>{ objectName: 'items', propertyName: 'fontColor' },
+            background: <DataViewObjectPropertyIdentifier>{ objectName: 'items', propertyName: 'background' },
+            outline: <DataViewObjectPropertyIdentifier>{ objectName: 'items', propertyName: 'outline' },
+            textSize: <DataViewObjectPropertyIdentifier>{ objectName: 'items', propertyName: 'textSize' },
         },
         selectedPropertyIdentifier: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'selected' },
         filterPropertyIdentifier: <DataViewObjectPropertyIdentifier> { objectName: 'general', propertyName: 'filter' },
         formatString: <DataViewObjectPropertyIdentifier> { objectName: 'general', propertyName: 'formatString' },
-
+        defaultValue: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'defaultValue' },
     };
 
 }

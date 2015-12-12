@@ -31,27 +31,50 @@ module powerbitests {
     
     describe("SvgUtil tests", () => {
         it("validate the pie chart transform parsing logic for Chrome", () => {
-            var transform = "translate(110.21,46.5)";
-            var parsedTransform = SVGUtil.parseTranslateTransform(transform);
+            let transform = "translate(110.21,46.5)";
+            let parsedTransform = SVGUtil.parseTranslateTransform(transform);
     
             expect(parsedTransform.x).toBe("110.21");
             expect(parsedTransform.y).toBe("46.5");
         });
     
         it("validate the pie chart transform parsing logic for IE", () => {
-            var transform = "translate(110.6 34.56)";
-            var parsedTransform = SVGUtil.parseTranslateTransform(transform);
+            let transform = "translate(110.6 34.56)";
+            let parsedTransform = SVGUtil.parseTranslateTransform(transform);
     
             expect(parsedTransform.x).toBe("110.6");
             expect(parsedTransform.y).toBe("34.56");
         });
     
         it("validate transform parsing logic with no y value", () => {
-            var transform = "translate(110.6)";
-            var parsedTransform = SVGUtil.parseTranslateTransform(transform);
+            let transform = "translate(110.6)";
+            let parsedTransform = SVGUtil.parseTranslateTransform(transform);
     
             expect(parsedTransform.x).toBe("110.6");
             expect(parsedTransform.y).toBe("0");
+        });
+
+        it("get transform scale ratios under parent scope", (done) => {
+            let jqDiv = powerbitests.helpers.testDom('500', '500');
+            jqDiv.css('transform', 'scale(0.75,0.5)');
+            let svg = d3.select(jqDiv[0]).append('svg').attr({
+                width: 350,
+                height: 200,
+            }).style("position", "absolute");
+            let g = svg.append('g'); //the axisGraphicsContext
+            g.append('rect').attr({
+                x: 0, y: 200, width: 350, height: 80,
+            }).style("fill", "red"); //this rect is simulating the x-axis which fills the <svg> parent
+            g.append('rect').attr({
+                x: 0, y: 200, width: 80, height: 200,
+            }).style("fill", "red"); //this rect is simulating the y-axis...
+
+            setTimeout(() => {
+                let ratios = SVGUtil.getTransformScaleRatios(<SVGSVGElement>svg.node());
+                expect(ratios.x).toBe(0.75);
+                expect(ratios.y).toBe(0.5);
+                done();
+            }, 10);
         });
     });
 }

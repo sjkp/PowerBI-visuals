@@ -33,11 +33,11 @@ module powerbitests {
     import ParagraphContext = powerbi.visuals.ParagraphContext;
 
     describe("Rich Textbox", () => {
-        var viewport: powerbi.IViewport = {
+        const viewport: powerbi.IViewport = {
             height: 500,
             width: 500
         };
-        var style = powerbi.visuals.visualStyles.create();
+        let style = powerbi.visuals.visualStyles.create();
 
         describe("capabilities", () => {
             it("should suppress title", () => {
@@ -45,7 +45,7 @@ module powerbitests {
             });
 
             it("should register capabilities", () => {
-                var plugin = powerbi.visuals.visualPluginFactory.create().getPlugin("textbox");
+                let plugin = powerbi.visuals.visualPluginFactory.create().getPlugin("textbox");
 
                 expect(plugin).toBeDefined();
                 expect(plugin.capabilities).toBe(richTextboxCapabilities);
@@ -57,7 +57,7 @@ module powerbitests {
 
         // ---- Sample data ----
         // 2 paragraphs, no formatting.
-        var paragraphs1: ParagraphContext[] = [
+        let paragraphs1: ParagraphContext[] = [
             {
                 textRuns: [
                     { value: "foo" },
@@ -72,7 +72,7 @@ module powerbitests {
         ];
 
         // 2 paragraphs, with formatting
-        var paragraphs2: ParagraphContext[] = [
+        let paragraphs2: ParagraphContext[] = [
             {
                 textRuns: [
                     { value: "foo", textStyle: { fontWeight: "bold" } },
@@ -89,7 +89,7 @@ module powerbitests {
         ];
 
         // 1 paragraph with an unformatted url.
-        var paragraphs3: ParagraphContext[] = [
+        let paragraphs3: ParagraphContext[] = [
             {
                 textRuns: [
                     { value: "http://www.powerbi.com" }
@@ -98,7 +98,7 @@ module powerbitests {
         ];
 
         // 2 paragraphs, with spacing for testing cursor inside text
-        var paragraphs4: ParagraphContext[] = [
+        let paragraphs4: ParagraphContext[] = [
             {
                 textRuns: [
                     { value: "foo" },
@@ -109,7 +109,7 @@ module powerbitests {
         ];
 
         // text with space surroudned by space for testing special empty word break
-        var paragraphs5: ParagraphContext[] = [
+        let paragraphs5: ParagraphContext[] = [
             {
                 textRuns: [
                     { value: "foo    bar" }
@@ -118,14 +118,14 @@ module powerbitests {
         ];
 
         describe("", () => {
-            var host: IVisualHostServices;
-            var $element: JQuery;
-            var $toolbar: JQuery;
-            var initOptions: powerbi.VisualInitOptions;
+            let host: IVisualHostServices;
+            let $element: JQuery;
+            let $toolbar: JQuery;
+            let initOptions: powerbi.VisualInitOptions;
 
-            var textbox: RichTextbox;
-            var getViewModeSpy: jasmine.Spy;
-            var setToolbarSpy: jasmine.Spy;
+            let textbox: RichTextbox;
+            let getViewModeSpy: jasmine.Spy;
+            let setToolbarSpy: jasmine.Spy;
 
             beforeEach(() => {
                 host = mocks.createVisualHostServices();
@@ -162,14 +162,14 @@ module powerbitests {
                     it("with non-empty dataview should set content", () => {
                         textbox.onDataChanged({ dataViews: buildParagraphsDataView(paragraphs1) });
 
-                        var $divs = getViewModeParagraphDivs($element);
+                        let $divs = getViewModeParagraphDivs($element);
 
                         expect($divs.length).toBe(2);
 
-                        var $paragraph1 = $divs.eq(0);
+                        let $paragraph1 = $divs.eq(0);
                         expect($paragraph1.text()).toEqual("foobar");
 
-                        var $paragraph2 = $divs.eq(1);
+                        let $paragraph2 = $divs.eq(1);
                         expect($paragraph2.text()).toEqual("baz");
                     });
 
@@ -185,35 +185,35 @@ module powerbitests {
                     it("with formatted text should render correctly", () => {
                         textbox.onDataChanged({ dataViews: buildParagraphsDataView(paragraphs2) });
 
-                        var $divs = getViewModeParagraphDivs($element);
+                        let $divs = getViewModeParagraphDivs($element);
 
                         expect($divs.length).toBe(2);
 
-                        var $paragraph1 = $divs.eq(0);
-                        var $paragraph1Spans = $paragraph1.children();
+                        let $paragraph1 = $divs.eq(0);
+                        let $paragraph1Spans = $paragraph1.children();
                         expect($paragraph1Spans.length).toBe(3);
 
-                        var $fooRun = $paragraph1Spans.eq(0);
+                        let $fooRun = $paragraph1Spans.eq(0);
                         expect(hasBold($fooRun)).toBeTruthy();
 
-                        var $barRun = $paragraph1Spans.eq(1);
+                        let $barRun = $paragraph1Spans.eq(1);
                         expect(hasItalic($barRun)).toBeTruthy();
 
-                        var $bazRun = $paragraph1Spans.eq(2);
+                        let $bazRun = $paragraph1Spans.eq(2);
                         expect(hasUnderline($bazRun)).toBeTruthy();
 
-                        var $paragraph2 = $divs.eq(1);
-                        var $paragraph2Spans = $paragraph2.children();
+                        let $paragraph2 = $divs.eq(1);
+                        let $paragraph2Spans = $paragraph2.children();
                         expect($paragraph2Spans.length).toBe(1);
 
-                        var $urlRun = $paragraph2Spans.eq(0);
+                        let $urlRun = $paragraph2Spans.eq(0);
                         expect($urlRun.text()).toEqual("Power BI");
                         expect(getUrl($urlRun)).toEqual("http://www.powerbi.com");
                     });
 
                     describe("theme font", () => {
                         it("\"Heading\" should render correctly", () => {
-                            var paragraphsWithHeading: ParagraphContext[] = [
+                            let paragraphsWithHeading: ParagraphContext[] = [
                                 {
                                     textRuns: [
                                         { value: "Some text", textStyle: { fontFamily: "Heading" } }
@@ -223,14 +223,14 @@ module powerbitests {
 
                             textbox.onDataChanged({ dataViews: buildParagraphsDataView(paragraphsWithHeading) });
 
-                            var $divs = getViewModeParagraphDivs($element);
-                            var $span = $divs.children("span").eq(0);
+                            let $divs = getViewModeParagraphDivs($element);
+                            let $span = $divs.children("span").eq(0);
 
                             expect(getFont($span)).toEqual("wf_segoe-ui_light");
                         });
 
                         it("\"Body\" should render correctly", () => {
-                            var paragraphsWithBody: ParagraphContext[] = [
+                            let paragraphsWithBody: ParagraphContext[] = [
                                 {
                                     textRuns: [
                                         { value: "Some text", textStyle: { fontFamily: "Body" } }
@@ -240,8 +240,8 @@ module powerbitests {
 
                             textbox.onDataChanged({ dataViews: buildParagraphsDataView(paragraphsWithBody) });
 
-                            var $divs = getViewModeParagraphDivs($element);
-                            var $span = $divs.children("span").eq(0);
+                            let $divs = getViewModeParagraphDivs($element);
+                            let $span = $divs.children("span").eq(0);
 
                             expect(getFont($span)).toEqual("wf_segoe-ui_normal");
                         });
@@ -267,14 +267,14 @@ module powerbitests {
                 });
 
                 it("calling focus() should put focus in the editor", () => {
-                    var editor = getEditor($element).get(0);
+                    let editor = getEditor($element).get(0);
                     expect(document.activeElement).not.toBe(editor);
                     textbox.focus();
                     expect(document.activeElement).toBe(editor);
                 });
 
                 it("editor should be full size", () => {
-                    var container = $element.find(".ql-container").parent();
+                    let container = $element.find(".ql-container").parent();
                     expect(container.outerWidth()).toBe(500);
                     expect(container.outerHeight()).toBe(500);
                 });
@@ -289,13 +289,13 @@ module powerbitests {
 
                     switchToViewMode(powerbi.ViewMode.View);
 
-                    var $divs = getViewModeParagraphDivs($element);
-                    var $urlRun = $divs.children("span").eq(0);
+                    let $divs = getViewModeParagraphDivs($element);
+                    let $urlRun = $divs.children("span").eq(0);
                     expect(getUrl($urlRun)).toEqual("http://www.powerbi.com");
                 });
 
                 it("change to view-mode should save content", () => {
-                    var changes: powerbi.VisualObjectInstance[] = [];
+                    let changes: powerbi.VisualObjectInstance[] = [];
                     spyOn(host, "persistProperties").and.callFake((c) => changes = c);
 
                     textbox.onDataChanged({ dataViews: buildParagraphsDataView(paragraphs2) });
@@ -304,10 +304,10 @@ module powerbitests {
 
                     expect(changes).toHaveLength(1);
 
-                    var change = changes[0];
+                    let change = changes[0];
                     expect(change.objectName).toEqual("general");
 
-                    var paragraphs: ParagraphContext[] = (<any>change.properties).paragraphs;
+                    let paragraphs: ParagraphContext[] = (<any>change.properties).paragraphs;
                     expect(paragraphs.length).toBe(2);
                     expect(paragraphs[0].horizontalTextAlignment).toBeFalsy();
                     expect(paragraphs[0].textRuns.length).toBe(3);
@@ -331,7 +331,7 @@ module powerbitests {
                 });
 
                 it("change to view-mode should preserve empty lines", () => {
-                    var paragraphs: ParagraphContext[] = [
+                    let paragraphs: ParagraphContext[] = [
                         {
                             textRuns: [
                                 { value: "line 1" }
@@ -351,7 +351,7 @@ module powerbitests {
 
                     switchToViewMode(powerbi.ViewMode.View);
 
-                    var $divs = getViewModeParagraphDivs($element);
+                    let $divs = getViewModeParagraphDivs($element);
 
                     expect($divs.length).toBe(3);
 
@@ -361,9 +361,9 @@ module powerbitests {
                 });
 
                 it("keyboard shortcuts are prevented from bubbling", () => {
-                    var $editor = getEditor($element);
+                    let $editor = getEditor($element);
 
-                    var keydown = false;
+                    let keydown = false;
                     $element.on("keydown", () => {
                         keydown = true;
                     });
@@ -393,7 +393,7 @@ module powerbitests {
                     it("with non-empty dataview should set content", () => {
                         textbox.onDataChanged({ dataViews: buildParagraphsDataView(paragraphs1) });
 
-                        var $divs = getEditModeParagraphDivs($element);
+                        let $divs = getEditModeParagraphDivs($element);
 
                         expect($divs.eq(0).text()).toEqual("foobar");
                         expect($divs.eq(1).text()).toBe("baz");
@@ -411,25 +411,25 @@ module powerbitests {
                     it("with formatted text should render correctly", () => {
                         textbox.onDataChanged({ dataViews: buildParagraphsDataView(paragraphs2) });
 
-                        var $divs = getEditModeParagraphDivs($element);
+                        let $divs = getEditModeParagraphDivs($element);
 
                         expect($divs.length).toBe(2);
 
-                        var $paragraph1 = $divs.eq(0);
-                        var $paragraph1Spans = $paragraph1.children();
+                        let $paragraph1 = $divs.eq(0);
+                        let $paragraph1Spans = $paragraph1.children();
                         expect($paragraph1Spans.length).toBe(3);
 
-                        var $fooRun = $paragraph1Spans.eq(0);
+                        let $fooRun = $paragraph1Spans.eq(0);
                         expect(hasBold($fooRun)).toBeTruthy();
 
-                        var $barRun = $paragraph1Spans.eq(1);
+                        let $barRun = $paragraph1Spans.eq(1);
                         expect(hasItalic($barRun)).toBeTruthy();
 
-                        var $bazRun = $paragraph1Spans.eq(2);
+                        let $bazRun = $paragraph1Spans.eq(2);
                         expect(hasUnderline($bazRun)).toBeTruthy();
 
-                        var $paragraph2 = $divs.eq(1);
-                        var $urlRun = $paragraph2;
+                        let $paragraph2 = $divs.eq(1);
+                        let $urlRun = $paragraph2;
                         expect($urlRun.text()).toEqual("Power BI");
                         expect(getUrl($urlRun)).toEqual("http://www.powerbi.com");
                     });
@@ -445,7 +445,7 @@ module powerbitests {
                 });
 
                 it("should exist with formatting options", () => {
-                    var $toolbar = getToolbar();
+                    let $toolbar = getToolbar();
                     expect($toolbar).toBeDefined();
 
                     expect(boldButton($toolbar)).toBeDefined();
@@ -660,10 +660,10 @@ module powerbitests {
                         });
 
                         it("should bold selection in editor", () => {
-                            var $paragraph1 = getEditModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getEditModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(hasBold($spans.eq(0))).toBeTruthy();
@@ -672,10 +672,10 @@ module powerbitests {
                         it("should bold text in view-mode", () => {
                             switchToViewMode(powerbi.ViewMode.View);
 
-                            var $paragraph1 = getViewModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getViewModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(hasBold($spans.eq(0))).toBeTruthy();
@@ -688,10 +688,10 @@ module powerbitests {
                         });
 
                         it("should italicize selection in editor", () => {
-                            var $paragraph1 = getEditModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getEditModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(hasItalic($spans.eq(0))).toBeTruthy();
@@ -700,10 +700,10 @@ module powerbitests {
                         it("should italicize text in view-mode", () => {
                             switchToViewMode(powerbi.ViewMode.View);
 
-                            var $paragraph1 = getViewModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getViewModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(hasItalic($spans.eq(0))).toBeTruthy();
@@ -716,10 +716,10 @@ module powerbitests {
                         });
 
                         it("should underline selection in editor", () => {
-                            var $paragraph1 = getEditModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getEditModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(hasUnderline($spans.eq(0))).toBeTruthy();
@@ -728,10 +728,10 @@ module powerbitests {
                         it("should underline text in view-mode", () => {
                             switchToViewMode(powerbi.ViewMode.View);
 
-                            var $paragraph1 = getViewModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getViewModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(hasUnderline($spans.eq(0))).toBeTruthy();
@@ -739,17 +739,17 @@ module powerbitests {
                     });
 
                     describe("changing font", () => {
-                        var fontFace = "Symbol";
+                        let fontFace = "Symbol";
 
                         beforeEach(() => {
                             setSelectValue(fontSelect(getToolbar()), fontFace);
                         });
 
                         it("should change font in editor", () => {
-                            var $paragraph1 = getEditModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getEditModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(getFont($spans.eq(0))).toEqual(fontFace);
@@ -760,10 +760,10 @@ module powerbitests {
                         it("should change font in view-mode", () => {
                             switchToViewMode(powerbi.ViewMode.View);
 
-                            var $paragraph1 = getViewModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getViewModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(getFont($spans.eq(0))).toEqual(fontFace);
@@ -771,17 +771,17 @@ module powerbitests {
                     });
 
                     describe("changing font (embedded)", () => {
-                        var fontFace = "wf_segoe-ui_normal";
+                        let fontFace = "wf_segoe-ui_normal";
 
                         beforeEach(() => {
                             setSelectValue(fontSelect(getToolbar()), fontFace);
                         });
 
                         it("should change font in editor", () => {
-                            var $paragraph1 = getEditModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getEditModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(getFont($spans.eq(0))).toEqual(fontFace);
@@ -792,10 +792,10 @@ module powerbitests {
                         it("should change font in view-mode", () => {
                             switchToViewMode(powerbi.ViewMode.View);
 
-                            var $paragraph1 = getViewModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getViewModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(getFont($spans.eq(0))).toEqual(fontFace);
@@ -803,17 +803,17 @@ module powerbitests {
                     });
 
                     describe("changing font size", () => {
-                        var fontSize = "24px";
+                        let fontSize = "24px";
 
                         beforeEach(() => {
                             setSelectValue(fontSizeSelect(getToolbar()), fontSize);
                         });
 
                         it("should change font size in editor", () => {
-                            var $paragraph1 = getEditModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getEditModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(getFontSize($spans.eq(0))).toEqual(fontSize);
@@ -824,10 +824,10 @@ module powerbitests {
                         it("should change font size in view-mode", () => {
                             switchToViewMode(powerbi.ViewMode.View);
 
-                            var $paragraph1 = getViewModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getViewModeParagraphDivs($element).eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(getFontSize($spans.eq(0))).toEqual(fontSize);
@@ -835,14 +835,14 @@ module powerbitests {
                     });
 
                     describe("changing text alignment", () => {
-                        var alignment = "center";
+                        let alignment = "center";
 
                         beforeEach(() => {
                             setSelectValue(textAlignmentSelect(getToolbar()), alignment);
                         });
 
                         it("should change text alignment in editor", () => {
-                            var $paragraph1 = getEditModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getEditModeParagraphDivs($element).eq(0);
 
                             // NOTE: Changes alignment for the entire paragraph.
                             expect($paragraph1.text()).toEqual("foobar");
@@ -854,7 +854,7 @@ module powerbitests {
                         it("should change text alignment in view-mode", () => {
                             switchToViewMode(powerbi.ViewMode.View);
 
-                            var $paragraph1 = getViewModeParagraphDivs($element).eq(0);
+                            let $paragraph1 = getViewModeParagraphDivs($element).eq(0);
                             
                             // NOTE: Changes alignment for the entire paragraph.
                             expect($paragraph1.text()).toEqual("foobar");
@@ -868,27 +868,27 @@ module powerbitests {
                         });
 
                         it("and blurring input field should cancel insert link", () => {
-                            var $divs = getEditModeParagraphDivs($element);
-                            var $paragraph1 = $divs.eq(0);
+                            let $divs = getEditModeParagraphDivs($element);
+                            let $paragraph1 = $divs.eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
                             let blurEvent = createMouseEvent("blur", document.body);
                             getLinkInput(getToolbar())[0].dispatchEvent(blurEvent);
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBe(0);
                             expect($paragraph1.text()).toBe("foobar");
                             expect($paragraph1.find("a").length).toBe(0);
                         });
 
                         it("and clicking done should set link", () => {
-                            var $divs = getEditModeParagraphDivs($element);
-                            var $paragraph1 = $divs.eq(0);
+                            let $divs = getEditModeParagraphDivs($element);
+                            let $paragraph1 = $divs.eq(0);
                             expect($paragraph1.text()).toBe("foobar");
 
                             getLinkDoneButton(getToolbar())[0].click();
 
-                            var $spans = $paragraph1.children();
+                            let $spans = $paragraph1.children();
                             expect($spans.length).toBeGreaterThan(0);
                             expect($spans.eq(0).text()).toEqual("fooba");
                             expect(getUrl($spans.eq(0))).toBe("http://fooba");
@@ -1009,7 +1009,7 @@ module powerbitests {
                     // NOTE: For unit tests case we have to use document.createEvent() because PhantomJS does
                     // not appear to support new UIEvent (https://github.com/ariya/phantomjs/issues/11289).
                     $select.val(value);
-                    var evt = document.createEvent("UIEvent");
+                    let evt = document.createEvent("UIEvent");
                     evt.initUIEvent("change", false, false, null, 0);
                     $select.get(0).dispatchEvent(evt);
                 }
@@ -1032,17 +1032,17 @@ module powerbitests {
                 expect($element).toHaveClass("richtextbox");
 
                 if (present) {
-                    var $container = $element.children("div").eq(0);
+                    let $container = $element.children("div").eq(0);
                     expect($container).toBeDefined();
 
                     expect(setToolbarSpy).toHaveBeenCalled();
                     expect($toolbar).toBeDefined();
                     expect($toolbar.hasClass("ql-toolbar")).toBeTruthy();
 
-                    var $editorContainer = $container.find(".ql-container");
+                    let $editorContainer = $container.find(".ql-container");
                     expect($editorContainer.length).toBe(1);
 
-                    var $editor = getEditor($editorContainer);
+                    let $editor = getEditor($editorContainer);
                     expect($editor.length).toBe(1);
                 }
                 else {
@@ -1068,7 +1068,7 @@ module powerbitests {
         }
 
         function getUrl($element: JQuery): string {
-            var $anchor = (getTagName($element) === "a") ? $element : $element.find("a");
+            let $anchor = (getTagName($element) === "a") ? $element : $element.find("a");
             return $anchor.attr("href");
         }
 
@@ -1093,7 +1093,7 @@ module powerbitests {
         }
 
         function getEditModeParagraphDivs($element: JQuery): JQuery {
-            var $editor = $element.find(".ql-editor");
+            let $editor = $element.find(".ql-editor");
             expect($editor.length).toBe(1);
 
             return $editor.children("div");

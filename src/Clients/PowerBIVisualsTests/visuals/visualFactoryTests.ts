@@ -29,10 +29,10 @@
 module powerbitests {
 
     describe("VisualFactory", () => {
-        var mockVisualKey = "mock";
+        let mockVisualKey = "mock";
 
         beforeEach(() => {
-            var plugin: powerbi.IVisualPlugin = {
+            let plugin: powerbi.IVisualPlugin = {
                 name: mockVisualKey,
                 capabilities: {},
                 create: () => { return <powerbi.IVisual>{}; }
@@ -42,13 +42,13 @@ module powerbitests {
         });
 
         it("getPlugin finds mock", () => {
-            var plugin = powerbi.visuals.visualPluginFactory.create().getPlugin(mockVisualKey);
+            let plugin = powerbi.visuals.visualPluginFactory.create().getPlugin(mockVisualKey);
 
             expect(plugin).toBe(powerbi.visuals.plugins[mockVisualKey]);
         });
 
         it("getRegisteredVisuals includes test", () => {
-            var registered = powerbi.visuals.visualPluginFactory.create().getVisuals()
+            let registered = powerbi.visuals.visualPluginFactory.create().getVisuals()
                 .filter(v => v.name === mockVisualKey);
 
             expect(registered).toEqual([powerbi.visuals.plugins[mockVisualKey]]);

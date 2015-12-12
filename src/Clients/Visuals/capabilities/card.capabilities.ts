@@ -27,12 +27,13 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var cardCapabilities: VisualCapabilities = {
+    export const cardCapabilities: VisualCapabilities = {
         dataRoles: [
             {
                 name: 'Values',
                 kind: VisualDataRoleKind.Measure,
-                displayName: data.createDisplayNameGetter('Role_DisplayName_Fields')
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Fields'),
+                description: data.createDisplayNameGetter('Role_DisplayName_FieldsDescription'),
             }
         ],
         objects: {
@@ -48,26 +49,44 @@ module powerbi.visuals {
                 properties: {
                     color: {
                         displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
+                        description: data.createDisplayNameGetter('Visual_LabelsFillDescription'),
                         type: { fill: { solid: { color: true } } }
                     },
                     labelDisplayUnits: {
                         displayName: data.createDisplayNameGetter('Visual_DisplayUnits'),
+                        description: data.createDisplayNameGetter('Visual_DisplayUnitsDescription'),
                         type: { formatting: { labelDisplayUnits: true } }
                     },
                     labelPrecision: {
                         displayName: data.createDisplayNameGetter('Visual_Precision'),
+                        description: data.createDisplayNameGetter('Visual_PrecisionDescription'),
+                        placeHolderText: data.createDisplayNameGetter('Visual_Precision_Auto'),
                         type: { numeric: true }
+                    },
+                    // NOTE: Consider adding a ValueType for fontSize.
+                    fontSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                        type: { formatting: { fontSize: true } }
                     },
                 },
             },
-            cardTitle: {
+            categoryLabels: {
                 displayName: data.createDisplayNameGetter('Visual_CategoryLabel'),
                 properties: {
                     show: {
                         displayName: data.createDisplayNameGetter('Visual_Show'),
                         type: { bool: true }
                     },
+                    color: {
+                        displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                    // NOTE: Consider adding a ValueType for fontSize.
+                    fontSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                        type: { formatting: { fontSize: true } }
                 },
+            },
             },
             wordWrap: {
                 displayName: data.createDisplayNameGetter('Visual_WordWrap'),
@@ -86,16 +105,20 @@ module powerbi.visuals {
             single: { role: "Values" }
         }],
         suppressDefaultTitle: true,
+        supportsSelection: false,
     };
 
     export var cardProps = {
-        cardTitle: {
-            show: <DataViewObjectPropertyIdentifier>{ objectName: 'cardTitle', propertyName: 'show' },
+        categoryLabels: {
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'categoryLabels', propertyName: 'show' },
+            color: <DataViewObjectPropertyIdentifier>{ objectName: 'categoryLabels', propertyName: 'color' },
+            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'categoryLabels', propertyName: 'fontSize' },
         },
         labels: {
             color: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'color' },
             labelPrecision: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'labelPrecision' },
             labelDisplayUnits: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'labelDisplayUnits' },
+            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'fontSize' },
         },
         wordWrap: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'wordWrap', propertyName: 'show' },

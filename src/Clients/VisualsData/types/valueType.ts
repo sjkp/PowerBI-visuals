@@ -50,6 +50,12 @@ module powerbi {
         misc?: MiscellaneousTypeDescriptor;
         formatting?: FormattingTypeDescriptor;
         extendedType?: ExtendedType;
+        enumeration?: IEnumType;
+        scripting?: ScriptTypeDescriptor;
+    }
+
+    export interface ScriptTypeDescriptor {
+        source?: boolean;
     }
 
     export interface TemporalTypeDescriptor {
@@ -80,17 +86,9 @@ module powerbi {
     export interface FormattingTypeDescriptor {
         color?: boolean;
         formatString?: boolean;
-        legendPosition?: boolean;
-        axisScale?: boolean;
-        axisType?: boolean;
-        yAxisPosition?: boolean;
-        axisStyle?: boolean;
         alignment?: boolean;
         labelDisplayUnits?: boolean;
-        labelPosition?: boolean;
-        outline?: boolean;
-        shapeType?: boolean;
-        imageScalingType?: boolean;
+        fontSize?: boolean;
     }
 
     /** Describes a data value type, including a primitive type and extended type if any (derived from data category). */
@@ -104,11 +102,14 @@ module powerbi {
         private geographyType: GeographyType;
         private miscType: MiscellaneousType;
         private formattingType: FormattingType;
+        private enumType: IEnumType;
+        private scriptingType: ScriptType;
 
         /** Do not call the ValueType constructor directly. Use the ValueType.fromXXX methods. */
-        constructor(type: ExtendedType, category?: string) {
+        constructor(type: ExtendedType, category?: string, enumType?: IEnumType) {
             debug.assert((!!type && ExtendedType[type] != null) || type === ExtendedType.Null, 'type');
             debug.assert(!!category || category === null, 'category');
+            debug.assert(type !== ExtendedType.Enumeration || !!enumType, 'enumType');
 
             this.underlyingType = type;
             this.category = category;
@@ -124,6 +125,12 @@ module powerbi {
             }
             if (EnumExtensions.hasFlag(type, ExtendedType.Formatting)) {
                 this.formattingType = new FormattingType(type);
+            }
+            if (EnumExtensions.hasFlag(type, ExtendedType.Enumeration)) {
+                this.enumType = enumType;
+            }
+            if (EnumExtensions.hasFlag(type, ExtendedType.Scripting)) {
+                this.scriptingType = new ScriptType(type);
             }
         }
 
@@ -142,6 +149,10 @@ module powerbi {
             if (descriptor.none) return ValueType.fromExtendedType(ExtendedType.None);
 
             // Extended types
+            if (descriptor.scripting) {
+                if (descriptor.scripting.source) return ValueType.fromExtendedType(ExtendedType.ScriptSource);
+            }
+            if (descriptor.enumeration) return ValueType.fromEnum(descriptor.enumeration);
             if (descriptor.temporal) {
                 if (descriptor.temporal.year) return ValueType.fromExtendedType(ExtendedType.Year_Integer);
                 if (descriptor.temporal.month) return ValueType.fromExtendedType(ExtendedType.Month_Integer);
@@ -167,17 +178,9 @@ module powerbi {
             if (descriptor.formatting) {
                 if (descriptor.formatting.color) return ValueType.fromExtendedType(ExtendedType.Color);
                 if (descriptor.formatting.formatString) return ValueType.fromExtendedType(ExtendedType.FormatString);
-                if (descriptor.formatting.legendPosition) return ValueType.fromExtendedType(ExtendedType.LegendPosition);
-                if (descriptor.formatting.axisType) return ValueType.fromExtendedType(ExtendedType.AxisType);
-                if (descriptor.formatting.axisScale) return ValueType.fromExtendedType(ExtendedType.AxisScale);
-                if (descriptor.formatting.yAxisPosition) return ValueType.fromExtendedType(ExtendedType.YAxisPosition);
-                if (descriptor.formatting.axisStyle) return ValueType.fromExtendedType(ExtendedType.AxisStyle);
                 if (descriptor.formatting.alignment) return ValueType.fromExtendedType(ExtendedType.Alignment);
                 if (descriptor.formatting.labelDisplayUnits) return ValueType.fromExtendedType(ExtendedType.LabelDisplayUnits);
-                if (descriptor.formatting.labelPosition) return ValueType.fromExtendedType(ExtendedType.LabelPosition);
-                if (descriptor.formatting.outline) return ValueType.fromExtendedType(ExtendedType.Outline);
-                if (descriptor.formatting.imageScalingType) return ValueType.fromExtendedType(ExtendedType.ImageScalingType);
-                if (descriptor.formatting.shapeType) return ValueType.fromExtendedType(ExtendedType.ShapeType);
+                if (descriptor.formatting.fontSize) return ValueType.fromExtendedType(ExtendedType.FontSize);
             }
             if (descriptor.extendedType) {
                 return ValueType.fromExtendedType(descriptor.extendedType);
@@ -208,6 +211,25 @@ module powerbi {
                 id += '|' + category;
 
             return ValueType.typeCache[id] || (ValueType.typeCache[id] = new ValueType(toExtendedType(primitiveType, category), category));
+        }
+
+        /** Creates a ValueType to describe the given IEnumType. */
+        public static fromEnum(enumType: IEnumType): ValueType {
+            debug.assertValue(enumType, 'enumType');
+
+            return new ValueType(ExtendedType.Enumeration, null, enumType);
+        }
+
+        /** Determines if the instance ValueType is convertable from the 'other' ValueType. */
+        public isCompatibleFrom(other: ValueType): boolean {
+            debug.assertValue(other, 'other');
+            
+            let otherPrimitiveType = other.primitiveType;
+            if (this === other ||
+                this.primitiveType === otherPrimitiveType ||
+                otherPrimitiveType === PrimitiveType.Null)
+                return true;
+            return false;
         }
 
         /** Gets the exact primitive type of this ValueType. */
@@ -279,6 +301,27 @@ module powerbi {
         /** Returns an object describing the formatting values represented by the type, if it represents a formatting type. */
         public get formatting(): FormattingType {
             return this.formattingType;
+        }
+        /** Returns an object describing the enum values represented by the type, if it represents an enumeration type. */
+        public get enum(): IEnumType {
+            return this.enumType;
+        }
+
+        public get scripting(): ScriptType {
+            return this.scriptingType;
+        }
+    }
+
+    export class ScriptType implements ScriptTypeDescriptor {
+        private underlyingType: ExtendedType;
+
+        constructor(type: ExtendedType) {
+            debug.assert(!!type && EnumExtensions.hasFlag(type, ExtendedType.Scripting), 'type');
+            this.underlyingType = type;
+        }
+
+        public get source(): boolean {
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.ScriptSource);
         }
     }
 
@@ -376,26 +419,6 @@ module powerbi {
             return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.FormatString);
         }
 
-        public get legendPosition(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.LegendPosition);
-        }
-
-        public get axisScale(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.AxisScale);
-        }
-
-        public get axisType(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.AxisType);
-        }
-
-        public get yAxisPosition(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.YAxisPosition);
-        }
-
-        public get axisStyle(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.AxisStyle);
-        }
-
         public get alignment(): boolean {
             return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Alignment);
         }
@@ -404,20 +427,8 @@ module powerbi {
             return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.LabelDisplayUnits);
         }
 
-        public get labelPosition(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.LabelPosition);
-        }
-
-        public get outline(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Outline);
-        }
-
-        public get shapeType(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.ShapeType);
-        }
-
-        public get imageScalingType(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.ImageScalingType);
+        public get fontSize(): boolean {
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.FontSize);
         }
     }
 
@@ -447,6 +458,7 @@ module powerbi {
         Geography = 1 << 10,
         Miscellaneous = 1 << 11,
         Formatting = 1 << 12,
+        Scripting = 1 << 13,        
 
         // Primitive types (0-255 range [0xFF] | flags)
         // The member names and base values must match those in PrimitiveType.
@@ -501,25 +513,20 @@ module powerbi {
         // Formatting
         Color = Text | Formatting | (300 << 16),
         FormatString = Text | Formatting | (301 << 16),
-        LegendPosition = Text | Formatting | (302 << 16),
-        AxisType = Text | Formatting | (303 << 16),
-        YAxisPosition = Text | Formatting | (304 << 16),
-        AxisStyle = Text | Formatting | (305 << 16),
         Alignment = Text | Formatting | (306 << 16),
         LabelDisplayUnits = Text | Formatting | (307 << 16),
-        LabelPosition = Text | Formatting | (308 << 16),
-        Outline = Text | Formatting | (309 << 16),
-        ShapeType = Text | Formatting | (310 << 16),
-        ImageScalingType = Text | Formatting | (311 << 16),
-        AxisScale = Text | Formatting | (312 << 16)
-
+        FontSize = Double | Formatting | (308 << 16),
+        // Enumeration
+        Enumeration = Text | 400 << 16,
+        // Scripting
+        ScriptSource = Text | Scripting | (500 << 16),        
         // NOTE: To avoid confusion, underscores should be used only to delimit primitive type variants of an extended type
         // (e.g. Year_Integer or Latitude_Double above)
     }
 
-    var PrimitiveTypeMask = 0xFF; // const
-    var PrimitiveTypeWithFlagsMask = 0xFFFF; // const
-    var PrimitiveTypeFlagsExcludedMask = 0xFFFF0000; // const
+    const PrimitiveTypeMask = 0xFF; 
+    const PrimitiveTypeWithFlagsMask = 0xFFFF; 
+    const PrimitiveTypeFlagsExcludedMask = 0xFFFF0000; 
 
     function getPrimitiveType(extendedType: ExtendedType): PrimitiveType {
         return extendedType & PrimitiveTypeMask;

@@ -69,11 +69,14 @@ module powerbi.data {
             debug.assertValue(propertyDescriptor, 'propertyDescriptor');
             debug.assertValue(propertyDefinition, 'propertyDefinition');
 
+            let structuralType = <StructuralTypeDescriptor>propertyDescriptor.type;
+            if (structuralType && structuralType.expression)
+                return propertyDefinition;
+
             let value = evaluateValue(<any>propertyDefinition, ValueType.fromDescriptor(propertyDescriptor.type));
             if (value !== undefined || (propertyDefinition instanceof RuleEvaluation))
                 return value;
 
-            let structuralType = <StructuralTypeDescriptor>propertyDescriptor.type;
             let valueFill = evaluateFill(<FillDefinition>propertyDefinition, structuralType);
             if (valueFill)
                 return valueFill;

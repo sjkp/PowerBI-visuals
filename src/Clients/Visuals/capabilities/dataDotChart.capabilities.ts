@@ -28,7 +28,7 @@
 
 module powerbi.visuals {
     // I support a categorical (ordinal) X with measure Y for a single series
-    export var dataDotChartCapabilities: VisualCapabilities = {
+    export const dataDotChartCapabilities: VisualCapabilities = {
         dataRoles: [
             {
                 name: 'Category',
@@ -36,6 +36,7 @@ module powerbi.visuals {
             }, {
                 name: 'Y',
                 kind: VisualDataRoleKind.Measure,
+                requiredTypes: [{ numeric: true }, { integer: true }],
             },
         ],
         objects: {

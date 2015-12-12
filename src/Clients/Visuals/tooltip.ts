@@ -29,10 +29,14 @@
 module powerbi.visuals {
 
     import TouchUtils = powerbi.visuals.controls.TouchUtils;
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
 
     export interface TooltipDataItem {
         displayName: string;
         value: string;
+        color?: string;
+        header?: string;
     }
 
     export interface TooltipOptions {
@@ -77,6 +81,15 @@ module powerbi.visuals {
         BottomLeft
     };
 
+    const ContainerClassName: ClassAndSelector = createClassAndSelector("tooltip-container");
+    const ContentContainerClassName: ClassAndSelector = createClassAndSelector("tooltip-content-container");
+    const ArrowClassName: ClassAndSelector = createClassAndSelector("arrow");
+    const TooltipHeaderClassName: ClassAndSelector = createClassAndSelector("tooltip-header");
+    const TooltipRowClassName: ClassAndSelector = createClassAndSelector("tooltip-row");
+    const TooltipColorCellClassName: ClassAndSelector = createClassAndSelector("tooltip-color-cell");
+    const TooltipTitleCellClassName: ClassAndSelector = createClassAndSelector("tooltip-title-cell");
+    const TooltipValueCellClassName: ClassAndSelector = createClassAndSelector("tooltip-value-cell");
+
     export class ToolTipComponent {
 
         private static DefaultTooltipOptions: TooltipOptions = {
@@ -88,16 +101,10 @@ module powerbi.visuals {
 
         private tooltipContainer: D3.Selection;
         private isTooltipVisible: boolean = false;
+        private currentTooltipData: TooltipDataItem[];
 
         private customScreenWidth: number;
         private customScreenHeight: number;
-
-        private static containerClassName: string = "tooltip-container";
-        private static contentContainerClassName: string = "tooltip-content-container";
-        private static arrowClassName: string = "arrow";
-        private static tooltipRowClassName: string = "tooltip-row";
-        private static tooltipTitleCellClassName: string = "tooltip-title-cell";
-        private static tooltipValueCellClassName: string = "tooltip-value-cell";
 
         public static parentContainerSelector: string = "body";
         public static highlightedValueDisplayNameResorceKey: string = "Tooltip_HighlightedValueDisplayName";
@@ -109,7 +116,6 @@ module powerbi.visuals {
             }
         }
 
-        /** Note: For tests only */
         public isTooltipComponentVisible(): boolean {
             return this.isTooltipVisible;
         }
@@ -162,26 +168,54 @@ module powerbi.visuals {
         private createTooltipContainer(): D3.Selection {
             let container: D3.Selection = d3.select(ToolTipComponent.parentContainerSelector)
                 .append("div")
-                .attr("class", ToolTipComponent.containerClassName);
+                .attr("class", ContainerClassName.class);
 
-            container.append("div").attr("class", ToolTipComponent.arrowClassName);
-            container.append("div").attr("class", ToolTipComponent.contentContainerClassName);
+            container.append("div").attr("class", ArrowClassName.class);
+            container.append("div").attr("class", ContentContainerClassName.class);
 
             return container;
         }
 
         private setTooltipContent(tooltipData: TooltipDataItem[]): void {
+            if (_.isEqual(tooltipData, this.currentTooltipData))
+                return;
+            this.currentTooltipData = tooltipData;
 
-            let rowsSelector: string = "." + ToolTipComponent.tooltipRowClassName;
-            let contentContainer = this.tooltipContainer.select("." + ToolTipComponent.contentContainerClassName);
+            let rowsSelector: string = TooltipRowClassName.selector;
+            let contentContainer = this.tooltipContainer.select(ContentContainerClassName.selector);
 
             // Clear existing content
-            contentContainer.selectAll(".tooltip-row").remove();
+            contentContainer.selectAll(TooltipHeaderClassName.selector).remove();
+            contentContainer.selectAll(TooltipRowClassName.selector).remove();
 
+            if (tooltipData.length === 0) return;
+
+            if (tooltipData[0].header) {
+                contentContainer.append("div").attr("class", TooltipHeaderClassName.class).text(tooltipData[0].header);
+            }
             let tooltipRow: D3.UpdateSelection = contentContainer.selectAll(rowsSelector).data(tooltipData);
-            let newRow: D3.Selection = tooltipRow.enter().append("div").attr("class", ToolTipComponent.tooltipRowClassName);
-            let newTitleCell: D3.Selection = newRow.append("div").attr("class", ToolTipComponent.tooltipTitleCellClassName);
-            let newValueCell: D3.Selection = newRow.append("div").attr("class", ToolTipComponent.tooltipValueCellClassName);
+            let newRow: D3.Selection = tooltipRow.enter().append("div").attr("class", TooltipRowClassName.class);
+            if (tooltipData[0].color) {
+                let newColorCell: D3.Selection = newRow.append("div").attr("class", TooltipColorCellClassName.class);
+
+                newColorCell
+                    .append('svg')
+                    .attr({
+                        'width': '100%',
+                        'height': '15px'
+                    })
+                    .append('circle')
+                    .attr({
+                        'cx': '5',
+                        'cy': '8',
+                        'r': '5'
+                    })
+                    .style({
+                        'fill': (d: TooltipDataItem) => d.color
+                    });
+            }
+            let newTitleCell: D3.Selection = newRow.append("div").attr("class", TooltipTitleCellClassName.class);
+            let newValueCell: D3.Selection = newRow.append("div").attr("class", TooltipValueCellClassName.class);
 
             newTitleCell.text(function (d: TooltipDataItem) { return d.displayName; });
             newValueCell.text(function (d: TooltipDataItem) { return d.value; });
@@ -248,7 +282,7 @@ module powerbi.visuals {
         }
 
         private getArrowElement(): D3.Selection {
-            return this.tooltipContainer.select("." + ToolTipComponent.arrowClassName);
+            return this.tooltipContainer.select(ArrowClassName.selector);
         }
 
         private getClickedScreenArea(clickedArea: TouchUtils.Rectangle): ScreenArea {
@@ -276,17 +310,22 @@ module powerbi.visuals {
 
     export module TooltipManager {
 
-        export var ShowTooltips: boolean = true;
-        export var ToolTipInstance: ToolTipComponent = new ToolTipComponent();
-        var GlobalTooltipEventsAttached: boolean = false;
-        var tooltipMouseOverDelay: number = 500;
-        var tooltipTouchDelay: number = 500;
-        var tooltipTimeoutId: number;
-        var handleTouchDelay: number = 1000;
-        var handleTouchTimeoutId: number = 0;
-        var mouseCoordinates: number[];
+        export let ShowTooltips: boolean = true;
+        export let ToolTipInstance: ToolTipComponent = new ToolTipComponent();
+        let GlobalTooltipEventsAttached: boolean = false;
+        const tooltipMouseOverDelay: number = 350;
+        const tooltipMouseOutDelay: number = 500;
+        const tooltipTouchDelay: number = 350;
+        let tooltipTimeoutId: number;
+        const handleTouchDelay: number = 1000;
+        let handleTouchTimeoutId: number = 0;
+        let mouseCoordinates: number[];
+        let tooltipData: TooltipDataItem[];
 
-        export function addTooltip(d3Selection: D3.Selection, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], reloadTooltipDataOnMouseMove?: boolean): void {
+        export function addTooltip(d3Selection: D3.Selection,
+            getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[],
+            reloadTooltipDataOnMouseMove?: boolean,
+            onMouseOutDelegate?: () => void): void {
 
             if (!ShowTooltips) {
                 return;
@@ -314,14 +353,20 @@ module powerbi.visuals {
                         isTouchEvent: false
                     };
                     clearTooltipTimeout();
-                    tooltipTimeoutId = showDelayedTooltip(tooltipEvent, getTooltipInfoDelegate, tooltipMouseOverDelay);
+                    // if it is already visible, change contents immediately (use 16ms minimum perceivable frame rate to prevent thrashing)
+                    let delay = ToolTipInstance.isTooltipComponentVisible() ? 16 : tooltipMouseOverDelay;
+                    tooltipTimeoutId = showDelayedTooltip(tooltipEvent, getTooltipInfoDelegate, delay);
                 }
             });
 
             d3Selection.on("mouseout", function (d, i) {
                 if (!handleTouchTimeoutId) {
                     clearTooltipTimeout();
-                    hideTooltipEventHandler();
+                    tooltipTimeoutId = hideDelayedTooltip(tooltipMouseOutDelay);
+                }
+
+                if (onMouseOutDelegate) {
+                    onMouseOutDelegate();
                 }
             });
 
@@ -349,7 +394,6 @@ module powerbi.visuals {
             }
 
             d3Selection.on(touchStartEventName, function (d, i) {
-                mouseCoordinates = null;
                 hideTooltipEventHandler();
                 let coordinates: number[] = getCoordinates(rootNode, isPointerEvent);
                 let elementCoordinates: number[] = getCoordinates(this, isPointerEvent);
@@ -377,8 +421,12 @@ module powerbi.visuals {
             });
         }
 
-        export function showDelayedTooltip(tooltipEvent: TooltipEvent, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], delayInMs: number) {
+        export function showDelayedTooltip(tooltipEvent: TooltipEvent, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], delayInMs: number): number {
             return setTimeout(() => showTooltipEventHandler(tooltipEvent, getTooltipInfoDelegate), delayInMs);
+        }
+
+        export function hideDelayedTooltip(delayInMs: number): number {
+            return setTimeout(() => hideTooltipEventHandler(), delayInMs);
         }
 
         export function setLocalizedStrings(localizationOptions: TooltipLocalizationOptions): void {
@@ -386,7 +434,7 @@ module powerbi.visuals {
         }
 
         function showTooltipEventHandler(tooltipEvent: TooltipEvent, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[]) {
-            let tooltipInfo: TooltipDataItem[] = getTooltipInfoDelegate(tooltipEvent);
+            let tooltipInfo: TooltipDataItem[] = tooltipData || getTooltipInfoDelegate(tooltipEvent);
             if (tooltipInfo) {
                 let coordinates: number[] = mouseCoordinates || tooltipEvent.coordinates;
                 let clickedArea: TouchUtils.Rectangle = getClickedArea(coordinates[0], coordinates[1], tooltipEvent.isTouchEvent);
@@ -395,12 +443,12 @@ module powerbi.visuals {
         }
 
         function moveTooltipEventHandler(tooltipEvent: TooltipEvent, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], reloadTooltipDataOnMouseMove: boolean) {
-            let tooltipInfo: TooltipDataItem[];
+            tooltipData = undefined;
             if (reloadTooltipDataOnMouseMove) {
-                tooltipInfo = getTooltipInfoDelegate(tooltipEvent);
+                tooltipData = getTooltipInfoDelegate(tooltipEvent);
             }
             let clickedArea: TouchUtils.Rectangle = getClickedArea(tooltipEvent.coordinates[0], tooltipEvent.coordinates[1], tooltipEvent.isTouchEvent);
-            ToolTipInstance.move(tooltipInfo, clickedArea);
+            ToolTipInstance.move(tooltipData, clickedArea);
         };
 
         function hideTooltipEventHandler() {
@@ -456,7 +504,16 @@ module powerbi.visuals {
             let coordinates: number[];
 
             if (isPointerEvent) {
-                coordinates = d3.mouse(rootNode);
+                // DO NOT USE - WebKit bug in getScreenCTM with nested SVG results in slight negative coordinate shift
+                // Also, IE will incorporate transform scale but WebKit does not, forcing us to detect browser and adjust appropriately.
+                // Just use non-scaled coordinates for all browsers, and adjust for the transform scale later (see lineChart.findIndex)
+                //coordinates = d3.mouse(rootNode);
+
+                // copied from d3_eventSource (which is not exposed)
+                let e = d3.event, s;
+                while (s = e.sourceEvent) e = s;
+                let rect = rootNode.getBoundingClientRect();
+                coordinates = [e.clientX - rect.left - rootNode.clientLeft, e.clientY - rect.top - rootNode.clientTop];
             }
             else {
                 let touchCoordinates = d3.touches(rootNode);

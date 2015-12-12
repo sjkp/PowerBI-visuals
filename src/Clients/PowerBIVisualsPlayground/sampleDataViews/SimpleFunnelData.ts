@@ -67,6 +67,9 @@ module powerbi.visuals.sampleDataViews {
                         queryName: 'sales1',
                         type: powerbi.ValueType.fromDescriptor({ numeric: true }),
                         objects: { dataPoint: { fill: { solid: { color: 'purple' } } } },
+                        roles: {
+                            "Y": true
+                        }
                     }
                 ]
             };

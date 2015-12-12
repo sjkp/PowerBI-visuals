@@ -30,7 +30,7 @@ module powerbitests {
     import visuals = powerbi.visuals;
 
     describe("ColorAllocatorFactory - linear gradient two colors", () => {
-        var colorer: powerbi.IColorAllocator;
+        let colorer: powerbi.IColorAllocator;
 
         beforeEach(() => {
             colorer = visuals.createColorAllocatorFactory().linearGradient2({
@@ -40,31 +40,31 @@ module powerbitests {
         });
 
         it("LinearGradient2: min value", () => {
-            expect(colorer.color(100)).toBe("#ff0000");
+            helpers.assertColorsMatch(colorer.color(100), "#ff0000");
         });
 
         it("LinearGradient2: max value", () => {
-            expect(colorer.color(200)).toBe("#0000ff");
+            helpers.assertColorsMatch(colorer.color(200), "#0000ff");
         });
 
         it("LinearGradient2: mid value", () => {
-            expect(colorer.color(150)).toBe("#800080");
+            helpers.assertColorsMatch(colorer.color(150), "#800080");
         });
 
         it("LinearGradient2: intermediate value", () => {
-            expect(colorer.color(120)).toBe("#cc0033");
+            helpers.assertColorsMatch(colorer.color(120), "#cc0033");
         });
 
         it("LinearGradient2 clamping - test values outside the range", () => {
-            expect(colorer.color(90)).toBe("#ff0000");
-            expect(colorer.color(220)).toBe("#0000ff");
+            helpers.assertColorsMatch(colorer.color(90), "#ff0000");
+            helpers.assertColorsMatch(colorer.color(220), "#0000ff");
         });
 
     });
 
     describe("ColorAllocatorFactory - linear gradient three colors", () => {
-        var defaultColorer: powerbi.IColorAllocator;
-        var options: powerbi.LinearGradient3;
+        let defaultColorer: powerbi.IColorAllocator;
+        let options: powerbi.LinearGradient3;
 
         beforeEach(() => {
             options = {
@@ -77,51 +77,51 @@ module powerbitests {
         });
 
         it("LinearGradient3: min value", () => {
-            expect(defaultColorer.color(100)).toBe("#ff0000");
+            helpers.assertColorsMatch(defaultColorer.color(100), "#ff0000");
         });
 
         it("LinearGradient3: max value", () => {
-            expect(defaultColorer.color(200)).toBe("#0000ff");
+            helpers.assertColorsMatch(defaultColorer.color(200), "#0000ff");
         });
 
         it("LinearGradient3: mid value", () => {
             options.mid.value = 170;
-            var colorer = visuals.createColorAllocatorFactory().linearGradient3(options, false);
+            let colorer = visuals.createColorAllocatorFactory().linearGradient3(options, false);
 
-            expect(colorer.color(170)).toBe("#ffffff");
+            helpers.assertColorsMatch(colorer.color(170), "#ffffff");
         });
 
         it("LinearGradient3: intermediate value", () => {
             options.mid.value = 176;
-            var colorer = visuals.createColorAllocatorFactory().linearGradient3(options, false);
+            let colorer = visuals.createColorAllocatorFactory().linearGradient3(options, false);
 
-            expect(colorer.color(178)).toBe("#eaeaff");
+            helpers.assertColorsMatch(colorer.color(178), "#eaeaff");
         });
 
         it("LinearGradient3: between min & mid", () => {
             options.mid.value = 176;
-            var colorer = visuals.createColorAllocatorFactory().linearGradient3(options, false);
+            let colorer = visuals.createColorAllocatorFactory().linearGradient3(options, false);
 
-            expect(colorer.color(170)).toBe("#ffebeb");
+            helpers.assertColorsMatch(colorer.color(170), "#ffebeb");
         });
 
         it("LinearGradient3 clamping - test values outside the range", () => {
-            expect(defaultColorer.color(0)).toBe("#ff0000");
-            expect(defaultColorer.color(300)).toBe("#0000ff");
+            helpers.assertColorsMatch(defaultColorer.color(0), "#ff0000");
+            helpers.assertColorsMatch(defaultColorer.color(300), "#0000ff");
         });
 
         it("LinearGradient3: splitted scales", () => {
-            var colorer = visuals.createColorAllocatorFactory().linearGradient3({
+            let colorer = visuals.createColorAllocatorFactory().linearGradient3({
                 min: { value: -50, color: "#ffff00" },
                 mid: { value: 0, color: "#ffffff" },
                 max: { value: 2000, color: "#0000ff" }
             }, true);
 
-            expect(colorer.color(-50)).toBe("#ffff00");
-            expect(colorer.color(-25)).toBe("#ffff80");
-            expect(colorer.color(0)).toBe("#ffffff");
-            expect(colorer.color(1000)).toBe("#8080ff");
-            expect(colorer.color(2000)).toBe("#0000ff");
+            helpers.assertColorsMatch(colorer.color(-50), "#ffff00");
+            helpers.assertColorsMatch(colorer.color(-25), "#ffff80");
+            helpers.assertColorsMatch(colorer.color(0), "#ffffff");
+            helpers.assertColorsMatch(colorer.color(1000), "#8080ff");
+            helpers.assertColorsMatch(colorer.color(2000), "#0000ff");
         });
     });
 }

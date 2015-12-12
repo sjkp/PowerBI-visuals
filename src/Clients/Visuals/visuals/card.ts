@@ -28,22 +28,26 @@
 
 module powerbi.visuals {
     import KpiImageSize = powerbi.visuals.KpiUtil.KpiImageSize;
+    import KpiImageMetadata = powerbi.visuals.KpiUtil.KpiImageMetadata;
     import getKpiImageMetadata = powerbi.visuals.KpiUtil.getKpiImageMetadata;
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
+
+    export interface CardStyleText {
+        textSize: number;
+        color: string;
+    }
+
+    export interface CardStyleValue extends CardStyleText {
+        fontFamily: string;
+    }
 
     export interface CardStyle {
         card: {
             maxFontSize: number;
         };
-        label: {
-            fontSize: number;
-            color: string;
-            height: number;
-        };
-        value: {
-            fontSize: number;
-            color: string;
-            fontFamily: string;
-        };
+        label: CardStyleText;
+        value: CardStyleValue;
     }
 
     export interface CardConstructorOptions {
@@ -53,39 +57,36 @@ module powerbi.visuals {
     }
 
     export interface CardFormatSetting {
-        showTitle: boolean;
+        textSize: number;
         labelSettings: VisualDataLabelsSettings;
         wordWrap: boolean;
     }
 
     export class Card extends AnimatedText implements IVisual {
         private static cardClassName: string = 'card';
-        private static Label: ClassAndSelector = {
-            class: 'label',
-            selector: '.label'
+        private static Label: ClassAndSelector = createClassAndSelector('label');
+        private static Value: ClassAndSelector = createClassAndSelector('value');
+        private static KPIImage: ClassAndSelector = createClassAndSelector('caption');
+
+        private static cardTextProperties: TextProperties = {
+            fontSize: null,
+            text: null,
+            fontFamily: dataLabelUtils.LabelTextProperties.fontFamily,
         };
-        private static Value: ClassAndSelector = {
-            class: 'value',
-            selector: '.value'
-        };
+
         public static DefaultStyle: CardStyle = {
             card: {
                 maxFontSize: 200
             },
             label: {
-                fontSize: 16,
+                textSize: 12,
                 color: '#a6a6a6',
-                height: 26
             },
             value: {
-                fontSize: 37,
+                textSize: 27,
                 color: '#333333',
                 fontFamily: 'wf_segoe-ui_Semibold'
             }
-        };
-        private static Caption: ClassAndSelector = {
-            class: 'caption',
-            selector: '.caption'
         };
 
         private toolTip: D3.Selection;
@@ -116,7 +117,8 @@ module powerbi.visuals {
             this.animationOptions = options.animation;
             let element = options.element;
 
-            this.kpiImage = d3.select(element.get(0)).append('div');
+            this.kpiImage = d3.select(element.get(0)).append('div')
+                .classed(Card.KPIImage.class, true);
             let svg = this.svg = d3.select(element.get(0)).append('svg');
             this.graphicsContext = svg.append('g');
             this.currentViewport = options.viewport;
@@ -134,9 +136,6 @@ module powerbi.visuals {
         public onDataChanged(options: VisualDataChangedOptions): void {
             debug.assertValue(options, 'options');
 
-            //Default settings for reset to default
-            this.cardFormatSetting = this.getDefaultFormatSettings();
-
             let dataView = options.dataViews[0];
             let value: any;
             if (dataView) {
@@ -144,6 +143,9 @@ module powerbi.visuals {
                 if (dataView.single) {
                     value = dataView.single.value;
                 }
+
+                // Update settings based on new metadata column
+                this.cardFormatSetting = this.getDefaultFormatSettings();
 
                 let dataViewMetadata = dataView.metadata;
                 if (dataViewMetadata) {
@@ -153,15 +155,21 @@ module powerbi.visuals {
 
                         labelSettings.labelColor = DataViewObjects.getFillColor(objects, cardProps.labels.color, labelSettings.labelColor);
                         labelSettings.precision = DataViewObjects.getValue(objects, cardProps.labels.labelPrecision, labelSettings.precision);
+                        labelSettings.fontSize = DataViewObjects.getValue(objects, cardProps.labels.fontSize, labelSettings.fontSize);
 
                         // The precision can't go below 0
-                        if (labelSettings.precision != null) {
-                            labelSettings.precision = (labelSettings.precision >= 0) ? labelSettings.precision : 0;
+                        if (labelSettings.precision !== dataLabelUtils.defaultLabelPrecision && labelSettings.precision < 0) {
+                            labelSettings.precision = 0;
                         }
 
                         labelSettings.displayUnits = DataViewObjects.getValue(objects, cardProps.labels.labelDisplayUnits, labelSettings.displayUnits);
-                        this.cardFormatSetting.showTitle = DataViewObjects.getValue(objects, cardProps.cardTitle.show, this.cardFormatSetting.showTitle);
+
+                        //category labels
+                        labelSettings.showCategory = DataViewObjects.getValue(objects, cardProps.categoryLabels.show, labelSettings.showCategory);
+                        labelSettings.categoryLabelColor = DataViewObjects.getFillColor(objects, cardProps.categoryLabels.color, labelSettings.categoryLabelColor);
+
                         this.cardFormatSetting.wordWrap = DataViewObjects.getValue(objects, cardProps.wordWrap.show, this.cardFormatSetting.wordWrap);
+                        this.cardFormatSetting.textSize = DataViewObjects.getValue(objects, cardProps.categoryLabels.fontSize, this.cardFormatSetting.textSize);
                     }
                 }
             }
@@ -179,6 +187,15 @@ module powerbi.visuals {
             let viewport = this.currentViewport;
             this.svg.attr('width', viewport.width)
                 .attr('height', viewport.height);
+        }
+
+        private setTextProperties(text: string, fontSize: number): void {
+            Card.cardTextProperties.fontSize = jsCommon.PixelConverter.fromPoint(fontSize);
+            Card.cardTextProperties.text = text;
+        }
+
+        private getCardFormatTextSize(): number {
+            return this.cardFormatSetting.textSize;
         }
 
         public getAdjustedFontHeight(availableWidth: number, textToMeasure: string, seedFontHeight: number) {
@@ -208,87 +225,43 @@ module powerbi.visuals {
 
             let metaDataColumn = this.metaDataColumn;
             let labelSettings = this.cardFormatSetting.labelSettings;
-            let labelStyles = Card.DefaultStyle.label;
-            let valueStyles = Card.DefaultStyle.value;
             let isDefaultDisplayUnit = labelSettings.displayUnits === 0;
+            let format = this.getFormatString(metaDataColumn);
             let formatter = valueFormatter.create({
-                format: this.getFormatString(metaDataColumn),
+                format: format,
                 value: isDefaultDisplayUnit ? target : labelSettings.displayUnits,
-                precision: labelSettings.precision,
-                displayUnitSystemType: isDefaultDisplayUnit && labelSettings.precision === 0 ? this.displayUnitSystemType : DisplayUnitSystemType.WholeUnits, // keeps this.displayUnitSystemType as the displayUnitSystemType unless the user changed the displayUnits or the precision
+                precision: dataLabelUtils.getLabelPrecision(labelSettings.precision, format),
+                displayUnitSystemType: isDefaultDisplayUnit && labelSettings.precision === dataLabelUtils.defaultLabelPrecision ? this.displayUnitSystemType : DisplayUnitSystemType.WholeUnits, // keeps this.displayUnitSystemType as the displayUnitSystemType unless the user changed the displayUnits or the precision
                 formatSingleValues: isDefaultDisplayUnit ? true : false,
                 allowFormatBeautification: true,
                 columnType: metaDataColumn ? metaDataColumn.type : undefined
             });
+
             let formatSettings = this.cardFormatSetting;
+            let labelTextSizeInPx = jsCommon.PixelConverter.fromPointToPixel(labelSettings.fontSize);
+            let valueStyles = Card.DefaultStyle.value;
+            this.setTextProperties(target, this.getCardFormatTextSize());
+            let calculatedHeight = TextMeasurementService.estimateSvgTextHeight(Card.cardTextProperties);
+
             let width = this.currentViewport.width;
             let height = this.currentViewport.height;
             let translateX = this.getTranslateX(width);
-            let translateY = (height - labelStyles.height - valueStyles.fontSize) / 2;
-
-            let statusGraphicInfo = getKpiImageMetadata(metaDataColumn, target, KpiImageSize.Big);
-            let columnCaption: string;
-            let statusGraphic: string;
-
-            if (statusGraphicInfo) {
-                columnCaption = statusGraphicInfo.caption;
-                statusGraphic = statusGraphicInfo.statusGraphic;
-            }
-
-            if (!columnCaption)
-                columnCaption = valueFormatter.format(target, valueFormatter.getFormatString(metaDataColumn, MultiRowCard.formatStringProp));
+            let translateY = (height - calculatedHeight - labelTextSizeInPx ) / 2;
+            let statusGraphicInfo: KpiImageMetadata = getKpiImageMetadata(metaDataColumn, target, KpiImageSize.Big);
 
             if (this.isScrollable) {
                 if (!forceUpdate && start === target)
                     return;
 
-                let label: string;
-
-                if (start !== target) {
+                if (start !== target)
                     target = formatter.format(target);
-                }
 
-                if (metaDataColumn)
-                    label = metaDataColumn.displayName;
-
-                if (statusGraphic) {
-                    // show KPI
-                    this.graphicsContext.selectAll('text').remove();
-                    this.displayStatusGraphic(statusGraphic, translateX, translateY, columnCaption, valueStyles);
-                } else {
-                    // show text value
-                    this.kpiImage.selectAll('div').remove();
-                    let valueElement = this.graphicsContext
-                        .attr('transform', SVGUtil.translate(translateX, this.getTranslateY(valueStyles.fontSize + translateY)))
-                        .selectAll('text')
-                        .data([target]);
-
-                    valueElement
-                        .enter()
-                        .append('text')
-                        .attr('class', Card.Value.class);
-
-                    valueElement
-                        .text((d: any) => d)
-                        .style({
-                            'font-size': valueStyles.fontSize + 'px',
-                            'fill': labelSettings.labelColor,
-                            'font-family': valueStyles.fontFamily,
-                            'text-anchor': this.getTextAnchor(),
-                        });
-
-                    valueElement.call(AxisHelper.LabelLayoutStrategy.clip,
-                        width,
-                        TextMeasurementService.svgEllipsis);
-
-                    valueElement.exit().remove();
-                }
-
-                let labelData = formatSettings.showTitle
+                let label: string = metaDataColumn ? metaDataColumn.displayName : undefined;
+                let labelData = labelSettings.showCategory
                     ? [label]
                     : [];
 
-                let translatedLabelY = this.getTranslateY(valueStyles.fontSize + labelStyles.height + translateY);
+                let translatedLabelY = this.getTranslateY(labelTextSizeInPx + calculatedHeight + translateY);
                 let labelElement = this.labelContext
                     .attr('transform', SVGUtil.translate(translateX, translatedLabelY))
                     .selectAll('text')
@@ -302,8 +275,8 @@ module powerbi.visuals {
                 labelElement
                     .text((d) => d)
                     .style({
-                        'font-size': labelStyles.fontSize + 'px',
-                        'fill': labelStyles.color,
+                        'font-size': jsCommon.PixelConverter.fromPoint(this.getCardFormatTextSize()),
+                        'fill': labelSettings.categoryLabelColor,
                         'text-anchor': this.getTextAnchor()
                     });
 
@@ -318,12 +291,48 @@ module powerbi.visuals {
                             width,
                             TextMeasurementService.svgEllipsis);
                 }
+
+                if (statusGraphicInfo) {
+                    // Display card KPI icon
+                    this.graphicsContext.selectAll('text').remove();
+                    this.displayStatusGraphic(statusGraphicInfo, translateX, translateY, valueStyles);
+                }
+                else {
+                    // Display card text value
+                    this.kpiImage.selectAll('div').remove();
+                    let valueElement = this.graphicsContext
+                        .attr('transform', SVGUtil.translate(translateX, this.getTranslateY(labelTextSizeInPx + translateY)))
+                        .selectAll('text')
+                        .data([target]);
+
+                    valueElement
+                        .enter()
+                        .append('text')
+                        .attr('class', Card.Value.class);
+
+                    valueElement
+                        .text((d: any) => d)
+                        .style({
+                        'font-size': jsCommon.PixelConverter.fromPoint(labelSettings.fontSize),
+                            'fill': labelSettings.labelColor,
+                            'font-family': valueStyles.fontFamily,
+                            'text-anchor': this.getTextAnchor(),
+                        });
+
+                    valueElement.call(AxisHelper.LabelLayoutStrategy.clip,
+                        width,
+                        TextMeasurementService.svgEllipsis);
+
+                    valueElement.exit().remove();
+                }
             }
             else {
-                if (statusGraphic) {
+                if (statusGraphicInfo) {
+                    // Display card KPI icon
                     this.graphicsContext.selectAll('text').remove();
-                    this.displayStatusGraphic(statusGraphic, translateX, translateY, columnCaption, valueStyles);
-                } else {
+                    this.displayStatusGraphic(statusGraphicInfo, translateX, translateY, valueStyles);
+                }
+                else {
                     this.kpiImage.selectAll('div').remove();
                     this.doValueTransition(
                         start,
@@ -332,7 +341,8 @@ module powerbi.visuals {
                         this.animationOptions,
                         duration,
                         forceUpdate,
-                        formatter);
+                        formatter
+                        );
                 }
             }
 
@@ -340,41 +350,26 @@ module powerbi.visuals {
             this.value = target;
         }
 
-        private displayStatusGraphic(statusGraphic: string, translateX: number, translateY: number, columnCaption: string, valueStyles) {
-            let imageHeight = 40;
+        private displayStatusGraphic(statusGraphicInfo: KpiImageMetadata, translateX: number, translateY: number, valueStyles: CardStyleValue) {
+            // Remove existing text
+            this.graphicsContext.selectAll('text').remove();
 
-            if (statusGraphic) {
-                this.kpiImage.style({
-                    'display': 'block',
-                });
+            // Create status graphic, if necessary
+            let kpiImageDiv = this.kpiImage.select('div');
+            if (!kpiImageDiv || kpiImageDiv.empty())
+                kpiImageDiv = this.kpiImage.append('div');
 
-                let captionDiv = this.kpiImage.select('div');
-                if (!captionDiv || captionDiv.empty()) {
-                    captionDiv = this.kpiImage.append('div');
-                    captionDiv.classed(Card.Caption.class, true)
-                        .style({
-                            'text-align': 'left',
-                            'white-space': 'nowrap',
-                            'text-overflow': 'ellipsis',
-                            'overflow': 'hidden',
-                            'position': 'absolute'
-                        });
-                    captionDiv.append('div')
-                        .style({
-                            display: 'inline-block',
-                            verticalAlign: 'sub'
-                        });
-                }
+            // Style status graphic
+            kpiImageDiv
+                .attr('class', statusGraphicInfo.class)
+                .style('position', 'absolute');
 
-                captionDiv.style({
-                    'transform': SVGUtil.translateWithPixels((translateX - (imageHeight / 2)), this.getTranslateY(valueStyles.fontSize + translateY) - imageHeight)
-                });
+            // Layout thrash to get image dimensions (could set as a const in future when icon font is fixed)
+            let imageWidth = (<HTMLElement>kpiImageDiv.node()).offsetWidth;
+            let imageHeight = (<HTMLElement>kpiImageDiv.node()).offsetHeight;
 
-                captionDiv.classed(columnCaption, true);
-            }
-            else {
-                this.kpiImage.selectAll('div').remove();
-            }
+            // Position based on image height
+            kpiImageDiv.style('transform', SVGUtil.translateWithPixels((translateX - (imageWidth / 2)), this.getTranslateY(valueStyles.textSize + translateY) - imageHeight));
         }
 
         private updateTooltip(target: number) {
@@ -385,9 +380,9 @@ module powerbi.visuals {
 
         private getDefaultFormatSettings(): CardFormatSetting {
             return {
-                showTitle: true,
-                labelSettings: dataLabelUtils.getDefaultLabelSettings(/* showLabel: */true, Card.DefaultStyle.value.color, 0, undefined),
+                labelSettings: dataLabelUtils.getDefaultCardLabelSettings(Card.DefaultStyle.value.color, Card.DefaultStyle.label.color, Card.DefaultStyle.value.textSize),
                 wordWrap: false,
+                textSize: Card.DefaultStyle.label.textSize,
             };
         }
 
@@ -399,14 +394,8 @@ module powerbi.visuals {
             let enumeration = new ObjectEnumerationBuilder();
 
             switch (options.objectName) {
-                case 'cardTitle':
-                    enumeration.pushInstance({
-                        objectName: 'cardTitle',
-                        selector: null,
-                        properties: {
-                            show: formatSettings.showTitle,
-                        },
-                    });
+                case 'categoryLabels':
+                    dataLabelUtils.enumerateCategoryLabels(enumeration, formatSettings.labelSettings, true /* withFill */, true /* isShowCategory */, formatSettings.textSize);
                     break;
                 case 'labels':
                     let labelSettingOptions: VisualDataLabelsSettingsOptions = {
@@ -415,6 +404,7 @@ module powerbi.visuals {
                         show: true,
                         displayUnits: true,
                         precision: true,
+                        fontSize: true,
                     };
                     dataLabelUtils.enumerateDataLabels(labelSettingOptions);
                     break;

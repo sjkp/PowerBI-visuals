@@ -45,7 +45,6 @@ module powerbi.data {
                     originalEntityExpr = SQExprBuilder.entity(originalEntityRef.schema, originalEntityRef.entity, keyName),
                     updatedEntityExpr = <SQEntityExpr>originalEntityExpr.accept(this.exprRewriter);
                 
-
                 fromContents[keyName] = {
                     schema: updatedEntityExpr.schema,
                     entity: updatedEntityExpr.entity,
@@ -54,11 +53,9 @@ module powerbi.data {
             return new SQFrom(fromContents);
         }
 
-        public rewriteSelect(selectItems: NamedSQExpr[], from: SQFrom): NamedSQExpr[] {
+        public rewriteSelect(selectItems: NamedSQExpr[], from: SQFrom): NamedSQExpr[]{
+            debug.assertValue(selectItems, 'selectItems');
             debug.assertValue(from, 'from');
-
-            if (!selectItems || selectItems.length === 0)
-                return;
 
             let select: NamedSQExpr[] = [];
             for (let i = 0, len = selectItems.length; i < len; i++) {
@@ -73,9 +70,10 @@ module powerbi.data {
         }
 
         public rewriteOrderBy(orderByItems: SQSortDefinition[], from: SQFrom): SQSortDefinition[]{
+            debug.assertAnyValue(orderByItems, 'orderByItems');
             debug.assertValue(from, 'from');
 
-            if (!orderByItems || orderByItems.length === 0)
+            if (_.isEmpty(orderByItems))
                 return;
 
             let orderBy: SQSortDefinition[] = [];
@@ -92,9 +90,10 @@ module powerbi.data {
         }
 
         public rewriteWhere(whereItems: SQFilter[], from: SQFrom): SQFilter[]{
+            debug.assertAnyValue(whereItems, 'whereItems');
             debug.assertValue(from, 'from');
 
-            if (!whereItems || whereItems.length === 0)
+            if (_.isEmpty(whereItems))
                 return;
 
             let where: SQFilter[] = [];

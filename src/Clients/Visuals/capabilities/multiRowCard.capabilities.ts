@@ -27,12 +27,13 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var multiRowCardCapabilities: VisualCapabilities = {
+    export const multiRowCardCapabilities: VisualCapabilities = {
         dataRoles: [
             {
                 name: 'Values',
                 kind: VisualDataRoleKind.GroupingOrMeasure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Fields'),
+                description: data.createDisplayNameGetter('Role_DisplayName_FieldsDescription')
             }
         ],
         objects: {
@@ -54,5 +55,6 @@ module powerbi.visuals {
             },
         }],
         suppressDefaultTitle: true,
+        supportsSelection: false,
     };
 }

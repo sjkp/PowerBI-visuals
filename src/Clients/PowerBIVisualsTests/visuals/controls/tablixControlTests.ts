@@ -33,12 +33,13 @@ module powerbitests {
 
     let colWidthChangedCallback = false;
     let colWidthCallback = [50];
+    let parentElement;
 
-    describe("TablixGrid", () => {        
+    describe("TablixGrid", () => {
         it("onStartRenderingSession clear", () => {
-            var control = createTablixControl();
-            var grid = control.layoutManager.grid;
-            var gridPresenter = grid._presenter;
+            let control = createTablixControl();
+            let grid = control.layoutManager.grid;
+            let gridPresenter = grid._presenter;
             gridPresenter["_owner"] = grid;
             grid["_owner"] = control;
 
@@ -58,28 +59,28 @@ module powerbitests {
         });
 
         it("tablixGrid column resize", function () {
-            var control = createTablixControl();
-            var grid = control.layoutManager.grid;
+            let control = createTablixControl();
+            let grid = control.layoutManager.grid;
             grid.onStartRenderingIteration();
-            var col0 = grid.getOrCreateColumn(0);
+            let col0 = grid.getOrCreateColumn(0);
             expect(col0.getContextualWidth()).toBe(50);
             col0.resize(35);
             expect(colWidthCallback[0]).toBe(35);
         });
 
         it("CalculateWidth AutoSize property off ", function () {
-            var control = createTablixControl();
-            var grid = control.layoutManager.grid;
-            var gridPresenter = grid._presenter;
+            let control = createTablixControl();
+            let grid = control.layoutManager.grid;
+            let gridPresenter = grid._presenter;
             gridPresenter["_owner"] = grid;
             grid["_owner"] = control;
-            var layoutManager = control.layoutManager;
+            let layoutManager = control.layoutManager;
             // Mock setting of property to false
-            var columnLayoutManager = layoutManager.columnLayoutManager;
+            let columnLayoutManager = layoutManager.columnLayoutManager;
             layoutManager.onStartRenderingIteration(false);
-            var col0 = grid.getOrCreateColumn(0);
+            let col0 = grid.getOrCreateColumn(0);
             spyOn(col0, "calculateSize").and.returnValue(35);
-            var col1 = grid.getOrCreateColumn(1);
+            let col1 = grid.getOrCreateColumn(1);
             spyOn(col1, "calculateSize").and.returnValue(50);
             columnLayoutManager.calculateContextualWidths();
             expect(layoutManager.columnWidthsToPersist.length).toBe(2);
@@ -91,10 +92,10 @@ module powerbitests {
     describe("TablixLayoutManager", () => {
 
         it("onStartRenderingSession clear", () => {
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(createMockBinder(), undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
+            let layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(createMockBinder(), createMockColumnWidthManager());
 
-            var grid = layoutManager.grid;
-            var gridSpy = spyOn(grid, "onStartRenderingSession");
+            let grid = layoutManager.grid;
+            let gridSpy = spyOn(grid, "onStartRenderingSession");
             layoutManager.rowLayoutManager["onStartRenderingSession"] = () => { };
             layoutManager.columnLayoutManager["onStartRenderingSession"] = () => { };
             layoutManager.onStartRenderingSession(null, null, true);
@@ -102,88 +103,107 @@ module powerbitests {
         });
 
         it('RowLayoutManager getRealizedItemsCount noItems',() => {
-            var tableBinder = createMockBinder();
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
-            var rowLayoutManager = layoutManager.rowLayoutManager;
+            let tableBinder = createMockBinder();
+            let layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, createMockColumnWidthManager());
+            let rowLayoutManager = layoutManager.rowLayoutManager;
             rowLayoutManager["_realizedRows"] = null;
-            var count = rowLayoutManager.getRealizedItemsCount();
+            let count = rowLayoutManager.getRealizedItemsCount();
             expect(count).toBe(0);
         });
 
         it('ColumnLayoutManager getRealizedItemsCount noItems',() => {
-            var tableBinder = createMockBinder();
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
-            var columnLayoutManager = layoutManager.columnLayoutManager;
+            let tableBinder = createMockBinder();
+            let layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, createMockColumnWidthManager());
+            let columnLayoutManager = layoutManager.columnLayoutManager;
             columnLayoutManager["_realizedColumns"] = null;
-            var count = columnLayoutManager.getRealizedItemsCount();
+            let count = columnLayoutManager.getRealizedItemsCount();
             expect(count).toBe(0);
         });
 
         it('DimensionLayoutManager getRealizedItemsCount',() => {
-            var tableBinder = createMockBinder();
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
-            var rowLayoutManager = layoutManager.rowLayoutManager;
+            let tableBinder = createMockBinder();
+            let layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, createMockColumnWidthManager());
+            let rowLayoutManager = layoutManager.rowLayoutManager;
             spyOn(rowLayoutManager, "_getRealizedItems").and.returnValue([1, 2, 3]);
-            var count = rowLayoutManager.getRealizedItemsCount();
+            let count = rowLayoutManager.getRealizedItemsCount();
             expect(count).toBe(3);
         });
     });
 
     describe("TablixControl", () => {
 
-        var tablixControl: Controls.TablixControl;
-        var layoutManager: TablixLayoutManager;
+        let tablixControl: Controls.TablixControl;
+        let layoutManager: TablixLayoutManager;
 
         beforeEach(() => {
             tablixControl = createTablixControl();
             layoutManager = tablixControl.layoutManager;
         });
 
+        it("parentElement class name set to tablixContainer", () => {
+            expect(parentElement.className).toBe('tablixContainer');
+        });
+
+        describe('with options', () => {
+            it("fontSize option sets font-size property on container", () => {
+                tablixControl = createTablixControlWithOptions({
+                    interactive: true,
+                    enableTouchSupport: false,
+                    layoutKind: Controls.TablixLayoutKind.Canvas,
+                    fontSize: '24px',
+                });
+                layoutManager = tablixControl.layoutManager;
+
+                let actualFontSize = $(parentElement).find('.bi-tablix').css('font-size');
+                expect(actualFontSize).toBe('24px');
+            });
+        });
+
         it("Render clear calls clearRows once", () => {
 
             // Force a few rendering iterations.
-            var counter: number = 3;
+            let counter: number = 3;
             layoutManager["onEndRenderingIteration"] = () => { return 0 === counter--; };
 
-            var spy = spyOn(layoutManager.grid, "clearRows");
+            let spy = spyOn(layoutManager.grid, "clearRows");
             tablixControl.refresh(true);
 
             expect(spy.calls.all().length).toBe(1);
         });
 
         it("Render clear false no clearRows call", () => {
-            var counter: number = 1;
+            let counter: number = 1;
             layoutManager["onEndRenderingIteration"] = () => { return 0 === counter--; };
 
-            var spy = spyOn(layoutManager.grid, "clearRows");
+            let spy = spyOn(layoutManager.grid, "clearRows");
             tablixControl.refresh(false);
             expect(spy).not.toHaveBeenCalled();
         });
 
         it("DOMMouseScroll dispatches to row scrollbar", () => {
-            var spy = spyOn(tablixControl.rowDimension.scrollbar, "onFireFoxMouseWheel");
+            let spy = spyOn(tablixControl.rowDimension.scrollbar, "onFireFoxMouseWheel");
             spy.and.stub();
             tablixControl.rowDimension.scrollbar["_visible"] = true;
-            tablixControl.container.dispatchEvent(createMouseWheelEvent("DOMMouseScroll", -100));
+            tablixControl.container.dispatchEvent(helpers.createMouseWheelEvent("DOMMouseScroll", -100));
 
             expect(spy).toHaveBeenCalled();
         });
 
         it("mousewheel dispatches to row scrollbar", () => {
-            var spy = spyOn(tablixControl.rowDimension.scrollbar, "onMouseWheel");
+            let spy = spyOn(tablixControl.rowDimension.scrollbar, "onMouseWheel");
             spy.and.stub();
             tablixControl.rowDimension.scrollbar["_visible"] = true;
-            tablixControl.container.dispatchEvent(createMouseWheelEvent("mousewheel", -100));
+            tablixControl.container.dispatchEvent(helpers.createMouseWheelEvent("mousewheel", -100));
 
             expect(spy).toHaveBeenCalled();
         });
 
         it("mousewheel dispatches to dimension scrollbar", () => {
-            var spy = spyOn(tablixControl.columnDimension.scrollbar, "onMouseWheel");
+            let spy = spyOn(tablixControl.columnDimension.scrollbar, "onMouseWheel");
             spy.and.stub();
             tablixControl.rowDimension.scrollbar["_visible"] = false;
             tablixControl.columnDimension.scrollbar["_visible"] = true;
-            tablixControl.container.dispatchEvent(createMouseWheelEvent("mousewheel", -100));
+            tablixControl.container.dispatchEvent(helpers.createMouseWheelEvent("mousewheel", -100));
 
             expect(spy).toHaveBeenCalled();
         });
@@ -191,42 +211,54 @@ module powerbitests {
 
     describe("Scrollbar", () => {
 
-        var scrollbar;
+        let scrollbar;
 
         beforeEach(() => {
             scrollbar = new Controls.Scrollbar(document.createElement("div"));
         });
 
         it("Uses mouse wheel range", () => {
-            var scrollSpy = spyOn(scrollbar, "scrollBy");
+            let scrollSpy = spyOn(scrollbar, "scrollBy");
             scrollSpy.and.stub();
-            scrollbar.onMouseWheel(createMouseWheelEvent("mousewheel", -10));
+            scrollbar.onMouseWheel(helpers.createMouseWheelEvent("mousewheel", -10));
 
             expect(scrollSpy).toHaveBeenCalledWith(1);
         });
 
         it("Detects end of scroll", () => {
-            var callbackCalled = false;
-            var callback = () => { callbackCalled = true; };
+            let callbackCalled = false;
+            let callback = () => { callbackCalled = true; };
             scrollbar._onscroll.push(() => callback());
             scrollbar.viewMin = 2;
             scrollbar.viewSize = 8;
-            scrollbar.onMouseWheel(createMouseWheelEvent("mousewheel", -240));
+            scrollbar.onMouseWheel(helpers.createMouseWheelEvent("mousewheel", -240));
 
             expect(callbackCalled).toBeFalsy();
         });
     });
 
     function createTablixControl(): Controls.TablixControl {
-        var tableBinder = createMockBinder();
-        var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, mockColumnWidthsCallback, mockColumnWidthChangedCallback);
+        let tableBinder = createMockBinder();
+        let layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, createMockColumnWidthManager());
 
-        var tablixOptions: Controls.TablixOptions = {
+        parentElement = document.createElement("div");
+
+        let tablixOptions: Controls.TablixOptions = {
             interactive: true,
             enableTouchSupport: false,
             layoutKind: Controls.TablixLayoutKind.Canvas
         };
-        return new Controls.TablixControl(createMockNavigator(), layoutManager, tableBinder, document.createElement("div"), tablixOptions);
+        return new Controls.TablixControl(createMockNavigator(), layoutManager, tableBinder, parentElement, tablixOptions);
+    }
+
+    function createTablixControlWithOptions(options: Controls.TablixOptions): Controls.TablixControl {
+        let tableBinder = createMockBinder();
+        let layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, createMockColumnWidthManager());
+
+        parentElement = document.createElement("div");
+
+        let tablixOptions: Controls.TablixOptions = options;
+        return new Controls.TablixControl(createMockNavigator(), layoutManager, tableBinder, parentElement, tablixOptions);
     }
 
     function createMockBinder(): Controls.ITablixBinder {
@@ -274,38 +306,14 @@ module powerbitests {
         };
     }
 
-    function createMouseWheelEvent(eventName: string, delta: number): MouseWheelEvent {
-        var evt = document.createEvent("MouseEvents");
-        evt.initMouseEvent(
-            eventName,
-            true,  // boolean canBubbleArg,
-            true,  // boolean cancelableArg,
-            null,  // views::AbstractView viewArg,
-            120,   // long detailArg,
-            0,     // long screenXArg,
-            0,     // long screenYArg,
-            0,     // long clientXArg,
-            0,     // long clientYArg,
-            false, // boolean ctrlKeyArg,
-            false, // boolean altKeyArg,
-            false, // boolean shiftKeyArg,
-            false, // boolean metaKeyArg,
-            0,     // unsigned short buttonArg,
-            null   // EventTarget relatedTargetArg
-            );
-        var mouseEvt = <MouseWheelEvent>evt;
-        mouseEvt.wheelDelta = delta;
+    function createMockColumnWidthManager(): Controls.TablixColumnWidthManager {
+        let columnWidthManager = new Controls.TablixColumnWidthManager(null /* dataView*/, false);
+        columnWidthManager.columnWidthResizeCallback = () => {
+            colWidthChangedCallback = true;
+            colWidthCallback[0] = 35;
+        };
 
-        return mouseEvt;
-    }
-
-    function mockColumnWidthsCallback(): number[] {
-        return colWidthCallback;
-    }
-
-    function mockColumnWidthChangedCallback(): void {
-        colWidthChangedCallback = true;
-        colWidthCallback[0] = 35;
-        
+        columnWidthManager.getColumnWidths = () => colWidthCallback;
+        return columnWidthManager;
     }
 } 

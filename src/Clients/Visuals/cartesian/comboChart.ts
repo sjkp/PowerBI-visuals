@@ -41,6 +41,6 @@ module powerbi.visuals {
      * Implementation is in cartesianChart and the various ICartesianVisual implementations.
      */
     export module ComboChart {
-        export var capabilities = comboChartCapabilities;
+        export const capabilities = comboChartCapabilities;
     }
 }

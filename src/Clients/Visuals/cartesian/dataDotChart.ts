@@ -157,10 +157,7 @@ module powerbi.visuals {
                     if (dvCategories && dvCategories.length > 0 && dvCategories[0].source && dvCategories[0].source.type)
                         categoryType = dvCategories[0].source.type;
 
-                    this.data = DataDotChart.converter(dataView, valueFormatter.format(null));
-                    if (this.interactivityService) {
-                        this.interactivityService.applySelectionStateToData(this.data.series.data);
-                    }
+                    this.data = DataDotChart.converter(dataView, valueFormatter.format(null), this.interactivityService);
                 }
             }
         }
@@ -383,7 +380,7 @@ module powerbi.visuals {
             // This should always be the last line in the render code.
             SVGUtil.flushAllD3TransitionsIfNeeded(this.options);
 
-            return { dataPoints: dataPoints, behaviorOptions: behaviorOptions };
+            return { dataPoints: dataPoints, behaviorOptions: behaviorOptions, labelDataPoints: [], labelsAreNumeric: true };
         }
 
         public calculateLegend(): LegendData {
@@ -448,7 +445,7 @@ module powerbi.visuals {
             // cartesianChart handles calling render again.
         }
 
-        public static converter(dataView: DataView, blankCategoryValue: string): DataDotChartData {
+        public static converter(dataView: DataView, blankCategoryValue: string, interactivityService: IInteractivityService): DataDotChartData {
             let categorical = dataView.categorical;
 
             let category: DataViewCategoryColumn = categorical.categories && categorical.categories.length > 0
@@ -464,7 +461,7 @@ module powerbi.visuals {
             let categoryValues = category.values;
 
             // I only handle a single series
-            if (categorical.values) {
+            if (!_.isEmpty(categorical.values)) {
                 let measure = categorical.values[0];
 
                 let hasHighlights: boolean = !!measure.highlights;
@@ -507,6 +504,9 @@ module powerbi.visuals {
                         });
                     }
                 }
+
+                if (interactivityService)
+                    interactivityService.applySelectionStateToData(dataPoints);
 
                 return {
                     series: {

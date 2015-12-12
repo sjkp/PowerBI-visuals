@@ -25,5 +25,5 @@
  */
 
 module powerbi {
-    export declare var build;
+    export declare let build;
 } 

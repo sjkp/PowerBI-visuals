@@ -27,20 +27,22 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var matrixRoleNames = {
+    export const matrixRoleNames = {
         rows: 'Rows',
         columns: 'Columns',
         values: 'Values',
     };
 
-    export var matrixCapabilities: VisualCapabilities = {
+    export const matrixCapabilities: VisualCapabilities = {
         dataRoles: [
             {
                 name: matrixRoleNames.rows,
-                kind: VisualDataRoleKind.Grouping
+                kind: VisualDataRoleKind.Grouping,
+                description: data.createDisplayNameGetter('Role_DisplayName_RowsDescription')
             }, {
                 name: matrixRoleNames.columns,
-                kind: VisualDataRoleKind.Grouping
+                kind: VisualDataRoleKind.Grouping,
+                description: data.createDisplayNameGetter('Role_DisplayName_ColumnsDescription')
             }, {
                 name: matrixRoleNames.values,
                 kind: VisualDataRoleKind.Measure
@@ -52,6 +54,9 @@ module powerbi.visuals {
                 properties: {
                     formatString: {
                         type: { formatting: { formatString: true } },
+                    },
+                    columnWidth: {
+                        type: { numeric: true }
                     },
                     rowSubtotals: {
                         type: { bool: true },
@@ -65,9 +70,10 @@ module powerbi.visuals {
                         type: { bool: true },
                         displayName: data.createDisplayNameGetter('Visual_Adjust_Column_Width')
                     },
-                    columnWidth: {
+                    textSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
                         type: { numeric: true }
-                    }
+                    },
                 },
             }
         },
@@ -81,7 +87,7 @@ module powerbi.visuals {
                 rows: {
                     for: { in: 'Rows' },
                     /* Explicitly override the server data reduction to make it appropriate for matrix. */
-                    dataReductionAlgorithm: { window: { count: 100 } }
+                    dataReductionAlgorithm: { window: { count: 500 } }
                 },
                 columns: {
                     for: { in: 'Columns' },
@@ -102,5 +108,6 @@ module powerbi.visuals {
             custom: {},
         },
         suppressDefaultTitle: true,
-    }; 
+        supportsSelection: false,
+    };
 }

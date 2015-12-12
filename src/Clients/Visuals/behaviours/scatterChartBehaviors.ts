@@ -27,6 +27,8 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
 
     export interface ScatterBehaviorOptions {
         host: ICartesianVisualHost;
@@ -80,14 +82,8 @@ module powerbi.visuals {
         private static DotClassName = 'dot';
         private static DotClassSelector = '.' + ScatterChartMobileBehavior.DotClassName;
 
-        private static Horizontal: ClassAndSelector = {
-            class: 'horizontal',
-            selector: '.horizontal'
-        };
-        private static Vertical: ClassAndSelector = {
-            class: 'vertical',
-            selector: '.vertical'
-        };
+        private static Horizontal: ClassAndSelector = createClassAndSelector('horizontal');
+        private static Vertical: ClassAndSelector = createClassAndSelector('vertical');
 
         private host: ICartesianVisualHost;
         private mainGraphicsContext: D3.Selection;
@@ -101,6 +97,12 @@ module powerbi.visuals {
 
         public bindEvents(options: ScatterBehaviorOptions, selectionHandler: ISelectionHandler): void {
             this.setOptions(options);
+
+            if (!options.visualInitOptions.interactivity.isInteractiveLegend) {
+                // Don't bind events if we are not in interactiveLegend mode
+                // This case happend when on mobile we show the whole dashboard in still not on focus
+                return;
+            }
 
             this.makeDataPointsSelectable(options.dataPointsSelection);
             this.makeRootSelectable(options.root);
@@ -188,7 +190,7 @@ module powerbi.visuals {
             let xy = this.getMouseCoordinates();
             let selectedIndex = this.findClosestDotIndex(xy.x, xy.y);
             if (selectedIndex !== -1)
-            this.selectDotByIndex(selectedIndex);
+                this.selectDotByIndex(selectedIndex);
         }
 
         private getMouseCoordinates(): MouseCoordinates {
@@ -292,7 +294,7 @@ module powerbi.visuals {
 
         private createLegendDataPoints(dotIndex: number): LegendData {
             let formatStringProp = scatterChartProps.general.formatString;
-            let legendItems = [];
+            let legendItems: LegendDataPoint[] = [];
             let data = this.data;
             debug.assert(data.dataPoints.length > dotIndex, "dataPoints length:" + data.dataPoints.length + "is smaller than index:" + dotIndex);
             let point = data.dataPoints[dotIndex];
@@ -310,30 +312,37 @@ module powerbi.visuals {
             } else if (legendDataPoints.length >= dotIndex && legendDataPoints[dotIndex].label !== blank) {
                 title = legendDataPoints[dotIndex].label;
             }
+
             if (data.xCol != null) {
                 legendItems.push({
                     category: title,
                     color: point.fill,
+                    identity: SelectionIdBuilder.builder().withMeasure(data.xCol.queryName).createSelectionId(),
+                    selected: point.selected,
                     icon: LegendIcon.Box,
                     label: valueFormatter.format(this.data.axesLabels.x),
                     measure: valueFormatter.format(point.x, valueFormatter.getFormatString(data.xCol, formatStringProp)),
-                    iconOnlyOnLabel: true
+                    iconOnlyOnLabel: true,
                 });
             }
-            if (data.yCol !== undefined && data.yCol !== null) {
+            if (data.yCol != null) {
                 legendItems.push({
                     category: title,
                     color: point.fill,
+                    identity: SelectionIdBuilder.builder().withMeasure(data.yCol.queryName).createSelectionId(),
+                    selected: point.selected,
                     icon: LegendIcon.Box,
                     label: valueFormatter.format(data.axesLabels.y),
                     measure: valueFormatter.format(point.y, valueFormatter.getFormatString(data.yCol, formatStringProp)),
-                    iconOnlyOnLabel: true
+                    iconOnlyOnLabel: true,
                 });
             }
-            if (data.size !== undefined && data.size !== null) {
+            if (data.size != null) {
                 legendItems.push({
                     category: title,
                     color: point.fill,
+                    identity: SelectionIdBuilder.builder().withMeasure(data.size.queryName).createSelectionId(),
+                    selected: point.selected,
                     icon: LegendIcon.Box,
                     label: valueFormatter.format(data.size.displayName),
                     measure: valueFormatter.format(point.radius.sizeMeasure.values[point.radius.index], valueFormatter.getFormatString(data.size, formatStringProp)),

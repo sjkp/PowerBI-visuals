@@ -567,6 +567,15 @@ interface JQueryKeyEventObject extends JQueryInputEventObject {
 interface JQueryEventObject extends BaseJQueryEventObject, JQueryInputEventObject, JQueryMouseEventObject, JQueryKeyEventObject {
 }
 
+interface JQueryPostMessageEvent extends JQueryEventObject {
+    originalEvent: PostMessageEvent;
+}
+
+interface PostMessageEvent extends BaseJQueryEventObject {
+    data: string;
+    source: Window;
+}
+
 /*
     Collection of properties of the current browser
 */

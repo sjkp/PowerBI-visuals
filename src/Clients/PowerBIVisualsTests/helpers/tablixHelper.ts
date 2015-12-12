@@ -251,6 +251,27 @@ module powerbitests.tablixHelper {
         expect(result).toEqual(expectedValues);
     }
 
+    export function validateSortIconClassNames(expectedValues: string[], selector: string): void {
+        let rows = $(selector);
+        let pictures = rows.eq(0).find('i');
+
+        let result: string[] = [];
+        let errorString: string = null;
+
+        let ilen = pictures.length;
+        if (ilen !== expectedValues.length)
+            addError(errorString, "Actual column count " + ilen + " does not match expected number of columns " + expectedValues.length + ".");
+
+        for (let i = 0; i < ilen; i++) {
+            result[i] = pictures.eq(i).attr('class');
+            if (result[i] !== expectedValues[i])
+                addError(errorString, "Actual class name " + result[i] + " in column does not match expected value " + expectedValues[i] + ".");
+        }
+
+        expect(errorString).toBeNull();
+        expect(result).toEqual(expectedValues);
+    }
+
     export function validateClassNames(expectedValues: string[][], selector: string, noMarginClass: string): void {
         var rows = $(selector);
 
@@ -279,6 +300,29 @@ module powerbitests.tablixHelper {
 
         expect(errorString).toBeNull();
         expect(result).toEqual(expectedValues);
+    }
+
+    /**
+     * Verify the font-size style property matches expected value
+     * @param actual: string - font-size property value
+     * @param expected: number - text size in terms of 'pt'
+     */
+    export function validateFontSize(actual: string, expected: number) {
+        let converter = jsCommon.PixelConverter.fromPoint;
+        let actualParsed = Math.round(parseFloat(actual));
+        let expectedParsed = Math.round(parseFloat(converter(expected)));
+
+        expect(actualParsed).toBe(expectedParsed);
+    }
+
+    /**
+     * Verify the heights of cells match expected value
+     * @param cells: JQuery - elements corresponding to individual tabel cells
+     * @param expected: number - height in terms of 'px'
+     */
+    export function validateCellHeights(cells: JQuery, expected: number) {
+        let expectedPx = jsCommon.PixelConverter.toString(expected);
+        cells.each((index: number, elem: Element) => expect($(elem).css('height')).toBe(expectedPx));
     }
 
     function addError(errorString: string, message: string): string {

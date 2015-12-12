@@ -80,7 +80,7 @@ module jsCommon {
         /**
          * Pushes content of source onto target,
          * for parts of course that do not already exist in target.
-         */ 
+         */
         export function union<T>(target: T[], source: T[]): void {
             for (let i = 0, len = source.length; i < len; ++i) {
                 unionSingle(target, source[i]);
@@ -125,7 +125,7 @@ module jsCommon {
             return result;
         }
 
-        export function copy<T>(source: T[]): T[]{
+        export function copy<T>(source: T[]): T[] {
             debug.assertValue(source, 'source');
 
             return take(source, source.length);
@@ -276,6 +276,12 @@ module jsCommon {
 
         export function isArray(object: any): boolean {
             return Object.prototype.toString.call(object) === '[object Array]';
+        }
+
+        export function swap<T>(array: T[], firstIndex: number, secondIndex: number): void {
+            let temp = array[firstIndex];
+            array[firstIndex] = array[secondIndex];
+            array[secondIndex] = temp;
         }
     }
 } 

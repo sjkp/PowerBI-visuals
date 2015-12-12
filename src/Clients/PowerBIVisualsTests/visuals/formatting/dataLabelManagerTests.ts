@@ -30,15 +30,15 @@ module powerbitests {
     import IDataLabelInfo = powerbi.IDataLabelInfo;
     import ContentPositions = powerbi.ContentPositions;
 
-    var DataLabelManager = powerbi.DataLabelManager;
-    var RectOrientation = powerbi.RectOrientation;
-    var OutsidePlacement = powerbi.OutsidePlacement;
+    let DataLabelManager = powerbi.DataLabelManager;
+    let RectOrientation = powerbi.RectOrientation;
+    let OutsidePlacement = powerbi.OutsidePlacement;
 
     describe("Default Settings", () => {
 
         it("Check default values are true", () => {
-            var labelManager = new DataLabelManager();
-            var defaultSettings = labelManager.defaultSettings;
+            let labelManager = new DataLabelManager();
+            let defaultSettings = labelManager.defaultSettings;
             expect(defaultSettings.anchorMargin).toBe(0);
             expect(defaultSettings.anchorRectOrientation).toBe(RectOrientation.None);
             expect(defaultSettings.contentPosition).toBe(ContentPositions.BottomCenter);
@@ -53,25 +53,25 @@ module powerbitests {
 
     describe("Get Label info - One value provided", () => {
 
-        var labelManager: powerbi.DataLabelManager = new DataLabelManager();
-        var defaultSettings: powerbi.IDataLabelSettings = labelManager.defaultSettings;
+        let labelManager: powerbi.DataLabelManager = new DataLabelManager();
+        let defaultSettings: powerbi.IDataLabelSettings = labelManager.defaultSettings;
 
         it("Get Label info", () => {
-            var result: IDataLabelInfo = labelManager.getLabelInfo({ minimumMovingDistance: 10 });
+            let result: IDataLabelInfo = labelManager.getLabelInfo({ minimumMovingDistance: 10 });
 
             expect(defaultSettings.minimumMovingDistance).toEqual(3);
             expect(result.minimumMovingDistance).toEqual(10);
         });
 
         it("Get Label info - all values Provided", () => {
-            var result: IDataLabelInfo = labelManager.getLabelInfo({ maximumMovingDistance: 12 });
+            let result: IDataLabelInfo = labelManager.getLabelInfo({ maximumMovingDistance: 12 });
 
             expect(defaultSettings.anchorMargin).toEqual(0);
             expect(result.maximumMovingDistance).toEqual(12);
         });
 
         it("Get Label info - Default value should be taken", () => {
-            var result: IDataLabelInfo = labelManager.getLabelInfo({});
+            let result: IDataLabelInfo = labelManager.getLabelInfo({});
 
             expect(defaultSettings.anchorMargin).toEqual(0);
             expect(result.anchorMargin).toEqual(0);

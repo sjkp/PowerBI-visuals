@@ -30,72 +30,69 @@ module powerbi.visuals.capabilities {
     // This file registers the built-in capabilities
     // Please use this file to register the capabilities in the plugins.ts/pluginsNotForOSS.ts
 
-    export var animatedNumber = powerbi.visuals.animatedNumberCapabilities;
+    export let animatedNumber = powerbi.visuals.animatedNumberCapabilities;
 
-    export var areaChart = powerbi.visuals.lineChartCapabilities;
+    export let areaChart = powerbi.visuals.lineChartCapabilities;
 
-    export var barChart = powerbi.visuals.getColumnChartCapabilities(true);
+    export let barChart = powerbi.visuals.getColumnChartCapabilities(true);
 
-    export var card = powerbi.visuals.cardCapabilities;
+    export let card = powerbi.visuals.cardCapabilities;
 
-    export var multiRowCard = powerbi.visuals.multiRowCardCapabilities;
+    export let multiRowCard = powerbi.visuals.multiRowCardCapabilities;
 
-    export var clusteredBarChart = powerbi.visuals.getColumnChartCapabilities(true);
+    export let clusteredBarChart = powerbi.visuals.getColumnChartCapabilities(true);
 
-    export var clusteredColumnChart = powerbi.visuals.getColumnChartCapabilities();
+    export let clusteredColumnChart = powerbi.visuals.getColumnChartCapabilities();
 
-    export var columnChart = powerbi.visuals.getColumnChartCapabilities();
+    export let columnChart = powerbi.visuals.getColumnChartCapabilities();
 
-    export var comboChart = powerbi.visuals.comboChartCapabilities;
+    export let comboChart = powerbi.visuals.comboChartCapabilities;
 
-    export var dataDotChart = powerbi.visuals.dataDotChartCapabilities;
+    export let dataDotChart = powerbi.visuals.dataDotChartCapabilities;
 
-    export var dataDotClusteredColumnComboChart = powerbi.visuals.comboChartCapabilities;
+    export let dataDotClusteredColumnComboChart = powerbi.visuals.comboChartCapabilities;
 
-    export var dataDotStackedColumnComboChart = powerbi.visuals.comboChartCapabilities;
+    export let dataDotStackedColumnComboChart = powerbi.visuals.comboChartCapabilities;
 
-    export var donutChart = powerbi.visuals.donutChartCapabilities;
+    export let donutChart = powerbi.visuals.donutChartCapabilities;
 
-    export var funnel = powerbi.visuals.funnelChartCapabilities;
+    export let funnel = powerbi.visuals.funnelChartCapabilities;
 
-    export var gauge = powerbi.visuals.gaugeCapabilities;
+    export let gauge = powerbi.visuals.gaugeCapabilities;
 
-    export var hundredPercentStackedBarChart = powerbi.visuals.getColumnChartCapabilities(true);
+    export let hundredPercentStackedBarChart = powerbi.visuals.getColumnChartCapabilities(true);
 
-    export var hundredPercentStackedColumnChart = powerbi.visuals.getColumnChartCapabilities();
+    export let hundredPercentStackedColumnChart = powerbi.visuals.getColumnChartCapabilities();
 
-    export var image = powerbi.visuals.imageVisualCapabilities;
+    export let image = powerbi.visuals.imageVisualCapabilities;
 
-    export var lineChart = powerbi.visuals.lineChartCapabilities;
+    export let lineChart = powerbi.visuals.lineChartCapabilities;
 
-    export var lineStackedColumnComboChart = powerbi.visuals.comboChartCapabilities;
+    export let lineStackedColumnComboChart = powerbi.visuals.comboChartCapabilities;
 
-    export var lineClusteredColumnComboChart = powerbi.visuals.comboChartCapabilities;
+    export let lineClusteredColumnComboChart = powerbi.visuals.comboChartCapabilities;
 
-    export var map = powerbi.visuals.mapCapabilities;
+    export let map = powerbi.visuals.mapCapabilities;
 
-    export var filledMap = powerbi.visuals.filledMapCapabilities;
+    export let filledMap = powerbi.visuals.filledMapCapabilities;
 
-    export var treemap = powerbi.visuals.treemapCapabilities;
+    export let treemap = powerbi.visuals.treemapCapabilities;
 
-    export var pieChart = powerbi.visuals.donutChartCapabilities;
+    export let pieChart = powerbi.visuals.donutChartCapabilities;
 
-    export var scatterChart = powerbi.visuals.scatterChartCapabilities;
+    export let scatterChart = powerbi.visuals.scatterChartCapabilities;
 
-    export var playChart = powerbi.visuals.playChartCapabilities;
+    export let table = powerbi.visuals.tableCapabilities;
 
-    export var table = powerbi.visuals.tableCapabilities;
+    export let matrix = powerbi.visuals.matrixCapabilities;
 
-    export var matrix = powerbi.visuals.matrixCapabilities;
+    export let slicer = powerbi.visuals.slicerCapabilities;
 
-    export var slicer = powerbi.visuals.slicerCapabilities;
+    export let textbox = powerbi.visuals.richTextboxCapabilities;
 
-    export var textbox = powerbi.visuals.richTextboxCapabilities;
+    export let waterfallChart = powerbi.visuals.waterfallChartCapabilities;
 
-    export var waterfallChart = powerbi.visuals.waterfallChartCapabilities;
+    export let cheerMeter = powerbi.visuals.cheerMeterCapabilities;
 
-    export var cheerMeter = powerbi.visuals.cheerMeterCapabilities;
-
-    export var heatMap = powerbi.visuals.mapCapabilities;
-
-    }
+    export let scriptVisual = powerbi.visuals.scriptVisualCapabilities;
+}

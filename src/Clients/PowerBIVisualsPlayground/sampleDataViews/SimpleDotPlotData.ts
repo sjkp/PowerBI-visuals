@@ -32,7 +32,7 @@ module powerbi.visuals.sampleDataViews {
     import ValueType = powerbi.ValueType;
     import DataViewTransform = powerbi.data.DataViewTransform;
 
-    export class SimpleDotPlotData 
+    export class SimpleDotPlotData
         extends SampleDataViews
         implements ISampleDataViewsMethods {
 
@@ -41,68 +41,67 @@ module powerbi.visuals.sampleDataViews {
 
         public visuals: string[] = ["dotPlot"];
 
-        private minValue: number = 1;
-        private maxValue: number = 9;
+        private categoryValues = ['Betty', 'Mey', 'Nancy', 'Anna', 'Ben', 'David', 'Tim'];
 
-        private minLength: number = 10;
-        private maxLength: number = 1000;
+        private sampleValues  = [4, 4, 2, 3, 5, 2, 2];
 
-        private sampleData: number[] = [
-            1, 2, 3, 4, 5, 6, 7, 8, 9,
-            2, 3, 3, 4, 4, 4, 5, 5, 5, 5,
-            6, 6, 6, 7, 7, 8
-        ];
+        private sampleValueMin = 0;
+        private sampleValueMax = 10;
 
         public getDataViews(): DataView[] {
+
+            let fieldExpr = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "table1", name: "names" } });
+
+            let categoryIdentities = this.categoryValues.map(function(value) {
+                let expr = powerbi.data.SQExprBuilder.equal(fieldExpr, powerbi.data.SQExprBuilder.text(value));
+                return powerbi.data.createDataViewScopeIdentity(expr);
+            });
+
             let dataViewMetadata: DataViewMetadata = {
                     columns: [{
-                        displayName: "Observations",
-                        queryName: "Observations",
+                        displayName: 'Name',
+                        queryName: 'Name',
                         type: ValueType.fromDescriptor({
                             text: true
                         }),
-                        objects: {
-                            dataPoint: {
-                                fill: {
-                                    solid: {
-                                        color: "rgb(1, 184, 170)"
-                                    }
-                                }
-                            }
+                        roles: {
+                            Category: true
+                        }
+                    },
+                    {
+                        displayName: 'Count',
+                        queryName: 'Count',
+                        type: powerbi.ValueType.fromDescriptor({ integer: true }),
+                        roles: {
+                            Series: true
                         }
                     }]
                 },
-                columns = [{
-                    source: dataViewMetadata.columns[0], 
-                    values: this.sampleData
-                }],
-                dataValues: DataViewValueColumns = 
-                    DataViewTransform.createValueColumns(columns);
+                columns = [
+                {
+                    source: dataViewMetadata.columns[1],
+                    values: this.sampleValues
+                }
+                ],
+                dataValues: DataViewValueColumns = DataViewTransform.createValueColumns(columns);
 
             return [{
                 metadata: dataViewMetadata,
                 categorical: {
+                    categories: [{
+                        source: dataViewMetadata.columns[0],
+                        values: this.categoryValues,
+                        identity: categoryIdentities
+                    }],
                     values: dataValues
                 }
             }];
         }
 
         public randomize(): void {
-            let length: number =
-                Math.round(this.getRandomValue(this.minLength, this.maxLength));
-
-            let values = [];
-            for (let i = this.minValue; i <= this.maxValue; i++) {
-                values.push(this.getRandomValue(this.minValue, this.maxValue));
-            }
-
-            this.sampleData = [];
-
-            for (let j = 0; j < length; j++) {
-                let value: number = this.randomElement(values);
-
-                this.sampleData.push(Math.round(value));
-            }
+            this.sampleValues = this.sampleValues.map((item) => {
+                return this.getRandomValue(this.sampleValueMin, this.sampleValueMax);
+            });
         }
     }
 }

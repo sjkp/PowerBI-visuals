@@ -140,9 +140,9 @@ module powerbi.visuals.controls.internal {
         }
 
         export function appendImgTagToBodyCell(value: string, cell: controls.ITablixCell): void {
-            var element = <HTMLElement>cell.extension.contentHost;
-            var contentElement = element.parentElement;
-            var imgTag: HTMLImageElement;
+            let element = <HTMLElement>cell.extension.contentHost;
+            let contentElement = element.parentElement;
+            let imgTag: HTMLImageElement;
             if (element.childElementCount === 0) {
                 imgTag = document.createElement('img');
                 element.appendChild(imgTag);
@@ -158,24 +158,31 @@ module powerbi.visuals.controls.internal {
             imgTag.style.height = '100%';
         }
 
-        export function createKpiDom(kpiStatusGraphic: string, kpiValue: string): JQuery {
-            debug.assertValue(kpiStatusGraphic, 'kpiStatusGraphic');
+        export function createKpiDom(kpi: DataViewKpiColumnMetadata, kpiValue: string): JQuery {
+            debug.assertValue(kpi, 'kpi');
             debug.assertValue(kpiValue, 'kpiValue');
-            let className: string = KpiUtil.getClassForKpi(kpiStatusGraphic, kpiValue) || '';
+            let className: string = KpiUtil.getClassForKpi(kpi, kpiValue) || '';
             return DomFactory.div()
                 .addClass(className)
                 .css({
                     'display': 'inline-block',
-                    'vertical-align': 'sub'
+                    'vertical-align': 'bottom',
+                    'margin': '0 1px 1px 0',
                 });
         }
 
-        export function isValidStatusGraphic(kpiStatusGraphic: string, kpiValue: string): boolean {
-            if (!kpiStatusGraphic || kpiValue === undefined) {
+        export function appendSortImageToColumnHeader(sort: SortDirection, cell: controls.ITablixCell): void {
+            let imgSort: HTMLPhraseElement = <HTMLPhraseElement>document.createElement('i');
+            imgSort.className = (sort === SortDirection.Ascending) ? "powervisuals-glyph caret-up" : "powervisuals-glyph caret-down";
+            cell.extension.contentHost.appendChild(imgSort);
+        }
+
+        export function isValidStatusGraphic(kpi: DataViewKpiColumnMetadata, kpiValue: string): boolean {
+            if (!kpi || kpiValue === undefined) {
                 return false;
             }
 
-            return !!KpiUtil.getClassForKpi(kpiStatusGraphic, kpiValue);
+            return !!KpiUtil.getClassForKpi(kpi, kpiValue);
         }
     }
 }

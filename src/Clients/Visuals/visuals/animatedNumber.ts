@@ -35,6 +35,7 @@ module powerbi.visuals {
 
         // TODO: Remove this once all visuals have implemented update.
         private dataViews: DataView[];
+        private formatter: IValueFormatter;
 
         public constructor(svg?: D3.Selection, animator?: IGenericAnimator) {
             super('animatedNumber');
@@ -79,8 +80,12 @@ module powerbi.visuals {
             this.getMetaDataColumn(dataView);
             let newValue = dataView && dataView.single ? dataView.single.value : 0;
             if (newValue != null) {
-                this.updateInternal(newValue, options.suppressAnimations, true);
+                this.updateInternal(newValue, options.suppressAnimations, true, this.formatter);
             }
+        }
+
+        public setFormatter(formatter?: IValueFormatter): void {
+            this.formatter = formatter;
         }
 
         public onDataChanged(options: VisualDataChangedOptions): void {
@@ -106,7 +111,7 @@ module powerbi.visuals {
             return true;
         }
 
-        private updateInternal(target: number, suppressAnimations: boolean, forceUpdate: boolean = false) {
+        private updateInternal(target: number, suppressAnimations: boolean, forceUpdate: boolean = false, formatter?: IValueFormatter) {
             let start = this.value || 0;
             let duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
 
@@ -116,7 +121,8 @@ module powerbi.visuals {
                 /*displayUnitSystemType*/ null,
                 this.options.animation,
                 duration,
-                forceUpdate);
+                forceUpdate,
+                formatter);
 
             this.value = target;
         }

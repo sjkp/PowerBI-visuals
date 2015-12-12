@@ -364,7 +364,7 @@ module powerbi {
 
         public static getIntervalUnit(min:Date, max:Date, maxCount: number): DateTimeUnit {
             maxCount = Math.max(maxCount, 2);
-            let totalDays = DateTimeSequence.getDelta(min, max, DateTimeUnit.Day);            
+            let totalDays = DateTimeSequence.getDelta(min, max, DateTimeUnit.Day);
             if (totalDays > 356 && totalDays >= 30 * 6 * maxCount)
                 return DateTimeUnit.Year;
             if (totalDays > 60 && totalDays > 7 * maxCount)

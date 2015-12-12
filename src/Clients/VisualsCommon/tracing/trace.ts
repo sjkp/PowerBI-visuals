@@ -59,11 +59,11 @@ module jsCommon {
     }
 
     export module Trace {
-        var traceMaxCount = 1000;
-        var traces = new Array<TraceItem>(traceMaxCount);
-        var lastTraceIndex: number = -1;
-        var defaultListener = new ConsoleTracer();
-        var listeners = new Array<ITraceListener>(defaultListener);
+        const traceMaxCount = 1000;
+        let traces = new Array<TraceItem>(traceMaxCount);
+        let lastTraceIndex: number = -1;
+        let defaultListener = new ConsoleTracer();
+        let listeners = new Array<ITraceListener>(defaultListener);
 
         /**
          * Trace a warning. Please ensure that no PII is being logged.

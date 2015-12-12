@@ -132,7 +132,5 @@ module powerbi.visuals {
             }
             return { xAxisLabel: xAxisLabel, yAxisLabel: yAxisLabel };
         }
-
-      
     }
 }

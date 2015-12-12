@@ -27,7 +27,7 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi {
-    export var CategoryTypes = {
+    export const CategoryTypes = {
         Address: "Address",
         City: "City",
         Continent: "Continent",
@@ -52,7 +52,7 @@ module powerbi {
         return new GeoTaggingAnalyzerService(getLocalized);
     }
 
-    var EnglishBackup = {
+    const EnglishBackup = {
         GeotaggingString_Continent: "continent",
         GeotaggingString_Continents: "continents",
         GeotaggingString_Country: "country",

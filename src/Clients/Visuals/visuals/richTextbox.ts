@@ -27,6 +27,7 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
 
     export interface TextRunStyle {
         fontFamily?: string;
@@ -423,8 +424,8 @@ module powerbi.visuals {
         
         /**
          * These fonts are embedded using CSS, or are aliases to other fonts.
-         */        
-        var fontMap = {
+         */
+        const fontMap = {
             'Segoe (Bold)': 'wf_segoe-ui_bold',
             'Segoe UI': 'wf_segoe-ui_normal',
             'Segoe UI Light': 'wf_segoe-ui_light',
@@ -432,7 +433,7 @@ module powerbi.visuals {
             'Body': 'wf_segoe-ui_normal',
         };
 
-        var fonts: ListValueOption[] = [
+        const fonts: ListValueOption[] = [
             'Arial',
             'Arial Black',
             'Arial Unicode MS',
@@ -459,14 +460,14 @@ module powerbi.visuals {
             'Wingdings 2',
             'Wingdings 3',
         ].map((font) => <ListValueOption> { label: font, value: getFontFamily(font) });
-        export var defaultFont = getFontFamily('Segoe UI Light');
+        export let defaultFont = getFontFamily('Segoe UI Light');
 
-        var fontSizes: ListValueOption[] = [
+        const fontSizes: ListValueOption[] = [
             '8', '9', '10', '10.5', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '40', '42', '44', '54', '60', '66', '72', '80', '88', '96'
         ].map((size) => <ListValueOption> { label: size, value: size + 'px' });
-        export var defaultFontSize = '14px';
+        export const defaultFontSize = '14px';
 
-        var textAlignments: ListValueOption[] = [
+        const textAlignments: ListValueOption[] = [
             'Left',
             'Center',
             'Right',
@@ -771,8 +772,9 @@ module powerbi.visuals {
                 this.editor.root.addEventListener('blur', (event) => {
                     let target: HTMLElement = <HTMLElement>(event.relatedTarget || document.activeElement);
 
+                    // The browser will handle moving the cursor and setting focus properly for these types of elements.
                     if (target &&
-                        target.tagName === 'SELECT' || target.tagName === 'INPUT' || target.classList.contains('ql-editor')) {
+                        target.tagName === 'SELECT' || target.tagName === 'INPUT' || target.getAttribute('contentEditable')) {
                         return;
                     }
 
@@ -788,16 +790,9 @@ module powerbi.visuals {
         module Toolbar {
             const DefaultLinkInputValue = 'http://';
 
-            var createSelector = (className: string): ClassAndSelector => {
-                return {
-                    class: className,
-                    selector: '.' + className,
-                };
-            };
-
-            export var selectors = {
-                linkTooltip: createSelector('ql-link-tooltip'),
-                toolbarUrlInput: createSelector('toolbar-url-input'),
+            export const selectors = {
+                linkTooltip: createClassAndSelector('ql-link-tooltip'),
+                toolbarUrlInput: createClassAndSelector('toolbar-url-input'),
             };
 
             export function buildToolbar(quillWrapper: QuillWrapper, localizationProvider: jsCommon.IStringResourceProvider) {
@@ -854,12 +849,12 @@ module powerbi.visuals {
 
             function linkTooltipTemplateGenerator(removeText: string, doneText: string): JQuery {
                 return $(`
-                        <a href="#" class="url" target="_blank" href="about:blank"></a>
+                        <a href="#" class="url" target="_blank"></a>
                         <input class="input" type="text">
                         <span class="bar">&nbsp;|&nbsp;</span>
-                        <a href="javascript:;" class="change"></a>
-                        <a href="javascript:;" class="remove">${removeText}</a>
-                        <a href="javascript:;" class="done">${doneText}</a>
+                        <a class="change"></a>
+                        <a class="remove">${removeText}</a>
+                        <a class="done">${doneText}</a>
                     `);
             };
 
@@ -971,6 +966,7 @@ module powerbi.visuals {
 
             function clearLinkInput(linkTooltip: JQuery): void {
                 linkTooltip.removeClass('editing');
+                linkTooltip.removeClass('blank-editing');
                 linkTooltip.find('.input').val(DefaultLinkInputValue);
             }
 
@@ -987,6 +983,10 @@ module powerbi.visuals {
                 // Special case for blank selection (no text near cursor) when enter key or done button clicked
                 toolbarLinkInput.on('keydown mousedown', (event: JQueryEventObject) => {
                     if (event.keyCode === jsCommon.DOMConstants.enterKeyCode || (<HTMLElement>event.target).classList.contains('done')) {
+                        if (!linkTooltip.hasClass('blank-editing'))
+                            return true;
+
+                        // Only perform these steps if tooltip was not in editing mode (special case for blank)
                         let link = toolbarLinkInput.find('.input').val();
                         let selection = quillWrapper.getSelectionAtCursor();
                         let word = quillWrapper.getWord();
@@ -1020,10 +1020,11 @@ module powerbi.visuals {
                         // If blank selection (no text near cursor), special case for link button
                         let word = quillWrapper.getWord();
                         if (!word) {
-                            linkTooltip.addClass('editing');
-                            toolbarLinkInput.find('.input')
-                                .val(DefaultLinkInputValue)
-                                .focus();
+                            linkTooltip.addClass('editing blank-editing');
+                            let inputElem = (<HTMLInputElement>toolbarLinkInput.find('.input').get(0));
+                            inputElem.value = DefaultLinkInputValue;
+                            inputElem.selectionStart = inputElem.selectionEnd = DefaultLinkInputValue.length;
+                            inputElem.focus();
                             return false;
                         }
                     })

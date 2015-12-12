@@ -34,10 +34,10 @@
 /// <reference path="clientError.ts"/>
 /// <reference path="arrayExtensions.ts"/>
 /// <reference path="Controls/DomFactory.ts"/>
+/// <reference path="Double.ts"/>
 /// <reference path="color.ts"/>
 /// <reference path="CssConstants.ts"/>
 /// <reference path="debug.ts"/>
-/// <reference path="Double.ts"/>
 /// <reference path="DragDrop.ts"/>
 /// <reference path="Errors.ts"/>
 /// <reference path="IStringResourceProvider.ts"/>

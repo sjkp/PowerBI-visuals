@@ -192,13 +192,6 @@ module powerbi.visuals {
             }
         }
 
-        export interface IRect {
-            left: number;
-            top: number;
-            width: number;
-            height: number;
-        }
-
         export module Rect {
 
             export function getOffset(rect: IRect): IPoint {
@@ -322,7 +315,10 @@ module powerbi.visuals {
                 if ((rect === null) || (point === null)) {
                     return false;
                 }
-                return rect.left <= point.x && point.x <= rect.left + rect.width && rect.top <= point.y && point.y <= rect.top + rect.height;
+                return Double.lessOrEqualWithPrecision(rect.left, point.x) &&
+                    Double.lessOrEqualWithPrecision(point.x, rect.left + rect.width) &&
+                    Double.lessOrEqualWithPrecision(rect.top, point.y) &&
+                    Double.lessOrEqualWithPrecision(point.y, rect.top + rect.height);
             }
 
             export function isIntersecting(rect1: IRect, rect2: IRect): boolean {

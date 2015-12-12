@@ -97,6 +97,7 @@ module powerbitests.tableDataViewHelper {
             general: {
                 totals: totalsEnabled,
                 autoSizeColumnWidth: false,
+                textSize: 8,
             }
         };
     }

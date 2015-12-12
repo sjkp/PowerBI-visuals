@@ -27,6 +27,7 @@
 /// <reference path="../../_references.ts"/>
 
 module powerbi.visuals.controls {
+    export const TablixDefaultTextSize = jsCommon.TextSizeDefaults.TextSizeMin;
 
     export interface TablixRenderArgs {
         rowScrollOffset?: number;
@@ -62,10 +63,15 @@ module powerbi.visuals.controls {
     export interface TablixOptions {
         interactive?: boolean;
         enableTouchSupport?: boolean;
+        layoutKind?: TablixLayoutKind;
+        fontSize?: string;
     }
 
     export class TablixControl {
         private static UnitOfMeasurement = 'px';
+        private static TablixContainerClassName = 'tablixContainer';
+        private static TablixFixSizedClassName = "bi-tablix-fixed-size";
+        private static DefaultFontSize = jsCommon.PixelConverter.fromPoint(controls.TablixDefaultTextSize);
 
         private _hierarchyNavigator: ITablixHierarchyNavigator;
         private _binder: ITablixBinder;
@@ -79,7 +85,6 @@ module powerbi.visuals.controls {
         private _footerDiv: HTMLDivElement;
 
         private _scrollbarWidth = 9;
-        private _fixSizedClassName = "bi-tablix-fixed-size";
 
         private _touchManager: TouchUtils.TouchManager;
         private _columnTouchDelegate: ColumnTouchDelegate;
@@ -99,6 +104,7 @@ module powerbi.visuals.controls {
         private _maxHeight: number;
         private _minWidth: number;
         private _minHeight: number;
+        private _fontSize: string;
 
         private _options: TablixOptions;
         private _isTouchEnabled: boolean;
@@ -112,7 +118,7 @@ module powerbi.visuals.controls {
             parentDomElement: HTMLElement,
             options: TablixOptions) {
 
-            // Options
+            // Options (fontSize set after container initialized)
             this._options = options;
             let isInteractive = options.interactive;
             this._isTouchEnabled = isInteractive && options.enableTouchSupport;
@@ -139,8 +145,11 @@ module powerbi.visuals.controls {
             this.className = layoutManager.getTablixClassName();
             this.autoSizeWidth = false;
             this.autoSizeHeight = false;
+            this.fontSize = options.fontSize;
 
+            parentDomElement.className = TablixControl.TablixContainerClassName;
             parentDomElement.appendChild(this._container);
+
             this._container.addEventListener("mousewheel",(e) => { this.onMouseWheel(<MouseWheelEvent>e); });
             this._container.addEventListener("DOMMouseScroll",(e) => { this.onFireFoxMouseWheel(<MouseWheelEvent>e); });
             this._container.appendChild(this._mainDiv);
@@ -324,6 +333,11 @@ module powerbi.visuals.controls {
         public set minHeight(value: number) {
             this._minHeight = value;
             this._container.style.minHeight = this._minHeight + TablixControl.UnitOfMeasurement;
+        }
+
+        public set fontSize(value: string) {
+            this._fontSize = !value ? TablixControl.DefaultFontSize : value;
+            this._container.style.fontSize = this._fontSize;
         }
 
         public set scrollbarWidth(value: number) {
@@ -536,7 +550,7 @@ module powerbi.visuals.controls {
 
                 this._columnDimension._onStartRenderingIteration();
                 this._rowDimension._onStartRenderingIteration();
-                this._layoutManager.onStartRenderingIteration(clear);                     
+                this._layoutManager.onStartRenderingIteration(clear);
 
                 // These calls add cells to the table.
                 // Column needs to be rendered before rows as the row call will pair up with columns to produce the body cells.
@@ -684,13 +698,13 @@ module powerbi.visuals.controls {
         }
 
         private addFixedSizeClassNameIfNeeded(): void {
-            if (!this._autoSizeHeight && !this._autoSizeWidth && this._container.className.indexOf(this._fixSizedClassName) === -1) {
-                this._container.className += " " + this._fixSizedClassName;
+            if (!this._autoSizeHeight && !this._autoSizeWidth && this._container.className.indexOf(TablixControl.TablixFixSizedClassName) === -1) {
+                this._container.className += " " + TablixControl.TablixFixSizedClassName;
             }
         }
 
         private removeFixSizedClassName(): void {
-            this._container.className = this._container.className.replace(this._fixSizedClassName, '');
+            this._container.className = this._container.className.replace(TablixControl.TablixFixSizedClassName, '');
         }
     }
 }

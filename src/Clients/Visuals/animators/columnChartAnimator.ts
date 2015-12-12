@@ -27,19 +27,19 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+
     export interface ColumnChartAnimationOptions extends IAnimationOptions {
         viewModel: ColumnChartData;
         series: D3.UpdateSelection;
         layout: IColumnLayout;
         itemCS: ClassAndSelector;
         mainGraphicsContext: D3.Selection;
-        labelLayout: ILabelLayout; 
         viewPort: IViewport;
     }
 
     export interface ColumnChartAnimationResult extends IAnimationResult {
         shapes: D3.UpdateSelection;
-        dataLabels: D3.UpdateSelection;
     }
 
     export type IColumnChartAnimator = IAnimator<IAnimatorOptions, ColumnChartAnimationOptions, ColumnChartAnimationResult>;
@@ -55,7 +55,6 @@ module powerbi.visuals {
             let result: ColumnChartAnimationResult = {
                 failed: true,
                 shapes: null,
-                dataLabels: null,
             };
 
             let viewModel = options.viewModel;
@@ -102,23 +101,18 @@ module powerbi.visuals {
                 .exit()
                 .remove();
 
-            let dataLabels: D3.UpdateSelection = this.animateDefaultDataLabels(options);
-
             return {
                 failed: false,
                 shapes: shapes,
-                dataLabels: dataLabels,
             };
         }
 
         private animateHighlightedToHighlighted(options: ColumnChartAnimationOptions): ColumnChartAnimationResult {
             let shapes = this.animateDefaultShapes(options.viewModel, options.series, options.layout, options.itemCS);
-            let dataLabels: D3.UpdateSelection = this.animateDefaultDataLabels(options);
 
             return {
                 failed: false,
                 shapes: shapes,
-                dataLabels: dataLabels,
             };
         }
 
@@ -151,12 +145,9 @@ module powerbi.visuals {
                 .attr(hasSelection ? options.layout.zeroShapeLayout : options.layout.shapeLayoutWithoutHighlights)
                 .remove();
 
-            let dataLabels: D3.UpdateSelection = this.animateDefaultDataLabels(options);
-
             return {
                 failed: false,
                 shapes: shapes,
-                dataLabels: dataLabels,
             };
         }
 
@@ -181,19 +172,6 @@ module powerbi.visuals {
                 .remove();
 
             return shapes;
-        }
-
-        private animateDefaultDataLabels(options: ColumnChartAnimationOptions): D3.UpdateSelection {
-            let dataLabels: D3.UpdateSelection;
-
-            if (options.viewModel.labelSettings.show) {
-                dataLabels = ColumnUtil.drawDefaultLabels(options.series, options.mainGraphicsContext, options.labelLayout, options.viewPort, true, this.animationDuration);
-            }
-            else {
-                dataLabelUtils.cleanDataLabels(options.mainGraphicsContext);
-            }
-
-            return dataLabels;
         }
     }
 }

@@ -30,50 +30,50 @@ module powerbitests {
     import getLocalizedString = powerbi.visuals.valueFormatter.getLocalizedString;
      
     describe("GeoTaggingAnalyzerService", () => {
-        var geoTaggingAnalyzerService: powerbi.IGeoTaggingAnalyzerService;
+        let geoTaggingAnalyzerService: powerbi.IGeoTaggingAnalyzerService;
         
         beforeEach(() => {
             geoTaggingAnalyzerService = powerbi.createGeoTaggingAnalyzerService((stringId: string) => getLocalizedString(stringId));
         });       
 
         it("can detect longitude and latitude fields", () => {
-            var latitudeString = getLocalizedString("GeotaggingString_Latitude");
+            let latitudeString = getLocalizedString("GeotaggingString_Latitude");
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(latitudeString)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeographic(latitudeString)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeocodable(latitudeString)).toBe(false);
 
-            var shortLatitudeString = getLocalizedString("GeotaggingString_Latitude_Short");
+            let shortLatitudeString = getLocalizedString("GeotaggingString_Latitude_Short");
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(shortLatitudeString)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeographic(shortLatitudeString)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeocodable(shortLatitudeString)).toBe(false);
         });
 
         it("can detect postal code with and without whitespace", () => {
-            var postalCodeStringWithSpace = "Postal     Code";
+            const postalCodeStringWithSpace = "Postal     Code";
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(postalCodeStringWithSpace)).toBe(false);
             expect(geoTaggingAnalyzerService.isGeographic(postalCodeStringWithSpace)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeocodable(postalCodeStringWithSpace)).toBe(true);
 
-            var postalCodeStringWithoutSpace = getLocalizedString("GeotaggingString_PostalCode");
+            let postalCodeStringWithoutSpace = getLocalizedString("GeotaggingString_PostalCode");
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(postalCodeStringWithoutSpace)).toBe(false);
             expect(geoTaggingAnalyzerService.isGeographic(postalCodeStringWithoutSpace)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeocodable(postalCodeStringWithoutSpace)).toBe(true);
         });
 
         it("can detect pluralized geocodable locations", () => {
-            var citiesString = getLocalizedString("GeotaggingString_Cities");
+            let citiesString = getLocalizedString("GeotaggingString_Cities");
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(citiesString)).toBe(false);
             expect(geoTaggingAnalyzerService.isGeographic(citiesString)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeocodable(citiesString)).toBe(true);
 
-            var countriesString = getLocalizedString("GeotaggingString_Countries");
+            let countriesString = getLocalizedString("GeotaggingString_Countries");
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(countriesString)).toBe(false);
             expect(geoTaggingAnalyzerService.isGeographic(countriesString)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeocodable(countriesString)).toBe(true);
         });
 
         it("can verify locations regardless of casing", () => {
-            var citiesString = getLocalizedString("GeotaggingString_Cities");
+            let citiesString = getLocalizedString("GeotaggingString_Cities");
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(citiesString)).toBe(false);
             expect(geoTaggingAnalyzerService.isGeographic(citiesString)).toBe(true);
             expect(geoTaggingAnalyzerService.isGeocodable(citiesString)).toBe(true);
@@ -88,14 +88,14 @@ module powerbitests {
         });
 
         it("returns Latitude type for latitude using English fallback", () => {
-            var germanGeoTaggingAnalyzerService = powerbi.createGeoTaggingAnalyzerService((stringId: string) => getLocalizedString(stringId));
+            let germanGeoTaggingAnalyzerService = powerbi.createGeoTaggingAnalyzerService((stringId: string) => getLocalizedString(stringId));
             germanGeoTaggingAnalyzerService["GeotaggingString_Latitude"] = "breitengrad";
             expect(germanGeoTaggingAnalyzerService.getFieldType("breitengrad")).toBe("Latitude");
             expect(germanGeoTaggingAnalyzerService.getFieldType("latitude")).toBe("Latitude");
         });
 
         it("can detect non latitude fields that partially match the string latitude", () => {
-            var nonLatitudeString = "population";
+            let nonLatitudeString = "population";
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(nonLatitudeString)).toBe(false);
             nonLatitudeString = "Latency";
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(nonLatitudeString)).toBe(false);
@@ -104,7 +104,7 @@ module powerbitests {
         });
 
         it("can detect state field in the middle of a word", () => {
-            var stateInTheMiddle = "UserState";
+            let stateInTheMiddle = "UserState";
             expect(geoTaggingAnalyzerService.getFieldType(stateInTheMiddle)).toBe("StateOrProvince");
             stateInTheMiddle = "StateForTheUser";
             expect(geoTaggingAnalyzerService.getFieldType(stateInTheMiddle)).toBe("StateOrProvince");
@@ -113,7 +113,7 @@ module powerbitests {
         });
 
         it("can detect latitude fields that have more than one word", () => {
-            var latitudeString = "Latitude value";
+            let latitudeString = "Latitude value";
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(latitudeString)).toBe(true);
             latitudeString = "value of Latitude";
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(latitudeString)).toBe(true);
@@ -126,7 +126,7 @@ module powerbitests {
         });
 
         it("can detect StateOrProvince", () => {
-            var stateOrProvinceString = "StateOrProvince"; 
+            let stateOrProvinceString = "StateOrProvince"; 
             expect(geoTaggingAnalyzerService.isGeocodable(stateOrProvinceString)).toBe(true);
         });
     });

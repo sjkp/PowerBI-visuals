@@ -27,12 +27,13 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var mapCapabilities: VisualCapabilities = {
+    export const mapCapabilities: VisualCapabilities = {
         dataRoles: [
             {
                 name: 'Category',
                 kind: VisualDataRoleKind.Grouping,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Location'),
+                description: data.createDisplayNameGetter('Role_DisplayName_LocationMapDescription'),
                 preferredTypes: [
                     { geography: { address: true } },
                     { geography: { city: true } },
@@ -48,17 +49,20 @@ module powerbi.visuals {
                 name: 'Series',
                 kind: VisualDataRoleKind.Grouping,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Legend'),
+                description: data.createDisplayNameGetter('Role_DisplayName_LegendDescription')
             }, {
                 name: 'X',
                 kind: VisualDataRoleKind.Measure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Longitude'),
+                description: data.createDisplayNameGetter('Role_DisplayName_LongitudeMapDescription'),
                 preferredTypes: [
                     { geography: { longitude: true } }
-                ]
+                ],
             }, {
                 name: 'Y',
                 kind: VisualDataRoleKind.Measure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Latitude'),
+                description: data.createDisplayNameGetter('Role_DisplayName_LatitudeMapDescription'),
                 preferredTypes: [
                     { geography: { latitude: true } }
                 ],
@@ -66,10 +70,14 @@ module powerbi.visuals {
                 name: 'Size',
                 kind: VisualDataRoleKind.Measure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Values'),
+                description: data.createDisplayNameGetter('Role_DisplayName_ValuesDescription'),
+                requiredTypes: [{ numeric: true }, { integer: true }],
             }, {
                 name: 'Gradient',
                 kind: VisualDataRoleKind.Measure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Gradient'),
+                description: data.createDisplayNameGetter('Role_DisplayName_GradientDescription'),
+                requiredTypes: [{ numeric: true }, { integer: true }],
             }
         ],
         objects: {
@@ -83,6 +91,7 @@ module powerbi.visuals {
             },
             legend: {
                 displayName: data.createDisplayNameGetter('Visual_Legend'),
+                description: data.createDisplayNameGetter('Visual_LegendDescription'),
                 properties: {
                     show: {
                         displayName: data.createDisplayNameGetter('Visual_Show'),
@@ -90,20 +99,28 @@ module powerbi.visuals {
                     },
                     position: {
                         displayName: data.createDisplayNameGetter('Visual_LegendPosition'),
-                        type: { formatting: { legendPosition: true } }
+                        description: data.createDisplayNameGetter('Visual_LegendPositionDescription'),
+                        type: { enumeration: legendPosition.type }
                     },
                     showTitle: {
                         displayName: data.createDisplayNameGetter('Visual_LegendShowTitle'),
+                        description: data.createDisplayNameGetter('Visual_LegendShowTitleDescription'),
                         type: { bool: true }
                     },
                     titleText: {
-                        displayName: data.createDisplayNameGetter('Visual_LegendTitleText'),
+                        displayName: data.createDisplayNameGetter('Visual_LegendName'),
+                        description: data.createDisplayNameGetter('Visual_LegendNameDescription'),
                         type: { text: true }
+                    },
+                    fontSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                        type: { formatting: { fontSize: true } }
                     }
                 }
             },
             dataPoint: {
                 displayName: data.createDisplayNameGetter('Visual_DataPoint'),
+                description: data.createDisplayNameGetter('Visual_DataPointDescription'),
                 properties: {
                     defaultColor: {
                         displayName: data.createDisplayNameGetter('Visual_DefaultColor'),
@@ -132,6 +149,7 @@ module powerbi.visuals {
             },
             categoryLabels: {
                 displayName: data.createDisplayNameGetter('Visual_CategoryLabels'),
+                description: data.createDisplayNameGetter('Visual_CategoryLabelsDescription'),
                 properties: {
                     show: {
                         displayName: data.createDisplayNameGetter('Visual_Show'),
@@ -139,7 +157,12 @@ module powerbi.visuals {
                     },
                     color: {
                         displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
+                        description: data.createDisplayNameGetter('Visual_LabelsFillDescription'),
                         type: { fill: { solid: { color: true } } }
+                    },
+                    fontSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                        type: { formatting: { fontSize: true } }
                     },
                 },
             },
@@ -177,7 +200,7 @@ module powerbi.visuals {
         },
     };
 
-    export var mapProps = {
+    export const mapProps = {
         general: {
             formatString: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'formatString' },
         },

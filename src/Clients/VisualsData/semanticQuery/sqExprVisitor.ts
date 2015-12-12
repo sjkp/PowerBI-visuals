@@ -200,7 +200,7 @@ module powerbi.data {
             let values = expr.values;
             for (let i = 0, len = values.length; i < len; i++) {
                 let valueTuple = values[i];
-                for (let j = 0, jlen = values.length; j < jlen; j++)
+                for (let j = 0, jlen = valueTuple.length; j < jlen; j++)
                     valueTuple[j].accept(this);
             }
         }

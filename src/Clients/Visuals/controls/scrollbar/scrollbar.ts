@@ -28,7 +28,7 @@
 
 module powerbi.visuals.controls {
 
-    var UNSELECTABLE_CLASS_NAME = "unselectable";
+    const UNSELECTABLE_CLASS_NAME = "unselectable";
 
     export function fire(eventHandlers, eventArgs) {
         if (eventHandlers) {

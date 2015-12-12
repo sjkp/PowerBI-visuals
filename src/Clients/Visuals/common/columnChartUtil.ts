@@ -27,11 +27,13 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    var rectName = 'rect';
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+
+    const rectName = 'rect';
 
     export module ColumnUtil {
-        export var DimmedOpacity = 0.4;
-        export var DefaultOpacity = 1.0;
+        export const DimmedOpacity = 0.4;
+        export const DefaultOpacity = 1.0;
 
         export function getTickCount(min: number, max: number, valuesMetadata: DataViewMetadataColumn[], maxTickCount: number, is100Pct: boolean, forcedTickCount?: number): number {
             return forcedTickCount !== undefined
@@ -129,7 +131,9 @@ module powerbi.visuals {
             isVertical: boolean,
             forcedXMin?: DataViewPropertyValue,
             forcedXMax?: DataViewPropertyValue,
-            axisScaleType?: string): IAxisProperties {
+            axisScaleType?: string,
+            axisDisplayUnits?: number,
+            axisPrecision?: number): IAxisProperties {
 
             let categoryThickness = layout.categoryThickness;
             let isScalar = layout.isScalar;
@@ -149,7 +153,9 @@ module powerbi.visuals {
                 categoryThickness: categoryThickness,
                 useTickIntervalForDisplayUnits: true,
                 getValueFn: (index, type) => dw.lookupXValue(index, type),
-                scaleType: axisScaleType
+                scaleType: axisScaleType,
+                axisDisplayUnits: axisDisplayUnits,
+                axisPrecision: axisPrecision
             });
 
             // intentionally updating the input layout by ref
@@ -306,8 +312,8 @@ module powerbi.visuals {
 
     export module ClusteredUtil {
 
-        export function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], interval: number): IValueFormatter {
-            return StackedUtil.createValueFormatter(valuesMetadata, /*is100pct*/ false, interval);
+        export function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], interval: number, axisDisplayUnits: number = 0, axisPrecision?: number): IValueFormatter {
+            return StackedUtil.createValueFormatter(valuesMetadata, /*is100pct*/ false, interval, axisDisplayUnits, axisPrecision);
         }
 
         export function clearColumns(
@@ -370,7 +376,9 @@ module powerbi.visuals {
             scaleRange: number[],
             forcedTickCount?: number,
             forcedYDomain?: any[],
-            axisScaleType?: string): IAxisProperties {
+            axisScaleType?: string,
+            axisDisplayUnits?: number,
+            axisPrecision?: number): IAxisProperties {
             let valueDomain = calcValueDomain(data.series, is100Pct),
                 min = valueDomain.min,
                 max = valueDomain.max;
@@ -386,19 +394,20 @@ module powerbi.visuals {
             let useLogScale = axisScaleType && axisScaleType === axisScale.log && isLogScaleAllowed;
 
             let scale = useLogScale ? d3.scale.log() : d3.scale.linear();
+            let shouldClamp = AxisHelper.scaleShouldClamp(combinedDomain, valueDomainNorm);
 
             scale.range(scaleRange)
                 .domain(combinedDomain)
                 .nice(bestTickCount || undefined)
-                .clamp(AxisHelper.scaleShouldClamp(combinedDomain, valueDomainNorm));     
+                .clamp(shouldClamp);
 
             ColumnUtil.normalizeInfinityInScale(scale);
 
             let dataType: ValueType = AxisHelper.getCategoryValueType(data.valuesMetadata[0], true);
             let formatString = valueFormatter.getFormatString(data.valuesMetadata[0], columnChartProps.general.formatString);
-            let minTickInterval = AxisHelper.getMinTickValueInterval(formatString, dataType);
+            let minTickInterval = AxisHelper.getMinTickValueInterval(formatString, dataType, is100Pct);
             let yTickValues: any[] = AxisHelper.getRecommendedTickValuesForAQuantitativeRange(bestTickCount, scale, minTickInterval);
-
+            
             if (useLogScale) {
                 yTickValues = yTickValues.filter((d) => { return AxisHelper.powerOfTen(d); });
             }
@@ -411,7 +420,9 @@ module powerbi.visuals {
             let yFormatter = StackedUtil.createValueFormatter(
                 data.valuesMetadata,
                 is100Pct,
-                yInterval);
+                yInterval,
+                axisDisplayUnits,
+                axisPrecision);
             d3Axis.tickFormat(yFormatter.format);
 
             let values = yTickValues.map((d: ColumnChartDataPoint) => yFormatter.format(d));            
@@ -428,18 +439,20 @@ module powerbi.visuals {
             };
         }
 
-        export function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], is100Pct: boolean, interval: number): IValueFormatter {
+        export function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], is100Pct: boolean, interval: number, axisDisplayUnits: number = 0, axisPrecision?: number): IValueFormatter {
+            let displayUnit = axisDisplayUnits ? axisDisplayUnits : interval;
             // TODO: Passing 0 in createFormatter below is a temporary workaround. As long as we fix createFormatter
             // to pass scaleInterval parameter instead min and max, we can remove it.
             if (is100Pct)
-                return valueFormatter.create({ format: constants.percentFormat, value: interval, value2: /* temporary workaround */ 0, allowFormatBeautification: true });
+                return valueFormatter.create({ format: constants.percentFormat, value: interval, value2: /* temporary workaround */ 0, allowFormatBeautification: true, precision: axisPrecision });
 
             // Default to apply formatting from the first measure.
             return valueFormatter.create({
                 format: valueFormatter.getFormatString(valuesMetadata[0], columnChartProps.general.formatString),
-                value: interval,
+                value: displayUnit,
                 value2: /* temporary workaround */ 0,
-                allowFormatBeautification: true
+                allowFormatBeautification: true,
+                precision: axisPrecision
             });
         }
 

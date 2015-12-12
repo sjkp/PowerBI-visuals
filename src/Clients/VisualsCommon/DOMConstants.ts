@@ -71,6 +71,7 @@ module jsCommon {
          */
         export const disabledAttributeOrValue = 'disabled';
         export const readonlyAttributeOrValue = 'readonly';
+        export const idAttribute = 'id';
         export const styleAttribute = 'style';
         export const hrefAttribute = 'href';
         export const targetAttribute = 'target';
@@ -100,6 +101,7 @@ module jsCommon {
         export const pasteEventName = 'paste';
         export const scrollEventName = 'scroll';
         export const dropEventName = 'drop';
+        export const focusEventName = 'focus';
         export const focusInEventName = 'focusin';
         export const focusOutEventName = 'focusout';
         export const selectEventName = 'select';

@@ -29,9 +29,9 @@
 module powerbi {
     import DataViewObjectDescriptors = powerbi.data.DataViewObjectDescriptors;
     import DataViewObjectDescriptor = powerbi.data.DataViewObjectDescriptor;
-    import DisplayNameGetter = powerbi.data.DisplayNameGetter;
     import Selector = powerbi.data.Selector;
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
+    import IRect = powerbi.visuals.IRect;
 
     /**
      * Represents a visualization displayed within an application (PowerBI dashboards, ad-hoc reporting, etc.).
@@ -107,6 +107,9 @@ module powerbi {
         /** The class of the plugin.  At the moment it is only used to have a way to indicate the class name that a custom visual has. */
         class?: string;
 
+        /** The url to the icon to display within the visualization pane. */
+        iconUrl?: string;
+
         /** Check if a visual is custom */
         custom?: boolean;
 
@@ -175,6 +178,9 @@ module powerbi {
         /** Indicates whether cross-highlight is supported by the visual. This is useful for query generation. */
         supportsHighlight?: boolean;
 
+        /** Indicates whether the visual uses onSelected function for data selections.  Default is true. */
+        supportsSelection?: boolean;
+
         /** Indicates whether sorting is supported by the visual. This is useful for query generation */
         sorting?: VisualSortingCapabilities;
 
@@ -183,23 +189,9 @@ module powerbi {
 
         /** Indicates whether drilling is supported by the visual. */
         drilldown?: VisualDrillCapabilities;
-        
+
         /** Indicates whether rotating is supported by the visual. */
         canRotate?: boolean;
-    }
-
-    /** Defines the data roles understood by the IVisual. */
-    export interface VisualDataRole {
-        /** Unique name for the VisualDataRole. */
-        name: string;
-
-        /** Indicates the kind of role.  This value is used to build user interfaces, such as a field well. */
-        kind: VisualDataRoleKind;
-
-        displayName?: DisplayNameGetter;
-
-        /** Indicates the preferred ValueTypes to be used in this data role.  This is used by authoring tools when adding fields into the visual. */
-        preferredTypes?: ValueTypeDescriptor[];
     }
 
     /** Defines the visual sorting capability. */
@@ -227,16 +219,7 @@ module powerbi {
 
     export interface VisualImplicitSortingClause {
         role: string;
-        direction: data.QuerySortDirection;
-    }
-
-    export enum VisualDataRoleKind {
-        /** Indicates that the role should be bound to something that evaluates to a grouping of values. */
-        Grouping,
-        /** Indicates that the role should be bound to something that evaluates to a single value in a scope. */
-        Measure,
-        /** Indicates that the role can be bound to either Grouping or Measure. */
-        GroupingOrMeasure,
+        direction: SortDirection;
     }
 
     /** Defines the capabilities of an IVisual. */
@@ -293,7 +276,7 @@ module powerbi {
 
     export interface SortableFieldDescriptor {
         queryName: string;
-        sortDirection?: data.QuerySortDirection;
+        sortDirection?: SortDirection;
     }
 
     export enum ViewMode {
@@ -371,11 +354,9 @@ module powerbi {
 
         /** Sets a toolbar on the host. */
         setToolbar($selector: JQuery): void;
-    }
 
-    export interface IViewport {
-        height: number;
-        width: number;
+        /** Gets Geocoding Service. */
+        geocoder(): IGeocoder;
     }
 
     /** Animation options for visuals. */
@@ -407,6 +388,37 @@ module powerbi {
     export interface DragEventArgs {
         event: DragEvent;
         data: VisualDragPayload;
+    }
+
+    /** Defines geocoding services. */
+    export interface IGeocoder {
+        geocode(query: string, category?: string): IPromise<IGeocodeCoordinate>;
+        geocodeBoundary(latitude: number, longitude: number, category: string, levelOfDetail?: number, maxGeoData?: number): IPromise<IGeocodeBoundaryCoordinate>;
+    }
+
+    export interface IGeocodeCoordinate {
+        latitude: number;
+        longitude: number;
+    }
+
+    export interface IGeocodeBoundaryCoordinate {
+        latitude?: number;
+        longitude?: number;
+        locations?: IGeocodeBoundaryPolygon[]; // one location can have multiple boundary polygons
+    }
+
+    export interface IGeocodeBoundaryPolygon {
+        nativeBing: string;
+        
+        /** array of lat/long pairs as [lat1, long1, lat2, long2,...] */
+        geographic?: Float64Array;
+
+        /** array of absolute pixel position pairs [x1,y1,x2,y2,...]. It can be used by the client for cache the data. */
+        absolute?: Float64Array;
+        absoluteBounds?: IRect;
+
+        /** string of absolute pixel position pairs "x1 y1 x2 y2...". It can be used by the client for cache the data. */
+        absoluteString?: string;
     }
 
     export interface SelectorForColumn {
@@ -470,16 +482,16 @@ module powerbi {
 
     export interface VisualObjectInstanceContainer {
         displayName: data.DisplayNameGetter;
-
-        /** Defines a property that is used to expand/collapse the container. */
-        expander?: data.DataViewObjectPropertyDefinition;
     }
 
     export interface VisualObjectInstancesToPersist {
-        /** Instances which should be merged with existing instances */
+        /** Instances which should be merged with existing instances. */
         merge?: VisualObjectInstance[];
 
         /** Instances which should replace existing instances. */
         replace?: VisualObjectInstance[];
+
+        /** Instances which should be deleted from the existing instances. */
+        remove?: VisualObjectInstance[];
     }
 }

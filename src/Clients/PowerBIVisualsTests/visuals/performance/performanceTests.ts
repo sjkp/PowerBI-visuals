@@ -40,21 +40,21 @@ module powerbitests {
     const ESTIMATE_FOR_MEASURE_PLUGIN_NAME = "scatterChart";
     const DEFAULT_HEIGHT = "770";
     const DEFAULT_WIDTH = "770";
-    const EXCLUDED_VISUALS: string[] = [MEASURE_PLUGIN_NAME, "sunburstChart", "basicShape", "bingNews", "bingSocialNews", "bingSocialTweets", "partitionMap", "categoricalFilter", "map", "filledMap", "heatMap", undefined, "consoleWriter", "playChart"];
+    const EXCLUDED_VISUALS: string[] = [MEASURE_PLUGIN_NAME, "sunburst", "basicShape", "bingNews", "bingSocialNews", "bingSocialTweets", "partitionMap", "categoricalFilter", "map", "filledMap", "heatMap", undefined, "consoleWriter", "playChart", "owlGauge", "streamGraph"];
     // Exclude map, filled map, and heat map because they require more advanced mocking in order to run in test mode
 
     describe("Performance measuring", () => {
-        var visual: powerbi.IVisual, element: JQuery;
+        let visual: powerbi.IVisual, element: JQuery;
 
-        var pluginService = VisualPluginFactory.create();
-        var hostServices = mocks.createVisualHostServices();
+        let pluginService = VisualPluginFactory.create();
+        let hostServices = mocks.createVisualHostServices();
 
-        var measurePlugin = pluginService.getPlugin(MEASURE_PLUGIN_NAME);
-        var estimationPlugin = pluginService.getPlugin(ESTIMATE_FOR_MEASURE_PLUGIN_NAME);
-        var plugins = pluginService.getVisuals().filter((plugin) => !EXCLUDED_VISUALS.some((item) => plugin.name === item));
+        let measurePlugin = pluginService.getPlugin(MEASURE_PLUGIN_NAME);
+        let estimationPlugin = pluginService.getPlugin(ESTIMATE_FOR_MEASURE_PLUGIN_NAME);
+        let plugins = pluginService.getVisuals().filter((plugin) => !EXCLUDED_VISUALS.some((item) => plugin.name === item));
 
-        var baseline: number = 0;
-        var estimationPluginTime: number = 0;
+        let baseline: number = 0;
+        let estimationPluginTime: number = 0;
 
         beforeEach(() => {
             element = helpers.testDom(DEFAULT_HEIGHT, DEFAULT_WIDTH);
@@ -76,7 +76,7 @@ module powerbitests {
         });
 
         function runPerformanceTest(plugin: VisualPlugin, iterations: number = DEFAULT_ITERATIONS_COUNT, expectedTime: number = DEFAULT_MAX_TIME_FOR_RENDER): number {
-            var timer = new Timer();
+            let timer = new Timer();
 
             visual = VisualPluginFactory.create().getPlugin(plugin.name).create();
             visual.init({
@@ -92,7 +92,7 @@ module powerbitests {
             });
 
             timer.start();
-            for (var i = 0; i < iterations; i++) {
+            for (let i = 0; i < iterations; i++) {
                 if (visual.onDataChanged) {
                     visual.onDataChanged({ dataViews: [Helpers.getDataViewByVisual(plugin.name)] });
                 }
@@ -101,7 +101,7 @@ module powerbitests {
                 }
             }
 
-            var average = timer.stop() / iterations;
+            let average = timer.stop() / iterations;
             expect(average).toBeLessThan(Helpers.getExpectedTime(plugin.name, expectedTime));
 
             return average;

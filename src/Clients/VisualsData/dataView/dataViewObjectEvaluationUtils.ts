@@ -142,8 +142,23 @@ module powerbi.data {
             return item;
         }
 
-        /** Registers properties for default format strings, if the properties are not explicitly provided. */
-        export function addDefaultFormatString(
+        export function addImplicitObjects(
+            objectsForAllSelectors: DataViewObjectDefinitionsByRepetition,
+            objectDescriptors: DataViewObjectDescriptors,
+            columns: DataViewMetadataColumn[],
+            selectTransforms: DataViewSelectTransform[]): void {
+            debug.assertValue(objectsForAllSelectors, 'objectsForAllSelectors');
+            debug.assertValue(objectDescriptors, 'objectDescriptors');
+            debug.assertValue(columns, 'columns');
+            debug.assertAnyValue(selectTransforms, 'selectTransforms');
+
+            if (selectTransforms) {
+                addDefaultFormatString(objectsForAllSelectors, objectDescriptors, columns, selectTransforms);
+                addDefaultValue(objectsForAllSelectors, objectDescriptors, columns, selectTransforms);
+            }
+        }
+
+        function addDefaultFormatString(
             objectsForAllSelectors: DataViewObjectDefinitionsByRepetition,
             objectDescriptors: DataViewObjectDescriptors,
             columns: DataViewMetadataColumn[],
@@ -171,6 +186,34 @@ module powerbi.data {
             }
         }
 
+        /** Registers properties for default value, if the properties are not explicitly provided. */
+        function addDefaultValue (
+            objectsForAllSelectors: DataViewObjectDefinitionsByRepetition,
+            objectDescriptors: DataViewObjectDescriptors,
+            columns: DataViewMetadataColumn[],
+            selectTransforms: DataViewSelectTransform[]): void {
+            debug.assertValue(objectsForAllSelectors, 'objectsForAllSelectors');
+            debug.assertValue(objectDescriptors, 'objectDescriptors');
+            debug.assertValue(columns, 'columns');
+            debug.assertValue(selectTransforms, 'selectTransforms');
+
+            let defaultValueProp = DataViewObjectDescriptors.findDefaultValue(objectDescriptors);
+            if (!defaultValueProp)
+                return;
+
+            for (let selectTransform of selectTransforms) {
+                if (!selectTransform)
+                    continue;
+                debug.assertValue(selectTransform.queryName, 'selectTransform.queryName');
+
+                applyDefaultValue(
+                    objectsForAllSelectors,
+                    defaultValueProp,
+                    selectTransform.queryName,
+                    selectTransform.defaultValue);
+            }
+        }
+
         function getColumnFormatForIndex(columns: DataViewMetadataColumn[], selectIdx: number): string {
             for (let columnIdx = 0, columnLen = columns.length; columnIdx < columnLen; columnIdx++) {
                 let column = columns[columnIdx];
@@ -190,24 +233,61 @@ module powerbi.data {
                 return;
 
             // There is a format string specified -- apply it as an object property, if there is not already one specified.
-            let metadataObjects = objectsForAllSelectors.metadata;
-            if (!metadataObjects)
-                metadataObjects = objectsForAllSelectors.metadata = [];
+            applyMetadataProperty(
+                objectsForAllSelectors,
+                formatStringProp,
+                { metadata: queryName },
+                SQExprBuilder.text(formatStringValue));
+        }
 
-            let selector: Selector = { metadata: queryName };
+        function applyDefaultValue(
+            objectsForAllSelectors: DataViewObjectDefinitionsByRepetition,
+            defaultValueProp: DataViewObjectPropertyIdentifier,
+            queryName: string,
+            defaultValue: DefaultValueDefinition): void {
+            if (!defaultValue)
+                return;
 
-            let targetMetadataObject = findWithMatchingSelector(metadataObjects, selector);
+            // There is a default value specified -- apply it as an object property, if there is not already one specified.
+            applyMetadataProperty(
+                objectsForAllSelectors,
+                defaultValueProp,
+                { metadata: queryName },
+                defaultValue);
+        }
+
+        function applyMetadataProperty(
+            objectsForAllSelectors: DataViewObjectDefinitionsByRepetition,
+            propertyId: DataViewObjectPropertyIdentifier,
+            selector: Selector,
+            value: DataViewObjectPropertyDefinition): void {
+
+            let objectDefns: DataViewObjectDefinitionsForSelector[];
+            if (selector) {
+                let metadataObjects = objectsForAllSelectors.metadata;
+                if (!metadataObjects)
+                    metadataObjects = objectsForAllSelectors.metadata = [];
+                objectDefns = metadataObjects;
+            }
+            else {
+                let metadataOnce = objectsForAllSelectors.metadataOnce;
+                if (!metadataOnce)
+                    metadataOnce = objectsForAllSelectors.metadataOnce = { selector: selector, objects: [] };
+                objectDefns = [metadataOnce];
+            }
+
+            let targetMetadataObject = findWithMatchingSelector(objectDefns, selector);
             let targetObjectDefn: DataViewNamedObjectDefinition;
             if (targetMetadataObject) {
                 let targetObjectDefns = targetMetadataObject.objects;
-                targetObjectDefn = findExistingObject(targetObjectDefns, formatStringProp.objectName);
+                targetObjectDefn = findExistingObject(targetObjectDefns, propertyId.objectName);
                 if (targetObjectDefn) {
-                    if (targetObjectDefn.properties[formatStringProp.propertyName])
+                    if (targetObjectDefn.properties[propertyId.propertyName])
                         return;
                 }
                 else {
                     targetObjectDefn = {
-                        name: formatStringProp.objectName,
+                        name: propertyId.objectName,
                         properties: {},
                     };
                     targetObjectDefns.push(targetObjectDefn);
@@ -215,22 +295,22 @@ module powerbi.data {
             }
             else {
                 targetObjectDefn = {
-                    name: formatStringProp.objectName,
+                    name: propertyId.objectName,
                     properties: {}
                 };
 
-                metadataObjects.push({
+                objectDefns.push({
                     selector: selector,
                     objects: [targetObjectDefn],
                 });
             }
 
-            targetObjectDefn.properties[formatStringProp.propertyName] = SQExprBuilder.text(formatStringValue);
+            targetObjectDefn.properties[propertyId.propertyName] = value;
         }
 
         function findWithMatchingSelector(objects: DataViewObjectDefinitionsForSelector[], selector: Selector): DataViewObjectDefinitionsForSelector {
             debug.assertValue(objects, 'objects');
-            debug.assertValue(selector, 'selector');
+            debug.assertAnyValue(selector, 'selector');
 
             for (let i = 0, len = objects.length; i < len; i++) {
                 let object = objects[i];

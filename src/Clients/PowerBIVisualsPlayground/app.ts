@@ -141,7 +141,9 @@ module powerbi.visuals {
 
             for (let i = 0, len = visuals.length; i < len; i++) {
                 let visual = visuals[i];
-                if (visual.name === 'basicShape') continue;
+                if (visual.name === 'basicShape' ||
+                    visual.name === "matrix" ||
+                    visual.name === "playChart") continue;
                 typeSelect.append('<option value="' + visual.name + '">' + visual.name + '</option>');
             }
 

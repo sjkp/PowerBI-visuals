@@ -29,27 +29,65 @@
 module powerbi {
     import SQExpr = powerbi.data.SQExpr;
 
-    export interface FillTypeDescriptor extends FillGeneric<boolean> {
-    }
-
-    export interface FillDefinition extends FillGeneric<SQExpr> {
-    }
-
-    export interface Fill extends FillGeneric<string> {
-    }
-
-    /** The "master" interface of a fill object.  Non-generic extensions define the type. */
-    export interface FillGeneric<T> {
+    export interface FillTypeDescriptor {
         solid?: {
-            color?: T;
+            color?: FillSolidColorTypeDescriptor;
         };
         gradient?: {
-            startColor?: T;
-            endColor?: T;
+            startColor?: boolean;
+            endColor?: boolean;
         };
         pattern?: {
-            patternKind?: T;
-            color?: T;
+            patternKind?: boolean;
+            color?: boolean;
         };
+    }
+
+    export type FillSolidColorTypeDescriptor = boolean | FillSolidColorAdvancedTypeDescriptor;
+
+    export interface FillSolidColorAdvancedTypeDescriptor {
+        /** Indicates whether the color value may be nullable, and a 'no fill' option is appropriate. */
+        nullable: boolean;
+    };
+
+    export interface FillDefinition {
+        solid?: {
+            color?: SQExpr;
+        };
+        gradient?: {
+            startColor?: SQExpr;
+            endColor?: SQExpr;
+        };
+        pattern?: {
+            patternKind?: SQExpr;
+            color?: SQExpr;
+        };
+    }
+
+    export interface Fill {
+        solid?: {
+            color?: string;
+        };
+        gradient?: {
+            startColor?: string;
+            endColor?: string;
+        };
+        pattern?: {
+            patternKind?: string;
+            color?: string;
+        };
+    }
+
+    export module FillSolidColorTypeDescriptor {
+        /** Gets a value indicating whether the descriptor is nullable or not. */
+        export function nullable(descriptor: FillSolidColorTypeDescriptor): boolean {
+            debug.assertValue(descriptor, 'descriptor');
+
+            if (descriptor === true)
+                return false;
+
+            let advancedDescriptor = <FillSolidColorAdvancedTypeDescriptor>descriptor;
+            return !!advancedDescriptor.nullable;
+        }
     }
 }

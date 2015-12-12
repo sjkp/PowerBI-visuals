@@ -174,5 +174,15 @@ module powerbi.visuals {
 
             return <VisualObjectInstanceEnumerationObject>x;
         }
+
+        public static getContainerForInstance(enumeration: VisualObjectInstanceEnumerationObject, instance: VisualObjectInstance): VisualObjectInstanceContainer {
+            debug.assertValue(enumeration, "enumeration");
+            debug.assertValue(instance, "instance");
+            debug.assertValue(enumeration.containers, "containers");
+            debug.assert(enumeration.containers.length > instance.containerIdx, "no container found in containers collection");
+
+            return enumeration.containers[instance.containerIdx];
+        }
+        
     }
 }

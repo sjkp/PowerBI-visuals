@@ -30,12 +30,12 @@ module powerbitests {
     import UrlHelper = powerbi.visuals.UrlHelper;
 
     describe("UrlHelper isValidUrl", () => {
-        var webUrlColumnMetadata: powerbi.DataViewMetadataColumn = {
+        let webUrlColumnMetadata: powerbi.DataViewMetadataColumn = {
             displayName: "webUrl",
             type: new powerbi.ValueType(powerbi.ExtendedType.WebUrl, "WebUrl")
         };
 
-        var textColumnMetadata: powerbi.DataViewMetadataColumn = {
+        let textColumnMetadata: powerbi.DataViewMetadataColumn = {
             displayName: "text",
             type: new powerbi.ValueType(powerbi.ExtendedType.Text, "Text")
         };

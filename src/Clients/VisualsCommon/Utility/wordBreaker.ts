@@ -100,9 +100,9 @@ module jsCommon {
         }
 
         export function getMaxWordWidth(content: string, textWidthMeasurer: ITextAsSVGMeasurer, properties: TextProperties): number {
-            var words = split(content);
-            var maxWidth = 0;
-            for (var w of words) {
+            let words = split(content);
+            let maxWidth = 0;
+            for (let w of words) {
                 properties.text = w;
                 maxWidth = Math.max(maxWidth, textWidthMeasurer(properties));
             }

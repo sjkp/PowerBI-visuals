@@ -173,7 +173,7 @@ module powerbitests {
         describe('can split into words by width and breakers', () => {
             let words;
             let textWidthMeasurer = powerbi.TextMeasurementService.measureSvgTextWidth;
-            var textProperties: powerbi.TextProperties = {
+            let textProperties: powerbi.TextProperties = {
                 fontFamily: "Arial",
                 fontSize: "10px"
             };
@@ -260,15 +260,15 @@ module powerbitests {
 
             it('has truncator', () => {
                 let truncator = (properties: powerbi.TextProperties, maxWidth: number) => {
-                    return properties.text.slice(0, -3) + '...';
+                    return properties.text.slice(0, -1) + '…';
                 };
 
                 words = WordBreaker.splitByWidth('abcd efg hijk lmn opqr stu vwx yz', textProperties, textWidthMeasurer, 75, 0, truncator);
 
                 expect(words.length).toBe(3);
-                expect(words[0]).toBe('abcd efg h...');
-                expect(words[1]).toBe('lmn opqr ...');
-                expect(words[2]).toBe('vwx...');
+                expect(words[0]).toBe('abcd efg hij…');
+                expect(words[1]).toBe('lmn opqr st…');
+                expect(words[2]).toBe('vwx y…');
             });
         });
     });

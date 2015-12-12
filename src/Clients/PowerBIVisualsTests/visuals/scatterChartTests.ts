@@ -28,35 +28,143 @@
 
 module powerbitests {
     import ScatterChart = powerbi.visuals.ScatterChart;
+    import LabelsBehavior = powerbi.visuals.LabelsBehavior;
     import ArrayExtensions = jsCommon.ArrayExtensions;
+    import AxisType = powerbi.visuals.axisType;
     import DataViewPivotCategorical = powerbi.data.DataViewPivotCategorical;
     import DataViewTransform = powerbi.data.DataViewTransform;
-    import ColorUtility = utils.ColorUtility;
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
     import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
-
-    import AxisType = powerbi.axisType;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import PixelConverter = jsCommon.PixelConverter;
 
     powerbitests.mocks.setLocale();
 
-    var axisLabelVisibleMinHeight: number = powerbi.visuals.visualPluginFactory.MobileVisualPluginService.MinHeightAxesVisible;
-    var axisLabelVisibleGreaterThanMinHeight: number = axisLabelVisibleMinHeight + 1;
-    var axisLabelVisibleSmallerThanMinHeight: number = axisLabelVisibleMinHeight - 1;
-    var axisLabelVisibleGreaterThanMinHeightString: string = axisLabelVisibleGreaterThanMinHeight.toString();
-    var axisLabelVisibleSmallerThanMinHeightString: string = axisLabelVisibleSmallerThanMinHeight.toString();
+    const labelColor: string = powerbi.visuals.dataLabelUtils.defaultLabelColor;
 
-    var legendVisibleMinHeight: number = powerbi.visuals.visualPluginFactory.MobileVisualPluginService.MinHeightLegendVisible;
-    var legendVisibleGreaterThanMinHeight: number = legendVisibleMinHeight + 1;
-    var legendVisibleSmallerThanMinHeight: number = legendVisibleMinHeight - 1;
-    var legendVisibleGreaterThanMinHeightString: string = legendVisibleGreaterThanMinHeight.toString();
-    var legendVisibleSmallerThanMinHeightString: string = legendVisibleSmallerThanMinHeight.toString();
+    const axisLabelVisibleMinHeight: number = powerbi.visuals.visualPluginFactory.MobileVisualPluginService.MinHeightAxesVisible;
+    const axisLabelVisibleGreaterThanMinHeight: number = axisLabelVisibleMinHeight + 1;
+    const axisLabelVisibleSmallerThanMinHeight: number = axisLabelVisibleMinHeight - 1;
+    const axisLabelVisibleGreaterThanMinHeightString: string = axisLabelVisibleGreaterThanMinHeight.toString();
+    const axisLabelVisibleSmallerThanMinHeightString: string = axisLabelVisibleSmallerThanMinHeight.toString();
 
-    var labelColor = powerbi.visuals.dataLabelUtils.defaultLabelColor;
-    
+    const legendVisibleMinHeight: number = powerbi.visuals.visualPluginFactory.MobileVisualPluginService.MinHeightLegendVisible;
+    const legendVisibleGreaterThanMinHeight: number = legendVisibleMinHeight + 1;
+    const legendVisibleSmallerThanMinHeight: number = legendVisibleMinHeight - 1;
+    const legendVisibleGreaterThanMinHeightString: string = legendVisibleGreaterThanMinHeight.toString();
+    const legendVisibleSmallerThanMinHeightString: string = legendVisibleSmallerThanMinHeight.toString();
+
+    function createConverterOptions(
+        viewport: powerbi.IViewport,
+        colors: any,
+        interactivityService?: any,
+        categoryAxisProperties?: any,
+        valueAxisProperties?: any) {
+
+        return {
+            viewport: viewport,
+            colors: colors,
+            interactivityService: interactivityService,
+            categoryAxisProperties: categoryAxisProperties,
+            valueAxisProperties: valueAxisProperties,
+        };
+    }
+
+    function getDataViewMultiSeries(firstGroupName: string = 'Canada', secondGroupName: string = 'United States'): powerbi.DataView {
+        let dataViewMetadata: powerbi.DataViewMetadata = {
+            columns: [
+                {
+                    displayName: '',
+                    format: 'yyyy',
+                    type: ValueType.fromDescriptor({ dateTime: true })
+                }, {
+                    displayName: ''
+                }, {
+                    displayName: '',
+                    format: '#,0.00',
+                    isMeasure: true,
+                    groupName: firstGroupName,
+                }, {
+                    displayName: '',
+                    format: '#,0',
+                    isMeasure: true,
+                    groupName: firstGroupName,
+                }, {
+                    displayName: '',
+                    format: '#,0.00',
+                    isMeasure: true,
+                    groupName: secondGroupName,
+                }, {
+                    displayName: '',
+                    format: '#,0',
+                    isMeasure: true,
+                    groupName: secondGroupName,
+                }, {
+                    displayName: '',
+                    format: '#,0.00',
+                    isMeasure: true,
+                }, {
+                    displayName: '',
+                    format: '#,0',
+                    isMeasure: true,
+                }
+            ]
+        };
+
+        let colP1Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
+        let colP2Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p2' });
+
+        let seriesValues = [null, firstGroupName, secondGroupName];
+        let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+
+        let dataViewValueColumns: powerbi.DataViewValueColumn[] = [
+            {
+                source: dataViewMetadata.columns[2],
+                values: [150, 177, 157],
+                identity: seriesIdentities[1],
+            }, {
+                source: dataViewMetadata.columns[3],
+                values: [30, 25, 28],
+                identity: seriesIdentities[1],
+            }, {
+                source: dataViewMetadata.columns[4],
+                values: [100, 149, 144],
+                identity: seriesIdentities[2],
+            }, {
+                source: dataViewMetadata.columns[5],
+                values: [300, 250, 280],
+                identity: seriesIdentities[2],
+            }
+        ];
+
+        let dataView: powerbi.DataView = {
+            metadata: dataViewMetadata,
+            categorical: {
+                categories: [{
+                    source: dataViewMetadata.columns[0],
+                    values: [
+                        powerbitests.helpers.parseDateString("2012-01-01T00:00:00"),
+                        powerbitests.helpers.parseDateString("2011-01-01T00:00:00"),
+                        powerbitests.helpers.parseDateString("2010-01-01T00:00:00")
+                    ],
+                    identity: [seriesIdentities[0]],
+                    identityFields: [
+                        colP1Ref
+                    ]
+                }],
+                values: DataViewTransform.createValueColumns(dataViewValueColumns, [colP2Ref])
+            },
+        };
+
+        dataView.categorical.values.source = dataViewMetadata.columns[1];
+
+        return dataView;
+    }
+
     describe("ScatterChart", () => {
-        var categoryColumn: powerbi.DataViewMetadataColumn = { displayName: 'year', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) };
-        var measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) };
+        let categoryColumn: powerbi.DataViewMetadataColumn = { displayName: 'year', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) };
+        let measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) };
 
         it('ScatterChart registered capabilities', () => {
             expect(powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').capabilities).toBe(powerbi.visuals.scatterChartCapabilities);
@@ -79,13 +187,13 @@ module powerbitests {
         });
 
         it('preferred capability does not support zero rows', () => {
-            var dataViewMetadata: powerbi.DataViewMetadata = {
+            let dataViewMetadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'Year' },
                     { displayName: 'Value', isMeasure: true }],
             };
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: dataViewMetadata,
                 categorical: {
                     categories: [{
@@ -104,13 +212,13 @@ module powerbitests {
         });
 
         it('preferred capability does not support one row', () => {
-            var dataViewMetadata: powerbi.DataViewMetadata = {
+            let dataViewMetadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'Year' },
                     { displayName: 'Value', isMeasure: true }],
             };
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: dataViewMetadata,
                 categorical: {
                     categories: [{
@@ -130,28 +238,28 @@ module powerbitests {
     });
     
     function scatterChartDomValidation(interactiveChart: boolean) {
-        var v: powerbi.IVisual, element: JQuery;
-        var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+        let v: powerbi.IVisual, element: JQuery;
+        let dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
-                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+                { displayName: 'col2', queryName: 'col2Query', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col3', queryName: 'col3Query', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col4', queryName: 'col4Query', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
             ]
         };
 
-        var dataViewMetadata: powerbi.DataViewMetadata = {
+        let dataViewMetadata: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: 'col1', queryName: 'testQuery', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
-                { displayName: 'col2', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }],
+                { displayName: 'col2', queryName: 'col2Query', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }],
         };
 
-        var hostServices: powerbi.IVisualHostServices;
+        let hostServices: powerbi.IVisualHostServices;
 
         beforeEach(() => {
             hostServices = powerbitests.mocks.createVisualHostServices();
             element = powerbitests.helpers.testDom('500', '500');
-            var visualPluginfactory = interactiveChart ?
+            let visualPluginfactory = interactiveChart ?
                 powerbi.visuals.visualPluginFactory.createMobile() :
                 powerbi.visuals.visualPluginFactory.create();
             v = visualPluginfactory.getPlugin('scatterChart').create();
@@ -169,7 +277,7 @@ module powerbitests {
         });
 
         function getOptionsForValueWarnings(values: number[]) {
-            var options = {
+            let options = {
                 dataViews: [{
                     metadata: dataViewMetadata,
                     categorical: {
@@ -190,10 +298,10 @@ module powerbitests {
         }
 
         it('NaN in values shows a warning', (done) => {
-            var warningSpy = jasmine.createSpy('warning');
+            let warningSpy = jasmine.createSpy('warning');
             hostServices.setWarnings = warningSpy;
 
-            var options = getOptionsForValueWarnings([500000, 495000, 490000, NaN, 500000]);
+            let options = getOptionsForValueWarnings([500000, 495000, 490000, NaN, 500000]);
             v.onDataChanged(options);
 
             setTimeout(() => {
@@ -205,10 +313,10 @@ module powerbitests {
         });
 
         it('Negative Infinity in values shows a warning', (done) => {
-            var warningSpy = jasmine.createSpy('warning');
+            let warningSpy = jasmine.createSpy('warning');
             hostServices.setWarnings = warningSpy;
 
-            var options = getOptionsForValueWarnings([500000, 495000, 490000, Number.NEGATIVE_INFINITY, 500000]);
+            let options = getOptionsForValueWarnings([500000, 495000, 490000, Number.NEGATIVE_INFINITY, 500000]);
             v.onDataChanged(options);
 
             setTimeout(() => {
@@ -220,10 +328,10 @@ module powerbitests {
         });
 
         it('Positive Infinity in values shows a warning', (done) => {
-            var warningSpy = jasmine.createSpy('warning');
+            let warningSpy = jasmine.createSpy('warning');
             hostServices.setWarnings = warningSpy;
 
-            var options = getOptionsForValueWarnings([500000, 495000, 490000, Number.POSITIVE_INFINITY, 500000]);
+            let options = getOptionsForValueWarnings([500000, 495000, 490000, Number.POSITIVE_INFINITY, 500000]);
             v.onDataChanged(options);
 
             setTimeout(() => {
@@ -235,10 +343,10 @@ module powerbitests {
         });
 
         it('Out of range value in values shows a warning', (done) => {
-            var warningSpy = jasmine.createSpy('warning');
+            let warningSpy = jasmine.createSpy('warning');
             hostServices.setWarnings = warningSpy;
 
-            var options = getOptionsForValueWarnings([500000, 495000, 490000, 1e301, 500000]);
+            let options = getOptionsForValueWarnings([500000, 495000, 490000, 1e301, 500000]);
             v.onDataChanged(options);
 
             setTimeout(() => {
@@ -250,10 +358,10 @@ module powerbitests {
         });
 
         it('All okay in values shows a warning', (done) => {
-            var warningSpy = jasmine.createSpy('warning');
+            let warningSpy = jasmine.createSpy('warning');
             hostServices.setWarnings = warningSpy;
 
-            var options = getOptionsForValueWarnings([500000, 495000, 490000, 480000, 500000]);
+            let options = getOptionsForValueWarnings([500000, 495000, 490000, 480000, 500000]);
             v.onDataChanged(options);
 
             setTimeout(() => {
@@ -287,14 +395,14 @@ module powerbitests {
         });
 
         it('scatter chart two measure dom validation', (done) => {
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1', queryName: 'testQuery' },
-                    { displayName: 'col2', isMeasure: true },
-                    { displayName: 'col3', isMeasure: true, objects: { general: { formatString: '0%' } } }
+                    { displayName: 'col2', queryName: 'col2Query', isMeasure: true },
+                    { displayName: 'col3', queryName: 'col3Query', isMeasure: true, objects: { general: { formatString: '0%' } } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -323,23 +431,24 @@ module powerbitests {
             });
 
             setTimeout(() => {
+                let markers = getMarkers();
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').find('text').first().text()).toBe('110');
                 expect($('.scatterChart .axisGraphicsContext .y.axis .tick').find('text').first().text()).toBe('21%');
-                expect($('.scatterChart .mainGraphicsContext .dot').length).toBe(5);
-                expect($('.scatterChart .mainGraphicsContext .dot')[0].style.fillOpacity).toBe("0");
-                expect($('.scatterChart .mainGraphicsContext .dot')[0].style.strokeOpacity).toBe("0.85");
-                expect($('.scatterChart .mainGraphicsContext .dot')[0].getAttribute('r')).toBe('6');
+                expect(markers.length).toBe(5);
+                expect(markers[0].style.fillOpacity).toBe("0");
+                expect(markers[0].style.strokeOpacity).toBe("0.85");
+                expect(markers[0].getAttribute('r')).toBe('6');
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart series dom validation', (done) => {
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1', queryName: 'testQuery', roles: { 'Series': true } },
-                    { displayName: 'col2', isMeasure: true },
-                    { displayName: 'col3', isMeasure: true, objects: { general: { formatString: '0%' } } },
-                    { displayName: 'col4', isMeasure: true },
+                    { displayName: 'col2', queryName: 'col2Query', isMeasure: true },
+                    { displayName: 'col3', queryName: 'col3Query', isMeasure: true, objects: { general: { formatString: '0%' } } },
+                    { displayName: 'col4', queryName: 'col4Query', isMeasure: true },
                 ]
             };
             v.onDataChanged({
@@ -369,11 +478,11 @@ module powerbitests {
                 })]
             });
 
-            var legendClassSelector = interactiveChart ? ".interactive-legend" : '.legend';
-            var itemsNumber = interactiveChart ? 3 : 2;
+            let legendClassSelector = interactiveChart ? ".interactive-legend" : '.legend';
+            let itemsNumber = interactiveChart ? 3 : 2;
             setTimeout(() => {
-                expect($('.scatterChart .mainGraphicsContext .dot').length).toBe(2);
-                var length = $(legendClassSelector + (interactiveChart ? ' .item' : 'Text')).length;
+                expect(getMarkers().length).toBe(2);
+                let length = $(legendClassSelector + (interactiveChart ? ' .item' : 'Text')).length;
                 expect($(legendClassSelector).length).toBe(1);
                 expect(length).toBe(itemsNumber);
                 if (!interactiveChart)
@@ -383,15 +492,15 @@ module powerbitests {
         });
 
         it('scatter chart measure and size dom validation', (done) => {
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1', queryName: 'testQuery' },
-                    { displayName: 'col2', isMeasure: true },
-                    { displayName: 'col3', isMeasure: true },
-                    { displayName: 'col4', isMeasure: true }
+                    { displayName: 'col2', queryName: 'col2Query', isMeasure: true },
+                    { displayName: 'col3', queryName: 'col3Query', isMeasure: true },
+                    { displayName: 'col4', queryName: 'col4Query', isMeasure: true }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -421,19 +530,20 @@ module powerbitests {
                     }
                 }]
             });
-            var r = interactiveChart ? 45 : 51.5;  // interactive legend is bigger
+            let r = interactiveChart ? 45 : 51.5;  // interactive legend is bigger
             setTimeout(() => {
+                let markers = getMarkers();
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').find('text').first().text()).toBe('110');
                 expect($('.scatterChart .axisGraphicsContext .y.axis .tick').find('text').first().text()).toBe('210');
-                expect($('.scatterChart .mainGraphicsContext .dot').length).toBe(5);
-                var expectedR0 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[0].getAttribute('r'));
+                expect(markers.length).toBe(5);
+                let expectedR0 = parseFloat(markers[0].getAttribute('r'));
                 expect(expectedR0).toBeCloseTo(r, -0.31);
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart gridline dom validation', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -472,12 +582,12 @@ module powerbitests {
         });
 
         it('scatter chart single category value dom validation', (done) => {
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col1', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
-                    { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'col3', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'col4', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+                    { displayName: 'col1', queryName: 'col1Query', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'col2', queryName: 'col2Query', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col3', queryName: 'col3Query', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col4', queryName: 'col4Query', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             v.onDataChanged({
@@ -505,26 +615,27 @@ module powerbitests {
             });
 
             setTimeout(() => {
+                let markers = getMarkers();
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').length).toBe(4);
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').find('text').first().text()).toBe('80');
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').find('text').last().text()).toBe('140');
                 expect($('.scatterChart .axisGraphicsContext .y.axis .tick').length).toBe(3);
                 expect($('.scatterChart .axisGraphicsContext .y.axis .tick').find('text').first().text()).toBe('200');
                 expect($('.scatterChart .axisGraphicsContext .y.axis .tick').find('text').last().text()).toBe('400');
-                expect($('.scatterChart .mainGraphicsContext .dot').length).toBe(1);
-                var r = (interactiveChart ? 45 : 51.5).toString();
-                expect($('.scatterChart .mainGraphicsContext .dot')[0].getAttribute('r')).toBe(r);
+                expect(markers.length).toBe(1);
+                let r = (interactiveChart ? 45 : 51.5).toString();
+                expect(markers[0].getAttribute('r')).toBe(r);
                 expect($('.legendItem').length).toBe(0);
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart no category dom validation', (done) => {
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'col3', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'col4', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+                    { displayName: 'col2', queryName: 'col2Query', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col3', queryName: 'col3Query', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col4', queryName: 'col4Query', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             v.onDataChanged({
@@ -548,12 +659,13 @@ module powerbitests {
             });
 
             setTimeout(() => {
+                let markers = getMarkers();
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').length).toBe(4);
                 expect($('.scatterChart .axisGraphicsContext .y.axis .tick').length).toBe(3);
-                expect($('.scatterChart .mainGraphicsContext .dot').length).toBe(1);
-                var r = (interactiveChart ? 45 : 51.5).toString();// interactive legend is bigger
-                expect($('.scatterChart .mainGraphicsContext .dot')[0].getAttribute('r')).toBe(r);
-                expect($('.scatterChart .mainGraphicsContext .dot').find('title').first().text()).toBe('');
+                expect(markers.length).toBe(1);
+                let r = (interactiveChart ? 45 : 51.5).toString();// interactive legend is bigger
+                expect(markers[0].getAttribute('r')).toBe(r);
+                expect(markers.find('title').first().text()).toBe('');
                 expect($('.legendItem').length).toBe(0);
                 done();
             }, DefaultWaitForRender);
@@ -589,7 +701,7 @@ module powerbitests {
         });
 
         it('ensure scatter chart is cleared when an empty dataview is applied', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -614,7 +726,7 @@ module powerbitests {
                 }]
             });
             setTimeout(() => {
-                var scatterCount = $('.scatterChart').find('.dot').length;
+                let scatterCount = getMarkers().length;
                 expect(scatterCount).toBe(5);
                 v.onDataChanged({
                     dataViews: [{
@@ -633,7 +745,7 @@ module powerbitests {
                     }]
                 });
                 setTimeout(() => {
-                    var scatterCount = $('.scatterChart').find('.dot').length;
+                    let scatterCount = getMarkers().length;
                     expect(scatterCount).toBe(0);
                     done();
                 }, DefaultWaitForRender);
@@ -641,7 +753,7 @@ module powerbitests {
         });
 
         it('scatter chart with small interval dom validation', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -684,7 +796,7 @@ module powerbitests {
         });
 
         it('scatter chart nested svg dom validation', () => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -718,12 +830,12 @@ module powerbitests {
                 }]
             });
 
-            expect($('.scatterChart .mainGraphicsContext .dot').length).toBe(5);
+            expect(getMarkers().length).toBe(5);
             expect($('.scatterChart .mainGraphicsContext').find('svg')).toBeDefined();
         });
 
         it('scatter chart does not show less ticks dom validation', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
             ];
@@ -761,15 +873,15 @@ module powerbitests {
         });
 
         it('scatter chart axis labels dom validation', (done) => {
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col1' },
-                    { displayName: 'X-Axis', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'Size', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'Y-Axis', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+                    { displayName: 'col1', queryName: 'col1Query' },
+                    { displayName: 'X-Axis', queryName: 'xQuery', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Size', queryName: 'sizeQuery', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Y-Axis', queryName: 'yQuery', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -814,7 +926,7 @@ module powerbitests {
                 height: 101,
                 width: 226
             });
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -857,7 +969,7 @@ module powerbitests {
         });
 
         it('scatter chart onResize big tile radius dom validation', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -896,7 +1008,7 @@ module powerbitests {
                 width: 500
             });
 
-            var r0, r1, r2;
+            let r0, r1, r2;
             if (interactiveChart) {
                 r0 = 42.5;
                 r1 = 32.5;
@@ -908,20 +1020,22 @@ module powerbitests {
             }
 
             setTimeout(() => {
-                var expectedR0 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[0].getAttribute('r'));
+                let markers = getMarkers();
+
+                let expectedR0 = parseFloat(markers[0].getAttribute('r'));
                 expect(expectedR0).toBeCloseTo(r0, -0.31);
 
-                var expectedR1 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[1].getAttribute('r'));
+                let expectedR1 = parseFloat(markers[1].getAttribute('r'));
                 expect(expectedR1).toBeCloseTo(r1, -0.31);
 
-                var expectedR2 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[2].getAttribute('r'));
+                let expectedR2 = parseFloat(markers[2].getAttribute('r'));
                 expect(expectedR2).toBeCloseTo(r2, -0.31);
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart onResize medium tile radius dom validation', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -960,7 +1074,7 @@ module powerbitests {
                 width: 300
             });
 
-            var r0, r1, r2;
+            let r0, r1, r2;
             if (interactiveChart) {
                 r0 = 23;
                 r1 = 17.5;
@@ -971,20 +1085,22 @@ module powerbitests {
                 r2 = 12.5;
             };
             setTimeout(() => {
-                var expectedR0 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[0].getAttribute('r'));
+                let markers = getMarkers();
+
+                let expectedR0 = parseFloat(markers[0].getAttribute('r'));
                 expect(expectedR0).toBeCloseTo(r0, -0.31);
 
-                var expectedR1 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[1].getAttribute('r'));
+                let expectedR1 = parseFloat(markers[1].getAttribute('r'));
                 expect(expectedR1).toBeCloseTo(r1, -0.31);
 
-                var expectedR2 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[2].getAttribute('r'));
+                let expectedR2 = parseFloat(markers[2].getAttribute('r'));
                 expect(expectedR2).toBeCloseTo(r2, -0.31);
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart onResize small tile radius dom validation', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -1025,7 +1141,7 @@ module powerbitests {
                 width: 200
             });
 
-            var r0, r1, r2;
+            let r0, r1, r2;
             if (interactiveChart) {
                 r0 = 3.5;
                 r1 = 2.5;
@@ -1036,28 +1152,29 @@ module powerbitests {
                 r2 = 4;
             }
             setTimeout(() => {
-                var expectedR0 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[0].getAttribute('r'));
+                let markers = getMarkers();
+                let expectedR0 = parseFloat(markers[0].getAttribute('r'));
                 expect(expectedR0).toBeCloseTo(r0, -0.31);
 
-                var expectedR1 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[1].getAttribute('r'));
+                let expectedR1 = parseFloat(markers[1].getAttribute('r'));
                 expect(expectedR1).toBeCloseTo(r1, -0.31);
 
-                var expectedR2 = parseFloat($('.scatterChart .mainGraphicsContext .dot')[2].getAttribute('r'));
+                let expectedR2 = parseFloat(markers[2].getAttribute('r'));
                 expect(expectedR2).toBeCloseTo(r2, -0.31);
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart zero axis line is darkened',(done) => {
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col1' },
-                    { displayName: 'X-Axis', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'Size', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'Y-Axis', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+                    { displayName: 'col1', queryName: 'col1Query' },
+                    { displayName: 'X-Axis', queryName: 'xQuery', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Size', queryName: 'sizeQuery', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Y-Axis', queryName: 'yQuery', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -1089,7 +1206,7 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var zeroTicks = $('g.tick:has(line.zero-line)');
+                let zeroTicks = $('g.tick:has(line.zero-line)');
                 expect($('.brush')).not.toBeInDOM();
                 expect(zeroTicks.length).toBe(2);
                 zeroTicks.each(function (i, item) {
@@ -1099,500 +1216,210 @@ module powerbitests {
                 done();
             }, DefaultWaitForRender);
         });        
-    }
 
-    describe("scatterChart DOM validation", () => scatterChartDomValidation(false));
-
-    describe("interactive scatterChart DOM validation", () => scatterChartDomValidation(true));
-
-    //Data Labels
-    function scatterChartDataLabelsValidation(interactiveChart: boolean) {
-        var v: powerbi.IVisual, element: JQuery;
-        var dataViewMetadata: powerbi.DataViewMetadata = {
-            columns: [
-                {
-                    displayName: 'col1',
-                    type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text),
-                    queryName: 'col1'
-                },
-                {
-                    displayName: 'col2',
-                    isMeasure: true,
-                    type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
-                    format: '0.000'
-                },
-                {
-                    displayName: 'col3',
-                    isMeasure: false,
-                    type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
-                    format: 'd'
-                }],
-        };
-        var hostServices = powerbitests.mocks.createVisualHostServices();
-
-        var dataViewMetadataWithLabelsOnObject = powerbi.Prototype.inherit(dataViewMetadata);
-        dataViewMetadataWithLabelsOnObject.objects = { categoryLabels: { show: true }, labels: { show: true, labelPrecision: 0 } };
-
-        var dataViewMetadataWithLabelsOffObject = powerbi.Prototype.inherit(dataViewMetadata);
-        dataViewMetadataWithLabelsOffObject.objects = { categoryLabels: { show: false } };
-
-        var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
-            mocks.dataViewScopeIdentity('a'),
-            mocks.dataViewScopeIdentity('b'),
-            mocks.dataViewScopeIdentity('c'),
-            mocks.dataViewScopeIdentity('d'),
-            mocks.dataViewScopeIdentity('e'),
-        ];
-        
-        beforeEach(() => {
-            element = powerbitests.helpers.testDom('500', '500');
-            v = interactiveChart ?
-                powerbi.visuals.visualPluginFactory.createMobile().getPlugin('scatterChart').create() :
-                powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').create();
-            v.init({
-                element: element,
-                host: hostServices,
-                style: powerbi.visuals.visualStyles.create(),
-                viewport: {
-                    height: element.height(),
-                    width: element.width()
-                },
-                animation: { transitionImmediate: true },
-                interactivity: { isInteractiveLegend: interactiveChart },
-            });
-        });
-
-        it('scatter chart show labels validation', (done) => {
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsOnObject,
-                    categorical: {
-                        categories: [{
-                            source: dataViewMetadataWithLabelsOnObject.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e'],
-                            identity: categoryIdentities,
-                        }],
-                        values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadataWithLabelsOnObject.columns[1],
-                            values: [500000, 495000, 490000, 480000, 500000],
-                            subtotal: 246500
-                        }])
-                    }
-                }]
-            });
-            setTimeout(() => {
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').length).toBeGreaterThan(0);
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').first().text()).toBe('a');
-                done();
-            }, DefaultWaitForRender);
-        });
-
-        it('scatter chart labels style validation', (done) => {
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsOnObject,
-                    categorical: {
-                        categories: [{
-                            source: dataViewMetadataWithLabelsOnObject.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e'],
-                            identity: categoryIdentities,
-                        }],
-                        values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadataWithLabelsOnObject.columns[1],
-                            values: [500000, 495000, 490000, 480000, 500000],
-                            subtotal: 246500
-                        }])
-                    }
-                }]
-            });
-            setTimeout(() => {
-                var labelFill = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').first().css('fill');
-                expect(ColorUtility.convertFromRGBorHexToHex(labelFill)).toBe(labelColor);
-                done();
-            }, DefaultWaitForRender);
-        });
-
-        it('scatter chart labels custom style validation', (done) => {
-
-            var color = { solid: { color: "rgb(255, 0, 0)" } }; // Red
-
-            var dataViewMetadataWithLabelsFillObject = powerbi.Prototype.inherit(dataViewMetadata);
-            dataViewMetadataWithLabelsFillObject.objects = { categoryLabels: { show: true, color: color }, labels: { show: true, labelPrecision: 0 } };
-
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsFillObject,
-                    categorical: {
-                        categories: [{
-                            source: dataViewMetadataWithLabelsFillObject.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e'],
-                            identity: categoryIdentities,
-                        }],
-                        values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadataWithLabelsFillObject.columns[1],
-                            values: [500000, 495000, 490000, 480000, 500000],
-                            subtotal: 246500
-                        }])
-                    }
-                }]
-            });
-            setTimeout(() => {
-                var fill = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').first().css('fill');
-                expect(ColorUtility.convertFromRGBorHexToHex(fill).toUpperCase()).toBe('#FF0000');
-                done();
-            }, DefaultWaitForRender);
-        });
-
-        it('scatter chart hide labels validation', (done) => {
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsOffObject,
-                    categorical: {
-                        categories: [{
-                            source: dataViewMetadata.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e'],
-                            identity: categoryIdentities,
-                        }],
-                        values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadataWithLabelsOffObject.columns[1],
-                            values: [500000, 495000, 490000, 480000, 500000],
-                            subtotal: 246500
-                        }])
-                    }
-                }]
-            });
-            setTimeout(() => {
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').length).toBe(0);
-                done();
-            }, DefaultWaitForRender);
-        });
-
-        it('scatter chart data labels multi-series',(done) => {
-            // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
+        it('bubble sort is a total sort', (done) => {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
-                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                ],
-                objects: {
-                    categoryLabels: { show: true },
-                    // Force axis ranges to ensure data labels are visible
-                    valueAxis: { start: 0, end: 100 },
-                    categoryAxis: { start: -100, end: 300 },
-                },
+                    { displayName: 'category', queryName: 'category' },
+                    { displayName: 'X-Axis', queryName: 'select0', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Y-Axis', queryName: 'select1', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Size', queryName: 'select2', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                ]
             };
-            var seriesValues = ['a', 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let categories1 = ['a', 'b', 'c', 'd', 'e'];
+            let categories2 = ['e', 'd', 'c', 'b', 'a'];
 
-            var valueColumns = DataViewTransform.createValueColumns([
-                {
-                    source: metadata.columns[1],
-                    values: [0, null, null],
-                    identity: seriesIdentities[0],
-                }, {
-                    source: metadata.columns[2],
-                    values: [1, null, null],
-                    identity: seriesIdentities[0],
-                }, {
-                    source: metadata.columns[3],
-                    values: [10, null, null],
-                    identity: seriesIdentities[0],
-                }, {
-                    source: metadata.columns[4],
-                    values: [null, 100, null],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: metadata.columns[5],
-                    values: [null, 2, null],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: metadata.columns[6],
-                    values: [null, 20, null],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: metadata.columns[7],
-                    values: [null, null, 200],
-                    identity: seriesIdentities[2],
-                }, {
-                    source: metadata.columns[8],
-                    values: [null, null, 3],
-                    identity: seriesIdentities[2],
-                }, {
-                    source: metadata.columns[9],
-                    values: [null, null, 30],
-                    identity: seriesIdentities[2],
-                }],
-                [seriesIdentityField]);
-            valueColumns.source = metadata.columns[0];
+            let dataView1: powerbi.DataView = {
+                metadata: metadata,
+                categorical: {
+                    categories: [{
+                        source: metadata.columns[0],
+                        values: categories1,
+                        identity: _.map(categories1, (c) => mocks.dataViewScopeIdentity(c)),
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: metadata.columns[1],
+                            values: [10, 20, 30, 40, 50]
+                        }, {
+                            source: metadata.columns[2],
+                            values: [1, 2, 3, 4, 5]
+                        }, {
+                            source: metadata.columns[3],
+                            values: [10, 100, 100, 100, 20]
+                        }]),
+                }
+            };
 
+            // Data points are reversed
+            let dataView2: powerbi.DataView = {
+                metadata: metadata,
+                categorical: {
+                    categories: [{
+                        source: metadata.columns[0],
+                        values: categories2,
+                        identity: _.map(categories2, (c) => mocks.dataViewScopeIdentity(c)),
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: metadata.columns[1],
+                            values: [50, 40, 30, 20, 10]
+                        }, {
+                            source: metadata.columns[2],
+                            values: [5, 4, 3, 2, 1]
+                        }, {
+                            source: metadata.columns[3],
+                            values: [20, 100, 100, 100, 10]
+                        }]),
+                }
+            };
+
+            v.onDataChanged({ dataViews: [dataView1] });
+            setTimeout(() => {
+                let dots1 = d3.selectAll('.scatterChart .mainGraphicsContext .dot').data();
+
+                v.onDataChanged({ dataViews: [dataView2] });
+                setTimeout(() => {
+                    let dots2 = d3.selectAll('.scatterChart .mainGraphicsContext .dot').data();
+
+                    expect(dots1.length).toBe(dots2.length);
+
+                    for (let i = 0; i < dots1.length; i++) {
+                        expect(dots1[i].category).toEqual(dots2[i].category);
+                        if (i > 0)
+                            expect(dots1[i].size <= dots1[i - 1].size).toBeTruthy();
+                    }
+
+                    done();
+                }, DefaultWaitForRender);
+            }, DefaultWaitForRender);
+        });
+
+        function getMarkers(): JQuery {
+            return $('.scatterChart .mainGraphicsContext .dot');
+        }
+
+        let dataViewMetadataThreeColumns: powerbi.DataViewMetadataColumn[] = [
+            { displayName: 'col1', queryName: 'testQuery' },
+            { displayName: 'col2', queryName: 'col2Query', isMeasure: true },
+            { displayName: 'col3', queryName: 'col3Query', isMeasure: true, objects: { general: { formatString: '0%' } } }
+        ];
+
+        it("scatter chart draw category labels when enabled", (done) => {
+            let metadata: powerbi.DataViewMetadata = {
+                columns: dataViewMetadataThreeColumns,
+                objects: {
+                    categoryLabels: {
+                        show: true,
+                        color: undefined,
+                        labelDisplayUnits: undefined,
+                        labelPosition: undefined,
+                        labelPrecision: undefined,
+                    }
+                }
+            };
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
             v.onDataChanged({
                 dataViews: [{
                     metadata: metadata,
                     categorical: {
                         categories: [{
                             source: metadata.columns[0],
-                            values: seriesValues,
-                            identity: seriesIdentities,
-                            identityFields: [seriesIdentityField],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
                         }],
-                        values: valueColumns
+                        values: DataViewTransform.createValueColumns([{
+                            source: metadata.columns[1],
+                            values: [110, 120, 130, 140, 150]
+                        }, {
+                            source: metadata.columns[2],
+                            values: [.21, .22, .23, .24, .25]
+                        }])
                     }
                 }]
             });
 
             setTimeout(() => {
-                var labels = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels');
-                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                expect($(".labelGraphicsContext")).toBeInDOM();
+                expect($(".labelGraphicsContext .label").length).toBe(5);
 
-                expect(dots.length).toBe(labels.length);
-
-                for (var i = 0; i < dots.length; i++) {
-                    var labelFill = labels.eq(i).css('fill');
-                    expect(labelColor).toBe(ColorUtility.convertFromRGBorHexToHex(labelFill));
-                }
                 done();
             }, DefaultWaitForRender);
         });
 
-        it('scatter chart interactiveLenged of data labels multi-series without categories should not be null',(done) => {
-            // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
-                columns: [
-                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
-                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
-                ],
+        it("scatter chart draw category labels with correct font size", (done) => {
+            let metadata: powerbi.DataViewMetadata = {
+                columns: dataViewMetadataThreeColumns,
                 objects: {
-                    categoryLabels: { show: true },
-                    // Force axis ranges to ensure data labels are visible
-                    valueAxis: { start: 0, end: 100 },
-                    categoryAxis: { start: -100, end: 300 },
-                },
+                    categoryLabels: {
+                        show: true,
+                        fontSize: 12,
+                    }
+                }
             };
-            var seriesValues = ['a', 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
-
-            var valueColumns = DataViewTransform.createValueColumns([
-                {
-                    source: metadata.columns[1],
-                    values: [0, null, null],
-                    identity: seriesIdentities[0],
-                }, {
-                    source: metadata.columns[2],
-                    values: [1, null, null],
-                    identity: seriesIdentities[0],
-                }, {
-                    source: metadata.columns[3],
-                    values: [10, null, null],
-                    identity: seriesIdentities[0],
-                }, {
-                    source: metadata.columns[4],
-                    values: [null, 100, null],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: metadata.columns[5],
-                    values: [null, 2, null],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: metadata.columns[6],
-                    values: [null, 20, null],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: metadata.columns[7],
-                    values: [null, null, 200],
-                    identity: seriesIdentities[2],
-                }, {
-                    source: metadata.columns[8],
-                    values: [null, null, 3],
-                    identity: seriesIdentities[2],
-                }, {
-                    source: metadata.columns[9],
-                    values: [null, null, 30],
-                    identity: seriesIdentities[2],
-                }],
-                [seriesIdentityField]);
-            valueColumns.source = metadata.columns[0];
-
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
             v.onDataChanged({
                 dataViews: [{
                     metadata: metadata,
                     categorical: {
-                        values: valueColumns
-                    }
-                }]
-            });
-
-            setTimeout(() => {
-                var interactiveLenged = $('.scatterChart .interactive-legend');
-                var title = interactiveLenged.children('.title').children('span').last().text();
-
-                if (interactiveChart) {
-                    expect(title).toBe('a');
-                }
-                else {
-                    expect(interactiveLenged.length).toBe(0);
-                }
-
-                done();
-            }, DefaultWaitForRender);
-        });
-
-        it('scatter chart with nulls dom validation', (done) => {
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsOnObject,
-                    categorical: {
                         categories: [{
-                            source: dataViewMetadata.columns[0],
+                            source: metadata.columns[0],
                             values: ['a', 'b', 'c', 'd', 'e'],
                             identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadata.columns[1],
-                            values: [null, 10, null, 15, null],
-                            subtotal: 20,
-                        }])
-                    }
-                }]
-            });
-            setTimeout(() => {
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').length).toBe(2);
-                done();
-            }, DefaultWaitForRender);
-        });
-
-        it('change scatter chart dom data label validation', (done) => {
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsOnObject,
-                    categorical: {
-                        categories: [{
-                            source: dataViewMetadata.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e'],
-                            identity: categoryIdentities,
-                        }],
-                        values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadataWithLabelsOnObject.columns[1],
-                            values: [500000, 495000, 490000, 480000, 500000],
-                        }])
-                    }
-                }]
-            });
-
-            setTimeout(() => {
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').length).toBe(4);
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').first().text()).toBe('a');
-
-                v.onDataChanged({
-                    dataViews: [{
-                        metadata: dataViewMetadataWithLabelsOnObject,
-                        categorical: {
-                            categories: [{
-                                source: dataViewMetadata.columns[0],
-                                values: ['q', 'w', 'r', 't'],
-                                identity: categoryIdentities,
-                            }],
-                            values: DataViewTransform.createValueColumns([{
-                                source: dataViewMetadataWithLabelsOnObject.columns[1],
-                                values: [400, 500, 300, 200],
+                            source: metadata.columns[1],
+                            values: [110, 120, 130, 140, 150]
+                        }, {
+                                source: metadata.columns[2],
+                                values: [.21, .22, .23, .24, .25]
                             }])
-                        }
-                    }]
-                });
-
-                setTimeout(() => {
-                    expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').length).toBe(4);
-                    expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').first().text()).toBe('q');
-                    done();
-                }, DefaultWaitForRender);
-            }, DefaultWaitForRender);
-        });
-
-        //empty dom
-        it('empty scatter chart dom data labels validation', (done) => {
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsOnObject,
-                    categorical: {
-                        categories: [{
-                            source: dataViewMetadata.columns[0],
-                            values: []
-                        }],
-                        values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadata.columns[1],
-                            values: []
-                        }])
                     }
                 }]
             });
+
             setTimeout(() => {
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').length).toBe(0);
+                expect($(".labelGraphicsContext")).toBeInDOM();
+                expect($(".labelGraphicsContext .label").length).toBe(5);
+                expect($(".labelGraphicsContext .label").css('font-size')).toBe('16px');
+
                 done();
             }, DefaultWaitForRender);
         });
-
-        //One point
-        it('scatter chart with single point dom data label validation', (done) => {
-            v.onDataChanged({
-                dataViews: [{
-                    metadata: dataViewMetadataWithLabelsOnObject,
-                    categorical: {
-                        categories: [{
-                            source: dataViewMetadata.columns[0],
-                            values: ['a']
-                        }],
-                        values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadata.columns[1],
-                            values: [4]
-                        }])
-                    }
-                }]
-            });
-            setTimeout(() => {
-                expect($('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').text()).toBe('a');
-                done();
-            }, DefaultWaitForRender);
-        });
-
     }
 
-    describe("scatterChart Data Labels validation", () => scatterChartDataLabelsValidation(false));
+    describe("scatterChart DOM validation", () => scatterChartDomValidation(false));
 
-    describe("interactive scatterChart Data Labels validation", () => scatterChartDataLabelsValidation(true));
+    describe("interactive scatterChart DOM validation", () => scatterChartDomValidation(true));
 
     describe("scatterChart bubble radius validation", () => {
 
         it('scatter chart getBubblePixelAreaSizeRange validation', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
-            var bubblePixelArea = ScatterChart.getBubblePixelAreaSizeRange(viewport, 100, 200);
+            let bubblePixelArea = ScatterChart.getBubblePixelAreaSizeRange(viewport, 100, 200);
             expect(bubblePixelArea.minRange).toBe(278);
             expect(bubblePixelArea.maxRange).toBe(556);
             expect(bubblePixelArea.delta).toBe(278);
         });
 
         it('scatter chart projectSizeToPixel validation', () => {
-            var element = powerbitests.helpers.testDom('500', '500');
-            var v = powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').create();
+            let element = powerbitests.helpers.testDom('500', '500');
+            let v = powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').create();
             v.init({
                 element: element,
                 host: powerbitests.mocks.createVisualHostServices(),
@@ -1604,7 +1431,7 @@ module powerbitests {
                 animation: { transitionImmediate: true }
             });
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true },
@@ -1612,7 +1439,7 @@ module powerbitests {
                     { displayName: 'col4', isMeasure: true }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -1643,19 +1470,19 @@ module powerbitests {
                 }]
             });
 
-            var actualSizeDataRange = {
+            let actualSizeDataRange = {
                 minRange: 310,
                 maxRange: 350,
                 delta: 40
             };
 
-            var bubblePixelAreaSizeRange = {
+            let bubblePixelAreaSizeRange = {
                 minRange: 278,
                 maxRange: 556,
                 delta: 278
             };
 
-            var projectedSize = ScatterChart.projectSizeToPixels(310, actualSizeDataRange, bubblePixelAreaSizeRange);
+            let projectedSize = ScatterChart.projectSizeToPixels(310, actualSizeDataRange, bubblePixelAreaSizeRange);
             expect(projectedSize).toBe(19);
             projectedSize = ScatterChart.projectSizeToPixels(320, actualSizeDataRange, bubblePixelAreaSizeRange);
             expect(projectedSize).toBe(21);
@@ -1667,13 +1494,13 @@ module powerbitests {
     describe("scatterChart converter validation", () => {
 
         it('scatter chart dataView with role validation', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
             // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                     { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -1688,11 +1515,11 @@ module powerbitests {
                 ],
                 objects: { categoryLabels: { show: true } },
             };
-            var seriesValues = ['a', 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let seriesValues = ['a', 'b', 'c'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-            var valueColumns = DataViewTransform.createValueColumns([
+            let valueColumns = DataViewTransform.createValueColumns([
                 {
                     source: metadata.columns[1],
                     values: [0, null, null],
@@ -1733,7 +1560,7 @@ module powerbitests {
                 [seriesIdentityField]);
             valueColumns.source = metadata.columns[0];
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -1744,10 +1571,10 @@ module powerbitests {
                     values: valueColumns,
                 }
             };
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
 
-            var dataPoints = scatterChartData.dataPoints;
+            let dataPoints = scatterChartData.dataPoints;
             expect(dataPoints[0].category).toBe("a");
             expect(dataPoints[0].x).toBe(0);
             expect(dataPoints[0].y).toBe(10);
@@ -1759,7 +1586,7 @@ module powerbitests {
 
             // No legend if we don't have a field in legend
             expect(scatterChartData.legendData.dataPoints.map(l => l.label)).toEqual(['a', 'b', 'c']);
-            var legendColors = scatterChartData.legendData.dataPoints.map(l => l.color);
+            let legendColors = scatterChartData.legendData.dataPoints.map(l => l.color);
             expect(legendColors).toEqual(ArrayExtensions.distinct(legendColors));
 
             expect(scatterChartData.legendData.title).toBe('series');
@@ -1771,13 +1598,13 @@ module powerbitests {
         });
 
         it('scatter chart null legend',() => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
             // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                     { displayName: 'value1', groupName: null, isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -1792,11 +1619,11 @@ module powerbitests {
                 ],
                 objects: { categoryLabels: { show: true } },
             };
-            var seriesValues = [null, 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let seriesValues = [null, 'b', 'c'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-            var valueColumns = DataViewTransform.createValueColumns([
+            let valueColumns = DataViewTransform.createValueColumns([
                 {
                     source: metadata.columns[1],
                     values: [0, null, null],
@@ -1837,11 +1664,11 @@ module powerbitests {
                 [seriesIdentityField]);
             valueColumns.source = metadata.columns[0];
 
-            var groupedValues = valueColumns.grouped();
+            let groupedValues = valueColumns.grouped();
             groupedValues[0].objects = { dataPoint: { fill: { solid: { color: '#41BEE1' } } } };
             valueColumns.grouped = () => groupedValues;
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -1853,29 +1680,29 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var legendItems = scatterChartData.legendData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let legendItems = scatterChartData.legendData.dataPoints;
             expect(legendItems[0].label).toBe(powerbi.visuals.valueFormatter.format(null));
-            expect(legendItems[0].color).toBe('#41BEE1');
+            helpers.assertColorsMatch(legendItems[0].color, '#41BEE1');
 
-            var legendColors = legendItems.map(l => l.color);
+            let legendColors = legendItems.map(l => l.color);
             expect(legendColors).toEqual(ArrayExtensions.distinct(legendColors));
 
             //Tooltips
-            var dataPoints = scatterChartData.dataPoints;
+            let dataPoints = scatterChartData.dataPoints;
             expect(dataPoints[0].tooltipInfo).toEqual([{ displayName: 'series', value: '(Blank)' }, { displayName: 'value1', value: '0' }, { displayName: 'value3', value: '10' }, { displayName: 'value2', value: '1' }]);
             expect(dataPoints[1].tooltipInfo).toEqual([{ displayName: 'series', value: 'b' }, { displayName: 'value1', value: '100' }, { displayName: 'value3', value: '20' }, { displayName: 'value2', value: '2' }]);
             expect(dataPoints[2].tooltipInfo).toEqual([{ displayName: 'series', value: 'c' }, { displayName: 'value1', value: '200' }, { displayName: 'value3', value: '30' }, { displayName: 'value2', value: '3' }]);
         });
 
         it('scatter chart empty categories should return not-null category',() => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                     { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -1890,11 +1717,11 @@ module powerbitests {
                 ],
                 objects: { categoryLabels: { show: true } },
             };
-            var seriesValues = [null, 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let seriesValues = [null, 'b', 'c'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-            var valueColumns = DataViewTransform.createValueColumns([
+            let valueColumns = DataViewTransform.createValueColumns([
                 {
                     source: metadata.columns[1],
                     values: [0, null, null],
@@ -1935,30 +1762,30 @@ module powerbitests {
                 [seriesIdentityField]);
             valueColumns.source = metadata.columns[0];
 
-            var groupedValues = valueColumns.grouped();
+            let groupedValues = valueColumns.grouped();
             groupedValues[0].objects = { dataPoint: { fill: { solid: { color: '#41BEE1' } } } };
             valueColumns.grouped = () => groupedValues;
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     values: valueColumns,
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
             expect(scatterChartData.dataPoints[0].category).not.toBe(null);
         });
 
         it('scatter chart dataView without role validation', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
             
             // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'series', isMeasure: false, queryName: 'series', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                     { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -1973,11 +1800,11 @@ module powerbitests {
                 ],
                 objects: { categoryLabels: { show: true } },
             };
-            var seriesValues = ['a', 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let seriesValues = ['a', 'b', 'c'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-            var valueColumns = DataViewTransform.createValueColumns([
+            let valueColumns = DataViewTransform.createValueColumns([
                 {
                     source: metadata.columns[1],
                     values: [0, null, null],
@@ -2018,7 +1845,7 @@ module powerbitests {
                 [seriesIdentityField]);
             valueColumns.source = metadata.columns[0];
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2030,18 +1857,18 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var dataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
             expect(dataPoints[0].category).toBe("a");
             expect(dataPoints[0].x).toBe(0);
             expect(dataPoints[0].y).toBe(10);
             expect(dataPoints[0].fill).toBeDefined();
             expect(dataPoints[0].fill).not.toBe(dataPoints[1].fill);
-            var legendItems = scatterChartData.legendData.dataPoints;
+            let legendItems = scatterChartData.legendData.dataPoints;
             expect(legendItems.map(l => l.label)).toEqual(['a', 'b', 'c']);
 
-            var legendColors = legendItems.map(l => l.color);
+            let legendColors = legendItems.map(l => l.color);
             expect(legendColors).toEqual(ArrayExtensions.distinct(legendColors));
 
             //Tooltips
@@ -2051,11 +1878,11 @@ module powerbitests {
         });
 
         it('scatter chart dataView with min/max', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true },
@@ -2063,14 +1890,14 @@ module powerbitests {
                     { displayName: 'col4', isMeasure: true }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2094,10 +1921,10 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
 
-            var dataPoints = scatterChartData.dataPoints;
+            let dataPoints = scatterChartData.dataPoints;
             expect(dataPoints[0].category).toBe("a");
             expect(dataPoints[0].x).toBe(110);
             expect(dataPoints[0].y).toBe(210);
@@ -2105,11 +1932,11 @@ module powerbitests {
         });
 
         it('scatter chart dataView with minLocal/maxLocal', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true },
@@ -2117,14 +1944,14 @@ module powerbitests {
                     { displayName: 'col4', isMeasure: true }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2148,9 +1975,9 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var dataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
             expect(dataPoints[0].category).toBe("a");
             expect(dataPoints[0].x).toBe(110);
             expect(dataPoints[0].y).toBe(210);
@@ -2159,11 +1986,11 @@ module powerbitests {
         });
 
         it('scatter chart dataView without min/minLocal/max/maxLocal', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true },
@@ -2171,14 +1998,14 @@ module powerbitests {
                     { displayName: 'col4', isMeasure: true }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2199,9 +2026,9 @@ module powerbitests {
                         }])
                 }
             };
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var dataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
             expect(dataPoints[0].category).toBe("a");
             expect(dataPoints[0].x).toBe(110);
             expect(dataPoints[0].y).toBe(210);
@@ -2209,107 +2036,16 @@ module powerbitests {
             expect(dataPoints[0].fill).toBeDefined();
         });
 
-        function getDataViewMultiSeries(firstGroupName: string = 'Canada', secondGroupName: string = 'United States'): powerbi.DataView {
-            var dataViewMetadata: powerbi.DataViewMetadata = {
-                columns: [
-                    {
-                        displayName: '',
-                        format: 'yyyy',
-                        type: ValueType.fromDescriptor({ dateTime: true })
-                    }, {
-                        displayName: ''
-                    }, {
-                        displayName: '',
-                        format: '#,0.00',
-                        isMeasure: true,
-                        groupName: firstGroupName,
-                    }, {
-                        displayName: '',
-                        format: '#,0',
-                        isMeasure: true,
-                        groupName: firstGroupName,
-                    }, {
-                        displayName: '',
-                        format: '#,0.00',
-                        isMeasure: true,
-                        groupName: secondGroupName,
-                    }, {
-                        displayName: '',
-                        format: '#,0',
-                        isMeasure: true,
-                        groupName: secondGroupName,
-                    }, {
-                        displayName: '',
-                        format: '#,0.00',
-                        isMeasure: true,
-                    }, {
-                        displayName: '',
-                        format: '#,0',
-                        isMeasure: true,
-                    }
-                ]
-            };
-
-            var colP1Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
-            var colP2Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p2' });
-
-            var seriesValues = [null, firstGroupName, secondGroupName];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-
-            var dataViewValueColumns: powerbi.DataViewValueColumn[] = [
-                {
-                    source: dataViewMetadata.columns[2],
-                    values: [150, 177, 157],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: dataViewMetadata.columns[3],
-                    values: [30, 25, 28],
-                    identity: seriesIdentities[1],
-                }, {
-                    source: dataViewMetadata.columns[4],
-                    values: [100, 149, 144],
-                    identity: seriesIdentities[2],
-                }, {
-                    source: dataViewMetadata.columns[5],
-                    values: [300, 250, 280],
-                    identity: seriesIdentities[2],
-                }
-            ];
-
-            var dataView: powerbi.DataView = {
-                metadata: dataViewMetadata,
-                categorical: {
-                    categories: [{
-                        source: dataViewMetadata.columns[0],
-                        values: [
-                            powerbitests.helpers.parseDateString("2012-01-01T00:00:00"),
-                            powerbitests.helpers.parseDateString("2011-01-01T00:00:00"),
-                            powerbitests.helpers.parseDateString("2010-01-01T00:00:00")
-                        ],
-                        identity: [seriesIdentities[0]],
-                        identityFields: [
-                            colP1Ref
-                        ]
-                    }],
-                    values: DataViewTransform.createValueColumns(dataViewValueColumns, [colP2Ref])
-                },
-            };
-
-            dataView.categorical.values.source = dataViewMetadata.columns[1];
-
-            return dataView;
-        }
-
         it('scatterChart multi-series', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var dataView: powerbi.DataView = getDataViewMultiSeries();
+            let dataView: powerbi.DataView = getDataViewMultiSeries();
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors).dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors)).dataPoints;
             expect(scatterChartData[0].category).toBe('1/1/2012');
             expect(scatterChartData[0].x).toBe(150);
             expect(scatterChartData[0].y).toBe(30);
@@ -2325,57 +2061,81 @@ module powerbitests {
             expect(scatterChartData[5].tooltipInfo).toEqual([{ displayName: '', value: '2010' }, { displayName: '', value: 'United States' }, { displayName: '', value: '144.00' }, { displayName: '', value: '280' }]);
         });
 
-        it('scatterChart multi-series with default color', () => {
-            var viewport: powerbi.IViewport = {
+        it('selection state set on converter result', () => {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var dataView: powerbi.DataView = getDataViewMultiSeries();
+            let dataView: powerbi.DataView = getDataViewMultiSeries('GroupOne', 'GroupTwo');
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var hexDefaultColorRed = "#FF0000";
+            let host = powerbitests.mocks.createVisualHostServices();
+            let interactivityService = <powerbi.visuals.InteractivityService>powerbi.visuals.createInteractivityService(host);
+            let groupSelection = SelectionId.createWithId(mocks.dataViewScopeIdentity('GroupTwo'));
+            interactivityService['selectedIds'] = [groupSelection];
+
+            let converterOptions = createConverterOptions(
+                viewport,
+                powerbi.visuals.visualStyles.create().colorPalette.dataColors,
+                interactivityService
+            );
+            let scatterChartData = ScatterChart.converter(dataView, converterOptions);
+
+            expect(scatterChartData.legendData.dataPoints[0].selected).toBe(false);
+            expect(scatterChartData.legendData.dataPoints[1].selected).toBe(true);
+        });
+
+        it('scatterChart multi-series with default color', () => {
+            let viewport: powerbi.IViewport = {
+                height: 500,
+                width: 500
+            };
+
+            let dataView: powerbi.DataView = getDataViewMultiSeries();
+
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let hexDefaultColorRed = "#FF0000";
 
             dataView.metadata = {
                 columns: null,
                 objects: { dataPoint: { defaultColor: { solid: { color: hexDefaultColorRed } } } }
             };
 
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors, null).dataPoints;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors)).dataPoints;
             expect(scatterChartData[0].category).toBe('1/1/2012');
             expect(scatterChartData[0].x).toBe(150);
             expect(scatterChartData[0].y).toBe(30);
-            expect(scatterChartData[0].fill).toBe(hexDefaultColorRed);
+            helpers.assertColorsMatch(scatterChartData[0].fill, hexDefaultColorRed);
             expect(scatterChartData[0].fill).toBe(scatterChartData[2].fill);
             expect(scatterChartData[0].fill).toBe(scatterChartData[3].fill);
         });
 
         it('scatterChart multi-series with explicit colors',() => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var dataView: powerbi.DataView = getDataViewMultiSeries();
+            let dataView: powerbi.DataView = getDataViewMultiSeries();
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
             
-            var groupedValues = dataView.categorical.values.grouped();
+            let groupedValues = dataView.categorical.values.grouped();
             groupedValues[0].objects = { dataPoint: { fill: { solid: { color: 'red' } } } };
             groupedValues[1].objects = { dataPoint: { fill: { solid: { color: 'green' } } } };
             dataView.categorical.values.grouped = () => groupedValues;
 
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors, null).dataPoints;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors)).dataPoints;
             expect(scatterChartData[0].fill).toBe('red');
             expect(scatterChartData[1].fill).toBe('green');
         });
 
         it('scatterChart categorical with explicit colors',() => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true },
@@ -2383,11 +2143,11 @@ module powerbitests {
                     { displayName: 'col4', isMeasure: true }
                 ]
             };
-            var categoryValues = ['a', 'b', 'c', 'd', 'e'];
-            var categoryIdentities = categoryValues.map(v => mocks.dataViewScopeIdentity(v));
-            var categoryIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'category' });
+            let categoryValues = ['a', 'b', 'c', 'd', 'e'];
+            let categoryIdentities = categoryValues.map(v => mocks.dataViewScopeIdentity(v));
+            let categoryIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'category' });
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2415,23 +2175,23 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
 
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors, null).dataPoints;
-            expect(scatterChartData[0].fill).toBe('#41BEE0');
-            expect(scatterChartData[1].fill).toBe('#41BEE1');
-            expect(scatterChartData[2].fill).toBe('#41BEE2');
-            expect(scatterChartData[3].fill).toBe('#41BEE3');
-            expect(scatterChartData[4].fill).toBe('#41BEE4');
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors)).dataPoints;
+            helpers.assertColorsMatch(scatterChartData[0].fill, '#41BEE0');
+            helpers.assertColorsMatch(scatterChartData[1].fill, '#41BEE1');
+            helpers.assertColorsMatch(scatterChartData[2].fill, '#41BEE2');
+            helpers.assertColorsMatch(scatterChartData[3].fill, '#41BEE3');
+            helpers.assertColorsMatch(scatterChartData[4].fill, '#41BEE4');
         });
 
         it('scatterChart multi-series with min/max', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var groupNames: string[] = [
+            let groupNames: string[] = [
                 'Equipment Failure',
                 'Scheduled Outage',
                 'Trees/Vegetation',
@@ -2439,7 +2199,7 @@ module powerbitests {
                 ''
             ];
 
-            var columns = [
+            let columns = [
                 {
                     format: '#,0.00',
                     index: 1
@@ -2453,7 +2213,7 @@ module powerbitests {
                 }
             ];
 
-            var dataViewMetadata: powerbi.DataViewMetadata = {
+            let dataViewMetadata: powerbi.DataViewMetadata = {
                 columns: [
                     {
                         displayName: '',
@@ -2466,11 +2226,11 @@ module powerbitests {
                 ]
             };
 
-            for (var i = 0; i < groupNames.length; i++) {
-                var groupName = groupNames[i];
+            for (let i = 0; i < groupNames.length; i++) {
+                let groupName = groupNames[i];
 
-                for (var j = 0; j < columns.length; j++) {
-                    var column = {
+                for (let j = 0; j < columns.length; j++) {
+                    let column = {
                         displayName: groupName,
                         format: columns[j].format,
                         isMeasure: true,
@@ -2481,27 +2241,27 @@ module powerbitests {
                 }
             }
 
-            var colP1Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
-            var colP2Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p2' });
+            let colP1Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
+            let colP2Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p2' });
 
-            var seriesNames: string[] = [
+            let seriesNames: string[] = [
                 'Bellevue, WA',
                 'Deming, WA'
             ];
             
-            var seriesIdentities = [
+            let seriesIdentities = [
                 mocks.dataViewScopeIdentityWithEquality(colP1Ref, seriesNames[0]),
                 mocks.dataViewScopeIdentityWithEquality(colP1Ref, seriesNames[1])
             ];
 
-            var seriesIdentiesForGroupNames = [
+            let seriesIdentiesForGroupNames = [
                 mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[0]),
                 mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[1]),
                 mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[2]),
                 mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[3])
             ];
 
-            var dataViewValueColumns: powerbi.DataViewValueColumn[] = [
+            let dataViewValueColumns: powerbi.DataViewValueColumn[] = [
                 {
                     source: dataViewMetadata.columns[2],
                     values: [null, null],
@@ -2561,7 +2321,7 @@ module powerbitests {
                 }
             ];
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: dataViewMetadata,
                 categorical: {
                     categories: [{
@@ -2579,8 +2339,8 @@ module powerbitests {
             dataView.categorical.values.source = dataViewMetadata.columns[1];
             
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors).dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors)).dataPoints;
             expect(scatterChartData[0].category).toBe('Bellevue, WA');
             expect(scatterChartData[0].x).toBe(126439);
             expect(scatterChartData[0].y).toBe(4244.000000003725);
@@ -2589,12 +2349,12 @@ module powerbitests {
         });
 
         it('scatter chart dataView that should pivot categories', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: '', queryName: '$s1', index: 0 },
                     { displayName: '', queryName: '$s2', isMeasure: true, index: 1 },
@@ -2603,7 +2363,7 @@ module powerbitests {
                 ]
             };
 
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2627,7 +2387,7 @@ module powerbitests {
                         }])
                 }
             };
-            var pivotedDataView = DataViewTransform.apply({
+            let pivotedDataView = DataViewTransform.apply({
                 prototype: dataView,
                 objectDescriptors: powerbi.visuals.plugins.scatterChart.capabilities.objects,
                 dataViewMappings: powerbi.visuals.plugins.scatterChart.capabilities.dataViewMappings,
@@ -2640,12 +2400,13 @@ module powerbitests {
                     ]
                 },
                 colorAllocatorFactory: powerbi.visuals.createColorAllocatorFactory(),
+                dataRoles: powerbi.visuals.plugins.scatterChart.capabilities.dataRoles,
             })[0];
             expect(pivotedDataView).not.toBe(dataView);
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(pivotedDataView, viewport, colors).dataPoints;
-            expect(scatterChartData[0].category).toBe(powerbi.visuals.valueFormatter.format(null));
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(pivotedDataView, createConverterOptions(viewport, colors)).dataPoints;
+            expect(scatterChartData[0].category).toBe('a');
             expect(scatterChartData[0].fill).not.toBe(scatterChartData[1].fill);
 
             //Tooltips
@@ -2654,26 +2415,26 @@ module powerbitests {
         });
 
         it('scatter chart bubble color category no size', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
                     { displayName: 'col3', isMeasure: true, roles: { "X": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2692,9 +2453,9 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var dataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
             expect(dataPoints[0].fill).toBe(dataPoints[1].fill);
 
             //Tooltips
@@ -2706,12 +2467,12 @@ module powerbitests {
         });
 
         it('scatter chart bubble color category no size default color', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
@@ -2719,20 +2480,20 @@ module powerbitests {
                 ]
             };
 
-            var hexDefaultColorRed = "#FF0000";
+            let hexDefaultColorRed = "#FF0000";
 
             metadata.objects = {
                 dataPoint: { defaultColor: { solid: { color: hexDefaultColorRed } } }
             };            
            
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2751,19 +2512,19 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors, null);
-            var dataPoints = scatterChartData.dataPoints;
-            expect(dataPoints[0].fill).toBe(hexDefaultColorRed);
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
+            helpers.assertColorsMatch(dataPoints[0].fill, hexDefaultColorRed);
         });
 
         it('scatter chart null X axes values', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
@@ -2771,14 +2532,14 @@ module powerbitests {
                     { displayName: 'col4', isMeasure: true, roles: { "X": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2805,19 +2566,19 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var scatterChartDataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let scatterChartDataPoints = scatterChartData.dataPoints;
             expect(scatterChartDataPoints.length).toBe(0);
         });
 
         it('scatter chart null Y axes values', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
@@ -2825,14 +2586,14 @@ module powerbitests {
                     { displayName: 'col4', isMeasure: true, roles: { "X": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2854,19 +2615,19 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var scatterChartDataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let scatterChartDataPoints = scatterChartData.dataPoints;
             expect(scatterChartDataPoints.length).toBe(0);
         });
 
         it('scatter chart null X measure', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true },
@@ -2874,7 +2635,7 @@ module powerbitests {
                 ]
             };
 
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2893,32 +2654,32 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var scatterChartDataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let scatterChartDataPoints = scatterChartData.dataPoints;
             expect(scatterChartDataPoints.length).toBe(0);
         });
 
         it('scatter chart null Y measure', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col4', isMeasure: true, roles: { "X": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView: powerbi.DataView = {
+            let dataView: powerbi.DataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2939,35 +2700,35 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var scatterChartDataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let scatterChartDataPoints = scatterChartData.dataPoints;
             expect(scatterChartDataPoints[0].category).toBe('a');
-            expect(scatterChartDataPoints[1].fill).toBe('#41BEE1');
+            helpers.assertColorsMatch(scatterChartDataPoints[1].fill, '#41BEE1');
             expect(scatterChartDataPoints[0].x).toBe(210);
             expect(scatterChartDataPoints[0].y).toBe(0);
         });
 
         it('scatter chart null X and Y measure', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "X": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -2983,29 +2744,29 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var scatterChartDataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let scatterChartDataPoints = scatterChartData.dataPoints;
             expect(scatterChartDataPoints.length).toBe(0);
         });
 
         it('scatter chart converter data labels default values', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
                     { displayName: 'col3', isMeasure: true, roles: { "X": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -3023,21 +2784,21 @@ module powerbitests {
                         }])
                 }
             };
-            var dataLabelsSettings = powerbi.visuals.dataLabelUtils.getDefaultPointLabelSettings();
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let dataLabelsSettings = powerbi.visuals.dataLabelUtils.getDefaultPointLabelSettings();
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
 
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
             
             expect(scatterChartData.dataLabelsSettings).toEqual(dataLabelsSettings);
         });
 
         it('scatter chart bubble gradient color',() => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
@@ -3046,21 +2807,21 @@ module powerbitests {
                     { displayName: 'col5', isMeasure: true, roles: { "Gradient": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var objectDefinitions: powerbi.DataViewObjects[] = [
+            let objectDefinitions: powerbi.DataViewObjects[] = [
                 { dataPoint: { fill: { solid: { color: "#d9f2fb" } } } },
                 { dataPoint: { fill: { solid: { color: "#b1eab7" } } } },
                 { dataPoint: { fill: { solid: { color: "#cceab7" } } } },
                 { dataPoint: { fill: { solid: { color: "#b100b7" } } } },
                 { dataPoint: { fill: { solid: { color: "#cceab7" } } } }
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -3086,24 +2847,24 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var dataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
             
-            expect(dataPoints[0].fill).toBe('#d9f2fb');
-            expect(dataPoints[1].fill).toBe('#b1eab7');
-            expect(dataPoints[2].fill).toBe('#cceab7');
-            expect(dataPoints[3].fill).toBe('#b100b7');
-            expect(dataPoints[4].fill).toBe('#cceab7');
+            helpers.assertColorsMatch(dataPoints[0].fill, '#d9f2fb');
+            helpers.assertColorsMatch(dataPoints[1].fill, '#b1eab7');
+            helpers.assertColorsMatch(dataPoints[2].fill, '#cceab7');
+            helpers.assertColorsMatch(dataPoints[3].fill, '#b100b7');
+            helpers.assertColorsMatch(dataPoints[4].fill, '#cceab7');
         });
 
         it('scatter chart bubble gradient color - validate tool tip', () => {
-            var viewport: powerbi.IViewport = {
+            let viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
 
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
                     { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
@@ -3112,21 +2873,21 @@ module powerbitests {
                     { displayName: 'col5', isMeasure: true, roles: { "Gradient": true } }
                 ]
             };
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
                 mocks.dataViewScopeIdentity('d'),
                 mocks.dataViewScopeIdentity('e'),
             ];
-            var objectDefinitions: powerbi.DataViewObjects[] = [
+            let objectDefinitions: powerbi.DataViewObjects[] = [
                 { dataPoint: { fill: { solid: { color: "#d9f2fb" } } } },
                 { dataPoint: { fill: { solid: { color: "#b1eab7" } } } },
                 { dataPoint: { fill: { solid: { color: "#cceab7" } } } },
                 { dataPoint: { fill: { solid: { color: "#b100b7" } } } },
                 { dataPoint: { fill: { solid: { color: "#cceab7" } } } }
             ];
-            var dataView = {
+            let dataView = {
                 metadata: metadata,
                 categorical: {
                     categories: [{
@@ -3152,9 +2913,9 @@ module powerbitests {
                 }
             };
 
-            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
-            var dataPoints = scatterChartData.dataPoints;
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
 
             expect(dataPoints[0].tooltipInfo).toEqual([{ displayName: 'col1', value: 'a' }, { displayName: 'col3', value: '210' }, { displayName: 'col2', value: '110' }, { displayName: 'col4', value: '10' }]);
             expect(dataPoints[1].tooltipInfo).toEqual([{ displayName: 'col1', value: 'b' }, { displayName: 'col3', value: '220' }, { displayName: 'col2', value: '120' }, { displayName: 'col4', value: '20' }]);
@@ -3166,9 +2927,9 @@ module powerbitests {
     });
 
     describe('scatterChart interactivity', () => {
-        var v: powerbi.IVisual, element: JQuery;
-        var hostServices: powerbi.IVisualHostServices;
-        var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+        let v: powerbi.IVisual, element: JQuery;
+        let hostServices: powerbi.IVisualHostServices;
+        let dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                 { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -3180,7 +2941,7 @@ module powerbitests {
         beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
             hostServices = mocks.createVisualHostServices();
-            v = powerbi.visuals.visualPluginFactory.createMinerva({ dataDotChartEnabled: false, heatMap: false, devToolsEnabled: false }).getPlugin('scatterChart').create();
+            v = powerbi.visuals.visualPluginFactory.createMinerva({ dataDotChartEnabled: false, heatMap: false }).getPlugin('scatterChart').create();
             v.init({
                 element: element,
                 host: hostServices,
@@ -3194,10 +2955,160 @@ module powerbitests {
             });
         });
 
+        it('check color for legend title and legend items scatter chart', (done) => {
+
+            let dataViewMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    {
+                        displayName: 'col1',
+                        queryName: 'col1',
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text)
+                    },
+                    {
+                        displayName: 'col2',
+                        queryName: 'col2',
+                        isMeasure: true,
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double)
+                    },
+                    {
+                        displayName: 'col3',
+                        queryName: 'col3',
+                        isMeasure: true,
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double)
+                    }],
+                objects: {
+                    legend: {
+                        titleText: 'my title text',
+                        show: true,
+                        showTitle: true,
+                        labelColor: { solid: { color: labelColor } },
+                    }
+                }
+            };
+            let measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) };
+            let col3Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'sales' });
+            let categoryColumnRef = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'col1' });
+            let seriesIdentities = [
+                mocks.dataViewScopeIdentity('col2'),
+                mocks.dataViewScopeIdentity('col3'),
+            ];
+            let valueColumns = DataViewTransform.createValueColumns([
+                {
+                    source: dataViewMetadata.columns[1],
+                    values: [110, 120, 130, 140, 150],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: dataViewMetadata.columns[2],
+                    values: [210, 220, 230, 240, 250],
+                    identity: seriesIdentities[1],
+                }],
+                [col3Ref]);
+            valueColumns.source = measureColumn;
+
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: dataViewMetadata,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadata.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: valueColumns
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                let legend = element.find('.legend');
+                let legendTitle = legend.find('.legendTitle');
+                let legendText = legend.find('.legendItem').find('.legendText');
+                helpers.assertColorsMatch(legendTitle.css('fill'), labelColor);
+                helpers.assertColorsMatch(legendText.first().css('fill'), labelColor);
+                done();
+            }, DefaultWaitForRender);
+
+        });
+
+        it('check font size for legend title and legend items scatter chart', (done) => {
+            let labelFontSize = 13;
+            let dataViewMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    {
+                        displayName: 'col1',
+                        queryName: 'col1',
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text)
+                    },
+                    {
+                        displayName: 'col2',
+                        queryName: 'col2',
+                        isMeasure: true,
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double)
+                    },
+                    {
+                        displayName: 'col3',
+                        queryName: 'col3',
+                        isMeasure: true,
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double)
+                    }],
+                objects: {
+                    legend: {
+                        titleText: 'my title text',
+                        show: true,
+                        showTitle: true,
+                        fontSize: labelFontSize
+                    }
+                }
+            };
+            let measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) };
+            let col3Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'sales' });
+            let categoryColumnRef = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'col1' });
+            let seriesIdentities = [
+                mocks.dataViewScopeIdentity('col2'),
+                mocks.dataViewScopeIdentity('col3'),
+            ];
+            let valueColumns = DataViewTransform.createValueColumns([
+                {
+                    source: dataViewMetadata.columns[1],
+                    values: [110, 120, 130, 140, 150],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: dataViewMetadata.columns[2],
+                    values: [210, 220, 230, 240, 250],
+                    identity: seriesIdentities[1],
+                }],
+                [col3Ref]);
+            valueColumns.source = measureColumn;
+
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: dataViewMetadata,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadata.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: valueColumns
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                let legend = element.find('.legend');
+                let legendTitle = legend.find('.legendTitle');
+                let legendText = legend.find('.legendItem').find('.legendText');
+                expect(Math.round(parseInt(legendTitle.css('font-size'), 10))).toBe(Math.round(parseInt(PixelConverter.fromPoint(labelFontSize), 10)));
+                expect(Math.round(parseInt(legendText.css('font-size'), 10))).toBe(Math.round(parseInt(PixelConverter.fromPoint(labelFontSize), 10)));
+                done();
+            }, DefaultWaitForRender);
+
+        });
+
         it('scatter chart single select', (done) => {
-            var dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
-            var defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
+            let defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -3229,9 +3140,9 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = element.find('.dot');
-                var trigger = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
-                var mockEvent = {
+                let dots = element.find('.dot');
+                let trigger = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let mockEvent = {
                     abc: 'def',
                     stopPropagation: () => { },
                 };
@@ -3263,9 +3174,9 @@ module powerbitests {
         });
 
         it('scatter chart repeated single select', (done) => {
-            var dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
-            var defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
+            let defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -3297,10 +3208,10 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = element.find('.dot');
-                var trigger1 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
-                var trigger3 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[3]);
-                var mockEvent = {
+                let dots = element.find('.dot');
+                let trigger1 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let trigger3 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[3]);
+                let mockEvent = {
                     abc: 'def',
                     stopPropagation: () => { },
                 };
@@ -3363,9 +3274,9 @@ module powerbitests {
         });
 
         it('scatter chart multi select', (done) => {
-            var dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
-            var defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
+            let defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -3397,145 +3308,103 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = element.find('.dot');
-                var trigger1 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
-                var trigger3 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[3]);
-                var trigger4 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[4]);
-                var mockEvent = {
+                // Dots show up in reverse order (e.g. dots.eq(0) is category 'e'; 1,d; 2,c; etc.)
+                let dots = element.find('.dot');
+                expect(dots.length).toBe(5);
+
+                let trigger1 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let trigger3 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[3]);
+                let trigger4 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[4]);
+                let mockEvent = {
                     abc: 'def',
                     ctrlKey: true,
                     stopPropagation: () => { },
                 };
 
                 spyOn(hostServices, 'onSelect').and.callThrough();
+                // Allow multiselection
+                spyOn(hostServices, 'canSelect').and.returnValue(true);
 
                 trigger1(mockEvent);
 
-                expect(dots.length).toBe(5);
                 expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
                 expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[3].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
-                expect(hostServices.onSelect).toHaveBeenCalledWith(
-                    {
+                expect(hostServices.onSelect).toHaveBeenCalledWith({
                         data: [
-                            {
-                                data: [categoryIdentities[3]]
-                            }
+                        { data: [categoryIdentities[3]] },
                         ],
                         data2: [
-                            {
-                                dataMap: { 'testQuery': categoryIdentities[3] }
-                            }
-                        ]
+                        { dataMap: { 'testQuery': categoryIdentities[3] } },
+                    ],
                     });
+
                 trigger3(mockEvent);
+
+                expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
+                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
+                expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
+                expect(hostServices.onSelect).toHaveBeenCalledWith({
+                        data: [
+                        { data: [categoryIdentities[3]] },
+                        { data: [categoryIdentities[1]] },
+                        ],
+                        data2: [
+                        { dataMap: { 'testQuery': categoryIdentities[3] } },
+                        { dataMap: { 'testQuery': categoryIdentities[1] } },
+                        ],
+                    });
+
+                trigger4(mockEvent);
+
+                expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
+                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
+                expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
+                expect(hostServices.onSelect).toHaveBeenCalledWith({
+                        data: [
+                        { data: [categoryIdentities[3]] },
+                        { data: [categoryIdentities[1]] },
+                        { data: [categoryIdentities[0]] },
+                        ],
+                        data2: [
+                        { dataMap: { 'testQuery': categoryIdentities[3] } },
+                        { dataMap: { 'testQuery': categoryIdentities[1] } },
+                        { dataMap: { 'testQuery': categoryIdentities[0] } },
+                        ],
+                    });
+
+                trigger1(mockEvent);
+
                 expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
-                expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
-                expect(hostServices.onSelect).toHaveBeenCalledWith(
-                    {
-                        data: [
-                            {
-                                data: [categoryIdentities[3]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: { 'testQuery': categoryIdentities[3] }
-                            }
-                        ]
-
-                    });
-                expect(hostServices.onSelect).toHaveBeenCalledWith(
-                    {
-                        data: [
-                            {
-                                data: [categoryIdentities[1]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: { 'testQuery': categoryIdentities[1] }
-                            }
-                        ]
-
-                    });
-                trigger4(mockEvent);
-                expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[3].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
-                expect(hostServices.onSelect).toHaveBeenCalledWith(
-                    {
-                        data: [
-                            {
-                                data: [categoryIdentities[3]], 
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: { 'testQuery': categoryIdentities[3] }
-                            }
-                        ]
-                    });
-                expect(hostServices.onSelect).toHaveBeenCalledWith(
-                    {
-                        data: [
-                            {
-                                data: [categoryIdentities[1]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: { 'testQuery': categoryIdentities[1] }
-                            }
-                        ]
-                    });
-                expect(hostServices.onSelect).toHaveBeenCalledWith(
-                    {
-                        data: [
-                            {
-                                data: [categoryIdentities[0]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: { 'testQuery': categoryIdentities[0] }
-                            }
-                        ]
-                    });
-                trigger1(mockEvent);
-                expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
-                expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[3].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
-                expect(hostServices.onSelect).toHaveBeenCalledWith(
-                    {
+                expect(hostServices.onSelect).toHaveBeenCalledWith({
                         data: [                            
-                            {
-                                data: [categoryIdentities[0]]
-                            }
+                        { data: [categoryIdentities[3]] },
+                        { data: [categoryIdentities[1]] },
                         ],
                         data2: [
-                            {
-                                dataMap: { 'testQuery': categoryIdentities[0] }
-                            }
-                        ]
+                        { dataMap: { 'testQuery': categoryIdentities[3] } },
+                        { dataMap: { 'testQuery': categoryIdentities[1] } },
+                    ],
                     });
+
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart single and multi select', (done) => {
-            var dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
-            var defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
+            let defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -3567,15 +3436,15 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = element.find('.dot');
-                var trigger1 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
-                var trigger3 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[3]);
-                var trigger4 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[4]);
-                var singleEvent = {
+                let dots = element.find('.dot');
+                let trigger1 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let trigger3 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[3]);
+                let trigger4 = powerbitests.helpers.getClickTriggerFunctionForD3(dots[4]);
+                let singleEvent = {
                     abc: 'def',
                     stopPropagation: () => { },
                 };
-                var multiEvent = {
+                let multiEvent = {
                     abc: 'def',
                     ctrlKey: true,
                     stopPropagation: () => { },
@@ -3701,9 +3570,9 @@ module powerbitests {
         });
 
         it('scatter chart external clear', (done) => {
-            var dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
-            var defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
-            var identities: powerbi.DataViewScopeIdentity[] = [
+            let dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
+            let defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
+            let identities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -3735,9 +3604,9 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = element.find('.dot');
-                var trigger = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
-                var mockEvent = {
+                let dots = element.find('.dot');
+                let trigger = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let mockEvent = {
                     abc: 'def',
                     stopPropagation: () => { },
                 };
@@ -3781,9 +3650,9 @@ module powerbitests {
         });
 
         it('scatter chart clear on clearCatcher click', (done) => {
-            var dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
-            var defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
-            var identities: powerbi.DataViewScopeIdentity[] = [
+            let dimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
+            let defaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
+            let identities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -3815,9 +3684,9 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = element.find('.dot');
-                var trigger = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
-                var mockEvent = {
+                let dots = element.find('.dot');
+                let trigger = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let mockEvent = {
                     abc: 'def',
                     stopPropagation: () => { },
                 };
@@ -3866,17 +3735,17 @@ module powerbitests {
     });
 
     describe("interactive legend scatterChart validation", () => {
-        var v: powerbi.IVisual;
-        var element: JQuery;
-        var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+        let v: powerbi.IVisual;
+        let element: JQuery;
+        let dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
-                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) },
-                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) },
-                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) }
+                { displayName: 'col2', queryName: 'col2Query', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) },
+                { displayName: 'col3', queryName: 'col3Query', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) },
+                { displayName: 'col4', queryName: 'col4Query', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) }
             ]
         };
-        var identities: powerbi.DataViewScopeIdentity[] = [
+        let identities: powerbi.DataViewScopeIdentity[] = [
             mocks.dataViewScopeIdentity('a'),
             mocks.dataViewScopeIdentity('b'),
             mocks.dataViewScopeIdentity('c'),
@@ -3923,12 +3792,12 @@ module powerbitests {
         });
 
         it('Interaction scatter chart click validation', (done) => {
-            var scatterChart = (<any>v).layers[0];
-            var selectedCircle = scatterChart.mainGraphicsContext.selectAll('circle.dot').filter(function (d, i) { return d.category === 'd'; });
-            var x = parseFloat(selectedCircle.attr('cx'));
-            var y = parseFloat(selectedCircle.attr('cy'));
-            var mouseCordinate = { x: x - 5, y: y + 6 };
-            var behavior = v["behavior"]["behaviors"][0]; 
+            let scatterChart = (<any>v).layers[0];
+            let selectedCircle = scatterChart.mainGraphicsContext.selectAll('circle.dot').filter(function (d, i) { return d.category === 'd'; });
+            let x = parseFloat(selectedCircle.attr('cx'));
+            let y = parseFloat(selectedCircle.attr('cy'));
+            let mouseCordinate = { x: x - 5, y: y + 6 };
+            let behavior = v["behavior"]["behaviors"][0]; 
             spyOn(behavior, 'getMouseCoordinates').and.returnValue(mouseCordinate);
             behavior.onClick();
             setTimeout(() => {
@@ -3938,12 +3807,12 @@ module powerbitests {
         });
 
         it('Scatter chart drag interaction validation', (done) => {
-            var scatterChart = (<any>v).layers[0];
-            var selectedCircle = scatterChart.mainGraphicsContext.selectAll('circle.dot').filter(function (d, i) { return d.category === 'd'; });
-            var x = selectedCircle.attr('cx');
-            var y = selectedCircle.attr('cy');
-            var mouseCordinate = { x: x, y: y };
-            var behavior = v["behavior"]["behaviors"][0]; 
+            let scatterChart = (<any>v).layers[0];
+            let selectedCircle = scatterChart.mainGraphicsContext.selectAll('circle.dot').filter(function (d, i) { return d.category === 'd'; });
+            let x = selectedCircle.attr('cx');
+            let y = selectedCircle.attr('cy');
+            let mouseCordinate = { x: x, y: y };
+            let behavior = v["behavior"]["behaviors"][0]; 
             spyOn(behavior, 'getMouseCoordinates').and.returnValue(mouseCordinate);
             behavior.onDrag();
             setTimeout(() => {
@@ -3953,12 +3822,12 @@ module powerbitests {
         });
 
         it('Interaction scatter chart dotClick validation', (done) => {
-            var scatterChart = (<any>v).layers[0];
-            var selectedCircle = scatterChart.mainGraphicsContext.selectAll('circle.dot').filter(function (d, i) { return d.category === 'd'; });
-            var x = selectedCircle.attr('cx');
-            var y = selectedCircle.attr('cy');
-            var behavior = v["behavior"]["behaviors"][0]; 
-            var selectedDotIndex = behavior.findClosestDotIndex(x, y);
+            let scatterChart = (<any>v).layers[0];
+            let selectedCircle = scatterChart.mainGraphicsContext.selectAll('circle.dot').filter(function (d, i) { return d.category === 'd'; });
+            let x = selectedCircle.attr('cx');
+            let y = selectedCircle.attr('cy');
+            let behavior = v["behavior"]["behaviors"][0]; 
+            let selectedDotIndex = behavior.findClosestDotIndex(x, y);
             behavior.selectDotByIndex(selectedDotIndex);
             setTimeout(() => {
                 validateInteraction(x, y, scatterChart, v);
@@ -3969,7 +3838,7 @@ module powerbitests {
 
     function validateInteraction(x: number, y: number, scatterChart: any, cartesianChart: any): void {
         //test crosshair position
-        var behavior = (<any >cartesianChart).behavior.behaviors[0];
+        let behavior = (<any >cartesianChart).behavior.behaviors[0];
         expect(behavior.crosshair.select(".horizontal").attr('y1')).toBe(y.toString());
         expect(behavior.crosshair.select(".horizontal").attr('y2')).toBe(y.toString());
         expect(behavior.crosshair.select(".vertical").attr('x1')).toBe(x.toString());
@@ -4119,8 +3988,8 @@ module powerbitests {
     });
 
     describe("Enumerate Objects", () => {
-        var v: powerbi.IVisual, element: JQuery;
-        var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+        let v: powerbi.IVisual, element: JQuery;
+        let dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                 { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -4145,9 +4014,9 @@ module powerbitests {
         });
 
         it('Check basic enumeration',(done) => {
-            var categoryValues = ['a', 'b', 'c', 'd', 'e'];
-            var categoryIdentities = categoryValues.map(v => mocks.dataViewScopeIdentity(v));
-            var dataChangedOptions = {
+            let categoryValues = ['a', 'b', 'c', 'd', 'e'];
+            let categoryIdentities = categoryValues.map(v => mocks.dataViewScopeIdentity(v));
+            let dataChangedOptions = {
                 dataViews: [{
                     metadata: dataViewMetadataFourColumn,
                     categorical: {
@@ -4174,11 +4043,11 @@ module powerbitests {
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
-                var points = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: 'dataPoint' });
+                let points = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: 'dataPoint' });
                 expect(points.instances.length).toBe(6);
                 expect(points.instances[0].properties['defaultColor']).toBeDefined();
                 expect(points.instances[0].properties['showAllDataPoints']).toBeDefined();
-                for (var i = 2; i < points.instances.length; i++) {
+                for (let i = 2; i < points.instances.length; i++) {
                     expect(_.contains(categoryValues, points.instances[i].displayName)).toBeTruthy();
                     expect(points.instances[i].properties['fill']).toBeDefined();
                 }
@@ -4187,7 +4056,7 @@ module powerbitests {
         });
 
         it('enumerateObjectInstances: Verify x-axis property card for scatter chart', () => {
-            var dataChangedOptions = {
+            let dataChangedOptions = {
                 dataViews: [{
                     metadata: dataViewMetadataFourColumn,
                     categorical: {
@@ -4212,7 +4081,7 @@ module powerbitests {
 
             v.onDataChanged(dataChangedOptions);
 
-            var points = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: 'categoryAxis' });
+            let points = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: 'categoryAxis' });
 
             expect('start' in points.instances[0].properties).toBeTruthy();//better to check if the index key is found
             expect('end' in points.instances[0].properties).toBeTruthy();
@@ -4220,6 +4089,39 @@ module powerbitests {
             expect('show' in points.instances[0].properties).toBeTruthy();
             expect('showAxisTitle' in points.instances[0].properties).toBeTruthy();
             expect('axisStyle' in points.instances[0].properties).toBeTruthy();
+        });
+
+        it('enumerateObjectInstances: Verify colorByCategory property card for scatter chart', () => {
+            
+            let dataView: powerbi.DataView = {
+                    metadata: dataViewMetadataFourColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataFourColumn.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [1, 2, 3, 4, 5]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [200, 400, 600, 800, 1000]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [1, 2, 3, 4, 5]
+                            }])
+                    }
+                };
+
+            v.onDataChanged({ dataViews: [dataView] });
+            let enumeration = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: 'colorByCategory' });
+            expect('show' in enumeration.instances[0].properties).toBeTruthy(); //show is a valid property
+            expect(enumeration.instances[0].properties['show']).toBeFalsy(); //value of show is falsey
+            
+            v.onDataChanged({ dataViews: [getDataViewMultiSeries()] });
+            enumeration = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: 'colorByCategory' });
+            expect(enumeration).toBeUndefined();
         });
 
         it('X-axis customization: Test forced domain (start and end)',() => {
@@ -4231,6 +4133,49 @@ module powerbitests {
                     axisType: AxisType.scalar,
                     showAxisTitle: true,
                     axisStyle: true
+                }
+            };
+            let dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataFourColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataFourColumn.columns[1],
+                            values: [1, 2, 3, 4, 5],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [100, 200, 300, 400, 500]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [200, 400, 600, 800, 1000]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [1, 2, 3, 4, 5]
+                            }])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            let labels = $('.x.axis').children('.tick');
+
+            expect(labels[0].textContent).toBe('0');
+            expect(labels[labels.length - 1].textContent).toBe('25');           
+        });
+
+        it('X-axis customization: Test axis display units and precision', () => {
+            dataViewMetadataFourColumn.objects = {
+                categoryAxis: {
+                    show: true,
+                    start: 0,
+                    end: 30,
+                    axisType: AxisType.scalar,
+                    showAxisTitle: true,
+                    axisStyle: true,
+                    labelDisplayUnits: 1000000,
+                    labelPrecision: 5
                 }
             };
             var dataChangedOptions = {
@@ -4259,8 +4204,8 @@ module powerbitests {
 
             var labels = $('.x.axis').children('.tick');
 
-            expect(labels[0].textContent).toBe('0');
-            expect(labels[labels.length - 1].textContent).toBe('25');           
+            expect(labels[0].textContent).toBe('0.00000M');
+            expect(labels[labels.length - 1].textContent).toBe('0.00003M');
         });
 
         it('X-axis customization: Set axis color', () => {
@@ -4275,7 +4220,7 @@ module powerbitests {
                     labelColor: { solid: { color: '#ff0000' } }
                 }
             };
-            var dataChangedOptions = {
+            let dataChangedOptions = {
                 dataViews: [{
                     metadata: dataViewMetadataFourColumn,
                     categorical: {
@@ -4299,8 +4244,8 @@ module powerbitests {
             };
             v.onDataChanged(dataChangedOptions);
                  
-            var labels = $('.x.axis').children('.tick');
-            expect(labels.find('text').css('fill')).toBe('#ff0000');
+            let labels = $('.x.axis').children('.tick');
+            helpers.assertColorsMatch(labels.find('text').css('fill'), '#ff0000');
         });
 
         it('Y-axis customization: Test forced domain (start and end)',() => {
@@ -4312,6 +4257,49 @@ module powerbitests {
                     end: 500,                    
                     showAxisTitle: true,
                     axisStyle: true
+                }
+            };
+            let dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataFourColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataFourColumn.columns[0],
+                            values: [1, 2, 3, 4, 5],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [100, 200, 300, 400, 500]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [200, 400, 600, 800, 1000]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [1, 2, 3, 4, 5]
+                            }])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            let labels = $('.y.axis').children('.tick');
+
+            expect(labels[0].textContent).toBe('0');
+            expect(labels[labels.length - 1].textContent).toBe('500');
+        });
+
+        it('Y-axis customization: Test axis display units and precision', () => {
+            dataViewMetadataFourColumn.objects = {
+                valueAxis: {
+                    show: true,
+                    position: 'Right',
+                    start: 0,
+                    end: 500,
+                    showAxisTitle: true,
+                    axisStyle: true,
+                    labelDisplayUnits: 1000,
+                    labelPrecision: 5
                 }
             };
             var dataChangedOptions = {
@@ -4340,8 +4328,8 @@ module powerbitests {
 
             var labels = $('.y.axis').children('.tick');
 
-            expect(labels[0].textContent).toBe('0');
-            expect(labels[labels.length - 1].textContent).toBe('500');
+            expect(labels[0].textContent).toBe('0.00000K');
+            expect(labels[labels.length - 1].textContent).toBe('0.50000K');
         });
 
         it('Y-axis customization: Set axis color', () => {
@@ -4356,7 +4344,7 @@ module powerbitests {
                     labelColor: { solid: { color: '#ff0000' } }
                 }
             };
-            var dataChangedOptions = {
+            let dataChangedOptions = {
                 dataViews: [{
                     metadata: dataViewMetadataFourColumn,
                     categorical: {
@@ -4380,15 +4368,15 @@ module powerbitests {
             };
             v.onDataChanged(dataChangedOptions);
 
-            var labels = $('.y.axis').children('.tick');            
-            expect(labels.find('text').css('fill')).toBe('#ff0000');
+            let labels = $('.y.axis').children('.tick');            
+            helpers.assertColorsMatch(labels.find('text').css('fill'), '#ff0000');
         });
     });
 
     describe("Fill Point validation", () => {
 
-        var v: powerbi.IVisual, element: JQuery;
-        var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+        let v: powerbi.IVisual, element: JQuery;
+        let dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                 { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -4397,7 +4385,7 @@ module powerbitests {
             ]
         };
 
-        var hostServices: powerbi.IVisualHostServices;
+        let hostServices: powerbi.IVisualHostServices;
 
         beforeEach(() => {
             hostServices = powerbitests.mocks.createVisualHostServices();
@@ -4417,7 +4405,7 @@ module powerbitests {
         });
 
         it('scatter chart with size verify label fill with null size', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -4461,7 +4449,7 @@ module powerbitests {
         });
 
         it('scatter chart with size verify label fill', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -4498,9 +4486,9 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
-                for (var i = 0; i < dots.length; i++) {
-                    var pointFill = dots.eq(i).css('fill-opacity');
+                let dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                for (let i = 0; i < dots.length; i++) {
+                    let pointFill = dots.eq(i).css('fill-opacity');
                     expect(pointFill).toBeGreaterThan(0);
                 }
                 done();
@@ -4509,7 +4497,7 @@ module powerbitests {
 
         it('scatter chart without size verify label fill when fill point is on', (done) => {
             // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                     { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -4523,11 +4511,11 @@ module powerbitests {
                     fillPoint: { show: true },
                 },
             };
-            var seriesValues = ['a', 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let seriesValues = ['a', 'b', 'c'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-            var valueColumns = DataViewTransform.createValueColumns([
+            let valueColumns = DataViewTransform.createValueColumns([
                 {
                     source: metadata.columns[1],
                     values: [0, null, null],
@@ -4572,9 +4560,9 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
-                for (var i = 0; i < dots.length; i++) {
-                    var pointFill = dots.eq(i).css('fill-opacity');
+                let dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                for (let i = 0; i < dots.length; i++) {
+                    let pointFill = dots.eq(i).css('fill-opacity');
                     expect(pointFill).toBeGreaterThan(0);
                 }
                 done();
@@ -4583,7 +4571,7 @@ module powerbitests {
 
         it('scatter chart without size verify label fill when fill point is off', (done) => {
             // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                     { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -4597,11 +4585,11 @@ module powerbitests {
                     fillPoint: { show: false },
                 },
             };
-            var seriesValues = ['a', 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let seriesValues = ['a', 'b', 'c'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-            var valueColumns = DataViewTransform.createValueColumns([
+            let valueColumns = DataViewTransform.createValueColumns([
                 {
                     source: metadata.columns[1],
                     values: [0, null, null],
@@ -4646,9 +4634,9 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
-                for (var i = 0; i < dots.length; i++) {
-                    var pointFill = dots.eq(i).css('fill-opacity');
+                let dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                for (let i = 0; i < dots.length; i++) {
+                    let pointFill = dots.eq(i).css('fill-opacity');
                     expect(pointFill).toBe('0');
                 }
                 done();
@@ -4657,7 +4645,7 @@ module powerbitests {
 
         it('scatter chart without size verify bubble stroke style', (done) => {
             // Category and series are the same field
-            var metadata: powerbi.DataViewMetadata = {
+            let metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                     { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -4668,11 +4656,11 @@ module powerbitests {
                     { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
                 ],
             };
-            var seriesValues = ['a', 'b', 'c'];
-            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+            let seriesValues = ['a', 'b', 'c'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-            var valueColumns = DataViewTransform.createValueColumns([
+            let valueColumns = DataViewTransform.createValueColumns([
                 {
                     source: metadata.columns[1],
                     values: [0, null, null],
@@ -4717,16 +4705,16 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                let dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
                 expect(dots.length).toBeGreaterThan(0);
-                for (var i = 0; i < dots.length; i++) {
-                    var strokeOpacity = dots.eq(i).css('stroke-opacity');
-                    var strokeWidth = dots.eq(i).css('stroke-width');
-                    var strokeFill = ColorUtility.convertFromRGBorHexToHex(dots.eq(i).css('stroke').replace(/\ /g, ""));
-                    var bubbleFill = ColorUtility.convertFromRGBorHexToHex(dots.eq(i).css('fill').replace(/\ /g, ""));
+                for (let i = 0; i < dots.length; i++) {
+                    let strokeOpacity = dots.eq(i).css('stroke-opacity');
+                    let strokeWidth = dots.eq(i).css('stroke-width');
+                    let strokeFill = dots.eq(i).css('stroke');
+                    let bubbleFill = dots.eq(i).css('fill');
                     expect(strokeOpacity).toBeLessThan(1);
                     expect(strokeWidth).toBe('1px');
-                    expect(strokeFill).toBe(bubbleFill);
+                    helpers.assertColorsMatch(strokeFill, bubbleFill);
 
                 }
                 done();
@@ -4734,7 +4722,7 @@ module powerbitests {
         });
 
         it('scatter chart with size verify bubble stroke style when stroke border is on', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -4742,7 +4730,7 @@ module powerbitests {
                 mocks.dataViewScopeIdentity('e'),
             ];
 
-            var dataViewMetadataWithColorBorder = powerbi.Prototype.inherit(dataViewMetadataFourColumn);
+            let dataViewMetadataWithColorBorder = powerbi.Prototype.inherit(dataViewMetadataFourColumn);
             dataViewMetadataWithColorBorder.objects = { colorBorder: { show: true } };
 
             v.onDataChanged({
@@ -4775,26 +4763,25 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                let dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
                 expect(dots.length).toBeGreaterThan(0);
-                for (var i = 0; i < dots.length; i++) {
-                    var strokeOpacity = dots.eq(i).css('stroke-opacity');
-                    var strokeWidth = dots.eq(i).css('stroke-width');
-                    var strokeFill = ColorUtility.convertFromRGBorHexToHex(dots.eq(i).css('stroke'));
+                for (let i = 0; i < dots.length; i++) {
+                    let strokeOpacity = dots.eq(i).css('stroke-opacity');
+                    let strokeWidth = dots.eq(i).css('stroke-width');
+                    let strokeFill = dots.eq(i).css('stroke');
                     expect(strokeOpacity).toBe('1');
                     expect(strokeWidth).toBe('1px');
-                    var bubbleFill = dots.eq(i).css('fill').replace(/\ /g, "");
-                    bubbleFill = ColorUtility.convertFromRGBorHexToHex(bubbleFill);
-                    var colorRgb = jsCommon.color.parseRgb(bubbleFill);
-                    var stroke = jsCommon.color.rgbToHexString(jsCommon.color.darken(colorRgb, ScatterChart.StrokeDarkenColorValue));
-                    expect(strokeFill).toBe(stroke.toLowerCase());
+                    let bubbleFill = dots.eq(i).css('fill');
+                    let colorRgb = jsCommon.Color.parseColorString(bubbleFill);
+                    let stroke = jsCommon.Color.hexString(jsCommon.Color.darken(colorRgb, ScatterChart.StrokeDarkenColorValue));
+                    helpers.assertColorsMatch(strokeFill, stroke);
                 }
                 done();
             }, DefaultWaitForRender);
         });
 
         it('scatter chart with size verify bubble stroke style when stroke border is off', (done) => {
-            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
                 mocks.dataViewScopeIdentity('c'),
@@ -4802,7 +4789,7 @@ module powerbitests {
                 mocks.dataViewScopeIdentity('e'),
             ];
 
-            var dataViewMetadataWithColorBorder = powerbi.Prototype.inherit(dataViewMetadataFourColumn);
+            let dataViewMetadataWithColorBorder = powerbi.Prototype.inherit(dataViewMetadataFourColumn);
             dataViewMetadataWithColorBorder.objects = { colorBorder: { show: false } };
 
             v.onDataChanged({
@@ -4835,25 +4822,573 @@ module powerbitests {
             });
 
             setTimeout(() => {
-                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                let dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
                 expect(dots.length).toBeGreaterThan(0);
-                for (var i = 0; i < dots.length; i++) {
-                    var strokeOpacity = dots.eq(i).css('stroke-opacity');
-                    var strokeWidth = dots.eq(i).css('stroke-width');
-                    var strokeFill = ColorUtility.convertFromRGBorHexToHex(dots.eq(i).css('stroke').replace(/\ /g, ""));
-                    var bubbleFill = ColorUtility.convertFromRGBorHexToHex(dots.eq(i).css('fill').replace(/\ /g, ""));
+                for (let i = 0; i < dots.length; i++) {
+                    let strokeOpacity = dots.eq(i).css('stroke-opacity');
+                    let strokeWidth = dots.eq(i).css('stroke-width');
+                    let strokeFill = dots.eq(i).css('stroke');
+                    let bubbleFill = dots.eq(i).css('fill');
                     expect(strokeOpacity).toBeLessThan(1);
                     expect(strokeWidth).toBe('1px');
-                    expect(strokeFill).toBe(bubbleFill);
+                    helpers.assertColorsMatch(strokeFill, bubbleFill);
                 }
                 done();
             }, DefaultWaitForRender);
         });
     });
 
+    describe("label data point creation", () => {
+        let v: powerbi.IVisual, element: JQuery;
+        let hostServices: powerbi.IVisualHostServices;
+        let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            mocks.dataViewScopeIdentity('a'),
+            mocks.dataViewScopeIdentity('b'),
+            mocks.dataViewScopeIdentity('c'),
+            mocks.dataViewScopeIdentity('d'),
+            mocks.dataViewScopeIdentity('e'),
+        ];
+
+        beforeEach(() => {
+            hostServices = powerbitests.mocks.createVisualHostServices();
+            element = powerbitests.helpers.testDom('500', '500');
+            let visualPluginfactory = powerbi.visuals.visualPluginFactory.create();
+            v = visualPluginfactory.getPlugin('scatterChart').create();
+            v.init({
+                element: element,
+                host: hostServices,
+                style: powerbi.visuals.visualStyles.create(),
+                viewport: {
+                    height: element.height(),
+                    width: element.width()
+                },
+                animation: { transitionImmediate: true },
+            });
+        });
+
+        it("Label data points have correct text", () => {
+            let metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1', queryName: 'testQuery' },
+                    { displayName: 'col2', isMeasure: true },
+                    { displayName: 'col3', isMeasure: true, objects: { general: { formatString: '0%' } } }
+                ],
+                objects: {
+                    categoryLabels: {
+                        show: true,
+                        color: undefined,
+                        labelDisplayUnits: undefined,
+                        labelPosition: undefined,
+                        labelPrecision: undefined,
+                    }
+                }
+            };
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        categories: [{
+                            source: metadata.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: metadata.columns[1],
+                                values: [110, 120, 130, 140, 150]
+                            }, {
+                                source: metadata.columns[2],
+                                values: [.21, .22, .23, .24, .25]
+                            }])
+                    }
+                }]
+            });
+
+            let labelDataPoints = callCreateLabelDataPoints(v);
+            expect(labelDataPoints[0].text).toEqual("a");
+            expect(labelDataPoints[1].text).toEqual("b");
+            expect(labelDataPoints[2].text).toEqual("c");
+            expect(labelDataPoints[3].text).toEqual("d");
+            expect(labelDataPoints[4].text).toEqual("e");
+        });
+
+        it("Label data points have correct default fill", () => {
+            let metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1', queryName: 'testQuery' },
+                    { displayName: 'col2', isMeasure: true },
+                    { displayName: 'col3', isMeasure: true, objects: { general: { formatString: '0%' } } }
+                ],
+                objects: {
+                    categoryLabels: {
+                        show: true,
+                        color: undefined,
+                        labelDisplayUnits: undefined,
+                        labelPosition: undefined,
+                        labelPrecision: undefined,
+                    }
+                }
+            };
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        categories: [{
+                            source: metadata.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: metadata.columns[1],
+                                values: [110, 120, 130, 140, 150]
+                            }, {
+                                source: metadata.columns[2],
+                                values: [.21, .22, .23, .24, .25]
+                            }])
+                    }
+                }]
+            });
+
+            let labelDataPoints = callCreateLabelDataPoints(v);
+            helpers.assertColorsMatch(labelDataPoints[0].outsideFill, powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[1].outsideFill, powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[2].outsideFill, powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[3].outsideFill, powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[4].outsideFill, powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[0].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[1].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[2].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[3].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[4].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+        });
+
+        it("Label data points have correct fill", () => {
+            let labelColor = "#007700";
+            let metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1', queryName: 'testQuery' },
+                    { displayName: 'col2', isMeasure: true },
+                    { displayName: 'col3', isMeasure: true, objects: { general: { formatString: '0%' } } }
+                ],
+                objects: {
+                    categoryLabels: {
+                        show: true,
+                        color: { solid: { color: labelColor } },
+                        labelDisplayUnits: undefined,
+                        labelPosition: undefined,
+                        labelPrecision: undefined,
+                    }
+                }
+            };
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        categories: [{
+                            source: metadata.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: metadata.columns[1],
+                                values: [110, 120, 130, 140, 150]
+                            }, {
+                                source: metadata.columns[2],
+                                values: [.21, .22, .23, .24, .25]
+                            }])
+                    }
+                }]
+            });
+
+            let labelDataPoints = callCreateLabelDataPoints(v);
+            helpers.assertColorsMatch(labelDataPoints[0].outsideFill, labelColor);
+            helpers.assertColorsMatch(labelDataPoints[1].outsideFill, labelColor);
+            helpers.assertColorsMatch(labelDataPoints[2].outsideFill, labelColor);
+            helpers.assertColorsMatch(labelDataPoints[3].outsideFill, labelColor);
+            helpers.assertColorsMatch(labelDataPoints[4].outsideFill, labelColor);
+            helpers.assertColorsMatch(labelDataPoints[0].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[1].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[2].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[3].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            helpers.assertColorsMatch(labelDataPoints[4].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+        });
+    });
+
+    describe('interactive labels scatterChart validation', () => {
+        let v: powerbi.IVisual, element: JQuery;
+        let hostServices: powerbi.IVisualHostServices;
+        let dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+            columns: [
+                { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+            ],
+            objects: {
+                categoryLabels: {
+                    show: true,
+                    color: undefined,
+                    labelDisplayUnits: undefined,
+                    labelPosition: undefined,
+                    labelPrecision: undefined,
+                }
+            }
+        };
+
+        beforeEach(() => {
+            element = powerbitests.helpers.testDom('500', '500');
+            hostServices = mocks.createVisualHostServices();
+            v = powerbi.visuals.visualPluginFactory.createMinerva({ dataDotChartEnabled: false, heatMap: false, isLabelInteractivityEnabled:true }).getPlugin('scatterChart').create();
+            v.init({
+                element: element,
+                host: hostServices,
+                style: powerbi.visuals.visualStyles.create(),
+                viewport: {
+                    height: element.height(),
+                    width: element.width()
+                },
+                animation: { transitionImmediate: true },
+                interactivity: { selection: true }
+            });
+        });
+
+        it('scatter chart label interaction dot selection', (done) => {
+            let defaultOpacity = LabelsBehavior.DefaultLabelOpacity.toString();
+            let dimmedOpacity = LabelsBehavior.DimmedLabelOpacity.toString();
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: dataViewMetadataFourColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataFourColumn.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [100, 200, 300, 400, 500]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [200, 400, 600, 800, 1000]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [1, 2, 3, 4, 5]
+                            }])
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                let dots = element.find('.dot');
+                let labels = element.find('.label');
+                let triggerSelect = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let triggerUnselect = powerbitests.helpers.getClickTriggerFunctionForD3(dots[1]);
+                let mockEvent = {
+                    abc: 'def',
+                    stopPropagation: () => { },
+                };
+
+                spyOn(hostServices, 'onSelect').and.callThrough();
+
+                triggerSelect(mockEvent);
+
+                expect(labels.length).toBe(5);
+                expect(labels[0].style.opacity).toBe(dimmedOpacity);
+                expect(labels[1].style.opacity).toBe(dimmedOpacity);
+                expect(labels[2].style.opacity).toBe(dimmedOpacity);
+                expect(labels[3].style.opacity).toBe(defaultOpacity);
+                expect(labels[4].style.opacity).toBe(dimmedOpacity);
+
+                triggerUnselect(mockEvent);
+
+                expect(labels.length).toBe(5);
+                expect(labels[0].style.opacity).toBe(defaultOpacity);
+                expect(labels[1].style.opacity).toBe(defaultOpacity);
+                expect(labels[2].style.opacity).toBe(defaultOpacity);
+                expect(labels[3].style.opacity).toBe(defaultOpacity);
+                expect(labels[4].style.opacity).toBe(defaultOpacity);
+
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('scatter chart label interaction label selection', (done) => {
+            let labelsDefaultOpacity = LabelsBehavior.DefaultLabelOpacity.toString();
+            let labelsDimmedOpacity = LabelsBehavior.DimmedLabelOpacity.toString();
+            let bublleDefaultOpacity = ScatterChart.DefaultBubbleOpacity.toString();
+            let bublleDimmedOpacity = ScatterChart.DimmedBubbleOpacity.toString();
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: dataViewMetadataFourColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataFourColumn.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [100, 200, 300, 400, 500]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [200, 400, 600, 800, 1000]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [1, 2, 3, 4, 5]
+                            }])
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                let dots = element.find('.dot');
+                let labels = element.find('.label');
+                let triggerSelect = powerbitests.helpers.getClickTriggerFunctionForD3(labels[0]);
+                let triggerUnselect = powerbitests.helpers.getClickTriggerFunctionForD3(labels[0]);
+                let mockEvent = {
+                    abc: 'def',
+                    stopPropagation: () => { },
+                };
+
+                spyOn(hostServices, 'onSelect').and.callThrough();
+
+                triggerSelect(mockEvent);
+
+                expect(labels.length).toBe(5);
+                expect(labels[0].style.opacity).toBe(labelsDefaultOpacity);
+                expect(labels[1].style.opacity).toBe(labelsDimmedOpacity);
+                expect(labels[2].style.opacity).toBe(labelsDimmedOpacity);
+                expect(labels[3].style.opacity).toBe(labelsDimmedOpacity);
+                expect(labels[4].style.opacity).toBe(labelsDimmedOpacity);
+                expect(dots.length).toBe(5);
+                expect(dots[0].style.fillOpacity).toBe(bublleDefaultOpacity);
+                expect(dots[1].style.fillOpacity).toBe(bublleDimmedOpacity);
+                expect(dots[2].style.fillOpacity).toBe(bublleDimmedOpacity);
+                expect(dots[3].style.fillOpacity).toBe(bublleDimmedOpacity);
+                expect(dots[4].style.fillOpacity).toBe(bublleDimmedOpacity);
+
+                triggerUnselect(mockEvent);
+
+                expect(labels.length).toBe(5);
+                expect(labels[0].style.opacity).toBe(labelsDefaultOpacity);
+                expect(labels[1].style.opacity).toBe(labelsDefaultOpacity);
+                expect(labels[2].style.opacity).toBe(labelsDefaultOpacity);
+                expect(labels[3].style.opacity).toBe(labelsDefaultOpacity);
+                expect(labels[4].style.opacity).toBe(labelsDefaultOpacity);
+                expect(dots.length).toBe(5);
+                expect(dots[0].style.fillOpacity).toBe(bublleDefaultOpacity);
+                expect(dots[1].style.fillOpacity).toBe(bublleDefaultOpacity);
+                expect(dots[2].style.fillOpacity).toBe(bublleDefaultOpacity);
+                expect(dots[3].style.fillOpacity).toBe(bublleDefaultOpacity);
+                expect(dots[4].style.fillOpacity).toBe(bublleDefaultOpacity);
+
+                done();
+            }, DefaultWaitForRender);
+        });
+
+    });
+
+    describe("Validate preferred labels", () => {
+        let v: powerbi.IVisual, element: JQuery, viewport: any;
+
+        beforeEach(() => {
+            element = powerbitests.helpers.testDom('500', '500');
+            v = powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').create();
+            v.init({
+                element: element,
+                host: powerbitests.mocks.createVisualHostServices(),
+                style: powerbi.visuals.visualStyles.create(),
+                viewport: {
+                    height: element.height(),
+                    width: element.width()
+                },
+                animation: { transitionImmediate: true }
+            });
+        });
+
+        it('validate preferred labels on bubble chart', (done) => {
+
+            let dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+                ]
+            };
+            let categoryValues = ['a', 'b', 'c', 'd', 'e'];
+            let categoryIdentities = categoryValues.map(v => mocks.dataViewScopeIdentity(v));
+
+            let dataView: powerbi.DataView = {
+                metadata: dataViewMetadataFourColumn,
+                categorical: {
+                    categories: [{
+                        source: dataViewMetadataFourColumn.columns[0],
+                        values: categoryValues,
+                        identity: categoryIdentities,
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: dataViewMetadataFourColumn.columns[1],
+                            values: [100, 200, 300, 400, 500]
+                        }, {
+                            source: dataViewMetadataFourColumn.columns[2],
+                            values: [200, 400, 600, 800, 1000]
+                        }, {
+                            source: dataViewMetadataFourColumn.columns[3],
+                            values: [5, 4, 3, 2, 1]
+                        }])
+                }
+            };
+            let dataChangedOptions = {
+                dataViews: [dataView]
+            };
+
+            v.onDataChanged(dataChangedOptions);
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
+
+            setTimeout(() => {
+                let preferredLabels = (<any>v).layers[0].getPreferredLabelsKeys(scatterChartData.dataPoints);
+                //The order will be the quadrants order - label at the first quadrant will be first in preferredLabels
+                expect(preferredLabels[2]).toEqual(dataPoints[0].identity.getKey());
+                expect(preferredLabels[1]).toEqual(dataPoints[2].identity.getKey());
+                expect(preferredLabels[0]).toEqual(dataPoints[3].identity.getKey());
+
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('validate preferred labels on scater chart', (done) => {
+
+            let metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'd', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'd', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'e', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'e', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'f', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'f', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                ]
+            };
+            let seriesValues = ['a', 'b', 'c', 'd', 'e','f'];
+            let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+
+            let dataView: powerbi.DataView = {
+                metadata: metadata,
+                categorical: {
+                    categories: [{
+                        source: metadata.columns[0],
+                        values: seriesValues,
+                        identity: seriesIdentities,
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: metadata.columns[1],
+                            values: [0, null, null, null, null, null],
+                            identity: seriesIdentities[0],
+                        }, {
+                            source: metadata.columns[2],
+                            values: [10, null, null, null, null, null],
+                            identity: seriesIdentities[0],
+                        }, {
+                            source: metadata.columns[3],
+                            values: [null, 100, null, null, null, null],
+                            identity: seriesIdentities[1],
+                        }, {
+                            source: metadata.columns[4],
+                            values: [null, 20, null, null, null, null],
+                            identity: seriesIdentities[1],
+                        }, {
+                            source: metadata.columns[5],
+                            values: [null, null, 200, null, null, null],
+                            identity: seriesIdentities[2],
+                        }, {
+                            source: metadata.columns[6],
+                            values: [null, null, 30, null, null, null],
+                            identity: seriesIdentities[2],
+                        }, {
+                            source: metadata.columns[7],
+                            values: [null, null, null, 150, null, null],
+                            identity: seriesIdentities[3],
+                        }, {
+                            source: metadata.columns[8],
+                            values: [null, null, null, 25, null, null],
+                            identity: seriesIdentities[3],
+                        }, {
+                            source: metadata.columns[9],
+                            values: [null, null, null, null, 50, null],
+                            identity: seriesIdentities[4],
+                        }, {
+                            source: metadata.columns[10],
+                            values: [null, null, null, null, 15, null],
+                            identity: seriesIdentities[4],
+                        }, {
+                            source: metadata.columns[11],
+                            values: [null, null, null, null, null,150],
+                            identity: seriesIdentities[5],
+                        }, {
+                            source: metadata.columns[12],
+                            values: [null, null, null, null, null, 15],
+                            identity: seriesIdentities[5],
+                        }])
+                }
+            };
+            let dataChangedOptions = {
+                dataViews: [dataView]
+            };
+
+            v.onDataChanged(dataChangedOptions);
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors));
+            let dataPoints = scatterChartData.dataPoints;
+
+            setTimeout(() => {
+                let preferredLabels = (<any>v).layers[0].getPreferredLabelsKeys(scatterChartData.dataPoints);
+
+                expect(preferredLabels[3]).toEqual(dataPoints[5].identity.getKey());
+                expect(preferredLabels[2]).toEqual(dataPoints[4].identity.getKey());
+                expect(preferredLabels[1]).toEqual(dataPoints[1].identity.getKey());
+                expect(preferredLabels[0]).toEqual(dataPoints[3].identity.getKey());
+
+                done();
+            }, DefaultWaitForRender);
+        });
+    });
+
+    function callCreateLabelDataPoints(v: powerbi.IVisual): powerbi.LabelDataPoint[] {
+        return (<any>v).layers[0].createLabelDataPoints();
+    }
+
     function testAxisAndLegendExistence(domSizeHeightString: string, domSizeWidthString: string, isInteractive: boolean, isMobile: boolean): void {
-        var element = powerbitests.helpers.testDom(domSizeHeightString, domSizeWidthString);
-        var v;
+        let element = powerbitests.helpers.testDom(domSizeHeightString, domSizeWidthString);
+        let v;
         if (isMobile) {
             v = powerbi.visuals.visualPluginFactory.createMobile().getPlugin('scatterChart').create();
         } else {
@@ -4872,7 +5407,7 @@ module powerbitests {
         });
 
         // Category and series are the same field
-        var metadata: powerbi.DataViewMetadata = {
+        let metadata: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
                 { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
@@ -4887,11 +5422,11 @@ module powerbitests {
             ],
             objects: { categoryLabels: { show: true } },
         };
-        var seriesValues = ['a', 'b', 'c'];
-        var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
-        var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+        let seriesValues = ['a', 'b', 'c'];
+        let seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+        let seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
 
-        var valueColumns = DataViewTransform.createValueColumns([
+        let valueColumns = DataViewTransform.createValueColumns([
             {
                 source: metadata.columns[1],
                 values: [0, null, null],

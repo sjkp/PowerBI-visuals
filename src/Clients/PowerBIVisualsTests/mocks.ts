@@ -29,6 +29,9 @@
 module powerbitests.mocks {
     import SQExprBuilder = powerbi.data.SQExprBuilder;
     import defaultVisualHostServices = powerbi.visuals.defaultVisualHostServices;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
+    import DefaultVisualHostServices = powerbi.visuals.DefaultVisualHostServices;
 
     export class TelemetryCallbackMock {
         public static callbackCalls: number = 0;
@@ -109,7 +112,7 @@ module powerbitests.mocks {
     }
 
     export function createVisualHostServices(): powerbi.IVisualHostServices {
-        return defaultVisualHostServices;
+        return new DefaultVisualHostServices();
     }
     
     export class MockTraceListener implements jsCommon.ITraceListener {
@@ -168,18 +171,18 @@ module powerbitests.mocks {
         return defaultVisualHostServices.getLocalizedString(stringId);
     }    
 
-    export class MockGeocoder implements powerbi.visuals.IGeocoder {
+    export class MockGeocoder implements powerbi.IGeocoder {
         private callNumber = 0;
-        private resultList = [
-            { x: 45, y: -90 },
-            { x: 45, y: 90 },
-            { x: -45, y: -90 },
-            { x: -45, y: 90 },
-            { x: 0, y: 0 },
-            { x: 45, y: -45 },
-            { x: 45, y: 45 },
-            { x: -45, y: -45 },
-            { x: -45, y: 45 },
+        private resultList: powerbi.IGeocodeCoordinate[] = [
+            { longitude: 90, latitude: -45 },
+            { longitude: 90, latitude: 45 },
+            { longitude: -90, latitude: -45 },
+            { longitude: -90, latitude: 45 },
+            { longitude: 0, latitude: 0 },
+            { longitude: 45, latitude: -45 },
+            { longitude: 45, latitude: 45 },
+            { longitude: -45, latitude: -45 },
+            { longitude: -45, latitude: 45 },
         ];
 
         /** With the way our tests run, these values won't be consistent, so you shouldn't validate actual lat/long or pixel lcoations */
@@ -251,11 +254,11 @@ module powerbitests.mocks {
             return result;
         }
 
-        private tryLocationToPixelSingle(location) {
+        private tryLocationToPixelSingle(location: powerbi.IGeocodeCoordinate) {
             var centerX = this.centerX;
             var centerY = this.centerY;
             // Use a really dumb projection with no sort of zooming/panning
-            return { x: centerX + centerX * (location.x / 180), y: centerY + centerY * (location.y / 90) };
+            return { x: centerX * (location.longitude / 180), y: centerY * (location.latitude / 90) };
         }
 
         public setView(viewOptions): void {
@@ -332,6 +335,83 @@ module powerbitests.mocks {
 
         export module Events {
             export function addHandler(target: any, eventName: string, handler: any) { }
+        }
+    }
+
+    export class MockBehavior implements powerbi.visuals.IInteractiveBehavior {
+        private selectableDataPoints: SelectableDataPoint[];
+        private selectionHandler: ISelectionHandler;
+        private filterPropertyId: powerbi.DataViewObjectPropertyIdentifier;
+
+        constructor(selectableDataPoints: SelectableDataPoint[], filterPropertyId: powerbi.DataViewObjectPropertyIdentifier) {
+            this.selectableDataPoints = selectableDataPoints;
+            this.filterPropertyId = filterPropertyId;
+        }
+
+        public bindEvents(options: any, selectionHandler: ISelectionHandler): void {
+            this.selectionHandler = selectionHandler;
+        }
+
+        public renderSelection(hasSelection: boolean): void {
+            // Stub method to spy on
+        }
+
+        public selectIndex(index: number, multiSelect?: boolean): void {
+            this.selectionHandler.handleSelection(this.selectableDataPoints[index], !!multiSelect);
+        }
+
+        public select(datapoint: SelectableDataPoint, multiSelect?: boolean): void {
+            this.selectionHandler.handleSelection(datapoint, !!multiSelect);
+        }
+
+        public clear(): void {
+            this.selectionHandler.handleClearSelection();
+        }
+
+        public selectIndexAndPersist(index: number, multiSelect?: boolean): void {
+            this.selectionHandler.handleSelection(this.selectableDataPoints[index], !!multiSelect);
+            this.selectionHandler.persistSelectionFilter(this.filterPropertyId);
+        }
+
+        public verifyCleared(): boolean {
+            let selectableDataPoints = this.selectableDataPoints;
+            for (let i = 0, ilen = selectableDataPoints.length; i < ilen; i++) {
+                if (selectableDataPoints[i].selected)
+                    return false;
+            }
+            return true;
+        }
+
+        public verifySingleSelectedAt(index: number): boolean {
+            let selectableDataPoints = this.selectableDataPoints;
+            for (let i = 0, ilen = selectableDataPoints.length; i < ilen; i++) {
+                let dataPoint = selectableDataPoints[i];
+                if (i === index) {
+                    if (!dataPoint.selected)
+                        return false;
+                }
+                else if (dataPoint.selected)
+                    return false;
+            }
+            return true;
+        }
+
+        public verifySelectionState(selectionState: boolean[]): boolean {
+            let selectableDataPoints = this.selectableDataPoints;
+            for (let i = 0, ilen = selectableDataPoints.length; i < ilen; i++) {
+                if (selectableDataPoints[i].selected !== selectionState[i])
+                    return false;
+            }
+            return true;
+        }
+
+        public selections(): boolean[] {
+            let selectableDataPoints = this.selectableDataPoints;
+            let selections: boolean[] = [];
+            for (let dataPoint of selectableDataPoints) {
+                selections.push(!!dataPoint.selected);
+            }
+            return selections;
         }
     }
 }

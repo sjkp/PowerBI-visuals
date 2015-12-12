@@ -31,8 +31,8 @@ module powerbitests {
     import imageVisualCapabilities = powerbi.visuals.imageVisualCapabilities;
 
     describe("ImageVisual", () => {
-        var imageVisualDataBuilder: ImageVisualDataBuilder;
-        var imageBase64value =
+        let imageVisualDataBuilder: ImageVisualDataBuilder;
+        const imageBase64value =
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAkFBMVEX" +
             "////+/v78+/vz8e/29PLr5+Tw7etwWEdbPyzTy8Tj3trn4t78+/mTgHOsnZLCt69PMRzX0cvJwLml" +
             "lYm1qJ53YE8zEQBsUj9QMR68sKZHKRREJA+aiHx+aViGcF7q5t6NeWpkSDafjoAvCwA4FgC4rKSnm" +
@@ -185,7 +185,7 @@ module powerbitests {
 
         public update() {
 
-            var objects: powerbi.DataViewObjects = {
+            let objects: powerbi.DataViewObjects = {
                 general: {
                     imageUrl: this.imageUrl
                 }

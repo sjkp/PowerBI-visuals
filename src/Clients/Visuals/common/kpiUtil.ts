@@ -25,9 +25,9 @@
  */
 
 module powerbi.visuals {
-    import StringExtensions = jsCommon.StringExtensions;
 
     export module KpiUtil {
+
         export const enum KpiImageSize {
             Small,
             Big,
@@ -36,87 +36,160 @@ module powerbi.visuals {
         export interface KpiImageMetadata {
             statusGraphic: string;
             caption: string;
+            class: string;
         }
 
-        const statusGraphicFormatStrings = {
-            'Traffic Light - Single': {
-                formatStr: 'kpiTrafficLightSingle{0}{1}',
-                numOfValues: 3,
-            },
-            'Three Flags Colored': {
-                formatStr: 'kpiThreeFlags{0}Colored{1}',
-                numOfValues: 3,
-            },
-            'Road Signs': {
-                formatStr: 'kpiRoadSigns{0}{1}',
-                numOfValues: 3,
-            },
-            'Traffic Light': {
-                formatStr: 'kpiTrafficLight{0}{1}',
-                numOfValues: 3,
-            },
-            'Three Symbols UnCircled Colored': {
-                formatStr: 'kpiThreeSymbolsUnCircled{0}Colored{1}',
-                numOfValues: 3,
-            },
-            'Shapes': {
-                formatStr: 'kpiShapes{0}{1}',
-                numOfValues: 3,
-            },
-            'Three Stars Colored': {
-                formatStr: 'kpiThreeStars{0}Colored{1}',
-                numOfValues: 3,
-            },
-            'Five Bars Colored': {
-                formatStr: 'kpiFiveBars{0}{1}',
-                numOfValues: 5,
-            },
-            'Five Boxes Colored': {
-                formatStr: 'kpiFiveBoxes{0}{1}',
-                numOfValues: 5,
-            },
-            'Gauge - Ascending': {
-                formatStr: 'kpiGauge{0}{1}',
-                numOfValues: 5,
-            }
+        export interface KPIGraphicClass {
+            kpiIconClass: string;
+            statusValues: string[];
+        }
+
+        const KPIImageClassName = 'powervisuals-glyph';
+        const BigImageClassName = 'big-kpi';
+        const RYGStatusIconClassNames = ['kpi-red', 'kpi-yellow', 'kpi-green'];
+
+        const threeLights = {
+                kpiIconClass: 'circle',
+                statusValues: RYGStatusIconClassNames,
         };
 
-        export function getClassForKpi(statusGraphic: string, value: string, kpiImageSize?: KpiImageSize): string {
-            debug.assertValue(statusGraphic, 'statusGraphic');
-            debug.assertValue(value, 'value');
+        const roadSigns = {
+                kpiIconClass: '',
+                statusValues: ['circle-x kpi-red', 'circle-exclamation kpi-yellow', 'circle-checkmark kpi-green'],
+        };
 
-            var intValue = parseInt(value, 10);
-            if (!isNaN(intValue)) {
-                var sizeName: string = kpiImageSize && kpiImageSize === KpiImageSize.Big ? 'Big' : '';
+        const trafficLight = {
+                kpiIconClass: 'traffic-light',
+                statusValues: RYGStatusIconClassNames,
+        };
 
-                var numStr: string;
-                var statusGraphicFormat = statusGraphicFormatStrings[statusGraphic];
+        const shapes = {
+            kpiIconClass: '',
+            statusValues: ['rhombus kpi-red', 'triangle kpi-yellow', 'circle kpi-green'],
+        };
 
-                if (!statusGraphicFormat)
-                    return undefined;
+        const gauge = {
+            kpiIconClass: '',
+            statusValues: ['circle-empty', 'circle-one-quarter', 'circle-half', 'circle-three-quarters', 'circle-full'],
+        };
 
-                var formatStr = statusGraphicFormat.formatStr;
-                var numOfValues = statusGraphicFormat.numOfValues;
-                
-                // Convert values from the range of (-n/2, ..., 0, ..., n/2) to (0, 1, ..., n-1)
-                numStr = (intValue + Math.floor(numOfValues / 2)).toString();
-                
-                return StringExtensions.format(
-                    formatStr,
-                    sizeName,
-                    numStr);
-            }
+        const statusGraphicFormatStrings = {
+            'THREE CIRCLES COLORED': threeLights,
+            'TRAFFIC LIGHT - SINGLE': threeLights,
+
+            'THREE FLAGS COLORED': {
+                kpiIconClass: 'flag',
+                statusValues: RYGStatusIconClassNames,
+            },
+
+            'ROAD SIGNS': roadSigns,
+            'THREE SYMBOLS CIRCLED COLORED': roadSigns,
+
+            'TRAFFIC LIGHT': trafficLight,
+            'THREE TRAFFIC LIGHTS RIMMED COLORED': trafficLight,
+
+            'THREE SYMBOLS UNCIRCLED COLORED': {
+                kpiIconClass: '',
+                statusValues: ['x kpi-red', 'exclamation kpi-yellow', 'checkmark kpi-green'],
+            },
+
+            'SHAPES': shapes,
+            'SMILEY FACE': shapes,
+            'THERMOMETER': shapes,
+            'CYLINDER': shapes,
+            'THREE SIGNS COLORED': shapes,
+
+            'THREE STARS COLORED': {
+                kpiIconClass: 'star-stacked',
+                statusValues: ['star-empty', 'star-half-full', 'star-full'],
+            },
+            'FIVE BARS COLORED': {
+                kpiIconClass: 'bars-stacked',
+                statusValues: ['bars-zero', 'bars-one', 'bars-two', 'bars-three', 'bars-four'],
+            },
+            'FIVE BOXES COLORED': {
+                kpiIconClass: 'boxes-stacked',
+                statusValues: ['boxes-zero', 'boxes-one', 'boxes-two', 'boxes-three', 'boxes-four'],
+            },
+
+            'FIVE QUARTERS COLORED': gauge,
+            'GAUGE - ASCENDING': gauge,
+            'GAUGE - DESCENDING': {
+                kpiIconClass: '',
+                statusValues: ['circle-full', 'circle-three-quarters', 'circle-half', 'circle-one-quarter', 'circle-empty'],
+            },
+
+            'STANDARD ARROW': {
+                kpiIconClass: '',
+                statusValues: ['arrow-down', 'arrow-right-down', 'arrow-right', 'arrow-right-up', 'arrow-up'],
+            },
+
+            'VARIANCE ARROW': {
+                kpiIconClass: '',
+                statusValues: ['arrow-down kpi-red', 'arrow-right kpi-yellow', 'arrow-up kpi-green'],
+            },
+
+            'STATUS ARROW - ASCENDING': {
+                kpiIconClass: '',
+                statusValues: ['arrow-down kpi-red', 'arrow-right-down kpi-yellow', 'arrow-right kpi-yellow', 'arrow-right-up kpi-yellow', 'arrow-up kpi-green'],
+            },
+            'STATUS ARROW - DESCENDING': {
+                kpiIconClass: '',
+                statusValues: ['arrow-up kpi-green', 'arrow-right-up kpi-yellow', 'arrow-right kpi-yellow', 'arrow-right-down kpi-yellow', 'arrow-down kpi-red'],
+            },
+        };
+
+        function getKpiIcon(kpi: DataViewKpiColumnMetadata, value: string): string {
+            let numValue = parseFloat(value);
+
+            if (!kpi)
+                return;
+
+            let statusGraphicFormat = statusGraphicFormatStrings[kpi.graphic.toUpperCase()];
+
+            if (!statusGraphicFormat || isNaN(numValue))
+                return undefined;
+
+            let statusValues = statusGraphicFormat.statusValues;
+
+            // Normalize range of (-1, -0.5, 0, 0.5, 1) to (-2, -1, 0, 1, 2)
+            if (kpi.normalizedFiveStateKpiRange && statusValues.length === 5)
+                numValue = numValue * 2;
+
+            // Convert values from the range of (-n/2, ..., 0, ..., n/2) to (0, 1, ..., n-1)
+            let num = numValue + Math.floor(statusValues.length / 2);
+
+            return [statusGraphicFormat.kpiIconClass, statusValues[num]].join(' ').trim();
         }
 
-        export function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, target: string, kpiImageSize?: KpiImageSize): KpiImageMetadata {
-            let statusGraphic: string = metaDataColumn && metaDataColumn.kpiStatusGraphic;
+        function getKpiIconClassName(kpiIcon: string, kpiImageSize?: KpiImageSize): string {
+            if (!kpiIcon)
+                return undefined;
 
-            if (statusGraphic) {
-                let columnCaption = getClassForKpi(statusGraphic, target, kpiImageSize);
-                if (columnCaption) {
+            if (kpiImageSize === KpiImageSize.Big)
+                return [KPIImageClassName, BigImageClassName, kpiIcon].join(' ');
+            else
+                return [KPIImageClassName, kpiIcon].join(' ');
+        }
+
+        export function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: string, kpiImageSize?: KpiImageSize): string {
+            debug.assertValue(kpi, 'kpi');
+            debug.assertValue(value, 'value');
+
+            let kpiIcon: string = getKpiIcon(kpi, value);
+            return getKpiIconClassName(kpiIcon, kpiImageSize);
+        }
+
+        export function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: string, kpiImageSize?: KpiImageSize): KpiImageMetadata {
+            let kpi: DataViewKpiColumnMetadata = metaDataColumn && metaDataColumn.kpi;
+
+            if (kpi) {
+                let kpiIcon = getKpiIcon(kpi, value);
+                if (kpiIcon) {
                     return {
-                        caption: columnCaption,
-                        statusGraphic: statusGraphic,
+                        caption: kpiIcon,
+                        statusGraphic: kpi.graphic,
+                        class: getKpiIconClassName(kpiIcon, kpiImageSize),
                     };
                 }
             }

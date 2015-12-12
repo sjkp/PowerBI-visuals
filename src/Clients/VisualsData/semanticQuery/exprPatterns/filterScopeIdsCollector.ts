@@ -37,13 +37,13 @@ module powerbi.data {
         export function asScopeIdsContainer(filter: SemanticFilter, fieldSQExprs: SQExpr[]): FilterValueScopeIdsContainer {
             debug.assertValue(filter, 'filter');
             debug.assertValue(fieldSQExprs, 'fieldSQExprs');
-            debug.assert(fieldSQExprs.length === 1, 'There should be exactly 1 field expression.');
+            debug.assert(fieldSQExprs.length > 0, 'There should be at least 1 field expression.');
 
             let filterItems = filter.conditions();
             debug.assert(filterItems.length === 1, 'There should be exactly 1 filter expression.');
             let filterItem = filterItems[0];
             if (filterItem) {
-                let visitor = new FilterScopeIdsCollectorVisitor(fieldSQExprs[0]);
+                let visitor = new FilterScopeIdsCollectorVisitor(fieldSQExprs);
                 if (filterItem.accept(visitor))
                     return visitor.getResult();
             }
@@ -63,27 +63,37 @@ module powerbi.data {
     class FilterScopeIdsCollectorVisitor extends DefaultSQExprVisitor<boolean>{
         private isRoot: boolean;
         private isNot: boolean;
+        private keyExprsCount: number;
         private valueExprs: SQExpr[];
-        private fieldExpr: SQExpr;
+        private fieldExprs: SQExpr[];
 
-        constructor(fieldSQExpr: SQExpr) {
+        constructor(fieldSQExprs:SQExpr[]) {
             super();
             this.isRoot = true;
             this.isNot = false;
+            this.keyExprsCount = null;
             this.valueExprs = [];
             // Need to drop the entitylet before create the scopeIdentity. The ScopeIdentity created on the client is used to
             // compare the ScopeIdentity came from the server. But server doesn't have the entity variable concept, so we will
             // need to drop it in order to use JsonComparer.
-            this.fieldExpr = SQExprBuilder.removeEntityVariables(fieldSQExpr);
+            this.fieldExprs = [];
+            for (let field of fieldSQExprs) {
+                this.fieldExprs.push(SQExprBuilder.removeEntityVariables(field));
+            }
         }
 
         public getResult(): FilterValueScopeIdsContainer {
-            debug.assertValue(this.fieldExpr, 'fieldExpr');            
+            debug.assert(this.fieldExprs.length > 0, 'fieldExprs has at least one fieldExpr');            
 
             let valueExprs = this.valueExprs,
                 scopeIds: DataViewScopeIdentity[] = [];
-            for (let i = 0, len = valueExprs.length; i < len; i++) {
-                scopeIds.push(FilterScopeIdsCollectorVisitor.getScopeIdentity(this.fieldExpr, valueExprs[i]));
+            let valueCount: number = this.keyExprsCount || 1;
+
+            for (let startIndex = 0, endIndex = valueCount, len = valueExprs.length; startIndex < len && endIndex <= len;) {
+                let values = valueExprs.slice(startIndex, endIndex);
+                scopeIds.push(FilterScopeIdsCollectorVisitor.getScopeIdentity(this.fieldExprs, values));
+                startIndex += valueCount;
+                endIndex += valueCount;
             }
 
             return {
@@ -92,14 +102,26 @@ module powerbi.data {
             };
         }
 
-        private static getScopeIdentity(fieldExpr: SQExpr, valueExpr: SQExpr): DataViewScopeIdentity {
-            debug.assertValue(valueExpr, 'valueExpr');
-            debug.assertValue(fieldExpr, 'fieldExpr');
+        private static getScopeIdentity(fieldExprs: SQExpr[], valueExprs: SQExpr[]): DataViewScopeIdentity {
+            debug.assert(valueExprs.length > 0, 'valueExprs has at least one valueExpr');
+            debug.assert(valueExprs.length === fieldExprs.length, 'fieldExpr and valueExpr count should match');
 
-            return createDataViewScopeIdentity(SQExprBuilder.equal(fieldExpr, valueExpr));
+            let compoundSQExpr: SQExpr;
+            for (let i = 0, len = fieldExprs.length; i < len; i++) {
+                let equalsExpr = SQExprBuilder.equal(fieldExprs[i], valueExprs[i]);
+                if (!compoundSQExpr)
+                    compoundSQExpr = equalsExpr;
+                else
+                    compoundSQExpr = SQExprBuilder.and(compoundSQExpr, equalsExpr);
+            }
+
+            return createDataViewScopeIdentity(compoundSQExpr);
         }
 
         public visitOr(expr: SQOrExpr): boolean {
+            if (this.keyExprsCount !== null)
+                return this.unsupportedSQExpr();
+
             this.isRoot = false;
             return expr.left.accept(this) && expr.right.accept(this);
         }
@@ -121,6 +143,9 @@ module powerbi.data {
         }
 
         public visitCompare(expr: SQCompareExpr): boolean {
+            if (this.keyExprsCount !== null)
+                return this.unsupportedSQExpr();
+
             this.isRoot = false;
 
             if (expr.kind !== QueryComparisonKind.Equal)
@@ -129,15 +154,49 @@ module powerbi.data {
             return expr.left.accept(this) && expr.right.accept(this);
         }
 
+        public visitIn(expr: SQInExpr): boolean {
+            this.keyExprsCount = 0;
+            let result: boolean;
+            this.isRoot = false;
+            for (let arg of expr.args) {
+                result = arg.accept(this);
+                if (!result)
+                    return this.unsupportedSQExpr();
+
+                this.keyExprsCount++;
+            }
+
+            if (this.keyExprsCount !== this.fieldExprs.length)
+                return this.unsupportedSQExpr();
+
+            let values = expr.values;
+            for (let valueTuple of values) {
+                let jlen = valueTuple.length;
+                debug.assert(jlen === this.keyExprsCount, "keys count and values count should match");
+
+                for (let value of valueTuple) {
+                    result = value.accept(this);
+                    if (!result)
+                        return this.unsupportedSQExpr();
+                }
+            }
+
+            return result;
+        }
+
         public visitColumnRef(expr: SQColumnRefExpr): boolean {
             if (this.isRoot)
                 return this.unsupportedSQExpr();
+
             let fixedExpr = SQExprBuilder.removeEntityVariables(expr);
-            return SQExpr.equals(this.fieldExpr, fixedExpr);
+            if (this.keyExprsCount !== null)
+                return SQExpr.equals(this.fieldExprs[this.keyExprsCount], fixedExpr);
+
+            return SQExpr.equals(this.fieldExprs[0], fixedExpr);
         }
 
         public visitDefaultValue(expr: SQDefaultValueExpr): boolean {
-            if (this.isRoot)
+            if (this.isRoot || this.keyExprsCount !== null)
                 return this.unsupportedSQExpr();
 
             this.valueExprs.push(expr);
@@ -145,7 +204,7 @@ module powerbi.data {
         }
 
         public visitAnyValue(expr: SQAnyValueExpr): boolean {
-            if (this.isRoot)
+            if (this.isRoot || this.keyExprsCount !== null)
                 return this.unsupportedSQExpr();
 
             this.valueExprs.push(expr);

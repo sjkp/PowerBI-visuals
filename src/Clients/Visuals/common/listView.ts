@@ -136,7 +136,7 @@ module powerbi.visuals {
             }
 
         private renderImpl(rowHeight: number): void {
-            var totalHeight = this.options.scrollEnabled ? Math.max(0, (this._totalRows * rowHeight)) : this.options.viewport.height;
+            let totalHeight = this.options.scrollEnabled ? Math.max(0, (this._totalRows * rowHeight)) : this.options.viewport.height;
             this.scrollContainer
                 .style('height', totalHeight + "px")
                 .attr('height', totalHeight);
@@ -145,26 +145,24 @@ module powerbi.visuals {
         }
 
         private scrollToFrame(loadMoreData: boolean): void {
-            var options = this.options;
-            var visibleGroupContainer = this.visibleGroupContainer;
-            var totalRows = this._totalRows;
-            var rowHeight = options.rowHeight || ListView.defaultRowHeight;
-            var visibleRows = this.getVisibleRows() || 1;
-            var scrollTop: number = options.baseContainer.node().scrollTop;
-            var scrollPosition = (scrollTop === 0) ? 0 : Math.floor(scrollTop / rowHeight);
-            var translateY = scrollPosition * rowHeight;
+            let options = this.options;
+            let visibleGroupContainer = this.visibleGroupContainer;
+            let totalRows = this._totalRows;
+            let rowHeight = options.rowHeight || ListView.defaultRowHeight;
+            let visibleRows = this.getVisibleRows() || 1;
+            let scrollTop: number = options.baseContainer.node().scrollTop;
+            let scrollPosition = (scrollTop === 0) ? 0 : Math.floor(scrollTop / rowHeight);
+            let transformAttr = SVGUtil.translateWithPixels(0, scrollPosition * rowHeight);
 
-            visibleGroupContainer
-                .attr('transform', d => SVGUtil.translate(0, translateY))
-                .style({
-                    //order matters for proper overriding
-                    'transform': d => SVGUtil.translateWithPixels(0, translateY),
-                    '-webkit-transform': d => SVGUtil.translateWithPixels(0, translateY)
-                });
+            visibleGroupContainer.style({
+                //order matters for proper overriding
+                'transform': d => transformAttr,
+                '-webkit-transform': transformAttr
+            });
 
-            var position0 = Math.max(0, Math.min(scrollPosition, totalRows - visibleRows + 1)),
+            let position0 = Math.max(0, Math.min(scrollPosition, totalRows - visibleRows + 1)),
                 position1 = position0 + visibleRows;
-            var rowSelection = visibleGroupContainer.selectAll(".row")
+            let rowSelection = visibleGroupContainer.selectAll(".row")
                 .data(this._data.slice(position0, Math.min(position1, totalRows)), this.getDatumIndex);
 
             rowSelection
@@ -174,7 +172,7 @@ module powerbi.visuals {
                 .call(d => options.enter(d));
             rowSelection.order();
 
-            var rowUpdateSelection = visibleGroupContainer.selectAll('.row:not(.transitioning)');
+            let rowUpdateSelection = visibleGroupContainer.selectAll('.row:not(.transitioning)');
 
             rowUpdateSelection.call(d => options.update(d));
 
@@ -188,14 +186,14 @@ module powerbi.visuals {
         }
 
         private setTotalRows(): void {
-            var data = this._data;
+            let data = this._data;
             this._totalRows = data ? data.length : 0;
         }
 
         private getVisibleRows(): number {
-            var minimumVisibleRows = 1;
-            var rowHeight = this.options.rowHeight;
-            var viewportHeight = this.options.viewport.height;
+            const minimumVisibleRows = 1;
+            let rowHeight = this.options.rowHeight;
+            let viewportHeight = this.options.viewport.height;
 
             if (!rowHeight || rowHeight < 1)
                 return minimumVisibleRows;
@@ -207,9 +205,9 @@ module powerbi.visuals {
         }
 
         private getRowHeight(): JQueryPromise<number> {
-            var deferred = $.Deferred<number>();
-            var listView = this;
-            var options = listView.options;
+            let deferred = $.Deferred<number>();
+            let listView = this;
+            let options = listView.options;
             if (this.cancelMeasurePass)
                 this.cancelMeasurePass();
 
@@ -221,10 +219,10 @@ module powerbi.visuals {
 
             //render the first item to calculate the row height
             this.scrollToFrame(false /*loadMoreData*/);
-            var requestAnimationFrameId = window.requestAnimationFrame(() => {
+            let requestAnimationFrameId = window.requestAnimationFrame(() => {
                 //measure row height
-                var firstRow = listView.visibleGroupContainer.select(".row").node().firstChild;
-                var rowHeight: number = $(firstRow).outerHeight(true);
+                let firstRow = listView.visibleGroupContainer.select(".row").node().firstChild;
+                let rowHeight: number = $(firstRow).outerHeight(true);
                 listView.rowHeight(rowHeight);
                 deferred.resolve(rowHeight);
                 listView.cancelMeasurePass = undefined;

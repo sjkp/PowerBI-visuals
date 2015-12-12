@@ -27,6 +27,8 @@
 /// <reference path="../../../_references.ts"/>
 
 module powerbi.visuals.controls.internal {
+    import PixelConverter = jsCommon.PixelConverter;
+
     /**
      * This class is used for layouts that don't or cannot
      * rely on DOM measurements.  Instead they compute all required
@@ -38,7 +40,6 @@ module powerbi.visuals.controls.internal {
         // These must be kept in sync with what is specified in the .bi-dashboard-tablix class.
         private static DashboardCellPaddingLeft = 10;
         private static DashboardCellPaddingRight = 5;
-        private static DashboardRowHeight = 19;
 
         // Minimum size for a column, used to calculate layout
         private static TablixMinimumColumnWidth = 75;
@@ -47,6 +48,7 @@ module powerbi.visuals.controls.internal {
         private _columnCount: number;
         private _cellWidth: number;
         private _cellHeight: number;
+        private _scalingFactor: number;
 
         public hasImageContent: boolean;
 
@@ -90,8 +92,16 @@ module powerbi.visuals.controls.internal {
             this._columnCount = columnCount;
         }
 
-        public updateViewport(viewport: IViewport): void {
+        public updateRowHeight(rowHeight: number): void {
+            this._cellHeight = rowHeight;
+        }
 
+        public updateScalingFactor(scalingFactor: number): void {
+            this._scalingFactor = scalingFactor;
+            this._cellWidth = this.computeColumnWidth(this._columnCount);
+        }
+
+        public updateViewport(viewport: IViewport): void {
             this._viewport = viewport;
 
             this._cellWidth = this.computeColumnWidth(this._columnCount);
@@ -99,15 +109,22 @@ module powerbi.visuals.controls.internal {
         }
 
         private computeColumnWidth(totalColumnCount: number): number {
-            let maxAllowedColumns = Math.floor(this._viewport.width / SizeComputationManager.TablixMinimumColumnWidth);
+            let scalingFactor = this._scalingFactor;
+
+            if (!scalingFactor)
+                scalingFactor = 1;
+
+            let minimumColumnWidth = scalingFactor * SizeComputationManager.TablixMinimumColumnWidth;
+            let maxAllowedColumns = Math.floor(this._viewport.width / minimumColumnWidth);
+
             return this.fitToColumnCount(maxAllowedColumns, totalColumnCount);
-            }
+        }
 
         private computeColumnHeight(): number {
             if (!this.hasImageContent)
-                return SizeComputationManager.DashboardRowHeight;
+                return this._cellHeight;
 
-            var width = this._viewport.width;
+            let width = this._viewport.width;
             if (width <= 250) {
                 // Small
                 return 20;
@@ -1487,6 +1504,7 @@ module powerbi.visuals.controls.internal {
     }
 
     export class DashboardTablixLayoutManager extends TablixLayoutManager {
+        private _characterHeight: number;
         private _sizeComputationManager: SizeComputationManager;
 
         constructor(
@@ -1509,7 +1527,7 @@ module powerbi.visuals.controls.internal {
             return new DashboardTablixLayoutManager(
                 binder,
                 sizeComputationManager,
-                new TablixGrid(new DashboardTablixGridPresenter(sizeComputationManager), undefined /* Dashboad columns have fixed sizes. */),
+                new TablixGrid(new DashboardTablixGridPresenter(sizeComputationManager)),
                 new RowRealizationManager(binder),
                 new ColumnRealizationManager(binder));
         }
@@ -1527,7 +1545,15 @@ module powerbi.visuals.controls.internal {
         }
 
         public measureSampleText(parentElement: HTMLElement): void {
-            // Dashboard layout does not use DOM measurements; nothing to do
+            let textProperties = TextMeasurementService.getSvgMeasurementProperties(<any>parentElement);
+            this._characterHeight = TextMeasurementService.estimateSvgTextHeight(textProperties);
+
+            this._sizeComputationManager.updateRowHeight(this._characterHeight);
+
+            let actualTextSize = PixelConverter.toPoint(parseFloat(textProperties.fontSize));
+            let scalingFactor = actualTextSize / controls.TablixDefaultTextSize;
+
+            this._sizeComputationManager.updateScalingFactor(Double.toIncrement(scalingFactor, 0.05));
         }
 
         public getVisibleWidth(): number {
@@ -1574,7 +1600,7 @@ module powerbi.visuals.controls.internal {
         }
 
         public getEstimatedRowHeight(): number {
-            return this._sizeComputationManager.cellHeight;
+            return this._characterHeight;
         }
     }
 
@@ -1586,8 +1612,7 @@ module powerbi.visuals.controls.internal {
             binder: ITablixBinder,
             grid: TablixGrid,
             rowRealizationManager: RowRealizationManager,
-            columnRealizationManager: ColumnRealizationManager,
-            columnWidthChangedCallback: ColumnWidthCallbackType) {
+            columnRealizationManager: ColumnRealizationManager) {
             super(
                 binder,
                 grid,
@@ -1595,13 +1620,12 @@ module powerbi.visuals.controls.internal {
                 new CanvasRowLayoutManager(this, grid, rowRealizationManager));
         }
 
-        public static createLayoutManager(binder: ITablixBinder, columnWidthsCallback: () => number[], columnWidthChangedCallback: ColumnWidthCallbackType): CanvasTablixLayoutManager {
+        public static createLayoutManager(binder: ITablixBinder, columnWidthManager: TablixColumnWidthManager): CanvasTablixLayoutManager {
             return new CanvasTablixLayoutManager(
                 binder,
-                new TablixGrid(new controls.internal.CanvasTablixGridPresenter(columnWidthsCallback), columnWidthChangedCallback),
+                new TablixGrid(new controls.internal.CanvasTablixGridPresenter(columnWidthManager)),
                 new RowRealizationManager(binder),
-                new ColumnRealizationManager(binder),
-                columnWidthChangedCallback);
+                new ColumnRealizationManager(binder));
         }
 
         public getTablixClassName(): string {

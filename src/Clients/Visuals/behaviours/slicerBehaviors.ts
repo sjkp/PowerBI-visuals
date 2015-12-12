@@ -27,108 +27,125 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import SlicerOrientation = slicerOrientation.Orientation;
+
+    export interface SlicerOrientationBehaviorOptions {
+        behaviorOptions: SlicerBehaviorOptions;
+        orientation: slicerOrientation.Orientation;
+    }
+
     export interface SlicerBehaviorOptions {
-        slicerItemContainers: D3.Selection;
-        slicerItemLabels: D3.Selection;
-        slicerItemInputs: D3.Selection;
-        slicerClear: D3.Selection;
+        slicerContainer: D3.Selection;
+        itemLabels: D3.Selection;
+        clear: D3.Selection;
         dataPoints: SlicerDataPoint[];
         interactivityService: IInteractivityService;
-        slicerSettings: SlicerSettings;
+        settings: SlicerSettings;
     }
 
     export class SlicerWebBehavior implements IInteractiveBehavior {
-        private slicerItemLabels: D3.Selection;
-        private slicerItemInputs: D3.Selection;
-        private dataPoints: SlicerDataPoint[];
-        private interactivityService: IInteractivityService;
-        private slicerSettings: SlicerSettings;
+        private behavior: IInteractiveBehavior;
 
-        public bindEvents(options: SlicerBehaviorOptions, selectionHandler: ISelectionHandler): void {
-            let filterPropertyId = slicerProps.filterPropertyIdentifier;
-            let slicers = options.slicerItemContainers;
-            let slicerClear = options.slicerClear;
+        public bindEvents(options: SlicerOrientationBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            this.behavior = this.createWebBehavior(options);
+            this.behavior.bindEvents(options.behaviorOptions, selectionHandler);
+        }
 
-            this.slicerItemLabels = options.slicerItemLabels;
-            this.slicerItemInputs = options.slicerItemInputs;
-            this.dataPoints = options.dataPoints;
-            this.interactivityService = options.interactivityService;
-            this.slicerSettings = options.slicerSettings;
+        public renderSelection(hasSelection: boolean): void {
+            this.behavior.renderSelection(hasSelection);
+        }
 
-            slicers.on("mouseover", (d: SlicerDataPoint) => {
-                d.mouseOver = true;
-                d.mouseOut = false;
-                this.renderMouseover();
+        public static bindSlicerEvents(slicerContainer: D3.Selection, slicers: D3.Selection, slicerClear: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService): void {
+            SlicerWebBehavior.bindSlicerItemSelectionEvent(slicers, selectionHandler, slicerSettings, interactivityService);
+            SlicerWebBehavior.bindSlicerClearEvent(slicerClear, selectionHandler);
+            SlicerWebBehavior.styleSlicerContainer(slicerContainer, interactivityService);
+        }
+
+        public static setSelectionOnSlicerItems(selectableItems: D3.Selection, itemLabel: D3.Selection, hasSelection: boolean, interactivityService: IInteractivityService, slicerSettings: SlicerSettings): void {
+            if (!hasSelection && !interactivityService.isSelectionModeInverted()) {
+                selectableItems.filter('.selected').classed('selected', false);
+                selectableItems.filter('.partiallySelected').classed('partiallySelected', false);
+                let input = selectableItems.selectAll('input');
+                if (input) {
+                    input.property('checked', false);
+                }
+                itemLabel.style('color', slicerSettings.slicerText.color);
+            }
+            else {
+                SlicerWebBehavior.styleSlicerItems(selectableItems, hasSelection);
+            }
+        }
+
+        public static styleSlicerItems(slicerItems: D3.Selection, hasSelection: boolean): void {
+            slicerItems.each(function (d: SlicerDataPoint) {
+                let slicerItem: HTMLElement = this;
+
+                if (d.isSelectAllDataPoint && hasSelection)
+                    slicerItem.classList.add('partiallySelected');
+                else
+                    slicerItem.classList.remove('partiallySelected');
+
+                if (d.selected)
+                    slicerItem.classList.add('selected');
+                else
+                    slicerItem.classList.remove('selected');
+                 
+                // Set input selected state to match selection
+                let input = slicerItem.getElementsByTagName('input')[0];
+                if (input)
+                    input.checked = d.selected;
             });
+        }
 
-            slicers.on("mouseout", (d: SlicerDataPoint) => {
-                d.mouseOver = false;
-                d.mouseOut = true;
-                this.renderMouseover();
-            });
-
+        private static bindSlicerItemSelectionEvent(slicers: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService): void {
             slicers.on("click", (d: SlicerDataPoint) => {
                 d3.event.preventDefault();
                 if (d.isSelectAllDataPoint) {
                     selectionHandler.toggleSelectionModeInversion();
                 }
                 else {
-                    selectionHandler.handleSelection(d, true /* isMultiSelect */);
+                    selectionHandler.handleSelection(d, SlicerWebBehavior.isMultiSelect(d3.event, slicerSettings, interactivityService));
                 }
-                selectionHandler.persistSelectionFilter(filterPropertyId);
-            });
-
-            slicerClear.on("click", (d: SelectableDataPoint) => {
-                selectionHandler.handleClearSelection();
-                selectionHandler.persistSelectionFilter(filterPropertyId);
+                selectionHandler.persistSelectionFilter(slicerProps.filterPropertyIdentifier);
             });
         }
 
-        public renderSelection(hasSelection: boolean): void {
-            if (!hasSelection && !this.interactivityService.isSelectionModeInverted()) {
-                this.slicerItemInputs.selectAll('.partiallySelected').classed('partiallySelected', false);
-                this.slicerItemInputs.selectAll('input').property('checked', false);
-                this.slicerItemLabels.style('color', this.slicerSettings.slicerText.color);
+        private static bindSlicerClearEvent(slicerClear: D3.Selection, selectionHandler: ISelectionHandler): void {
+            if (slicerClear) {
+                slicerClear.on("click", (d: SelectableDataPoint) => {
+                    selectionHandler.handleClearSelection();
+                    selectionHandler.persistSelectionFilter(slicerProps.filterPropertyIdentifier);
+                });
             }
-            else {
-                SlicerWebBehavior.styleSlicerInputs(this.slicerItemInputs, hasSelection);
-                this.slicerItemLabels.style({
-                    'color': (d: SlicerDataPoint) => {
-                        if (d.selected)
-                            return this.slicerSettings.slicerText.selectionColor;
-                        else
-                            return this.slicerSettings.slicerText.color;
-                }
-            });
-        }
         }
 
-        private renderMouseover(): void {
-            this.slicerItemLabels.style({
-                'color': (d: SlicerDataPoint) => {
-                    if (d.mouseOver)
-                        return this.slicerSettings.slicerText.hoverColor;
-
-                    if (d.mouseOut) {
-                        if (d.selected)
-                            return this.slicerSettings.slicerText.selectionColor;
-                        else
-                            return this.slicerSettings.slicerText.color;
-                    }
-                }
-            });
+        private static styleSlicerContainer(slicerContainer: D3.Selection, interactivityService: IInteractivityService) {
+            let hasSelection = interactivityService.hasSelection();
+            slicerContainer.classed('hasSelection', hasSelection);
         }
 
-        public static styleSlicerInputs(slicerItemInputs: D3.Selection, hasSelection: boolean) {
-            slicerItemInputs.selectAll('input').each(function (d: SlicerDataPoint) {
-                if (d.isSelectAllDataPoint) {
-                    d3.select(this).classed('partiallySelected', hasSelection);
-                    d3.select(this).property({ 'checked': d.selected });
-                }
-                else {
-                    d3.select(this).property({ 'checked': d.selected });
-                }
-            });
+        private static isMultiSelect(event: D3.D3Event, settings: SlicerSettings, interactivityService: IInteractivityService): boolean {
+            // If selection is inverted, assume we're always in multi-select mode;
+            // Also, Ctrl can be used to multi-select even in single-select mode.
+            return interactivityService.isSelectionModeInverted()
+                || !settings.selection.singleSelect
+                || event.ctrlKey;
+        }
+
+        private createWebBehavior(options: SlicerOrientationBehaviorOptions): IInteractiveBehavior {
+            let behavior: IInteractiveBehavior;
+            let orientation = options.orientation;
+            switch (orientation) {
+                case SlicerOrientation.Horizontal:
+                    behavior = new HorizontalSlicerWebBehavior();
+                    break;
+
+                case SlicerOrientation.Vertical:
+                default:
+                    behavior = new VerticalSlicerWebBehavior();
+                    break;
+            }
+            return behavior;
         }
     }
 }  

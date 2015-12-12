@@ -229,10 +229,9 @@ module powerbi.visuals.controls.internal {
 
         private _presenter: TablixColumnPresenter;
         private _owner: TablixGrid;
-        
-        private _columnWidthChangedCallback: ColumnWidthCallbackType;
+        private _columnIndex: number;
 
-        constructor(presenter: TablixColumnPresenter, columnWidthChangedCallback: ColumnWidthCallbackType) {
+        constructor(presenter: TablixColumnPresenter, columnIndex: number) {
             this._presenter = presenter;
             this._presenter.initialize(this);
             this._contentWidth = -1;
@@ -243,7 +242,7 @@ module powerbi.visuals.controls.internal {
             this._items = [];
             this._itemType = null;
             this._footerCell = null;
-            this._columnWidthChangedCallback = columnWidthChangedCallback;
+            this._columnIndex = columnIndex;
         }
 
         public initialize(owner: TablixGrid): void {
@@ -387,8 +386,10 @@ module powerbi.visuals.controls.internal {
             this._sizeFixed = true;
             this._fixedToAligningWidth = false;
             this._aligningWidth = -1;
-            if (this._columnWidthChangedCallback)
-                this._columnWidthChangedCallback(-1, width);
+            // Invoke resize callback
+            let gridPresenter = this.owner._presenter;
+            if (gridPresenter)
+                gridPresenter.invokeColumnResizeCallBack(this._columnIndex, width);
         }
 
         public fixSize(): void {
@@ -966,12 +967,10 @@ module powerbi.visuals.controls.internal {
         public _presenter: TablixGridPresenter; // internal
 
         private _fillColumnsProportionally: boolean;
-        private _columnWidthChangedCallback: ColumnWidthCallbackType;
 
-        constructor(presenter: TablixGridPresenter, columnWidthChangedCallback: ColumnWidthCallbackType) {
+        constructor(presenter: TablixGridPresenter) {
             this._presenter = presenter;
             this._footerRow = null;
-            this._columnWidthChangedCallback = columnWidthChangedCallback;
         }
 
         public initialize(owner: TablixControl, gridHost: HTMLElement, footerHost: HTMLElement) {
@@ -1169,10 +1168,7 @@ module powerbi.visuals.controls.internal {
         public getOrCreateColumn(columnIndex: number): TablixColumn {
             let currentColumn: TablixColumn = this._columns[columnIndex];
             if (currentColumn === undefined) {
-                currentColumn = new TablixColumn(this._presenter.createColumnPresenter(columnIndex), (i, w) => {
-                    if (this._columnWidthChangedCallback)
-                        this._columnWidthChangedCallback(columnIndex, w);
-                });
+                currentColumn = new TablixColumn(this._presenter.createColumnPresenter(columnIndex), columnIndex);
                 currentColumn.initialize(this);
                 this._columns[columnIndex] = currentColumn;
             }

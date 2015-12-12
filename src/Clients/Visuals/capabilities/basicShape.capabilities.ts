@@ -25,8 +25,9 @@
  */
 
 /// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
-    export var basicShapeCapabilities: VisualCapabilities = {
+    export const basicShapeCapabilities: VisualCapabilities = {
         objects: {
             line: {
                 displayName: data.createDisplayNameGetter('Visual_BasicShape_Line'),
@@ -37,6 +38,7 @@ module powerbi.visuals {
                     },
                     transparency: {
                         displayName: data.createDisplayNameGetter('Visual_Background_Transparency'),
+                        description: data.createDisplayNameGetter('Visual_Background_TransparencyDescription'),
                         type: { numeric: true }
                     },
                     weight: {
@@ -62,17 +64,9 @@ module powerbi.visuals {
                     },
                     transparency: {
                         displayName: data.createDisplayNameGetter('Visual_Background_Transparency'),
+                        description: data.createDisplayNameGetter('Visual_Background_TransparencyDescription'),
                         type: { numeric: true }
                     },
-                }
-            },
-            lockAspect: {
-                displayName: data.createDisplayNameGetter('Visual_BasicShape_LockAspect'),
-                properties: {
-                    show: {
-                        displayName: data.createDisplayNameGetter('Visual_Show'),
-                        type: { bool: true }
-                    }
                 }
             },
             rotation: {
@@ -93,6 +87,27 @@ module powerbi.visuals {
             }
         },
         suppressDefaultTitle: true,
-        canRotate: false
+        canRotate: false,
+        supportsSelection: false,
+    };
+
+    export const basicShapeProps = {
+        general: {
+            shapeType: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'shapeType' },
+        },
+        line: {
+            transparency: <DataViewObjectPropertyIdentifier>{ objectName: 'line', propertyName: 'transparency' },
+            weight: <DataViewObjectPropertyIdentifier>{ objectName: 'line', propertyName: 'weight' },
+            roundEdge: <DataViewObjectPropertyIdentifier>{ objectName: 'line', propertyName: 'roundEdge' },
+            lineColor: <DataViewObjectPropertyIdentifier>{ objectName: 'line', propertyName: 'lineColor' }
+        },
+        fill: {
+            transparency: <DataViewObjectPropertyIdentifier>{ objectName: 'fill', propertyName: 'transparency' },
+            fillColor: <DataViewObjectPropertyIdentifier>{ objectName: 'fill', propertyName: 'fillColor' },
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'fill', propertyName: 'show' }
+        },
+        rotation: {
+            angle: <DataViewObjectPropertyIdentifier>{ objectName: 'rotation', propertyName: 'angle' }
+        }
     };
 }

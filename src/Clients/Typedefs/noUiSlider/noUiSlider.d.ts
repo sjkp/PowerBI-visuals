@@ -77,6 +77,10 @@ declare module noUiSlider {
          */
         format?: Object | ((...args:any[]) => any);
 
+        /**
+         * pips (ticks) settings
+        */
+        pips?: PipsOptions;
     }
 
     interface PipsOptions {

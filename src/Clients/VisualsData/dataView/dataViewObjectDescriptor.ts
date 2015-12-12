@@ -37,6 +37,7 @@ module powerbi.data {
     /** Defines a logical object in a visualization. */
     export interface DataViewObjectDescriptor {
         displayName?: DisplayNameGetter;
+        description?: DisplayNameGetter;
         properties: DataViewObjectPropertyDescriptors;
     }
 
@@ -48,8 +49,9 @@ module powerbi.data {
     export interface DataViewObjectPropertyDescriptor {
         displayName?: DisplayNameGetter;
         description?: DisplayNameGetter;
+        placeHolderText?: DisplayNameGetter;
         type: DataViewObjectPropertyTypeDescriptor;
-        rule?: DataViewObjectPropertyRuleDescriptor;
+        rule?: DataViewObjectPropertyRuleDescriptor;        
     }
 
     export type DataViewObjectPropertyTypeDescriptor = ValueTypeDescriptor | StructuralTypeDescriptor;
@@ -88,6 +90,16 @@ module powerbi.data {
                 (propDesc: DataViewObjectPropertyDescriptor) => {
                     let propType: StructuralTypeDescriptor = propDesc.type;
                     return propType && !!propType.filter;
+                });
+        }
+
+        /** Attempts to find the default value property.  This can be useful for propagating schema default value. */
+        export function findDefaultValue(descriptors: DataViewObjectDescriptors): DataViewObjectPropertyIdentifier {
+            return findProperty(
+                descriptors,
+                (propDesc: DataViewObjectPropertyDescriptor) => {
+                    let propType: StructuralTypeDescriptor = propDesc.type;
+                    return propType && !!propType.expression && propType.expression.defaultValue;
                 });
         }
 

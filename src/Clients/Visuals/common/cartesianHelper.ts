@@ -28,7 +28,7 @@
 
 module powerbi.visuals {   
 
-    export module CartesianHelper {        
+    export module CartesianHelper {
         export function getCategoryAxisProperties(dataViewMetadata: DataViewMetadata, axisTitleOnByDefault?: boolean): DataViewObject {
             let toReturn: DataViewObject = {};
             if (!dataViewMetadata)
@@ -48,7 +48,9 @@ module powerbi.visuals {
                         end: categoryAxisObject['end'],
                         showAxisTitle: categoryAxisObject['showAxisTitle'] == null ? axisTitleOnByDefault : categoryAxisObject['showAxisTitle'],
                         axisStyle: categoryAxisObject['axisStyle'],
-                        labelColor: categoryAxisObject['labelColor']
+                        labelColor: categoryAxisObject['labelColor'],
+                        labelDisplayUnits: categoryAxisObject['labelDisplayUnits'],
+                        labelPrecision: categoryAxisObject['labelPrecision'],
                     };
                 }
             }
@@ -67,13 +69,15 @@ module powerbi.visuals {
                 if (valueAxisObject) {
                     toReturn = {
                         show: valueAxisObject['show'],
-                        position: valueAxisObject['position'],   
-                        axisScale: valueAxisObject['axisScale'],                      
+                        position: valueAxisObject['position'],
+                        axisScale: valueAxisObject['axisScale'],
                         start: valueAxisObject['start'],
-                        end: valueAxisObject['end'],                        
+                        end: valueAxisObject['end'],
                         showAxisTitle: valueAxisObject['showAxisTitle'] == null ? axisTitleOnByDefault : valueAxisObject['showAxisTitle'],
                         axisStyle: valueAxisObject['axisStyle'],
                         labelColor: valueAxisObject['labelColor'],
+                        labelDisplayUnits: valueAxisObject['labelDisplayUnits'],
+                        labelPrecision: valueAxisObject['labelPrecision'],
                         secShow: valueAxisObject['secShow'],
                         secPosition: valueAxisObject['secPosition'],
                         secAxisScale: valueAxisObject['secAxisScale'],
@@ -81,7 +85,9 @@ module powerbi.visuals {
                         secEnd: valueAxisObject['secEnd'],
                         secShowAxisTitle: valueAxisObject['secShowAxisTitle'],
                         secAxisStyle: valueAxisObject['secAxisStyle'],
-                        secLabelColor: valueAxisObject['secLabelColor']         
+                        secLabelColor: valueAxisObject['secLabelColor'],
+                        secLabelDisplayUnits: valueAxisObject['secLabelDisplayUnits'],
+                        secLabelPrecision: valueAxisObject['secLabelPrecision'],
                     };
                 }
             }
@@ -94,6 +100,16 @@ module powerbi.visuals {
                 isScalar = xAxisCardProperties && xAxisCardProperties['axisType'] ? xAxisCardProperties['axisType'] === axisType.scalar : true;
             }
             return isScalar;
+        }
+
+        export function getPrecision(precision: DataViewPropertyValue): number {
+            if (precision != null) {
+                if (precision < 0) {
+                    return 0;
+                }
+                return <number>precision;
+            }
+            return null;            
         }
     }
 }

@@ -51,6 +51,23 @@ module powerbi {
             deferred.resolve(value);
             return deferred.promise;
         }
+
+        public all(promises: IPromise2<any, any>[]): IPromise<any[]>;
+
+        public all(promises: any): IPromise<any[]> {
+            let unwrappedPromises = jQuery.map(promises, (value) => {
+                return value && value.promise ? value.promise : value;
+            });
+
+            return new JQueryPromiseWrapper($.when.apply($, unwrappedPromises));
+        }
+
+        public when<T>(value: T | IPromise<T>): IPromise<T>;
+
+        public when<T>(value: any): IPromise<T> {
+            let unwrappedPromise = value && value.promise ? value.promise : value;
+            return new JQueryPromiseWrapper($.when(unwrappedPromise));
+        }
     }
 
     /** 
@@ -67,7 +84,7 @@ module powerbi {
             this.promise = new JQueryPromiseWrapper(deferred.promise());
         }
 
-        public resolve(value: TSuccess| IPromise<any>): void {
+        public resolve(value: TSuccess | IPromise<any>): void {
             this.deferred.resolve(value);
         }
 

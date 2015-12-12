@@ -29,7 +29,7 @@
 module powerbitests {
     import AxisHelper = powerbi.visuals.AxisHelper;
     import ValueType = powerbi.ValueType;
-    import axisScale = powerbi.axisScale;
+    import axisScale = powerbi.visuals.axisScale;
 
     describe("AxisHelper invertOrdinalScale tests", () => {
         var ordinalScale: D3.Scale.OrdinalScale;
@@ -40,7 +40,7 @@ module powerbitests {
 
         it("invertOrdinalScale in middle", () => {
             var invertedValue = AxisHelper.invertOrdinalScale(ordinalScale, 50);
-            expect(invertedValue).toBe(5);
+            expect(invertedValue).toBe(4);
         });
 
         it("invertOrdinalScale at start", () => {
@@ -130,16 +130,6 @@ module powerbitests {
 
     describe("AxisHelper createAxis tests", () => {
         var dataPercent = [0.0, 0.33, 0.49];
-
-        var metaDataColumnPercent: powerbi.DataViewMetadataColumn = {
-            displayName: 'Column',
-            type: ValueType.fromDescriptor({ numeric: true }),
-            objects: {
-                general: {
-                    formatString: '0 %;-0 %;0 %',
-                }
-            }
-        };
 
         var formatStringProp: powerbi.DataViewObjectPropertyIdentifier = {
             objectName: 'general',
@@ -401,7 +391,18 @@ module powerbitests {
             expect(values[0]).toBe("2014");
         });
 
-        it('create linear percent value scale',() => {
+        it('create linear percent value scale', () => {
+            // Overriding format and leaving only positive format
+            let metaDataColumnPercent: powerbi.DataViewMetadataColumn = {
+                displayName: 'Column',
+                type: ValueType.fromDescriptor({ numeric: true }),
+                objects: {
+                    general: {
+                        formatString: '0 %',
+                    }
+                }
+            };
+            
             var os = AxisHelper.createAxis({
                 pixelSpan: 100,
                 dataDomain: [dataPercent[0], dataPercent[2]],
@@ -878,10 +879,12 @@ module powerbitests {
             renderYAxes: boolean = false,
             renderY2Axis: boolean = false,
             categoryThickness: number = undefined,
-            outerPadding: number = undefined) {
+            outerPadding: number = undefined,
+            isScalar: boolean = false) {
 
             this.xAxisProperties.willLabelsFit = !rotateX;
             this.xAxisProperties.willLabelsWordBreak = wordBreak;
+            this.xAxisProperties.scale = isScalar ? AxisHelper.createLinearScale(this.viewPort.width, [0,10]) : AxisHelper.createOrdinalScale(this.viewPort.width, [0,10]);
 
             if (categoryThickness != null) {
                 this.xAxisProperties.categoryThickness = categoryThickness;
@@ -964,7 +967,7 @@ module powerbitests {
             var margins = localTickLabelBuilder.buildTickLabelMargins(false, false, false, true, true, false);
 
             expect(margins.xMax).toBe(10);
-            expect(margins.yLeft).toBe(25);
+            expect(margins.yLeft).toBe(35);
             expect(margins.yRight).toBe(0);
         });
 
@@ -973,7 +976,7 @@ module powerbitests {
             var margins = localTickLabelBuilder.buildTickLabelMargins(true, false, false, true, true, false);
 
             expect(margins.xMax).toBe(25);
-            expect(margins.yLeft).toBe(25);
+            expect(margins.yLeft).toBe(35);
             expect(margins.yRight).toBe(0);
         });
 
@@ -982,7 +985,7 @@ module powerbitests {
             var margins = localTickLabelBuilder.buildTickLabelMargins(true, false, false, true, false, false);
 
             expect(margins.xMax).toBe(25);
-            expect(margins.yLeft).toBe(25);
+            expect(margins.yLeft).toBe(35);
             expect(margins.yRight).toBe(0);
         });
 
@@ -992,7 +995,7 @@ module powerbitests {
 
             expect(margins.xMax).toBe(10);
             expect(margins.yLeft).toBe(12);
-            expect(powerbitests.helpers.isInRange(margins.yRight, 23, 27)).toBe(true);
+            expect(powerbitests.helpers.isInRange(margins.yRight, 33, 37)).toBe(true);
         });
 
         it("xOverflowRight, line chart, small overhang, disable the secondary axis", () => {
@@ -1010,7 +1013,7 @@ module powerbitests {
 
             expect(margins.xMax).toBe(10);
             expect(margins.yLeft).toBe(0);
-            expect(powerbitests.helpers.isInRange(margins.yRight, 23, 27)).toBe(true);
+            expect(powerbitests.helpers.isInRange(margins.yRight, 33, 37)).toBe(true);
         });
 
         it("xOverflowRight, with rotate, disable both Y axes", () => {
@@ -1026,6 +1029,12 @@ module powerbitests {
             var localTickLabelBuilder = new AxisHelperTickLabelBuilder({height: 250, width: 250}, ['IPO', '83742 (Jun-15) %', 'Q4']);
             let margins = localTickLabelBuilder.buildTickLabelMargins(true, true, false, true, true, false);
             expect(margins.xMax).toBeGreaterThan(3 * localTickLabelBuilder.getFontSize() - 1);
+        });
+
+        it('Scalar axis, overflow right', () => {
+            var localTickLabelBuilder = new AxisHelperTickLabelBuilder({ height: 200, width: 200 }, ['Jan 2015','Feb 2015','Mar 2015','April 2015']);
+            var margins = localTickLabelBuilder.buildTickLabelMargins(false, false, false, true, true, false, undefined, undefined, true);
+            expect(margins.yRight).toBeGreaterThan(0);
         });
     });
 

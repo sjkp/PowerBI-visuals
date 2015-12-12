@@ -39,7 +39,7 @@ module powerbi.visuals {
          * To avoid scientific notation, start or end the transition at 1e-6,
          * which is the smallest value that is not stringified in exponential notation.
          */
-        export var AlmostZero = 1e-6;
+        export const AlmostZero = 1e-6;
 
         /**
          * Creates a translate string for use with the SVG transform call.
@@ -204,6 +204,23 @@ module powerbi.visuals {
                 path: path,
                 transform: transform
             };
+        }
+
+        /**
+         * Use the ratio of the scaled bounding rect and the SVG DOM bounding box to get the x and y transform scale values
+         */
+        export function getTransformScaleRatios(svgElement: SVGSVGElement): Point {
+            if (svgElement != null) {
+                let scaledRect = svgElement.getBoundingClientRect();
+                let domRect = svgElement.getBBox();
+                if (domRect.height > 0 && domRect.width > 0) {
+                    return {
+                        x: scaledRect.width / domRect.width,
+                        y: scaledRect.height / domRect.height
+                    };
+                }
+            }
+            return { x: 1, y: 1 };
         }
     }
 }

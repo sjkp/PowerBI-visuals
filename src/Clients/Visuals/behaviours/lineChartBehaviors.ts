@@ -33,18 +33,21 @@ module powerbi.visuals {
         dots: D3.Selection;
         areas: D3.Selection;
         isPartOfCombo?: boolean;
+        tooltipOverlay: D3.Selection;
     }
 
     export class LineChartWebBehavior implements IInteractiveBehavior {
         private lines: D3.Selection;
         private dots: D3.Selection;
         private areas: D3.Selection;
+        private tooltipOverlay: D3.Selection;
 
         public bindEvents(options: LineChartBehaviorOptions, selectionHandler: ISelectionHandler): void {
             this.lines = options.lines;
             let interactivityLines = options.interactivityLines;
             let dots = this.dots = options.dots;
             let areas = this.areas = options.areas;
+            let tooltipOverlay = this.tooltipOverlay = options.tooltipOverlay;
 
             let clickHandler = (d: SelectableDataPoint) => {
                 selectionHandler.handleSelection(d, d3.event.ctrlKey);
@@ -54,6 +57,9 @@ module powerbi.visuals {
             dots.on('click', clickHandler);
             if (areas)
                 areas.on('click', clickHandler);
+
+            if (tooltipOverlay)
+                tooltipOverlay.on('click', () => selectionHandler.handleClearSelection());
         }
 
         public renderSelection(hasSelection: boolean) {

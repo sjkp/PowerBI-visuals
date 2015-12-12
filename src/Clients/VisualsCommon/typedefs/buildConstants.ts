@@ -26,4 +26,4 @@
 
 declare var DEBUG: boolean;
 
-if (typeof DEBUG === 'undefined') DEBUG = true;
+if (typeof DEBUG === 'undefined') var DEBUG = true;

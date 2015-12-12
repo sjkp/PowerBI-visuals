@@ -1078,6 +1078,260 @@ This must be run when you have at least 2 sprites.
 .sprites(@spritesheet-sprites);
 */
 /*
+ *  Power BI KPI Glyphs
+ *
+ *  Copyright (c) Microsoft Corporation
+ *  All rights reserved. 
+ *  MIT License
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files (the ""Software""), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *  copies of the Software, and to permit persons to whom the Software is
+ *  furnished to do so, subject to the following conditions:
+ *   
+ *  The above copyright notice and this permission notice shall be included in 
+ *  all copies or substantial portions of the Software.
+ *   
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *  THE SOFTWARE.
+ */
+/* KPI colors*/
+.kpi-green {
+  color: #79c75b;
+}
+.kpi-yellow {
+  color: #e8d62e;
+}
+.kpi-red {
+  color: #c0433a;
+}
+@font-face {
+  font-family: 'PowerVisuals';
+  src: url('../fonts/PowerVisuals.eot?#iefix') format('embedded-opentype'),url('../fonts/PowerVisuals.woff') format('woff'),url('../fonts/PowerVisuals.ttf') format('truetype'),url('../fonts/PowerVisuals.svg') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+.powervisuals-glyph {
+  font-family: PowerVisuals;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  /** Necessary to allow absolute positioning of just ::after elements (i.e. stacks) */
+  position: relative;
+}
+.powervisuals-glyph.slicer-clear::before {
+  content: '\E100';
+}
+.powervisuals-glyph.left-nav-arrow::before {
+  content: '\E101';
+}
+.powervisuals-glyph.right-nav-arrow::before {
+  content: '\E102';
+}
+.powervisuals-glyph.empty-checkbox::before {
+  content: '\E103';
+}
+.powervisuals-glyph.arrow-up::before {
+  content: '\E107';
+}
+.powervisuals-glyph.arrow-right-up::before {
+  content: '\E108';
+}
+.powervisuals-glyph.arrow-right::before {
+  content: '\E109';
+}
+.powervisuals-glyph.arrow-right-down::before {
+  content: '\E110';
+}
+.powervisuals-glyph.arrow-down::before {
+  content: '\E111';
+}
+.powervisuals-glyph.arrow-left-down::before {
+  content: '\E112';
+}
+.powervisuals-glyph.arrow-left::before {
+  content: '\E113';
+}
+.powervisuals-glyph.arrow-left-up::before {
+  content: '\E114';
+}
+.powervisuals-glyph.caret-up::before {
+  content: '\E115';
+}
+.powervisuals-glyph.caret-down::before {
+  content: '\E116';
+}
+.powervisuals-glyph.circle::before {
+  content: '\E700';
+}
+.powervisuals-glyph.flag::before {
+  content: '\E70D';
+}
+.powervisuals-glyph.circle-x::before {
+  content: '\E70E';
+}
+.powervisuals-glyph.circle-exclamation::before {
+  content: '\E70F';
+}
+.powervisuals-glyph.circle-checkmark::before {
+  content: '\E710';
+}
+.powervisuals-glyph.circle-small::before {
+  content: '\E712';
+}
+.powervisuals-glyph.square::before {
+  content: '\E713';
+}
+.powervisuals-glyph.x::before {
+  content: '\E714';
+}
+.powervisuals-glyph.exclamation::before {
+  content: '\E715';
+}
+.powervisuals-glyph.checkmark::before {
+  content: '\E718';
+}
+.powervisuals-glyph.rhombus::before {
+  content: '\E719';
+}
+.powervisuals-glyph.triangle::before {
+  content: '\E71B';
+}
+.powervisuals-glyph.star-empty::before {
+  content: '\E71C';
+}
+.powervisuals-glyph.star-half-full::before {
+  content: '\E721';
+}
+.powervisuals-glyph.star-full::before {
+  content: '\E724';
+}
+.powervisuals-glyph.bars-one::before {
+  content: '\E725';
+}
+.powervisuals-glyph.bars-two::before {
+  content: '\E726';
+}
+.powervisuals-glyph.bars-three::before {
+  content: '\E727';
+}
+.powervisuals-glyph.bars-four::before {
+  content: '\E728';
+}
+.powervisuals-glyph.bars-five::before {
+  content: '\E729';
+}
+.powervisuals-glyph.boxes-one::before {
+  content: '\E732';
+}
+.powervisuals-glyph.boxes-two::before {
+  content: '\E733';
+}
+.powervisuals-glyph.boxes-three::before {
+  content: '\E731';
+}
+.powervisuals-glyph.boxes-four::before {
+  content: '\E730';
+}
+.powervisuals-glyph.circle-empty::before {
+  content: '\E734';
+}
+.powervisuals-glyph.circle-full::before {
+  content: '\E735';
+}
+.powervisuals-glyph.circle-three-quarters::before {
+  content: '\E736';
+}
+.powervisuals-glyph.circle-half::before {
+  content: '\E737';
+}
+.powervisuals-glyph.circle-one-quarter::before {
+  content: '\E738';
+}
+.powervisuals-glyph.boxes-stacked::before {
+  content: '\E730';
+  color: #C8C8C8;
+}
+.powervisuals-glyph.boxes-stacked::after {
+  position: absolute;
+  left: 0;
+  color: #000;
+}
+.powervisuals-glyph.boxes-stacked.boxes-zero::after {
+  content: '';
+}
+.powervisuals-glyph.boxes-stacked.boxes-one::after {
+  content: '\E732';
+}
+.powervisuals-glyph.boxes-stacked.boxes-two::after {
+  content: '\E733';
+}
+.powervisuals-glyph.boxes-stacked.boxes-three::after {
+  content: '\E731';
+}
+.powervisuals-glyph.boxes-stacked.boxes-four::before {
+  color: #000;
+}
+.powervisuals-glyph.bars-stacked::before {
+  content: '\E728';
+  color: #C8C8C8;
+}
+.powervisuals-glyph.bars-stacked::after {
+  position: absolute;
+  left: 0;
+  color: #000;
+}
+.powervisuals-glyph.bars-stacked.bars-zero::after {
+  content: '';
+}
+.powervisuals-glyph.bars-stacked.bars-one::after {
+  content: '\E725';
+}
+.powervisuals-glyph.bars-stacked.bars-two::after {
+  content: '\E726';
+}
+.powervisuals-glyph.bars-stacked.bars-three::after {
+  content: '\E727';
+}
+.powervisuals-glyph.bars-stacked.bars-four::before {
+  color: #000;
+}
+.powervisuals-glyph.star-stacked::before {
+  content: '\E724';
+  color: #C8C8C8;
+}
+.powervisuals-glyph.star-stacked::after {
+  position: absolute;
+  left: 0;
+  color: #000;
+}
+.powervisuals-glyph.star-stacked.star-empty::after {
+  content: '';
+}
+.powervisuals-glyph.star-stacked.star-half-full::after {
+  content: '\E721';
+}
+.powervisuals-glyph.star-stacked.star-full::before {
+  color: #000;
+}
+.powervisuals-glyph.traffic-light::before {
+  content: '\E713';
+  color: #000;
+}
+.powervisuals-glyph.traffic-light::after {
+  position: absolute;
+  left: 0;
+  content: '\E712';
+}
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -1103,7 +1357,7 @@ This must be run when you have at least 2 sprites.
  *  THE SOFTWARE.
  */
 /*
- *  Power BI Visualizations
+ *  Power BI Colors
  *
  *  Copyright (c) Microsoft Corporation
  *  All rights reserved. 
@@ -1256,6 +1510,7 @@ body {
  *
  * To get integrated VS support for LESS install the Visual Studio Web Essentials.
  */
+/* updates to tile header height should be reflected in tileSize.ts */
 .unselectable {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -1360,11 +1615,11 @@ body {
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-.slicerContainer .slicerHeader {
+.slicerHeader {
   margin: 0 0 0 8px;
   box-sizing: border-box;
 }
-.slicerContainer .headerText {
+.slicerHeader .headerText {
   color: #333333;
   font-size: 14px;
   text-overflow: ellipsis;
@@ -1374,63 +1629,180 @@ body {
   width: auto;
   float: none;
 }
-.slicerContainer .slicerItemContainer {
-  margin: 2px 0 0 8px;
-  box-sizing: border-box;
-  white-space: nowrap;
-}
-.slicerContainer .slicerItemContainer * {
-  display: table-cell;
-  vertical-align: bottom;
-}
-.slicerContainer .slicerItemContainer:hover .slicerCheckbox span::before {
-  opacity: 1;
-}
-.slicerContainer .slicerCheckbox {
-  cursor: pointer;
-}
-.slicerContainer .slicerCheckbox input {
-  display: none;
-}
-.slicerContainer .slicerCheckbox span {
-  display: table-cell;
-}
-.slicerContainer .slicerCheckbox span::before {
-  content: '';
-  display: inline-block;
-  vertical-align: middle;
+.slicerHeader .clear {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -156px -116px;
-  width: 13px;
-  height: 13px;
-  opacity: 0.5;
-}
-.slicerContainer .slicerCheckbox input:checked + span::before {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -156px -129px;
-  width: 13px;
-  height: 13px;
-  opacity: 1;
-}
-.slicerContainer .slicerCheckbox input.partiallySelected + span::before {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -156px -142px;
-  width: 13px;
-  height: 13px;
-  opacity: 1;
-}
-.slicerContainer .slicerText {
-  cursor: pointer;
-  font-size: 14px;
-}
-.slicerContainer .clear {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -120px;
+  background-position: -96px -80px;
   width: 13px;
   height: 12px;
   margin: 4px 2px;
   float: right;
   cursor: pointer;
+  display: block;
+  visibility: hidden;
+}
+.slicerContainer.hasSelection .clear,
+.horizontalSlicerContainer.hasSelection .clear,
+.slicerContainer:hover .clear,
+.horizontalSlicerContainer:hover .clear {
+  visibility: visible;
+}
+.slicerContainer .slicerItemContainer {
+  margin: 2px 0 0 8px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.slicerContainer .slicerItemContainer * {
+  display: table-cell;
+  vertical-align: bottom;
+}
+.slicerContainer .slicerItemContainer img {
+  max-width: 100px;
+  width: 100%;
+}
+.slicerContainer .slicerItemContainer:hover .slicerText {
+  color: #212121 !important;
+}
+.slicerContainer .slicerItemContainer:hover .slicerCheckbox span.checkbox {
+  border-color: #666666;
+}
+.slicerContainer .slicerItemContainer:hover .slicerCheckbox.selected span.checkbox {
+  border-color: #212121;
+}
+.slicerContainer .slicerItemContainer:hover .slicerCheckbox.partiallySelected span.checkbox::before {
+  background-color: #666666;
+}
+.slicerContainer .slicerCheckbox {
+  cursor: pointer;
+  vertical-align: middle;
+}
+.slicerContainer .slicerCheckbox input {
+  display: none;
+}
+.slicerContainer .slicerCheckbox span {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #C8C8C8;
+  box-shadow: inset 0px 0px 1px #C8C8C8;
+}
+.slicerContainer .slicerCheckbox.selected {
+  border: none !important;
+}
+.slicerContainer .slicerCheckbox.selected + .slicerText {
+  color: #212121 !important;
+}
+.slicerContainer .slicerCheckbox.selected span.checkbox {
+  border-color: #212121;
+  background-color: #212121;
+  box-shadow: none;
+}
+.slicerContainer .slicerCheckbox.partiallySelected span.checkbox {
+  background-color: transparent;
+  border-color: #C8C8C8;
+}
+.slicerContainer .slicerCheckbox.partiallySelected span.checkbox::before {
+  content: '';
+  height: 3px;
+  width: 3px;
+  position: absolute;
+  display: inline-block;
+  margin: 3px 0 0px 3px;
+  background-color: #C8C8C8;
+  box-shadow: 0px 0px 2px #C8C8C8;
+  border: none;
+}
+.slicerContainer .slicerText {
+  cursor: pointer;
+  font-size: 14px;
+}
+.slicerContainer.isMultiSelectEnabled .slicerCheckbox.selected:not(.partiallySelected) {
+  /* TODO: Use a checkmark glyph rather than drawing a custom one using transforms and offsets. */
+}
+.slicerContainer.isMultiSelectEnabled .slicerCheckbox.selected:not(.partiallySelected) span.checkbox::before {
+  content: '';
+  height: 8px;
+  width: 3px;
+  position: absolute;
+  display: inline-block;
+  margin: -2px 0 0 3px;
+  border-right: 2px solid #FFF;
+  border-bottom: 2px solid #FFF;
+  transform: rotate(45deg);
+}
+.horizontalSlicerContainer .navigationArrow {
+  visibility: hidden;
+  background-color: white;
+}
+.horizontalSlicerContainer .navigationArrow.show {
+  visibility: visible;
+}
+.horizontalSlicerContainer .navigationArrow.right {
+  background-image: url(../images/visuals.sprites.png);
+  background-position: -62px -72px;
+  width: 14px;
+  height: 24px;
+}
+.horizontalSlicerContainer .navigationArrow.left {
+  background-image: url(../images/visuals.sprites.png);
+  background-position: -48px -72px;
+  width: 14px;
+  height: 24px;
+}
+.horizontalSlicerContainer .flexDisplay {
+  display: -ms-flexbox;
+  display: -moz-box;
+  display: flex;
+  -ms-flex-direction: row;
+  -moz-box-orient: horizontal;
+  flex-direction: row;
+}
+.horizontalSlicerContainer .slicerBody {
+  align-items: center;
+  -ms-flex-align: center;
+}
+.horizontalSlicerContainer .slicerItemsContainer {
+  vertical-align: top;
+}
+.horizontalSlicerContainer .slicerText {
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+.horizontalSlicerContainer .slicerText.selected,
+.horizontalSlicerContainer .slicerText.partiallySelected {
+  color: #FFF !important;
+}
+.horizontalSlicerContainer .slicerText:hover {
+  background-color: #EAEAEA !important;
+}
+.horizontalSlicerContainer .slicerText.selected {
+  background-color: #333333 !important;
+}
+.horizontalSlicerContainer .slicerText.partiallySelected {
+  background-color: rgba(51, 51, 51, 0.6) !important;
+}
+.horizontalSlicerContainer .slicerText.selected:hover,
+.horizontalSlicerContainer .slicerText.partiallySelected:hover {
+  background-color: #C8C8C8 !important;
+}
+.horizontalSlicerContainer .slicerText > span {
+  text-align: center;
+}
+.overflowingText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
 }
 .visual svg.legend .navArrow {
   fill: #333333;
@@ -1569,13 +1941,19 @@ body {
   stroke-width: 10px;
 }
 .lineChart .hover-line {
-  stroke: #e9e9e9;
-  fill: #eb5e5e;
+  stroke: #666666;
+  pointer-events: none;
 }
 .lineChart .hover-line .interactive {
-  stroke: #666666;
   stroke-width: 3px;
   opacity: 1;
+}
+.lineChart .hover-line .selection-circle {
+  stroke: #e9e9e9;
+}
+.lineChart .hover-line .circle-item {
+  stroke: none;
+  pointer-events: none;
 }
 .lineChart .drag-handle {
   fill: #666666;
@@ -1611,19 +1989,15 @@ body {
   text-anchor: middle;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
 }
-.funnelChart .axis path,
-.funnelChart .axis line {
+.funnelChart .axis {
+  font-family: Tahoma,Verdana,Geneva,sans-serif;
+  font-size: 11px;
+}
+.funnelChart .axis path {
   fill: none;
-  stroke: #000;
 }
-.funnelChart .axis .data-labels {
-  font-size: 12px;
-}
-.funnelChart .axis .tick line {
-  display: none;
-}
-.funnelChart .axis .domain {
-  display: none;
+.funnelChart .axis .tick text {
+  fill: #777777;
 }
 .donutChart {
   overflow: visible !important;
@@ -1718,6 +2092,11 @@ body {
   stroke: #777777;
   shape-rendering: crispEdges;
 }
+.playChart .play-axis-container {
+  position: absolute;
+  left: 16px;
+  bottom: 35px;
+}
 .playChart .button-container {
   height: 24px;
   width: 24px;
@@ -1765,6 +2144,10 @@ body {
   right: 16px;
   color: #888888;
   opacity: 0.5;
+  pointer-events: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 .tableContainer {
   overflow: auto;
@@ -1818,6 +2201,8 @@ body {
 }
 .tablixContainer {
   overflow: auto;
+  /** Preserve previous dashboard tile font-size */
+  font-size: 11px;
 }
 .tablixContainer .bi-tablix {
   position: relative;
@@ -1839,7 +2224,6 @@ body {
   margin: 0px;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #666666;
-  font-size: 14px;
   font-weight: normal;
 }
 .tablixContainer .bi-tablix tr {
@@ -1857,12 +2241,18 @@ body {
   border-bottom-width: 1pt;
   border-bottom-style: solid;
   border-bottom-color: #CCCCCC;
-  font-size: 16px;
   /* Having a right padding of 5px is crucial to make sure that we do not fire click events on the table column
                header (and trigger sorting) when resizing a column.  The allowed offset from the parent td's right border
                to trigger resizing is 4px (see TablixResizer.resizeHandleSize) and thus less than the 5px padding.
             */
   padding: 0px 5px 0px 10px;
+}
+.tablixContainer .bi-tablix .bi-table-column-header i {
+  visibility: hidden;
+}
+.tablixContainer .bi-tablix .bi-table-column-header.sorted i,
+.tablixContainer .bi-tablix .bi-table-column-header:hover i {
+  visibility: visible;
 }
 .tablixContainer .bi-tablix .bi-table-cell-numeric {
   text-align: right;
@@ -1873,13 +2263,11 @@ body {
   border-bottom-color: #E8E8E8;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #333333;
-  font-size: 14px;
   padding: 0px 0px 0px 10px;
 }
 .tablixContainer .bi-tablix .bi-table-last-row {
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #333333;
-  font-size: 14px;
   padding: 0px 0px 0px 10px;
 }
 .tablixContainer .bi-tablix .bi-table-footer {
@@ -1888,7 +2276,6 @@ body {
   border-top-color: #CCCCCC;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #333333;
-  font-size: 14px;
   padding: 0px 5px 0px 10px;
 }
 .tablixContainer .bi-tablix .bi-tablix-header {
@@ -1926,7 +2313,6 @@ body {
   text-align: right;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #333333;
-  font-size: 14px;
   padding: 0px 5px 0px 10px;
 }
 .tablixContainer .bi-tablix .total {
@@ -1975,7 +2361,6 @@ body {
   margin: 0px;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #666666;
-  font-size: 11px;
   font-weight: normal;
 }
 .tablixContainer .bi-dashboard-tablix tr {
@@ -1993,7 +2378,6 @@ body {
   border-bottom-width: 1pt;
   border-bottom-style: solid;
   border-bottom-color: #CCCCCC;
-  font-size: 11px;
   padding: 0px 5px 0px 10px;
 }
 .tablixContainer .bi-dashboard-tablix .bi-table-cell-numeric {
@@ -2005,13 +2389,11 @@ body {
   border-bottom-color: #E8E8E8;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #333333;
-  font-size: 11px;
   padding: 0px 0px 0px 10px;
 }
 .tablixContainer .bi-dashboard-tablix .bi-table-last-row {
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #333333;
-  font-size: 11px;
   padding: 0px 0px 0px 10px;
 }
 .tablixContainer .bi-dashboard-tablix .bi-table-footer {
@@ -2021,11 +2403,11 @@ body {
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   font-weight: bold;
   color: #333333;
-  font-size: 11px;
   padding: 0px 5px 0px 10px;
 }
 .tablixContainer .bi-dashboard-tablix .bi-tablix-header {
   padding: 0px 5px 0px 10px;
+  text-align: left;
 }
 .tablixContainer .bi-dashboard-tablix .bi-tablix-row-header-leaf {
   border-right-width: 1px;
@@ -2055,7 +2437,6 @@ body {
   text-align: right;
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   color: #333333;
-  font-size: 11px;
   padding: 0px 5px 0px 10px;
 }
 .tablixContainer .bi-dashboard-tablix .total {
@@ -2146,6 +2527,7 @@ body {
 .visual .treemap .labels {
   font-family: Tahoma,Verdana,Geneva,sans-serif;
   fill: #FFF;
+  pointer-events: none;
 }
 .visual .treemap .labels .majorLabel {
   font-size: 12px;
@@ -2153,437 +2535,11 @@ body {
 .visual .treemap .labels .minorLabel {
   font-size: 10px;
 }
-.visual div.kpiTrafficLightSingle0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -100px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightSingle1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -120px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightSingle2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -156px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeFlagsColored0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -100px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeFlagsColored1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeFlagsColored2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -20px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeStarsColored0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -40px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeStarsColored1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -60px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeStarsColored2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -80px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeSymbolsUnCircledColored0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -100px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeSymbolsUnCircledColored1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: 0px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeSymbolsUnCircledColored2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -20px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiRoadSigns0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -80px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiRoadSigns1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: 0px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiRoadSigns2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -20px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLight0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -40px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLight1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -60px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLight2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -80px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiShapes0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -40px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiShapes1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -60px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiShapes2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -80px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBars0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -48px -72px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBars1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -68px -72px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBars2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBars3 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px -20px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBars4 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px -40px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxes0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px -60px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxes1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: 0px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxes2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -20px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxes3 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -40px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxes4 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -60px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGauge0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -80px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGauge1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGauge2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -20px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGauge3 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -40px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGauge4 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -60px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightSingleBig0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -100px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightSingleBig1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -120px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightSingleBig2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -156px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeFlagsBigColored0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -100px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeFlagsBigColored1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeFlagsBigColored2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -20px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeStarsBigColored0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -40px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeStarsBigColored1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -60px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeStarsBigColored2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -80px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeSymbolsUnCircledBigColored0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -136px -100px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeSymbolsUnCircledBigColored1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: 0px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiThreeSymbolsUnCircledBigColored2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -20px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiRoadSignsBig0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -80px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiRoadSignsBig1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: 0px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiRoadSignsBig2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -20px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightBig0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -40px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightBig1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -60px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiTrafficLightBig2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -80px -136px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiShapesBig0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -40px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiShapesBig1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -60px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiShapesBig2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -80px -116px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBarsBig0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -48px -72px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBarsBig1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -68px -72px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBarsBig2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBarsBig4 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px -20px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBarsBig5 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px -40px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxesBig0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -96px -60px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxesBig1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: 0px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxesBig2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -20px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxesBig3 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -40px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiFiveBoxesBig4 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -60px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGaugeBig0 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -80px -96px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGaugeBig1 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px 0px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGaugeBig2 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -20px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGaugeBig3 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -40px;
-  width: 20px;
-  height: 20px;
-}
-.visual div.kpiGaugeBig4 {
-  background-image: url(../images/visuals.sprites.png);
-  background-position: -116px -60px;
-  width: 20px;
-  height: 20px;
+.visual .powervisuals-glyph {
+  font-size: inherit;
+}
+.visual .powervisuals-glyph.big-kpi {
+  font-size: 48px;
 }
 .interactive-legend {
   white-space: nowrap;
@@ -2620,9 +2576,23 @@ body {
   padding: 12px;
   max-width: 390px;
 }
+.tooltip-container div.tooltip-header {
+  word-wrap: break-word;
+  max-width: 260px;
+  font-weight: bold;
+  color: #FFF;
+  letter-spacing: 1px;
+  padding-bottom: 4px;
+}
 .tooltip-container .tooltip-row {
   display: table-row;
   line-height: 16px;
+}
+.tooltip-container div.tooltip-color-cell {
+  display: table-cell;
+  vertical-align: top;
+  max-width: 13px;
+  padding-right: 4px;
 }
 .tooltip-container div.tooltip-title-cell {
   display: table-cell;
@@ -2636,6 +2606,7 @@ body {
 .tooltip-container div.tooltip-value-cell {
   display: table-cell;
   word-wrap: break-word;
+  font-family: Tahoma,Verdana,Geneva,sans-serif;
   max-width: 260px;
   font-weight: bold;
   color: #FFF;
@@ -2664,6 +2635,12 @@ body {
   border-bottom: 7px solid transparent;
   border-left: 7px solid #333333;
 }
+.labelGraphicsContext .label {
+  font-size: 12px;
+  text-anchor: middle;
+  font-family: Tahoma,Verdana,Geneva,sans-serif;
+}
+/* Kept around for funnel labels; can be removed once it's moved to the new system */
 .data-labels {
   font-size: 12px;
   text-anchor: middle;
@@ -2781,13 +2758,13 @@ div.ql-toolbar .ql-format-button[data-value="left"] {
 }
 div.ql-toolbar .ql-format-button[data-value="left"].ql-active {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -24px -72px;
+  background-position: -72px 0px;
   width: 24px;
   height: 24px;
 }
 div.ql-toolbar .ql-format-button[data-value="left"]:hover {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -24px -72px;
+  background-position: -72px 0px;
   width: 24px;
   height: 24px;
 }
@@ -2847,19 +2824,19 @@ div.ql-toolbar .ql-format-button.ql-bold:hover {
 }
 div.ql-toolbar .ql-format-button.ql-italic {
   background-image: url(../images/visuals.sprites.png);
-  background-position: 0px -72px;
+  background-position: -24px -72px;
   width: 24px;
   height: 24px;
 }
 div.ql-toolbar .ql-format-button.ql-italic.ql-active {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -72px -48px;
+  background-position: 0px -72px;
   width: 24px;
   height: 24px;
 }
 div.ql-toolbar .ql-format-button.ql-italic:hover {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -72px -48px;
+  background-position: 0px -72px;
   width: 24px;
   height: 24px;
 }
@@ -2883,19 +2860,19 @@ div.ql-toolbar .ql-format-button.ql-underline:hover {
 }
 div.ql-toolbar .ql-format-button.ql-link {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -72px -24px;
+  background-position: -72px -48px;
   width: 24px;
   height: 24px;
 }
 div.ql-toolbar .ql-format-button.ql-link.ql-active {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -72px 0px;
+  background-position: -72px -24px;
   width: 24px;
   height: 24px;
 }
 div.ql-toolbar .ql-format-button.ql-link:hover {
   background-image: url(../images/visuals.sprites.png);
-  background-position: -72px 0px;
+  background-position: -72px -24px;
   width: 24px;
   height: 24px;
 }
@@ -3046,6 +3023,10 @@ div.ql-toolbar .ql-format-button.ql-link:hover {
     transform: rotate(2deg);
   }
 }
+.visual-sandbox {
+  border: none;
+  overflow: hidden;
+}
 .streamGraph .axis path,
 .streamGraph .axis line {
   fill: none;
@@ -3055,4 +3036,77 @@ div.ql-toolbar .ql-format-button.ql-link:hover {
 .streamGraph .axis text {
   font-family: sans-serif;
   font-size: 11px;
+}
+.radarChart .axis path,
+.radarChart .axis line {
+  fill: none;
+  stroke: grey;
+  stroke-width: 1px;
+}
+.radarChart .axis text {
+  font-family: sans-serif;
+  font-size: 11px;
+}
+.radarChart .segments path,
+.radarChart .segments line {
+  fill: none;
+  stroke: grey;
+  stroke-opacity: 0.75;
+  stroke-width: 0.3px;
+}
+.dotPlot .axis path,
+.dotPlot .axis line {
+  fill: none;
+  stroke: black;
+  shape-rendering: crispEdges;
+}
+.dotPlot .axis text {
+  font-family: sans-serif;
+  font-size: 11px;
+}
+.sunBurstPercentage {
+  font-weight: bold;
+  opacity: 0;
+}
+.sunBurstPercentageFixed {
+  font-weight: bold;
+  opacity: 0;
+}
+.histogram {
+  font-family: Tahoma,Verdana,Geneva,sans-serif;
+}
+.histogram .axis path,
+.histogram .legends path,
+.histogram .axis line,
+.histogram .legends line {
+  fill: none;
+  stroke: #777777;
+  shape-rendering: crispEdges;
+}
+.histogram .axis text,
+.histogram .legends text {
+  fill: #777777;
+  font-size: 11px;
+}
+.histogram .legends text {
+  font-size: 12px;
+  fill: #000;
+  text-anchor: middle;
+}
+.areaRangeChart {
+  font-family: Tahoma,Verdana,Geneva,sans-serif;
+}
+.areaRangeChart .axis path,
+.areaRangeChart .axis line {
+  fill: none;
+  stroke: #777777;
+  shape-rendering: crispEdges;
+}
+.areaRangeChart .axis text {
+  fill: #777777;
+  font-size: 11px;
+}
+.areaRangeChart .chart path,
+.areaRangeChart .chart line {
+  stroke-width: 1;
 }

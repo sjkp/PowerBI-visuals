@@ -45,12 +45,14 @@ module powerbi.data {
     export class QueryProjectionCollection {
         private items: QueryProjection[];
         private _activeProjectionRef: string;
+        private _showAll: boolean;
 
-        public constructor(items: QueryProjection[], activeProjectionRef?: string) {
+        public constructor(items: QueryProjection[], activeProjectionRef?: string, showAll?: boolean) {
             debug.assertValue(items, 'items');
 
             this.items = items;
             this._activeProjectionRef = activeProjectionRef;
+            this._showAll = showAll;
         }
 
         /** Returns all projections in a mutable array. */
@@ -68,9 +70,17 @@ module powerbi.data {
                 return;
             this._activeProjectionRef = value;
         }
+
+        public get showAll(): boolean {
+            return this._showAll;
+        }
+
+        public set showAll(value: boolean) {
+            this._showAll = value;
+        }
         
         public clone(): QueryProjectionCollection {
-            return new QueryProjectionCollection(_.clone(this.items), this._activeProjectionRef);
+            return new QueryProjectionCollection(_.clone(this.items), this._activeProjectionRef, this._showAll);
         }
     }
 

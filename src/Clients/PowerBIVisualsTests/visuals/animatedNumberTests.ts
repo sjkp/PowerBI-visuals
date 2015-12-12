@@ -42,7 +42,7 @@ module powerbitests {
     });
 
     describe("AnimatedNumber DOM tests", () => {
-        var dataViewBuilder: DataViewBuilder;
+        let dataViewBuilder: DataViewBuilder;
 
         beforeEach(() => {
             dataViewBuilder = new DataViewBuilder();

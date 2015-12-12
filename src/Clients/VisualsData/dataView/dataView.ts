@@ -35,6 +35,7 @@ module powerbi {
         tree?: DataViewTree;
         table?: DataViewTable;
         matrix?: DataViewMatrix;
+        scriptResult?: DataViewScriptResultData;
     }
 
     export interface DataViewMetadata {
@@ -75,8 +76,16 @@ module powerbi {
         /** The name of the containing group. */
         groupName?: string;
 
-        /** The name of the statusGraphic to use to convert the numeric Kpi value into the visual representation.*/
-        kpiStatusGraphic?: string;
+        /** The sort direction of this column. */
+        sort?: SortDirection;
+
+        /** The KPI metadata to use to convert a numeric status value into its visual representation. */
+        kpi?: DataViewKpiColumnMetadata;
+    }
+
+    export const enum SortDirection {
+        Ascending = 1,
+        Descending = 2,
     }
 
     export interface DataViewSegmentMetadata {
@@ -150,6 +159,9 @@ module powerbi {
         children?: DataViewTreeNode[];
         identity?: DataViewScopeIdentity;
 
+        /** The data repetition objects. */
+        objects?: DataViewObjects;
+
         /** The set of expressions that define the identity for the child nodes.  This must match items in the DataViewScopeIdentity of those nodes. */
         childIdentityFields?: data.SQExpr[];
     }
@@ -217,5 +229,16 @@ module powerbi {
 
     export interface DataViewHierarchyLevel {
         sources: DataViewMetadataColumn[];
+    }
+
+    export interface DataViewKpiColumnMetadata {
+        graphic: string;
+        // When false, five state KPIs are in: { -2, -1, 0, 1, 2 }. 
+        // When true, five state KPIs are in: { -1, -0.5, 0, 0.5, 1 }.
+        normalizedFiveStateKpiRange?: boolean;
+    }
+
+    export interface DataViewScriptResultData {
+        imageBase64: string;
     }
 }

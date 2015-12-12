@@ -157,7 +157,7 @@ module powerbitests {
         });
 
         it("single select - when host in drill down", (done) => {
-            var mockHostServices = powerbitests.mocks.createVisualHostServices();
+            let mockHostServices = powerbitests.mocks.createVisualHostServices();
             let sm = new SelectionManager({ hostServices: mockHostServices });
             let selectionId = SelectionIdBuilder.builder()
                 .withCategory(categoryColumn, 0)

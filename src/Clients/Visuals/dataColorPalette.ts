@@ -94,6 +94,10 @@ module powerbi.visuals {
             return this.basePickerColors;
         }
 
+        public getAllColors(): IColorInfo[] {
+            return this.colors;
+        }
+
         private createScale(): IColorScale {
             return D3ColorScale.createFromColors(this.colors);
         }
@@ -118,6 +122,10 @@ module powerbi.visuals {
 
         public clone(): IColorScale {
             return new D3ColorScale(this.scale.copy());
+        }
+
+        public getDomain(): any[]{
+            return this.scale.domain();
         }
 
         public static createFromColors(colors: IColorInfo[]): D3ColorScale {
@@ -192,7 +200,7 @@ module powerbi.visuals {
                     for (let j = 0, jlen = baseColors.length; j < jlen; ++j) {
                         ThemeManager.defaultTheme.push(
                             {
-                                value: jsCommon.color.rotate(baseColors[j].value, i / ThemeManager.colorSectorCount)
+                                value: jsCommon.Color.rotate(baseColors[j].value, i / ThemeManager.colorSectorCount)
                             });
                     }
                 }

@@ -32,7 +32,7 @@ module powerbitests {
     import Selector = powerbi.data.Selector;
 
     describe("SelectionIdBuilder tests", () => {
-        var categoryA = mocks.dataViewScopeIdentity("A");
+        let categoryA = mocks.dataViewScopeIdentity("A");
         let categoryQueryName = "categoryA";
         let categoryColumn: powerbi.DataViewCategoryColumn = {
             source: {
@@ -42,7 +42,7 @@ module powerbitests {
             identity: [categoryA],
             values: []
         };
-        var seriesa = mocks.dataViewScopeIdentity("a");
+        let seriesa = mocks.dataViewScopeIdentity("a");
         let seriesQueryName = "seriesA";
 
         let seriesColumn: any = {
@@ -54,12 +54,12 @@ module powerbitests {
 
         let valueColumn: any = { identity: seriesa };
 
-        var measure1 = "measure1";
+        let measure1 = "measure1";
 
-        var idA = SelectionId.createWithId(categoryA);
-        var ida = SelectionId.createWithId(seriesa);
-        var id1 = SelectionId.createWithMeasure(measure1);
-        var idAll = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
+        let idA = SelectionId.createWithId(categoryA);
+        let ida = SelectionId.createWithId(seriesa);
+        let id1 = SelectionId.createWithMeasure(measure1);
+        let idAll = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
 
         it("SelectionIdBuilder -- empty", () => {
             let id = SelectionIdBuilder.builder().createSelectionId();
@@ -118,25 +118,25 @@ module powerbitests {
     });
 
     describe("SelectionId tests", () => {
-        var categoryA = mocks.dataViewScopeIdentity("A");
-        var categoryB = mocks.dataViewScopeIdentity("B");
-        var seriesa = mocks.dataViewScopeIdentity("a");
-        var seriesb = mocks.dataViewScopeIdentity("b");
-        var measure1 = "measure1";
-        var measure2 = "measure2";
+        let categoryA = mocks.dataViewScopeIdentity("A");
+        let categoryB = mocks.dataViewScopeIdentity("B");
+        let seriesa = mocks.dataViewScopeIdentity("a");
+        let seriesb = mocks.dataViewScopeIdentity("b");
+        let measure1 = "measure1";
+        let measure2 = "measure2";
 
-        var idA = SelectionId.createWithId(categoryA);
-        var idB = SelectionId.createWithId(categoryB);
-        var ida = SelectionId.createWithId(seriesa);
-        var idb = SelectionId.createWithId(seriesb);
-        var id1 = SelectionId.createWithMeasure(measure1);
-        var id2 = SelectionId.createWithMeasure(measure2);
-        var idAa = SelectionId.createWithIds(categoryA, seriesa);
-        var idAb = SelectionId.createWithIds(categoryA, seriesb);
-        var idBa = SelectionId.createWithIds(categoryB, seriesa);
-        var idA1 = SelectionId.createWithIdAndMeasure(categoryA, measure1);
-        var idA2 = SelectionId.createWithIdAndMeasure(categoryA, measure2);
-        var idB1 = SelectionId.createWithIdAndMeasure(categoryB, measure1);
+        let idA = SelectionId.createWithId(categoryA);
+        let idB = SelectionId.createWithId(categoryB);
+        let ida = SelectionId.createWithId(seriesa);
+        let idb = SelectionId.createWithId(seriesb);
+        let id1 = SelectionId.createWithMeasure(measure1);
+        let id2 = SelectionId.createWithMeasure(measure2);
+        let idAa = SelectionId.createWithIds(categoryA, seriesa);
+        let idAb = SelectionId.createWithIds(categoryA, seriesb);
+        let idBa = SelectionId.createWithIds(categoryB, seriesa);
+        let idA1 = SelectionId.createWithIdAndMeasure(categoryA, measure1);
+        let idA2 = SelectionId.createWithIdAndMeasure(categoryA, measure2);
+        let idB1 = SelectionId.createWithIdAndMeasure(categoryB, measure1);
 
         it("SelectionId equals single identifier", () => {
             expect(idA.equals(SelectionId.createWithId(categoryA))).toBe(true);
@@ -204,37 +204,37 @@ module powerbitests {
         });
 
         it("SelectionId createNull", () => {
-            var selectionId = SelectionId.createNull();
+            let selectionId = SelectionId.createNull();
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: null, highlight: false }));
         });
 
         it("SelectionId createWithId", () => {
-            var selectionId = SelectionId.createWithId(categoryA);
+            let selectionId = SelectionId.createWithId(categoryA);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA] }), highlight: false }));
         });
 
         it("SelectionId createWithMeasure", () => {
-            var selectionId = SelectionId.createWithMeasure(measure1);
+            let selectionId = SelectionId.createWithMeasure(measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ metadata: measure1 }), highlight: false }));
         });
 
         it("SelectionId createWithIdAndMeasure", () => {
-            var selectionId = SelectionId.createWithIdAndMeasure(categoryA, measure1);
+            let selectionId = SelectionId.createWithIdAndMeasure(categoryA, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA], metadata: measure1 }), highlight: false }));
         });
 
         it("SelectionId createWithIds", () => {
-            var selectionId = SelectionId.createWithIds(categoryA, seriesa);
+            let selectionId = SelectionId.createWithIds(categoryA, seriesa);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA, seriesa] }), highlight: false }));
         });
 
         it("SelectionId createWithIds: with duplicates", () => {
-            var selectionId = SelectionId.createWithIds(categoryA, categoryA);
+            let selectionId = SelectionId.createWithIds(categoryA, categoryA);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA] }), highlight: false }));
         });
 
         it("SelectionId createWithIdsAndMeasure", () => {
-            var selectionId = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
+            let selectionId = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA, seriesa], metadata: measure1 }), highlight: false }));
             selectionId = SelectionId.createWithIdsAndMeasure(undefined, seriesa, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [seriesa], metadata: measure1 }), highlight: false }));
@@ -245,25 +245,25 @@ module powerbitests {
         });
 
         it("SelectionId createWithIdsAndMeasure: with duplicates", () => {
-            var selectionId = SelectionId.createWithIdsAndMeasure(categoryA, categoryA, measure1);
+            let selectionId = SelectionId.createWithIdsAndMeasure(categoryA, categoryA, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA], metadata: measure1 }), highlight: false }));
         });
 
         it("SelectionId createWithHighlight", () => {
-            var selectionId = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
+            let selectionId = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA, seriesa], metadata: measure1 }), highlight: false }));
-            var selectionIdWithHighlight = SelectionId.createWithHighlight(selectionId);
+            let selectionIdWithHighlight = SelectionId.createWithHighlight(selectionId);
             expect(selectionIdWithHighlight.getSelector()).toBe(selectionId.getSelector());
             expect(selectionIdWithHighlight.getKey()).not.toBe(selectionId.getKey());
         });
 
         it("SelectionId creates using undefined", () => {
-            var nullKey = SelectionId.createNull().getKey();
-            var ids = SelectionId.createWithIdAndMeasure(undefined, undefined);
+            let nullKey = SelectionId.createNull().getKey();
+            let ids = SelectionId.createWithIdAndMeasure(undefined, undefined);
             expect(ids.getKey()).toEqual(nullKey);
-            var idAndMeasure = SelectionId.createWithIdAndMeasure(undefined, undefined);
+            let idAndMeasure = SelectionId.createWithIdAndMeasure(undefined, undefined);
             expect(idAndMeasure.getKey()).toEqual(nullKey);
-            var idsAndMeasure = SelectionId.createWithIdsAndMeasure(undefined, undefined, undefined);
+            let idsAndMeasure = SelectionId.createWithIdsAndMeasure(undefined, undefined, undefined);
             expect(idsAndMeasure.getKey()).toEqual(nullKey);
         });
     });

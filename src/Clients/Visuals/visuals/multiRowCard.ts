@@ -28,6 +28,8 @@
 
 module powerbi.visuals {
     import getKpiImageMetadata = powerbi.visuals.KpiUtil.getKpiImageMetadata;
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
 
     export interface CardItemData {
         caption: string;
@@ -98,48 +100,19 @@ module powerbi.visuals {
             objectName: 'general',
             propertyName: 'formatString',
         };
+
         private static multiRowCardClass = 'multiRowCard';
-        private static Card: ClassAndSelector = {
-            class: 'card',
-            selector: '.card'
-        };
-
-        private static Title: ClassAndSelector = {
-            class: 'title',
-            selector: '.title'
-        };
-
-        private static ImageTitle: ClassAndSelector = {
-            class: 'title',
-            selector: MultiRowCard.Title.selector + ' img'
-        };
-
-        private static KPITitle: ClassAndSelector = {
-            class: 'kpiTitle',
-            selector: MultiRowCard.Title.selector + ' kpiTitle'
-        };
-
-        private static CardItemContainer: ClassAndSelector = {
-            class: 'cardItemContainer',
-            selector: '.cardItemContainer'
-        };
-
-        private static Caption: ClassAndSelector = {
-            class: 'caption',
-            selector: '.caption'
-        };
-
-        private static ImageCaption: ClassAndSelector = {
-            class: '',
-            selector: MultiRowCard.Caption.selector + ' img'
-        };
-
-        private static Details: ClassAndSelector = {
-            class: 'details',
-            selector: '.details'
-        };
+        private static Card: ClassAndSelector = createClassAndSelector('card');
+        private static Title: ClassAndSelector = createClassAndSelector('title');
+        private static CardItemContainer: ClassAndSelector = createClassAndSelector('cardItemContainer');
+        private static Caption: ClassAndSelector = createClassAndSelector('caption');
+        private static Details: ClassAndSelector = createClassAndSelector('details');
         private static TitleUrlSelector: string = MultiRowCard.Title.selector + ' a';
         private static CaptionUrlSelector: string = MultiRowCard.Caption.selector + ' a';
+        private static TitleImageSelector: string = MultiRowCard.Title.selector + ' img';
+        private static CaptionImageSelector: string = MultiRowCard.Caption.selector + ' img';
+        private static KPITitle: ClassAndSelector = createClassAndSelector('kpiTitle');
+
         /**
          * Cards have specific styling so defined inline styles and also to support theming and improve performance.
          */
@@ -227,7 +200,7 @@ module powerbi.visuals {
                 this.isInteractivityOverflowHidden = true;
 
             this.settings = $.extend(true, {}, MultiRowCard.DefaultStyle);
-            var multiRowCardDiv = this.element = $('<div/>')
+            let multiRowCardDiv = this.element = $('<div/>')
                 .addClass(MultiRowCard.multiRowCardClass)
                 .css({
                     'height': getPixelString(viewport.height),
@@ -241,11 +214,11 @@ module powerbi.visuals {
 
             let dataViews = options.dataViews;
             if (dataViews && dataViews.length > 0) {
-                var dataView = this.dataView = dataViews[0];
-                var columnMetadata: DataViewMetadataColumn[] = dataView.table.columns;
-                var tableRows: any[][] = dataView.table.rows;
-                var resetScrollbarPosition = options.operationKind !== VisualDataChangeOperationKind.Append;
-                var dataModel = this.dataModel = MultiRowCard.converter(dataView, columnMetadata.length, tableRows.length, this.isInteractivityOverflowHidden);
+                let dataView = this.dataView = dataViews[0];
+                let columnMetadata: DataViewMetadataColumn[] = dataView.table.columns;
+                let tableRows: any[][] = dataView.table.rows;
+                let resetScrollbarPosition = options.operationKind !== VisualDataChangeOperationKind.Append;
+                let dataModel = this.dataModel = MultiRowCard.converter(dataView, columnMetadata.length, tableRows.length, this.isInteractivityOverflowHidden);
                 this.setCardDimensions();
                 this.listView.data(dataModel, (d: CardData) => dataModel.indexOf(d), resetScrollbarPosition);
             }
@@ -254,15 +227,15 @@ module powerbi.visuals {
         }
 
         public onResizing(viewport: IViewport): void {
-            var heightNotChanged = (this.currentViewport.height === viewport.height);
+            let heightNotChanged = (this.currentViewport.height === viewport.height);
             this.currentViewport = viewport;
             this.element.css('height', getPixelString(viewport.height));
             if (!this.dataView)
                 return;
 
-            var previousMaxColPerRow = this.maxColPerRow;
+            let previousMaxColPerRow = this.maxColPerRow;
             this.maxColPerRow = this.getMaxColPerRow();
-            var widthNotChanged = (previousMaxColPerRow === this.maxColPerRow);
+            let widthNotChanged = (previousMaxColPerRow === this.maxColPerRow);
             if (heightNotChanged && widthNotChanged)
                 return;
 
@@ -273,7 +246,7 @@ module powerbi.visuals {
             let details: CardData[] = [];
             let tableDataRows = dataView.table.rows;
             let columnMetadata: DataViewMetadataColumn[] = dataView.table.columns;
-
+            
             for (let i = 0, len = maxCards; i < len; i++) {
                 let row = tableDataRows[i];
                 let isValuePromoted: boolean = undefined;
@@ -282,7 +255,7 @@ module powerbi.visuals {
                 let showTitleAsImage: boolean = false;
                 let showTitleAsKPI: boolean = false;
                 let cardData: CardItemData[] = [];
-                for (var j = 0; j < columnCount; j++) {
+                for (let j = 0; j < columnCount; j++) {
                     let column = columnMetadata[j];
 
                     let statusGraphicInfo = getKpiImageMetadata(column, row[j]);
@@ -290,7 +263,7 @@ module powerbi.visuals {
                     let statusGraphic: string;
 
                     if (statusGraphicInfo) {
-                        columnCaption = statusGraphicInfo.caption;
+                        columnCaption = statusGraphicInfo.class;
                         statusGraphic = statusGraphicInfo.statusGraphic;
                     }
 
@@ -416,14 +389,14 @@ module powerbi.visuals {
                         .text((d: CardData) => d.title);
 
                     rowSelection
-                        .selectAll(MultiRowCard.ImageTitle.selector)
+                        .selectAll(MultiRowCard.TitleImageSelector)
                         .attr('src', (d: CardData) => d.title);
                     setImageStyle(rowSelection.selectAll(MultiRowCard.Title.selector), style.imageTitle);
 
                     rowSelection
                         .selectAll(MultiRowCard.KPITitle.selector)
                         .each(function (d: CardData) {
-                            var element = d3.select(this);
+                        let element = d3.select(this);
                             element.classed(d.title);
                         });
                 }
@@ -439,7 +412,7 @@ module powerbi.visuals {
                     });
 
                 cardSelection
-                    .selectAll(MultiRowCard.ImageCaption.selector)
+                    .selectAll(MultiRowCard.CaptionImageSelector)
                     .attr('src', (d: CardItemData) => d.caption)
                     .style(style.imageCaption);
 
@@ -491,11 +464,11 @@ module powerbi.visuals {
         }
 
         private getMaxColPerRow(): number {
-            var rowWidth = this.currentViewport.width;
-            var minColumnWidth = this.getStyle().cardItemContainer.minWidth;
-            var columnCount = this.dataView.metadata.columns.length;
+            let rowWidth = this.currentViewport.width;
+            let minColumnWidth = this.getStyle().cardItemContainer.minWidth;
+            let columnCount = this.dataView.metadata.columns.length;
             //atleast one column fits in a row
-            var maxColumnPerRow = Math.floor(rowWidth / minColumnWidth) || 1;
+            let maxColumnPerRow = Math.floor(rowWidth / minColumnWidth) || 1;
             return Math.min(columnCount, maxColumnPerRow);
         }
 
@@ -504,7 +477,7 @@ module powerbi.visuals {
         }
 
         private getStyle(): MultiRowCardStyle {
-            var defaultStyle = this.settings;
+            let defaultStyle = this.settings;
             if (!this.isInteractivityOverflowHidden)
                 return $.extend(true, {}, defaultStyle);
 
@@ -520,25 +493,25 @@ module powerbi.visuals {
 
         private hideColumn(fieldIndex: number): boolean {
             //calculate the number of items apearing in the same row as the columnIndex
-            var rowIndex = this.getRowIndex(fieldIndex);
+            let rowIndex = this.getRowIndex(fieldIndex);
 
             // when interactivity is disabled (pinned tile), don't wrap the row
-            var maxRows = this.getStyle().card.maxRows;
+            let maxRows = this.getStyle().card.maxRows;
             return (maxRows && rowIndex >= maxRows);
         }
 
         private getColumnWidth(fieldIndex: number, columnCount: number): string {
             //atleast one column fits in a row
-            var maxColumnPerRow = this.getMaxColPerRow();
+            let maxColumnPerRow = this.getMaxColPerRow();
             if (maxColumnPerRow >= columnCount)
                 //all columns fit in the same row, divide the space equaly
                 return (100.0 / columnCount) + '%';
 
             //calculate the number of items apearing in the same row as the columnIndex
-            var rowIndex = this.getRowIndex(fieldIndex);
+            let rowIndex = this.getRowIndex(fieldIndex);
 
-            var totalRows = Math.ceil((columnCount * 1.0) / maxColumnPerRow);
-            var lastRowCount = columnCount % maxColumnPerRow;
+            let totalRows = Math.ceil((columnCount * 1.0) / maxColumnPerRow);
+            let lastRowCount = columnCount % maxColumnPerRow;
             if (rowIndex < totalRows || lastRowCount === 0)
                 // items is not on the last row or last row contains max columns allowed per row
                 return (100.0 / maxColumnPerRow) + '%';
@@ -550,7 +523,7 @@ module powerbi.visuals {
         private isLastRowItem(fieldIndex: number, columnCount: number) {
             if (fieldIndex + 1 === columnCount)
                 return true;
-            var maxColumnPerRow = this.getMaxColPerRow();
+            let maxColumnPerRow = this.getMaxColPerRow();
             if (maxColumnPerRow - (fieldIndex % maxColumnPerRow) === 1)
                 return true;
 
@@ -566,7 +539,7 @@ module powerbi.visuals {
         private setCardDimensions(): void {
             this.cardHasTitle = false;
 
-            var dataModel = this.dataModel;
+            let dataModel = this.dataModel;
 
             if (!this.isInteractivityOverflowHidden && dataModel && dataModel.length > 0) {
                 this.cardHasTitle = dataModel[0].title !== undefined;

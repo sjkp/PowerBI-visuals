@@ -39,6 +39,7 @@ declare module jsCommon {
          */
         const disabledAttributeOrValue: string;
         const readonlyAttributeOrValue: string;
+        const idAttribute: string;
         const styleAttribute: string;
         const hrefAttribute: string;
         const targetAttribute: string;
@@ -67,6 +68,7 @@ declare module jsCommon {
         const pasteEventName: string;
         const scrollEventName: string;
         const dropEventName: string;
+        const focusEventName: string;
         const focusInEventName: string;
         const focusOutEventName: string;
         const selectEventName: string;
@@ -137,10 +139,10 @@ declare module powerbi {
     }
 }
 declare module powerbi {
-    var build: any;
+    let build: any;
 }
 declare module powerbi {
-    var CategoryTypes: {
+    const CategoryTypes: {
         Address: string;
         City: string;
         Continent: string;
@@ -279,173 +281,22 @@ declare module InJs {
         function iframe(): JQuery;
     }
 }
-declare module jsCommon {
-    module color {
-        function rotate(rgbString: string, rotateFactor: number): string;
-        function parseRgb(rgbString: string): RgbColor;
-        function rgbToHexString(rgbColor: RgbColor): string;
-        function darken(color: RgbColor, diff: number): RgbColor;
-        function rgbWithAlphaString(color: RgbColor, a: number): string;
-        function rgbString(color: RgbColor): string;
-        function rgbaString(r: number, g: number, b: number, a: number): string;
-        function rgbStringToHexString(rgb: string): string;
-        function rgbaStringToHexString(rgba: string): string;
-        interface RgbColor {
-            R: number;
-            G: number;
-            B: number;
-        }
-    }
-}
-declare module jsCommon {
-    /**
-     * CSS constants.
-     */
-    module CssConstants {
-        const styleAttribute: string;
-        const pixelUnits: string;
-        const heightProperty: string;
-        const widthProperty: string;
-        const topProperty: string;
-        const bottomProperty: string;
-        const leftProperty: string;
-        const rightProperty: string;
-        const marginTopProperty: string;
-        const marginLeftProperty: string;
-        const displayProperty: string;
-        const backgroundProperty: string;
-        const backgroundColorProperty: string;
-        const backgroundRepeatProperty: string;
-        const backgroundSizeProperty: string;
-        const backgroundImageProperty: string;
-        const textShadowProperty: string;
-        const borderTopWidthProperty: string;
-        const borderBottomWidthProperty: string;
-        const borderLeftWidthProperty: string;
-        const borderRightWidthProperty: string;
-        const fontWeightProperty: string;
-        const colorProperty: string;
-        const opacityProperty: string;
-        const paddingLeftProperty: string;
-        const paddingRightProperty: string;
-        const positionProperty: string;
-        const maxWidthProperty: string;
-        const minWidthProperty: string;
-        const overflowProperty: string;
-        const overflowXProperty: string;
-        const overflowYProperty: string;
-        const transformProperty: string;
-        const webkitTransformProperty: string;
-        const cursorProperty: string;
-        const visibilityProperty: string;
-        const absoluteValue: string;
-        const zeroPixelValue: string;
-        const autoValue: string;
-        const hiddenValue: string;
-        const noneValue: string;
-        const blockValue: string;
-        const inlineBlockValue: string;
-        const transparentValue: string;
-        const boldValue: string;
-        const visibleValue: string;
-        const tableRowValue: string;
-        const coverValue: string;
-        const pointerValue: string;
-    }
-    interface ExtendedCSSProperties extends CSSStyleDeclaration {
-        scrollbarShadowColor: string;
-        scrollbarHighlightColor: string;
-        layoutGridChar: string;
-        layoutGridType: string;
-        textAutospace: string;
-        textKashidaSpace: string;
-        writingMode: string;
-        scrollbarFaceColor: string;
-        backgroundPositionY: string;
-        lineBreak: string;
-        imeMode: string;
-        msBlockProgression: string;
-        layoutGridLine: string;
-        scrollbarBaseColor: string;
-        layoutGrid: string;
-        layoutFlow: string;
-        textKashida: string;
-        filter: string;
-        zoom: string;
-        scrollbarArrowColor: string;
-        behavior: string;
-        backgroundPositionX: string;
-        accelerator: string;
-        layoutGridMode: string;
-        textJustifyTrim: string;
-        scrollbar3dLightColor: string;
-        msInterpolationMode: string;
-        scrollbarTrackColor: string;
-        scrollbarDarkShadowColor: string;
-        styleFloat: string;
-        getAttribute(attributeName: string, flags?: number): any;
-        setAttribute(attributeName: string, AttributeValue: any, flags?: number): void;
-        removeAttribute(attributeName: string, flags?: number): boolean;
-        pixelWidth: number;
-        posHeight: number;
-        posLeft: number;
-        pixelTop: number;
-        pixelBottom: number;
-        textDecorationNone: boolean;
-        pixelLeft: number;
-        posTop: number;
-        posBottom: number;
-        textDecorationOverline: boolean;
-        posWidth: number;
-        textDecorationLineThrough: boolean;
-        pixelHeight: number;
-        textDecorationBlink: boolean;
-        posRight: number;
-        pixelRight: number;
-        textDecorationUnderline: boolean;
-        webkitTransform: string;
-    }
-}
-/**
- * Defines a Debug object. Calls to any functions in this object removed by the minifier.
- * The functions within this class are not minified away, so we use the preprocessor-style
- * comments to have the minifier remove those as well.
- */
-declare module debug {
-    var assertFailFunction: {
-        (message: string): void;
-    };
-    /**
-     * Asserts that the condition is true, fails otherwise.
-     */
-    function assert(condition: boolean, message: string): void;
-    /**
-     * Asserts that the value is neither null nor undefined, fails otherwise.
-     */
-    function assertValue<T>(value: T, message: string): void;
-    /**
-     * Makes no assertion on the given value.
-     * This is documentation/placeholder that a value is possibly null or undefined (unlike assertValue).
-     */
-    function assertAnyValue<T>(value: T, message: string): void;
-    function assertFail(message: string): void;
-}
 declare module powerbi {
     /**
      * Module Double contains a set of constants and precision based utility methods
      * for dealing with doubles and their decimal garbage in the javascript.
      */
     module Double {
-        var MIN_VALUE: number;
-        var MAX_VALUE: number;
-        var MIN_EXP: number;
-        var MAX_EXP: number;
-        var EPSILON: number;
-        var DEFAULT_PRECISION: number;
-        var DEFAULT_PRECISION_IN_DECIMAL_DIGITS: number;
-        var LOG_E_10: number;
-        var POSITIVE_POWERS: number[];
-        var NEGATIVE_POWERS: number[];
+        const MIN_VALUE: number;
+        const MAX_VALUE: number;
+        const MIN_EXP: number;
+        const MAX_EXP: number;
+        const EPSILON: number;
+        const DEFAULT_PRECISION: number;
+        const DEFAULT_PRECISION_IN_DECIMAL_DIGITS: number;
+        const LOG_E_10: number;
+        const POSITIVE_POWERS: number[];
+        const NEGATIVE_POWERS: number[];
         /**
          * Returns powers of 10.
          * Unlike the Math.pow this function produces no decimal garbage.
@@ -567,7 +418,174 @@ declare module powerbi {
          * @param value Value to be checked.
          */
         function isInteger(value: number): boolean;
+        /**
+         * Dividing by increment will give us count of increments
+         * Round out the rough edges into even integer
+         * Multiply back by increment to get rounded value
+         * e.g. Rounder.toIncrement(0.647291, 0.05) => 0.65
+         * @param value - value to round to nearest increment
+         * @param increment - smallest increment to round toward
+         */
+        function toIncrement(value: number, increment: number): number;
     }
+}
+declare module jsCommon {
+    module Color {
+        function rotate(rgbString: string, rotateFactor: number): string;
+        function normalizeToHexString(color: string): string;
+        function parseColorString(color: string): RgbColor;
+        function darken(color: RgbColor, diff: number): RgbColor;
+        function rgbString(color: RgbColor): string;
+        function hexString(color: RgbColor): string;
+        interface RgbColor {
+            R: number;
+            G: number;
+            B: number;
+            A?: number;
+        }
+    }
+}
+declare module jsCommon {
+    /**
+     * CSS constants.
+     */
+    module CssConstants {
+        interface ClassAndSelector {
+            class: string;
+            selector: string;
+        }
+        function createClassAndSelector(className: string): ClassAndSelector;
+        const styleAttribute: string;
+        const pixelUnits: string;
+        const heightProperty: string;
+        const widthProperty: string;
+        const topProperty: string;
+        const bottomProperty: string;
+        const leftProperty: string;
+        const rightProperty: string;
+        const marginTopProperty: string;
+        const marginLeftProperty: string;
+        const displayProperty: string;
+        const backgroundProperty: string;
+        const backgroundColorProperty: string;
+        const backgroundRepeatProperty: string;
+        const backgroundSizeProperty: string;
+        const backgroundImageProperty: string;
+        const textShadowProperty: string;
+        const borderTopWidthProperty: string;
+        const borderBottomWidthProperty: string;
+        const borderLeftWidthProperty: string;
+        const borderRightWidthProperty: string;
+        const fontWeightProperty: string;
+        const colorProperty: string;
+        const opacityProperty: string;
+        const paddingLeftProperty: string;
+        const paddingRightProperty: string;
+        const positionProperty: string;
+        const maxWidthProperty: string;
+        const minWidthProperty: string;
+        const overflowProperty: string;
+        const overflowXProperty: string;
+        const overflowYProperty: string;
+        const transformProperty: string;
+        const webkitTransformProperty: string;
+        const cursorProperty: string;
+        const visibilityProperty: string;
+        const absoluteValue: string;
+        const zeroPixelValue: string;
+        const autoValue: string;
+        const hiddenValue: string;
+        const noneValue: string;
+        const blockValue: string;
+        const inlineBlockValue: string;
+        const transparentValue: string;
+        const boldValue: string;
+        const visibleValue: string;
+        const tableRowValue: string;
+        const coverValue: string;
+        const pointerValue: string;
+    }
+    interface ExtendedCSSProperties extends CSSStyleDeclaration {
+        scrollbarShadowColor: string;
+        scrollbarHighlightColor: string;
+        layoutGridChar: string;
+        layoutGridType: string;
+        textAutospace: string;
+        textKashidaSpace: string;
+        writingMode: string;
+        scrollbarFaceColor: string;
+        backgroundPositionY: string;
+        lineBreak: string;
+        imeMode: string;
+        msBlockProgression: string;
+        layoutGridLine: string;
+        scrollbarBaseColor: string;
+        layoutGrid: string;
+        layoutFlow: string;
+        textKashida: string;
+        filter: string;
+        zoom: string;
+        scrollbarArrowColor: string;
+        behavior: string;
+        backgroundPositionX: string;
+        accelerator: string;
+        layoutGridMode: string;
+        textJustifyTrim: string;
+        scrollbar3dLightColor: string;
+        msInterpolationMode: string;
+        scrollbarTrackColor: string;
+        scrollbarDarkShadowColor: string;
+        styleFloat: string;
+        getAttribute(attributeName: string, flags?: number): any;
+        setAttribute(attributeName: string, AttributeValue: any, flags?: number): void;
+        removeAttribute(attributeName: string, flags?: number): boolean;
+        pixelWidth: number;
+        posHeight: number;
+        posLeft: number;
+        pixelTop: number;
+        pixelBottom: number;
+        textDecorationNone: boolean;
+        pixelLeft: number;
+        posTop: number;
+        posBottom: number;
+        textDecorationOverline: boolean;
+        posWidth: number;
+        textDecorationLineThrough: boolean;
+        pixelHeight: number;
+        textDecorationBlink: boolean;
+        posRight: number;
+        pixelRight: number;
+        textDecorationUnderline: boolean;
+        webkitTransform: string;
+    }
+}
+/**
+ * Defines a Debug object. Calls to any functions in this object removed by the minifier.
+ * The functions within this class are not minified away, so we use the preprocessor-style
+ * comments to have the minifier remove those as well.
+ */
+declare module debug {
+    let assertFailFunction: {
+        (message: string): void;
+    };
+    /**
+     * Asserts that the condition is true, fails otherwise.
+     */
+    function assert(condition: boolean, message: string): void;
+    /**
+     * Asserts that the value is neither null nor undefined, fails otherwise.
+     */
+    function assertValue<T>(value: T, message: string): void;
+    /**
+     * Asserts that the value is neither null nor undefined, and has a length property that returns greater than zero, fails otherwise.
+     */
+    function assertNonEmpty<T>(value: T[], message: string): void;
+    /**
+     * Makes no assertion on the given value.
+     * This is documentation/placeholder that a value is possibly null or undefined (unlike assertValue).
+     */
+    function assertAnyValue<T>(value: T, message: string): void;
+    function assertFail(message: string): void;
 }
 declare module powerbi {
     interface DragPayload {
@@ -619,8 +637,8 @@ declare module jsCommon {
      * Represents a lazily instantiated value.
      */
     class Lazy<T> {
-        private _value;
-        private _factoryMethod;
+        private value;
+        private factoryMethod;
         constructor(factoryMethod: () => T);
         getValue(): T;
     }
@@ -660,6 +678,15 @@ declare module powerbi {
          * @param value Object representing the promise result.
          */
         resolve<TSuccess>(value?: TSuccess): IPromise2<TSuccess, any>;
+        /**
+         * Combines multiple promises into a single promise that is resolved when all of the input promises are resolved.
+         */
+        all(promises: IPromise2<any, any>[]): IPromise<any[]>;
+        /**
+         * Wraps an object that might be a value or a then-able promise into a promise.
+         * This is useful when you are dealing with an object that might or might not be a promise
+         */
+        when<T>(value: T | IPromise<T>): IPromise<T>;
     }
     /**
      * Represents an operation, to be completed (resolve/rejected) in the future.
@@ -737,6 +764,11 @@ declare module powerbi {
          */
         function inherit<T>(obj: T, extension?: (inherited: T) => void): T;
         /**
+         * Returns a new object with the provided obj as its prototype
+         * if, and only if, the prototype has not been previously set
+         */
+        function inheritSingle<T>(obj: T): T;
+        /**
          * Uses the provided callback function to selectively replace contents in the provided array.
          * @return A new array with those values overriden
          * or undefined if no overrides are necessary.
@@ -758,6 +790,7 @@ interface ErrorInfoKeyValuePair {
 interface ErrorDetails {
     message: string;
     additionalErrorInfo: ErrorInfoKeyValuePair[];
+    helpLink?: string;
 }
 declare module jsCommon {
     module Formatting {
@@ -808,7 +841,7 @@ declare module powerbi {
         private clearCache();
     }
     var localStorageService: IStorageService;
-    var ephemeralStorageService: IStorageService;
+    const ephemeralStorageService: IStorageService;
 }
 declare module powerbi {
     interface ITextMeasurer {
@@ -847,7 +880,7 @@ declare module powerbi {
          * This method estimates the height of the text with the given SVG text properties.
          * @param {TextProperties} textProperties - The text properties to use for text measurement
          */
-        function estimateSvgTextHeight(textProperties: TextProperties): number;
+        function estimateSvgTextHeight(textProperties: TextProperties, tightFightForNumeric?: boolean): number;
         /**
          * This method measures the width of the svgElement.
          * @param svgElement The SVGTextElement to be measured.
@@ -889,6 +922,15 @@ declare module powerbi {
          * @param linePadding - (optional) padding to add to line height
         */
         function wordBreak(textElement: SVGTextElement, maxWidth: number, maxHeight: number, linePadding?: number): void;
+        /**
+       * Word break textContent of span element into <span>s
+       * Each span will be the height of a single line of text
+       * @param textElement - the element containing the text to wrap
+       * @param maxWidth - the maximum width available
+       * @param maxHeight - the maximum height available (defaults to single line)
+       * @param linePadding - (optional) padding to add to line height
+      */
+        function wordBreakOverflowingText(textElement: any, maxWidth: number, maxHeight: number, linePadding?: number): void;
     }
 }
 declare module jsCommon {
@@ -958,6 +1000,7 @@ declare module jsCommon {
          */
         function equalIgnoreCase(a: string, b: string): boolean;
         function startsWithIgnoreCase(a: string, b: string): boolean;
+        function startsWith(a: string, b: string): boolean;
         /** Determines whether a string contains a specified substring (while ignoring case). */
         function containsIgnoreCase(source: string, substring: string): boolean;
         /**
@@ -1131,11 +1174,6 @@ declare module jsCommon {
          * @returns A string representation of a Guid.
          */
         static generateGuid(): string;
-        /**
-         * Generates a random 7 character string that is used as a connection group name.
-         * @returns A random connection group name.
-         */
-        static generateConnectionGroupName(): string;
         /**
          * Try extract a cookie from {@link document.cookie} identified by key.
          */
@@ -1334,6 +1372,14 @@ declare module jsCommon {
          */
         function hasFlag(value: number, flag: number): boolean;
         /**
+         * Sets a value of a flag without modifying any other flags.
+         */
+        function setFlag(value: number, flag: number): number;
+        /**
+         * Resets a value of a flag without modifying any other flags.
+         */
+        function resetFlag(value: number, flag: number): number;
+        /**
          * According to the TypeScript Handbook, this is safe to do.
          */
         function toString(enumType: any, value: number): string;
@@ -1384,8 +1430,21 @@ declare module jsCommon {
         function toString(px: number): string;
         /**
          * Converts point value (pt) to pixels
+         * Returns a string for font-size property
+         * e.g. fromPoint(8) => '24px'
          */
         function fromPoint(pt: number): string;
+        /**
+       * Converts point value (pt) to pixels
+       * Returns a number for font-size property
+       * e.g. fromPoint(8) => 24px
+       */
+        function fromPointToPixel(pt: number): number;
+        /**
+         * Converts pixel value (px) to pt
+         * e.g. toPoint(24) => 8
+         */
+        function toPoint(px: number): number;
     }
 }
 declare module jsCommon {
@@ -1440,7 +1499,7 @@ declare module jsCommon {
     function mapControlLoaded(): void;
     function waitForMapControlLoaded(): JQueryPromise<void>;
 }
-declare var globalMapControlLoaded: () => void;
+declare let globalMapControlLoaded: () => void;
 declare module jsCommon {
     interface ArrayIdItems<T> extends Array<T> {
         withId(id: number): T;
@@ -1514,6 +1573,7 @@ declare module jsCommon {
         function clear(array: any[]): void;
         function isUndefinedOrEmpty(array: any[]): boolean;
         function isArray(object: any): boolean;
+        function swap<T>(array: T[], firstIndex: number, secondIndex: number): void;
     }
 }
 declare module InJs {
@@ -1573,10 +1633,6 @@ declare module jsCommon {
     }
 }
 
-/// <reference path="../../Typedefs/jquery/jquery.d.ts" />
-/// <reference path="../../Typedefs/globalize/globalize.d.ts" />
-/// <reference path="../../Typedefs/lodash/lodash.d.ts" />
-/// <reference path="../../VisualsCommon/obj/VisualsCommon.d.ts" />
 declare module powerbi.data {
     /** Allows generic traversal and type discovery for a SQExpr tree. */
     interface ISQExprVisitorWithArg<T, TArg> {
@@ -1662,6 +1718,15 @@ declare module powerbi.data {
     }
 }
 declare module powerbi {
+    interface DefaultValueDefinition {
+        value: data.SQConstantExpr;
+        identityFieldsValues?: data.SQConstantExpr[];
+    }
+    interface DefaultValueTypeDescriptor {
+        defaultValue: boolean;
+    }
+}
+declare module powerbi {
     import DisplayNameGetter = powerbi.data.DisplayNameGetter;
     type EnumMemberValue = string | number;
     interface IEnumMember {
@@ -1676,59 +1741,54 @@ declare module powerbi {
     function createEnumType(members: IEnumMember[]): IEnumType;
 }
 declare module powerbi {
-    module axisScale {
-        const linear: string;
-        const log: string;
-        const type: IEnumType;
-    }
-}
-declare module powerbi {
-    module axisStyle {
-        const showBoth: string;
-        const showTitleOnly: string;
-        const showUnitOnly: string;
-        const type: IEnumType;
-    }
-}
-declare module powerbi {
-    module axisType {
-        const scalar: string;
-        const categorical: string;
-        const both: string;
-        const type: IEnumType;
-    }
-}
-declare module powerbi {
-    module basicShapeType {
-        const rectangle: string;
-        const oval: string;
-        const line: string;
-        const arrow: string;
-        const triangle: string;
-        const type: IEnumType;
-    }
-}
-declare module powerbi {
     import SQExpr = powerbi.data.SQExpr;
-    interface FillTypeDescriptor extends FillGeneric<boolean> {
-    }
-    interface FillDefinition extends FillGeneric<SQExpr> {
-    }
-    interface Fill extends FillGeneric<string> {
-    }
-    /** The "master" interface of a fill object.  Non-generic extensions define the type. */
-    interface FillGeneric<T> {
+    interface FillTypeDescriptor {
         solid?: {
-            color?: T;
+            color?: FillSolidColorTypeDescriptor;
         };
         gradient?: {
-            startColor?: T;
-            endColor?: T;
+            startColor?: boolean;
+            endColor?: boolean;
         };
         pattern?: {
-            patternKind?: T;
-            color?: T;
+            patternKind?: boolean;
+            color?: boolean;
         };
+    }
+    type FillSolidColorTypeDescriptor = boolean | FillSolidColorAdvancedTypeDescriptor;
+    interface FillSolidColorAdvancedTypeDescriptor {
+        /** Indicates whether the color value may be nullable, and a 'no fill' option is appropriate. */
+        nullable: boolean;
+    }
+    interface FillDefinition {
+        solid?: {
+            color?: SQExpr;
+        };
+        gradient?: {
+            startColor?: SQExpr;
+            endColor?: SQExpr;
+        };
+        pattern?: {
+            patternKind?: SQExpr;
+            color?: SQExpr;
+        };
+    }
+    interface Fill {
+        solid?: {
+            color?: string;
+        };
+        gradient?: {
+            startColor?: string;
+            endColor?: string;
+        };
+        pattern?: {
+            patternKind?: string;
+            color?: string;
+        };
+    }
+    module FillSolidColorTypeDescriptor {
+        /** Gets a value indicating whether the descriptor is nullable or not. */
+        function nullable(descriptor: FillSolidColorTypeDescriptor): boolean;
     }
 }
 declare module powerbi {
@@ -1766,38 +1826,17 @@ declare module powerbi {
     }
 }
 declare module powerbi {
-    module labelPosition {
-        const insideEnd: string;
-        const insideCenter: string;
-        const outsideEnd: string;
-        const insideBase: string;
-        const type: IEnumType;
-    }
-}
-declare module powerbi {
-    module legendPosition {
-        const top: string;
-        const bottom: string;
-        const left: string;
-        const right: string;
-        const topCenter: string;
-        const bottomCenter: string;
-        const leftCenter: string;
-        const rightCenter: string;
-        const type: IEnumType;
-    }
-}
-declare module powerbi {
     import SemanticFilter = powerbi.data.SemanticFilter;
     /** Describes a structural type in the client type system. Leaf properties should use ValueType. */
     interface StructuralTypeDescriptor {
         fill?: FillTypeDescriptor;
         fillRule?: FillRuleTypeDescriptor;
         filter?: FilterTypeDescriptor;
+        expression?: DefaultValueTypeDescriptor;
     }
-    type StructuralObjectDefinition = FillDefinition | FillRuleDefinition | SemanticFilter;
+    type StructuralObjectDefinition = FillDefinition | FillRuleDefinition | SemanticFilter | DefaultValueDefinition;
     /** Defines instances of structural types. */
-    type StructuralObjectValue = Fill | FillRule | SemanticFilter;
+    type StructuralObjectValue = Fill | FillRule | SemanticFilter | DefaultValueDefinition;
     module StructuralTypeDescriptor {
         function isValid(type: StructuralTypeDescriptor): boolean;
     }
@@ -1820,6 +1859,11 @@ declare module powerbi {
         misc?: MiscellaneousTypeDescriptor;
         formatting?: FormattingTypeDescriptor;
         extendedType?: ExtendedType;
+        enumeration?: IEnumType;
+        scripting?: ScriptTypeDescriptor;
+    }
+    interface ScriptTypeDescriptor {
+        source?: boolean;
     }
     interface TemporalTypeDescriptor {
         year?: boolean;
@@ -1846,17 +1890,9 @@ declare module powerbi {
     interface FormattingTypeDescriptor {
         color?: boolean;
         formatString?: boolean;
-        legendPosition?: boolean;
-        axisScale?: boolean;
-        axisType?: boolean;
-        yAxisPosition?: boolean;
-        axisStyle?: boolean;
         alignment?: boolean;
         labelDisplayUnits?: boolean;
-        labelPosition?: boolean;
-        outline?: boolean;
-        shapeType?: boolean;
-        imageScalingType?: boolean;
+        fontSize?: boolean;
     }
     /** Describes a data value type, including a primitive type and extended type if any (derived from data category). */
     class ValueType implements ValueTypeDescriptor {
@@ -1867,14 +1903,20 @@ declare module powerbi {
         private geographyType;
         private miscType;
         private formattingType;
+        private enumType;
+        private scriptingType;
         /** Do not call the ValueType constructor directly. Use the ValueType.fromXXX methods. */
-        constructor(type: ExtendedType, category?: string);
+        constructor(type: ExtendedType, category?: string, enumType?: IEnumType);
         /** Creates or retrieves a ValueType object based on the specified ValueTypeDescriptor. */
         static fromDescriptor(descriptor: ValueTypeDescriptor): ValueType;
         /** Advanced: Generally use fromDescriptor instead. Creates or retrieves a ValueType object for the specified ExtendedType. */
         static fromExtendedType(extendedType: ExtendedType): ValueType;
         /** Creates or retrieves a ValueType object for the specified PrimitiveType and data category. */
         static fromPrimitiveTypeAndCategory(primitiveType: PrimitiveType, category?: string): ValueType;
+        /** Creates a ValueType to describe the given IEnumType. */
+        static fromEnum(enumType: IEnumType): ValueType;
+        /** Determines if the instance ValueType is convertable from the 'other' ValueType. */
+        isCompatibleFrom(other: ValueType): boolean;
         /** Gets the exact primitive type of this ValueType. */
         primitiveType: PrimitiveType;
         /** Gets the exact extended type of this ValueType. */
@@ -1905,6 +1947,14 @@ declare module powerbi {
         misc: MiscellaneousType;
         /** Returns an object describing the formatting values represented by the type, if it represents a formatting type. */
         formatting: FormattingType;
+        /** Returns an object describing the enum values represented by the type, if it represents an enumeration type. */
+        enum: IEnumType;
+        scripting: ScriptType;
+    }
+    class ScriptType implements ScriptTypeDescriptor {
+        private underlyingType;
+        constructor(type: ExtendedType);
+        source: boolean;
     }
     class TemporalType implements TemporalTypeDescriptor {
         private underlyingType;
@@ -1939,17 +1989,9 @@ declare module powerbi {
         constructor(type: ExtendedType);
         color: boolean;
         formatString: boolean;
-        legendPosition: boolean;
-        axisScale: boolean;
-        axisType: boolean;
-        yAxisPosition: boolean;
-        axisStyle: boolean;
         alignment: boolean;
         labelDisplayUnits: boolean;
-        labelPosition: boolean;
-        outline: boolean;
-        shapeType: boolean;
-        imageScalingType: boolean;
+        fontSize: boolean;
     }
     /** Defines primitive value types. Must be consistent with types defined by server conceptual schema. */
     enum PrimitiveType {
@@ -1974,6 +2016,7 @@ declare module powerbi {
         Geography = 1024,
         Miscellaneous = 2048,
         Formatting = 4096,
+        Scripting = 8192,
         Null = 0,
         Text = 1,
         Decimal = 258,
@@ -2019,17 +2062,11 @@ declare module powerbi {
         WebUrl = 13240321,
         Color = 19664897,
         FormatString = 19730433,
-        LegendPosition = 19795969,
-        AxisType = 19861505,
-        YAxisPosition = 19927041,
-        AxisStyle = 19992577,
         Alignment = 20058113,
         LabelDisplayUnits = 20123649,
-        LabelPosition = 20189185,
-        Outline = 20254721,
-        ShapeType = 20320257,
-        ImageScalingType = 20385793,
-        AxisScale = 20451329,
+        FontSize = 20189443,
+        Enumeration = 26214401,
+        ScriptSource = 32776193,
     }
 }
 declare module powerbi.data {
@@ -2040,6 +2077,7 @@ declare module powerbi.data {
         canEdit: boolean;
         findProperty(entityName: string, propertyName: string): ConceptualProperty;
         findHierarchy(entityName: string, name: string): ConceptualHierarchy;
+        findHierarchyByVariation(variationEntityName: string, variationColumnName: string, variationName: string, hierarchyName: string): ConceptualHierarchy;
         /**
         * Returns the first property of the entity whose kpi is tied to kpiProperty
         */
@@ -2047,20 +2085,23 @@ declare module powerbi.data {
     }
     interface ConceptualCapabilities {
         discourageQueryAggregateUsage: boolean;
+        normalizedFiveStateKpiRange: boolean;
         supportsMedian: boolean;
         supportsPercentile: boolean;
     }
     interface ConceptualEntity {
         name: string;
-        hidden?: boolean;
+        displayName: string;
+        visibility?: ConceptualVisibility;
         calculated?: boolean;
         queryable?: ConceptualQueryableState;
         properties: jsCommon.ArrayNamedItems<ConceptualProperty>;
         hierarchies: jsCommon.ArrayNamedItems<ConceptualHierarchy>;
+        navigationProperties: jsCommon.ArrayNamedItems<ConceptualNavigationProperty>;
     }
     interface ConceptualProperty {
-        displayName: string;
         name: string;
+        displayName: string;
         type: ValueType;
         kind: ConceptualPropertyKind;
         hidden?: boolean;
@@ -2072,13 +2113,30 @@ declare module powerbi.data {
     }
     interface ConceptualHierarchy {
         name: string;
+        displayName: string;
         levels: jsCommon.ArrayNamedItems<ConceptualHierarchyLevel>;
         hidden?: boolean;
     }
     interface ConceptualHierarchyLevel {
         name: string;
+        displayName: string;
         column: ConceptualProperty;
         hidden?: boolean;
+    }
+    interface ConceptualNavigationProperty {
+        name: string;
+        isActive: boolean;
+        sourceColumn?: ConceptualColumn;
+        targetEntity: ConceptualEntity;
+        sourceMultiplicity: ConceptualMultiplicity;
+        targetMultiplicity: ConceptualMultiplicity;
+    }
+    interface ConceptualVariationSource {
+        name: string;
+        isDefault: boolean;
+        navigationProperty?: ConceptualNavigationProperty;
+        defaultHierarchy?: ConceptualHierarchy;
+        defaultProperty?: ConceptualProperty;
     }
     interface ConceptualColumn {
         defaultAggregate?: ConceptualDefaultAggregate;
@@ -2086,25 +2144,37 @@ declare module powerbi.data {
         idOnEntityKey?: boolean;
         calculated?: boolean;
         defaultValue?: SQConstantExpr;
+        variations?: jsCommon.ArrayNamedItems<ConceptualVariationSource>;
     }
     interface ConceptualMeasure {
         kpi?: ConceptualPropertyKpi;
     }
     interface ConceptualPropertyKpi {
-        statusGraphic: string;
+        statusMetadata: DataViewKpiColumnMetadata;
         status?: ConceptualProperty;
         goal?: ConceptualProperty;
     }
-    enum ConceptualQueryableState {
+    const enum ConceptualVisibility {
+        Visible = 0,
+        Hidden = 1,
+        ShowAsVariationsOnly = 2,
+        IsPrivate = 4,
+    }
+    const enum ConceptualQueryableState {
         Queryable = 0,
         Error = 1,
     }
-    enum ConceptualPropertyKind {
+    const enum ConceptualMultiplicity {
+        ZeroOrOne = 0,
+        One = 1,
+        Many = 2,
+    }
+    const enum ConceptualPropertyKind {
         Column = 0,
         Measure = 1,
         Kpi = 2,
     }
-    enum ConceptualDefaultAggregate {
+    const enum ConceptualDefaultAggregate {
         Default = 0,
         None = 1,
         Sum = 2,
@@ -2141,7 +2211,7 @@ declare module powerbi.data {
      * NOTE Keep this file in sync with the Sql\InfoNav\src\Data\Contracts\DsqGeneration\DataShapeBindingVersions.cs
      * file in the TFS Dev branch.
      */
-    enum DataShapeBindingVersions {
+    const enum DataShapeBindingVersions {
         /** The initial version of data shape binding */
         Version0 = 0,
         /** Explicit subtotal support for axis groupings. */
@@ -2207,6 +2277,7 @@ declare module powerbi.data {
         Projections: number[];
         SuppressedProjections?: number[];
         Subtotal?: SubtotalType;
+        ShowItemsWithNoData?: number[];
     }
 }
 declare module powerbi.data {
@@ -2278,7 +2349,7 @@ declare module powerbi.data {
     }
     interface QuerySortClause {
         Expression: QueryExpressionContainer;
-        Direction: QuerySortDirection;
+        Direction: SortDirection;
     }
     interface QueryExpressionContainer {
         Name?: string;
@@ -2426,10 +2497,6 @@ declare module powerbi.data {
         StandardDeviation = 7,
         Variance = 8,
     }
-    enum QuerySortDirection {
-        Ascending = 1,
-        Descending = 2,
-    }
     enum QueryComparisonKind {
         Equal = 0,
         GreaterThan = 1,
@@ -2437,9 +2504,23 @@ declare module powerbi.data {
         LessThan = 3,
         LessThanOrEqual = 4,
     }
+    interface DataQuery {
+        Commands: QueryCommand[];
+    }
     interface SemanticQueryDataShapeCommand {
         Query: QueryDefinition;
         Binding: DataShapeBinding;
+    }
+    interface QueryCommand {
+        SemanticQueryDataShapeCommand?: SemanticQueryDataShapeCommand;
+        ScriptVisualCommand?: ScriptVisualCommand;
+    }
+    interface ScriptVisualCommand {
+        Script?: string;
+        RenderingEngine?: string;
+        ViewportWidthPx?: number;
+        ViewportHeightPx?: number;
+        Version?: number;
     }
     /** Defines semantic data types. */
     enum SemanticType {
@@ -2479,6 +2560,8 @@ declare module powerbi.data {
         DataCategory?: ConceptualDataCategory;
         /** The select projection name. */
         Name?: string;
+        kpiStatusGraphic?: string;
+        kpi?: DataViewKpiColumnMetadata;
     }
     interface FilterMetadata {
         Restatement: string;
@@ -2504,10 +2587,12 @@ declare module powerbi.data {
     class QueryProjectionCollection {
         private items;
         private _activeProjectionRef;
-        constructor(items: QueryProjection[], activeProjectionRef?: string);
+        private _showAll;
+        constructor(items: QueryProjection[], activeProjectionRef?: string, showAll?: boolean);
         /** Returns all projections in a mutable array. */
         all(): QueryProjection[];
         activeProjectionQueryRef: string;
+        showAll: boolean;
         clone(): QueryProjectionCollection;
     }
     module QueryProjectionsByRole {
@@ -2518,6 +2603,10 @@ declare module powerbi.data {
     }
 }
 declare module powerbi {
+    interface IViewport {
+        height: number;
+        width: number;
+    }
     interface VisualElement {
         DataRoles?: DataRole[];
         Settings?: VisualElementSettings;
@@ -2529,6 +2618,7 @@ declare module powerbi {
     interface DataRole {
         Name: string;
         Projection: number;
+        isActive?: boolean;
     }
     /** The system used to determine display units used during formatting */
     enum DisplayUnitSystemType {
@@ -2571,13 +2661,23 @@ declare module powerbi.data {
         single?: CompiledDataViewSingleMapping;
         tree?: CompiledDataViewTreeMapping;
         matrix?: CompiledDataViewMatrixMapping;
+        scriptResult?: CompiledDataViewScriptResultMapping;
+    }
+    interface CompiledDataViewMappingScriptDefinition {
+        source: DataViewObjectPropertyIdentifier;
+        provider: DataViewObjectPropertyIdentifier;
+        imageFormat: string;
+    }
+    interface CompiledDataViewScriptResultMapping {
+        dataInput: CompiledDataViewMapping;
+        script: CompiledDataViewMappingScriptDefinition;
     }
     interface CompiledDataViewMappingMetadata {
         /** The metadata repetition objects. */
         objects?: DataViewObjects;
     }
-    interface CompiledDataViewCategoricalMapping extends HasDataVolume {
-        categories?: CompiledDataViewRoleMappingWithReduction;
+    interface CompiledDataViewCategoricalMapping extends HasDataVolume, HasReductionAlgorithm {
+        categories?: CompiledDataViewRoleMappingWithReduction | CompiledDataViewListRoleMappingWithReduction;
         values?: CompiledDataViewRoleMapping | CompiledDataViewGroupedRoleMapping | CompiledDataViewListRoleMapping;
         includeEmptyGroups?: boolean;
     }
@@ -2587,20 +2687,17 @@ declare module powerbi.data {
     interface CompiledDataViewSingleMapping {
         role: CompiledDataViewRole;
     }
-    interface CompiledDataViewValuesRoleMapping {
-        roles: CompiledDataViewRole[];
-    }
     interface CompiledDataViewTableMapping extends HasDataVolume {
         rows: CompiledDataViewRoleMappingWithReduction | CompiledDataViewListRoleMappingWithReduction;
     }
-    interface CompiledDataViewTreeMapping {
-        nodes?: CompiledDataViewGroupingRoleMapping;
-        values?: CompiledDataViewValuesRoleMapping;
+    interface CompiledDataViewTreeMapping extends HasDataVolume {
+        nodes?: CompiledDataViewRoleForMappingWithReduction;
+        values?: CompiledDataViewRoleForMapping;
     }
     interface CompiledDataViewMatrixMapping extends HasDataVolume {
-        rows?: CompiledDataViewRoleForMappingWithReduction;
+        rows?: CompiledDataViewRoleForMappingWithReduction | CompiledDataViewListRoleMappingWithReduction;
         columns?: CompiledDataViewRoleForMappingWithReduction;
-        values?: CompiledDataViewRoleForMapping;
+        values?: CompiledDataViewRoleForMapping | CompiledDataViewListRoleMapping;
     }
     type CompiledDataViewRoleMapping = CompiledDataViewRoleBindMapping | CompiledDataViewRoleForMapping;
     interface CompiledDataViewRoleBindMapping {
@@ -2619,18 +2716,18 @@ declare module powerbi.data {
     interface CompiledDataViewRoleForMappingWithReduction extends CompiledDataViewRoleForMapping, HasReductionAlgorithm {
     }
     interface CompiledDataViewGroupedRoleMapping {
-        group: {
-            by: CompiledDataViewRole;
-            select: CompiledDataViewRoleMapping[];
-            dataReductionAlgorithm?: ReductionAlgorithm;
-        };
+        group: CompiledDataViewGroupedRoleGroupItemMapping;
+    }
+    interface CompiledDataViewGroupedRoleGroupItemMapping extends HasReductionAlgorithm {
+        by: CompiledDataViewRole;
+        select: CompiledDataViewRoleMapping[];
     }
     interface CompiledDataViewListRoleMapping {
         select: CompiledDataViewRoleMapping[];
     }
     interface CompiledDataViewListRoleMappingWithReduction extends CompiledDataViewListRoleMapping, HasReductionAlgorithm {
     }
-    enum CompiledSubtotalType {
+    const enum CompiledSubtotalType {
         None = 0,
         Before = 1,
         After = 2,
@@ -2639,8 +2736,11 @@ declare module powerbi.data {
         role: string;
         items: CompiledDataViewRoleItem[];
         subtotalType?: CompiledSubtotalType;
+        showAll?: boolean;
+        activeItem?: string;
     }
     interface CompiledDataViewRoleItem {
+        queryName: string;
         type?: ValueType;
     }
 }
@@ -2663,7 +2763,10 @@ declare module powerbi.data {
         function deleteProperty(defns: DataViewObjectDefinitions, objectName: string, selector: Selector, propertyName: string): void;
         function getValue(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector): DataViewObjectPropertyDefinition;
         function getPropertyContainer(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector): DataViewObjectPropertyDefinitions;
-        function propertiesAreEqual(currentObject: DataViewObjectPropertyDefinitions, modifiedObject: DataViewObjectPropertyDefinitions): boolean;
+        function getObjectDefinition(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): DataViewObjectDefinition;
+        function propertiesAreEqual(a: DataViewObjectPropertyDefinition, b: DataViewObjectPropertyDefinition): boolean;
+        function allPropertiesAreEqual(a: DataViewObjectPropertyDefinitions, b: DataViewObjectPropertyDefinitions): boolean;
+        function encodePropertyValue(value: DataViewPropertyValue, valueTypeDescriptor: ValueTypeDescriptor): DataViewObjectPropertyDefinition;
     }
 }
 declare module powerbi.data {
@@ -2675,6 +2778,7 @@ declare module powerbi.data {
     /** Defines a logical object in a visualization. */
     interface DataViewObjectDescriptor {
         displayName?: DisplayNameGetter;
+        description?: DisplayNameGetter;
         properties: DataViewObjectPropertyDescriptors;
     }
     interface DataViewObjectPropertyDescriptors {
@@ -2684,6 +2788,7 @@ declare module powerbi.data {
     interface DataViewObjectPropertyDescriptor {
         displayName?: DisplayNameGetter;
         description?: DisplayNameGetter;
+        placeHolderText?: DisplayNameGetter;
         type: DataViewObjectPropertyTypeDescriptor;
         rule?: DataViewObjectPropertyRuleDescriptor;
     }
@@ -2705,6 +2810,8 @@ declare module powerbi.data {
         function findFormatString(descriptors: DataViewObjectDescriptors): DataViewObjectPropertyIdentifier;
         /** Attempts to find the filter property.  This can be useful for propagating filters from one visual to others. */
         function findFilterOutput(descriptors: DataViewObjectDescriptors): DataViewObjectPropertyIdentifier;
+        /** Attempts to find the default value property.  This can be useful for propagating schema default value. */
+        function findDefaultValue(descriptors: DataViewObjectDescriptors): DataViewObjectPropertyIdentifier;
     }
 }
 declare module powerbi.data {
@@ -2728,8 +2835,7 @@ declare module powerbi.data {
     module DataViewObjectEvaluationUtils {
         function evaluateDataViewObjects(objectDescriptors: DataViewObjectDescriptors, objectDefns: DataViewNamedObjectDefinition[]): DataViewObjects;
         function groupObjectsBySelector(objectDefinitions: DataViewObjectDefinitions): DataViewObjectDefinitionsByRepetition;
-        /** Registers properties for default format strings, if the properties are not explicitly provided. */
-        function addDefaultFormatString(objectsForAllSelectors: DataViewObjectDefinitionsByRepetition, objectDescriptors: DataViewObjectDescriptors, columns: DataViewMetadataColumn[], selectTransforms: DataViewSelectTransform[]): void;
+        function addImplicitObjects(objectsForAllSelectors: DataViewObjectDefinitionsByRepetition, objectDescriptors: DataViewObjectDescriptors, columns: DataViewMetadataColumn[], selectTransforms: DataViewSelectTransform[]): void;
     }
 }
 declare module powerbi.data {
@@ -2767,6 +2873,8 @@ declare module powerbi {
     }
     module DataViewObject {
         function getValue<T>(object: DataViewObject, propertyName: string, defaultValue?: T): T;
+        /** Gets the solid color from a fill property using only a propertyName */
+        function getFillColorByPropertyName(objects: DataViewObjects, propertyName: string, defaultColor?: string): string;
     }
 }
 declare module powerbi.data {
@@ -2808,9 +2916,38 @@ declare module powerbi.data {
         /** Resumes communication which enables future requests */
         resumeCommunication?(): void;
         /** Clear cache */
-        clearCache?(): void;
+        clearCache?(dataSource: DataReaderDataSource): void;
         /** rewriteCacheEntries */
-        rewriteCacheEntries?(rewriter: DataReaderCacheRewriter): void;
+        rewriteCacheEntries?(dataSource: DataReaderDataSource, rewriter: DataReaderCacheRewriter): void;
+    }
+    /** Represents a query generator. */
+    interface IQueryGenerator {
+        /** Query generation function to convert a (prototype) SemanticQuery to a runnable query command. */
+        execute(options: QueryGeneratorOptions): QueryGeneratorResult;
+    }
+    /** Represents a custom data reader plugin, to be registered in the powerbi.data.plugins object. */
+    interface IDataReaderPlugin {
+        /** The name of this plugin. */
+        name: string;
+        /** Factory method for the IDataReader. */
+        reader(hostServices: IDataReaderHostServices): IDataReader;
+        /** Factory method for the IQueryGenerator. */
+        queryGenerator?(): IQueryGenerator;
+    }
+    interface QueryGeneratorOptions {
+        query: SemanticQuery;
+        mappings: CompiledDataViewMapping[];
+        additionalProjections?: AdditionalQueryProjection[];
+        highlightFilter?: SemanticFilter;
+        restartToken?: RestartToken;
+    }
+    interface AdditionalQueryProjection {
+        queryName: string;
+        selector: Selector;
+    }
+    interface QueryGeneratorResult {
+        command: DataReaderQueryCommand;
+        splits?: DataViewSplitTransform[];
     }
     interface DataReaderTransformResult {
         dataView?: DataView;
@@ -2820,12 +2957,7 @@ declare module powerbi.data {
     }
     interface RestartToken {
     }
-    /** Represents a custom data reader plugin, to be registered in the powerbi.data.plugins object. */
-    interface IDataReaderPlugin {
-        /** The name of this plugin. */
-        name: string;
-        /** Factory method for the IDataReader. */
-        create(hostServices: IDataReaderHostServices): IDataReader;
+    interface DataReaderQueryCommand {
     }
     /** Represents a query command defined by an IDataReader. */
     interface DataReaderCommand {
@@ -2892,6 +3024,7 @@ declare module powerbi {
         tree?: DataViewTree;
         table?: DataViewTable;
         matrix?: DataViewMatrix;
+        scriptResult?: DataViewScriptResultData;
     }
     interface DataViewMetadata {
         columns: DataViewMetadataColumn[];
@@ -2921,8 +3054,14 @@ declare module powerbi {
         objects?: DataViewObjects;
         /** The name of the containing group. */
         groupName?: string;
-        /** The name of the statusGraphic to use to convert the numeric Kpi value into the visual representation.*/
-        kpiStatusGraphic?: string;
+        /** The sort direction of this column. */
+        sort?: SortDirection;
+        /** The KPI metadata to use to convert a numeric status value into its visual representation. */
+        kpi?: DataViewKpiColumnMetadata;
+    }
+    const enum SortDirection {
+        Ascending = 1,
+        Descending = 2,
     }
     interface DataViewSegmentMetadata {
     }
@@ -2980,6 +3119,8 @@ declare module powerbi {
         };
         children?: DataViewTreeNode[];
         identity?: DataViewScopeIdentity;
+        /** The data repetition objects. */
+        objects?: DataViewObjects;
         /** The set of expressions that define the identity for the child nodes.  This must match items in the DataViewScopeIdentity of those nodes. */
         childIdentityFields?: data.SQExpr[];
     }
@@ -3034,13 +3175,23 @@ declare module powerbi {
     interface DataViewHierarchyLevel {
         sources: DataViewMetadataColumn[];
     }
+    interface DataViewKpiColumnMetadata {
+        graphic: string;
+        normalizedFiveStateKpiRange?: boolean;
+    }
+    interface DataViewScriptResultData {
+        imageBase64: string;
+    }
 }
 declare module powerbi {
     module DataViewAnalysis {
-        import QueryProjectionByProperty = powerbi.data.QueryProjectionsByRole;
+        import QueryProjectionsByRole = powerbi.data.QueryProjectionsByRole;
         interface ValidateAndReshapeResult {
             dataView?: DataView;
             isValid: boolean;
+        }
+        interface RoleKindByQueryRef {
+            [queryRef: string]: VisualDataRoleKind;
         }
         /** Reshapes the data view to match the provided schema if possible. If not, returns null */
         function validateAndReshape(dataView: DataView, dataViewMappings: DataViewMapping[]): ValidateAndReshapeResult;
@@ -3048,10 +3199,11 @@ declare module powerbi {
         function countMeasures(columns: DataViewMetadataColumn[]): number;
         /** Indicates whether the dataView conforms to the specified schema. */
         function supports(dataView: DataView, roleMapping: DataViewMapping, usePreferredDataViewSchema?: boolean): boolean;
-        function conforms(value: number, range: NumberRange, ignoreMin?: boolean): boolean;
+        /** Determines whether the value conforms to the range in the role condition */
+        function conformsToRange(value: number, roleCondition: RoleCondition, ignoreMin?: boolean): boolean;
         /** Determines the appropriate DataViewMappings for the projections. */
-        function chooseDataViewMappings(projections: QueryProjectionByProperty, mappings: DataViewMapping[]): DataViewMapping[];
-        function getPropertyCount(roleName: string, projections: QueryProjectionByProperty, useActiveIfAvailable?: boolean): number;
+        function chooseDataViewMappings(projections: QueryProjectionsByRole, mappings: DataViewMapping[], roleKindByQueryRef: RoleKindByQueryRef): DataViewMapping[];
+        function getPropertyCount(roleName: string, projections: QueryProjectionsByRole, useActiveIfAvailable?: boolean): number;
         function hasSameCategoryIdentity(dataView1: DataView, dataView2: DataView): boolean;
         function areMetadataColumnsEquivalent(column1: DataViewMetadataColumn, column2: DataViewMetadataColumn): boolean;
         function isMetadataEquivalent(metadata1: DataViewMetadata, metadata2: DataViewMetadata): boolean;
@@ -3069,50 +3221,43 @@ declare module powerbi {
         single?: DataViewSingleMapping;
         tree?: DataViewTreeMapping;
         matrix?: DataViewMatrixMapping;
+        scriptResult?: DataViewScriptResultMapping;
     }
     /** Describes whether a particular mapping is fits the set of projections. */
     interface DataViewMappingCondition {
-        [dataRole: string]: NumberRange;
+        [dataRole: string]: RoleCondition;
     }
     /** Describes a mapping which supports a data volume level. */
     interface HasDataVolume {
         dataVolume?: number;
     }
-    interface DataViewCategoricalMapping extends HasDataVolume {
-        categories?: DataViewRoleMappingWithReduction;
+    interface DataViewCategoricalMapping extends HasDataVolume, HasReductionAlgorithm {
+        categories?: DataViewRoleMappingWithReduction | DataViewListRoleMappingWithReduction;
         values?: DataViewRoleMapping | DataViewGroupedRoleMapping | DataViewListRoleMapping;
         /** Specifies a constraint on the number of data rows supported by the visual. */
         rowCount?: AcceptabilityNumberRange;
         /** Indicates whether the data rows include empty groups  */
         includeEmptyGroups?: boolean;
     }
-    interface DataViewGroupingRoleMapping {
-        /** Indicates the role which is bound to this structure. */
-        role: string;
-    }
     interface DataViewSingleMapping {
         /** Indicates the role which is bound to this structure. */
         role: string;
-    }
-    interface DataViewValuesRoleMapping {
-        /** Indicates the sequence of roles which are bound to this structure. */
-        roles: string[];
     }
     interface DataViewTableMapping extends HasDataVolume {
         rows: DataViewRoleMappingWithReduction | DataViewListRoleMappingWithReduction;
         /** Specifies a constraint on the number of data rows supported by the visual. */
         rowCount?: AcceptabilityNumberRange;
     }
-    interface DataViewTreeMapping {
-        nodes?: DataViewGroupingRoleMapping;
-        values?: DataViewValuesRoleMapping;
+    interface DataViewTreeMapping extends HasDataVolume {
+        nodes?: DataViewRoleForMappingWithReduction;
+        values?: DataViewRoleForMapping;
         /** Specifies a constraint on the depth of the tree supported by the visual. */
         depth?: AcceptabilityNumberRange;
     }
     interface DataViewMatrixMapping extends HasDataVolume {
-        rows?: DataViewRoleForMappingWithReduction;
+        rows?: DataViewRoleForMappingWithReduction | DataViewListRoleMappingWithReduction;
         columns?: DataViewRoleForMappingWithReduction;
-        values?: DataViewRoleForMapping;
+        values?: DataViewRoleForMapping | DataViewListRoleMapping;
     }
     type DataViewRoleMapping = DataViewRoleBindMapping | DataViewRoleForMapping;
     interface DataViewRoleBindMapping {
@@ -3184,6 +3329,15 @@ declare module powerbi {
         min?: number;
         max?: number;
     }
+    interface DataViewMappingScriptDefinition {
+        source: DataViewObjectPropertyIdentifier;
+        provider: DataViewObjectPropertyIdentifier;
+        imageFormat: string;
+    }
+    interface DataViewScriptResultMapping {
+        dataInput: DataViewMapping;
+        script: DataViewMappingScriptDefinition;
+    }
 }
 declare module powerbi {
     /** Encapsulates the identity of a data scope in a DataView. */
@@ -3197,6 +3351,7 @@ declare module powerbi {
         /** Compares the two DataViewScopeIdentity values for equality. */
         function equals(x: DataViewScopeIdentity, y: DataViewScopeIdentity, ignoreCase?: boolean): boolean;
         function filterFromIdentity(identities: DataViewScopeIdentity[], isNot?: boolean): data.SemanticFilter;
+        function filterFromExprs(orExprs: data.SQExpr[], isNot?: boolean): data.SemanticFilter;
     }
     module data {
         function createDataViewScopeIdentity(expr: SQExpr): DataViewScopeIdentity;
@@ -3221,6 +3376,7 @@ declare module powerbi.data {
         dataViewMappings?: DataViewMapping[];
         transforms: DataViewTransformActions;
         colorAllocatorFactory: IColorAllocatorFactory;
+        dataRoles: VisualDataRole[];
     }
     /** Describes the Transform actions to be done to a prototype DataView. */
     interface DataViewTransformActions {
@@ -3241,7 +3397,10 @@ declare module powerbi.data {
         roles?: {
             [roleName: string]: boolean;
         };
-        kpiStatusGraphic?: string;
+        kpi?: DataViewKpiColumnMetadata;
+        sort?: SortDirection;
+        /** Describes the default value applied to a column, if any. */
+        defaultValue?: DefaultValueDefinition;
     }
     interface DataViewSplitTransform {
         selects: INumberDictionary<boolean>;
@@ -3331,34 +3490,6 @@ declare module powerbi.data.segmentation {
     }
 }
 declare module powerbi.data {
-    interface FilterValueScopeIdsContainer {
-        isNot: boolean;
-        scopeIds: DataViewScopeIdentity[];
-    }
-    module SQExprConverter {
-        function asScopeIdsContainer(filter: SemanticFilter, fieldSQExprs: SQExpr[]): FilterValueScopeIdsContainer;
-        /** Gets a comparand value from the given DataViewScopeIdentity. */
-        function getFirstComparandValue(identity: DataViewScopeIdentity): any;
-    }
-}
-declare module powerbi.data {
-    /** Recognizes DataViewScopeIdentity expression trees to extract comparison keys. */
-    module ScopeIdentityKeyExtractor {
-        function run(expr: SQExpr): SQExpr[];
-    }
-}
-declare module powerbi.data {
-    module PrimitiveValueEncoding {
-        function decimal(value: number): string;
-        function double(value: number): string;
-        function integer(value: number): string;
-        function dateTime(value: Date): string;
-        function text(value: string): string;
-        function nullEncoding(): string;
-        function boolean(value: boolean): string;
-    }
-}
-declare module powerbi.data {
     /** Rewrites an expression tree, including all descendant nodes. */
     class SQExprRewriter implements ISQExprVisitor<SQExpr> {
         visitColumnRef(expr: SQColumnRefExpr): SQExpr;
@@ -3387,6 +3518,53 @@ declare module powerbi.data {
     }
 }
 declare module powerbi.data {
+    /** Responsible for writing equality comparisons against a field to an SQInExpr. */
+    module EqualsToInRewriter {
+        function run(expr: SQExpr): SQExpr;
+    }
+}
+declare module powerbi.data {
+    interface FilterValueScopeIdsContainer {
+        isNot: boolean;
+        scopeIds: DataViewScopeIdentity[];
+    }
+    module SQExprConverter {
+        function asScopeIdsContainer(filter: SemanticFilter, fieldSQExprs: SQExpr[]): FilterValueScopeIdsContainer;
+        /** Gets a comparand value from the given DataViewScopeIdentity. */
+        function getFirstComparandValue(identity: DataViewScopeIdentity): any;
+    }
+}
+declare module powerbi.data {
+    /** Recognizes DataViewScopeIdentity expression trees to extract comparison keys. */
+    module ScopeIdentityExtractor {
+        function getKeys(expr: SQExpr): SQExpr[];
+        function getInExpr(expr: SQExpr): SQInExpr;
+    }
+}
+declare module powerbi.data {
+    module PrimitiveValueEncoding {
+        function decimal(value: number): string;
+        function double(value: number): string;
+        function integer(value: number): string;
+        function dateTime(value: Date): string;
+        function text(value: string): string;
+        function nullEncoding(): string;
+        function boolean(value: boolean): string;
+    }
+}
+declare module powerbi.data {
+    interface SQExprGroup {
+        expr: SQExpr;
+        children: SQHierarchyLevelExpr[];
+        /** Index of expression in the query. */
+        selectQueryIndex: number;
+    }
+    module SQExprGroupUtils {
+        /** Group all projections. Eacch group can consist of either a single property, or a collection of hierarchy items. */
+        function groupExprs(exprs: SQExpr[], columnVariationEnabled: boolean): SQExprGroup[];
+    }
+}
+declare module powerbi.data {
     /** Represents an immutable expression within a SemanticQuery. */
     class SQExpr {
         constructor();
@@ -3401,6 +3579,8 @@ declare module powerbi.data {
         hasGroupOnKeys(schema: FederatedConceptualSchema): boolean;
         private getPropertyKeys(schema);
         getConceptualProperty(federatedSchema: FederatedConceptualSchema): ConceptualProperty;
+        getTargetEntityForVariation(federatedSchema: FederatedConceptualSchema, variationName: string): string;
+        private getMetadataForVariation(field, federatedSchema);
         private getMetadataForProperty(field, federatedSchema);
         private static getMetadataForEntity(field, federatedSchema);
     }
@@ -3529,6 +3709,7 @@ declare module powerbi.data {
         valueEncoded: string;
         constructor(type: ValueType, value: any, valueEncoded: string);
         accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
     }
     class SQDateSpanExpr extends SQExpr {
         unit: TimeUnit;
@@ -3586,7 +3767,7 @@ declare module powerbi.data {
         function setAggregate(expr: SQExpr, aggregate: QueryAggregateFunction): SQExpr;
         function removeAggregate(expr: SQExpr): SQExpr;
         function removeEntityVariables(expr: SQExpr): SQExpr;
-        function createExprWithAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregateNonNumericFields: boolean): SQExpr;
+        function createExprWithAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregateNonNumericFields: boolean, preferredAggregate?: QueryAggregateFunction): SQExpr;
     }
     /** Provides utilities for obtaining information about expressions. */
     module SQExprInfo {
@@ -3600,26 +3781,34 @@ declare module powerbi.data {
         invalidMeasureReference = 4,
         invalidLeftOperandType = 5,
         invalidRightOperandType = 6,
+        invalidValueType = 7,
     }
     class SQExprValidationVisitor extends SQExprRewriter {
         errors: SQExprValidationError[];
         private schema;
         constructor(schema: FederatedConceptualSchema, errors?: SQExprValidationError[]);
+        visitIn(expr: SQInExpr): SQExpr;
+        visitCompare(expr: SQCompareExpr): SQExpr;
         visitColumnRef(expr: SQColumnRefExpr): SQExpr;
         visitMeasureRef(expr: SQMeasureRefExpr): SQExpr;
         visitAggr(expr: SQAggregationExpr): SQExpr;
         visitEntity(expr: SQEntityExpr): SQExpr;
         visitContains(expr: SQContainsExpr): SQExpr;
         visitStartsWith(expr: SQContainsExpr): SQExpr;
+        private validateCompatibleType(left, right);
         private validateEntity(schemaName, entityName);
         private register(error);
         private isQueryable(fieldExpr);
     }
 }
 declare module powerbi.data {
+    module SQExprHierarchyToHierarchyLevelConverter {
+        function convert(sqExpr: SQExpr, federatedSchema: FederatedConceptualSchema): SQExpr[];
+    }
     module SQExprUtils {
         /** Returns an array of supported aggregates for a given expr and role. */
-        function getSupportedAggregates(expr: SQExpr, isGroupingOnly: boolean, schema: FederatedConceptualSchema): QueryAggregateFunction[];
+        function getSupportedAggregates(expr: SQExpr, schema: FederatedConceptualSchema): QueryAggregateFunction[];
+        function isSupportedAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregate: QueryAggregateFunction): boolean;
         function indexOfExpr(items: SQExpr[], searchElement: SQExpr): number;
         function sequenceEqual(x: SQExpr[], y: SQExpr[]): boolean;
         function uniqueName(namedItems: NamedSQExpr[], expr: SQExpr): string;
@@ -3627,11 +3816,23 @@ declare module powerbi.data {
         function defaultName(expr: SQExpr, fallback?: string): string;
         /** Gets a value indicating whether the expr is a model measure or an aggregate. */
         function isMeasure(expr: SQExpr): boolean;
+        /** Gets a value indicating whether the expr is an AnyValue or equals comparison to AnyValue*/
+        function isAnyValue(expr: SQExpr): boolean;
+        /** Gets a value indicating whether the expr is a DefaultValue or equals comparison to DefaultValue*/
+        function isDefaultValue(expr: SQExpr): boolean;
         function discourageAggregation(expr: SQExpr, schema: FederatedConceptualSchema): boolean;
+        function getSchemaCapabilities(expr: SQExpr, schema: FederatedConceptualSchema): ConceptualCapabilities;
         function getKpiStatus(expr: SQExpr, schema: FederatedConceptualSchema): SQExpr;
-        function getKpiStatusGraphic(expr: SQExpr, schema: FederatedConceptualSchema): string;
+        function getKpiMetadata(expr: SQExpr, schema: FederatedConceptualSchema): DataViewKpiColumnMetadata;
         function getConceptualHierarchy(sqExpr: SQExpr, federatedSchema: FederatedConceptualSchema): ConceptualHierarchy;
-        function getExpr(schema: any, expr: any): SQExpr | SQExpr[];
+        function expandExpr(schema: FederatedConceptualSchema, expr: SQExpr): SQExpr | SQExpr[];
+        function getSourceVariationExpr(hierarchyLevelExpr: data.SQHierarchyLevelExpr): SQColumnRefExpr;
+        function getSourceHierarchy(hierarchyLevelExpr: data.SQHierarchyLevelExpr): SQHierarchyExpr;
+        function getDefaultValue(fieldSQExpr: SQExpr, schema: FederatedConceptualSchema): SQConstantExpr;
+        function getDefaultValues(fieldSQExprs: SQExpr[], schema: FederatedConceptualSchema): SQConstantExpr[];
+        /** Return compare or and expression for key value pairs. */
+        function getDataViewScopeIdentityComparisonExpr(fieldsExpr: SQExpr[], values: SQConstantExpr[]): SQExpr;
+        function getHierarchySourceAsVariationSource(hierarchyLevelExpr: SQHierarchyLevelExpr): SQPropertyVariationSourceExpr;
     }
 }
 declare module powerbi.data {
@@ -3662,7 +3863,7 @@ declare module powerbi.data {
     /** Represents a sort over an expression. */
     interface SQSortDefinition {
         expr: SQExpr;
-        direction: QuerySortDirection;
+        direction: SortDirection;
     }
     interface QueryFromEnsureEntityResult {
         name: string;
@@ -3720,6 +3921,9 @@ declare module powerbi.data {
         private whereItems;
         constructor(from: SQFrom, where: SQFilter[]);
         static fromSQExpr(contract: SQExpr): SemanticFilter;
+        static getDefaultValueFilter(fieldSQExprs: SQExpr | SQExpr[]): SemanticFilter;
+        static getAnyValueFilter(fieldSQExprs: SQExpr | SQExpr[]): SemanticFilter;
+        private static getDataViewScopeIdentityComparisonFilters(fieldSQExprs, value);
         from(): SQFrom;
         conditions(): SQExpr[];
         where(): SQFilter[];
@@ -3727,6 +3931,9 @@ declare module powerbi.data {
         validate(schema: FederatedConceptualSchema, errors?: SQExprValidationError[]): SQExprValidationError[];
         /** Merges a list of SemanticFilters into one. */
         static merge(filters: SemanticFilter[]): SemanticFilter;
+        static isDefaultFilter(filter: SemanticFilter): boolean;
+        static isAnyFilter(filter: SemanticFilter): boolean;
+        static isSameFilter(leftFilter: SemanticFilter, rightFilter: SemanticFilter): boolean;
         private static applyFilter(filter, from, where);
     }
     /** Represents a SemanticQuery/SemanticFilter from clause. */
@@ -3791,6 +3998,13 @@ declare module powerbi {
             precision: number;
             scale: number;
         }
+        interface NumberFormatComponents {
+            hasNegative: boolean;
+            positive: string;
+            negative: string;
+            zero: string;
+        }
+        function getComponents(format: string): NumberFormatComponents;
         /** Evaluates if the value can be formatted using the NumberFormat */
         function canFormat(value: any): boolean;
         function isStandardFormat(format: string): boolean;
@@ -3798,7 +4012,14 @@ declare module powerbi {
         function format(value: number, format: string, culture: Culture): string;
         /** Performs a custom format with a value override.  Typically used for custom formats showing scaled values. */
         function formatWithCustomOverride(value: number, format: string, nonScientificOverrideFormat: string, culture: Culture): string;
-        /** Returns the formatMetadata of the format */
+        /**
+         * Returns the formatMetadata of the format
+         * When calculating precision and scale, if format string of
+         * positive[;negative;zero] => positive format will be used
+         * @param (required) format - format string
+         * @param (optional) calculatePrecision - calculate precision of positive format
+         * @param (optional) calculateScale - calculate scale of positive format
+         */
         function getCustomFormatMetadata(format: string, calculatePrecision?: boolean, calculateScale?: boolean): NumericFormatMetadata;
     }
     var formattingService: IFormattingService;
@@ -3810,36 +4031,88 @@ declare module powerbi.data {
         function serializeArray(exprs: SQExpr[]): string;
     }
 }
-declare module powerbi {
-    module yAxisPosition {
-        const left: string;
-        const right: string;
-        const type: IEnumType;
-    }
-}
 declare module powerbi.data {
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
     type DisplayNameGetter = ((resourceProvider: IStringResourceProvider) => string) | string;
     function createDisplayNameGetter(displayNameKey: string): (IStringResourceProvider) => string;
     function getDisplayName(displayNameGetter: data.DisplayNameGetter, resourceProvider: jsCommon.IStringResourceProvider): string;
 }
-declare module powerbi {
-    module imageScalingType {
-        const normal: string;
-        const fit: string;
-        const fill: string;
-        const type: IEnumType;
+declare module powerbi.data {
+    module DataShapeBindingDataReduction {
+        function createFrom(reduction: ReductionAlgorithm): DataShapeBindingDataReductionAlgorithm;
+    }
+}
+declare module powerbi.data {
+    interface DataViewNormalizeValuesApplyOptions {
+        dataview: DataView;
+        dataViewMappings: DataViewMapping[];
+        dataRoles: VisualDataRole[];
+    }
+    interface IMetadataColumnFilter {
+        (columnIndex: number): boolean;
+    }
+    interface IColumnValueFilter {
+        (value: any): boolean;
+    }
+    interface IValueFilter {
+        (columnIndex: number, value: any): boolean;
+    }
+    module DataViewNormalizeValues {
+        function apply(options: DataViewNormalizeValuesApplyOptions): void;
+        function filterVariantMeasures(dataview: DataView, dataViewMappings: DataViewMapping[], rolesToNormalize: VisualDataRole[]): void;
+        function generateMetadataColumnFilter(columns: DataViewMetadataColumn[], rolesToNormalize: VisualDataRole[]): IMetadataColumnFilter;
+        function generateValueFilter(columns: DataViewMetadataColumn[], rolesToNormalize: VisualDataRole[]): IValueFilter;
+        function getColumnRequiredTypes(column: DataViewMetadataColumn, rolesToNormalize: VisualDataRole[]): ValueType[];
+        function normalizeVariant<T>(object: T, key: string | number, columnIndex: number, valueFilter: IValueFilter): T;
+    }
+}
+declare module powerbi.data {
+    module DataViewPivotCategoricalToPrimaryGroups {
+        /**
+         * If mapping requests cross axis data reduction and the binding has secondary grouping, mutates the binding to
+         * pivot the secondary before the primary.
+         */
+        function pivotBinding(binding: DataShapeBinding, allMappings: CompiledDataViewMapping[], finalMapping: CompiledDataViewMapping, defaultDataVolume: number): void;
+        function unpivotResult(oldDataView: DataView, selects: DataViewSelectTransform[], dataViewMappings: DataViewMapping[]): DataView;
     }
 }
 declare module powerbi {
-    module outline {
-        const none: string;
-        const bottomOnly: string;
-        const topOnly: string;
-        const topBottom: string;
-        const leftRight: string;
-        const frame: string;
-        const type: IEnumType;
+    interface ScriptResult {
+        source: string;
+        provider: string;
+    }
+    module ScriptResultUtil {
+        function findScriptResult(dataViewMappings: DataViewMapping[] | data.CompiledDataViewMapping[]): DataViewScriptResultMapping | data.CompiledDataViewScriptResultMapping;
+        function extractScriptResult(dataViewMappings: data.CompiledDataViewMapping[]): ScriptResult;
+        function extractScriptResultFromVisualConfig(dataViewMappings: DataViewMapping[], objects: powerbi.data.DataViewObjectDefinitions): ScriptResult;
+    }
+}
+declare module powerbi {
+    import DisplayNameGetter = powerbi.data.DisplayNameGetter;
+    /** Defines the data roles understood by the IVisual. */
+    interface VisualDataRole {
+        /** Unique name for the VisualDataRole. */
+        name: string;
+        /** Indicates the kind of role.  This value is used to build user interfaces, such as a field well. */
+        kind: VisualDataRoleKind;
+        displayName?: DisplayNameGetter;
+        /** The tooltip text */
+        description?: DisplayNameGetter;
+        /** Indicates the preferred ValueTypes to be used in this data role.  This is used by authoring tools when adding fields into the visual. */
+        preferredTypes?: ValueTypeDescriptor[];
+        /** Indicates the required ValueTypes for this data role. Any values which do not match one of the ValueTypes specified will be null'd out */
+        requiredTypes?: ValueTypeDescriptor[];
+    }
+    interface RoleCondition extends NumberRange {
+        kind?: VisualDataRoleKind;
+    }
+    enum VisualDataRoleKind {
+        /** Indicates that the role should be bound to something that evaluates to a grouping of values. */
+        Grouping = 0,
+        /** Indicates that the role should be bound to something that evaluates to a single value in a scope. */
+        Measure = 1,
+        /** Indicates that the role can be bound to either Grouping or Measure. */
+        GroupingOrMeasure = 2,
     }
 }
 declare module powerbi.data {
@@ -3871,6 +4144,7 @@ declare module powerbi.data {
     interface FieldExprColumnHierarchyLevelVariation {
         source: FieldExprColumnPattern;
         level: FieldExprHierarchyLevelPattern;
+        variationName: string;
     }
     interface FieldExprEntityAggrPattern extends FieldExprEntityItemPattern {
         aggregate: QueryAggregateFunction;
@@ -3889,29 +4163,18 @@ declare module powerbi.data {
     module FieldExprPattern {
         function hasFieldExprName(fieldExpr: FieldExprPattern): boolean;
         function getPropertyName(fieldExpr: FieldExprPattern): string;
+        function getColumnRef(fieldExpr: FieldExprPattern): FieldExprPropertyPattern;
         function getFieldExprName(fieldExpr: FieldExprPattern): string;
         function toFieldExprEntityItemPattern(fieldExpr: FieldExprPattern): FieldExprEntityItemPattern;
     }
 }
 
-/// <reference path="../../Typedefs/d3/d3.d.ts" />
-/// <reference path="../../Typedefs/jquery-visible/jquery-visible.d.ts" />
-/// <reference path="../../Typedefs/jquery/jquery.d.ts" />
-/// <reference path="../../Typedefs/microsoftMaps/Microsoft.Maps.d.ts" />
-/// <reference path="../../Typedefs/moment/moment.d.ts" />
-/// <reference path="../../Typedefs/velocity/velocity-animate.d.ts" />
-/// <reference path="../../Typedefs/lodash/lodash.d.ts" />
-/// <reference path="../../Typedefs/quill/quill.d.ts" />
-/// <reference path="../../Typedefs/ie/ie.d.ts" />
-/// <reference path="../../Typedefs/noUiSlider/noUiSlider.d.ts" />
-/// <reference path="../../VisualsCommon/obj/VisualsCommon.d.ts" />
-/// <reference path="../../VisualsData/obj/VisualsData.d.ts" />
 declare module powerbi {
     import DataViewObjectDescriptors = powerbi.data.DataViewObjectDescriptors;
     import DataViewObjectDescriptor = powerbi.data.DataViewObjectDescriptor;
-    import DisplayNameGetter = powerbi.data.DisplayNameGetter;
     import Selector = powerbi.data.Selector;
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
+    import IRect = powerbi.visuals.IRect;
     /**
      * Represents a visualization displayed within an application (PowerBI dashboards, ad-hoc reporting, etc.).
      * This interface does not make assumptions about the underlying JS/HTML constructs the visual uses to render itself.
@@ -3969,6 +4232,8 @@ declare module powerbi {
         customizeQuery?: CustomizeQueryMethod;
         /** The class of the plugin.  At the moment it is only used to have a way to indicate the class name that a custom visual has. */
         class?: string;
+        /** The url to the icon to display within the visualization pane. */
+        iconUrl?: string;
         /** Check if a visual is custom */
         custom?: boolean;
         getSortableRoles?: (visualSortableOptions?: VisualSortableOptions) => string[];
@@ -4021,6 +4286,8 @@ declare module powerbi {
         filterMappings?: VisualFilterMappings;
         /** Indicates whether cross-highlight is supported by the visual. This is useful for query generation. */
         supportsHighlight?: boolean;
+        /** Indicates whether the visual uses onSelected function for data selections.  Default is true. */
+        supportsSelection?: boolean;
         /** Indicates whether sorting is supported by the visual. This is useful for query generation */
         sorting?: VisualSortingCapabilities;
         /** Indicates whether a default title should be displayed.  Visuals with self-describing layout can omit this. */
@@ -4029,16 +4296,6 @@ declare module powerbi {
         drilldown?: VisualDrillCapabilities;
         /** Indicates whether rotating is supported by the visual. */
         canRotate?: boolean;
-    }
-    /** Defines the data roles understood by the IVisual. */
-    interface VisualDataRole {
-        /** Unique name for the VisualDataRole. */
-        name: string;
-        /** Indicates the kind of role.  This value is used to build user interfaces, such as a field well. */
-        kind: VisualDataRoleKind;
-        displayName?: DisplayNameGetter;
-        /** Indicates the preferred ValueTypes to be used in this data role.  This is used by authoring tools when adding fields into the visual. */
-        preferredTypes?: ValueTypeDescriptor[];
     }
     /** Defines the visual sorting capability. */
     interface VisualSortingCapabilities {
@@ -4060,15 +4317,7 @@ declare module powerbi {
     }
     interface VisualImplicitSortingClause {
         role: string;
-        direction: data.QuerySortDirection;
-    }
-    enum VisualDataRoleKind {
-        /** Indicates that the role should be bound to something that evaluates to a grouping of values. */
-        Grouping = 0,
-        /** Indicates that the role should be bound to something that evaluates to a single value in a scope. */
-        Measure = 1,
-        /** Indicates that the role can be bound to either Grouping or Measure. */
-        GroupingOrMeasure = 2,
+        direction: SortDirection;
     }
     /** Defines the capabilities of an IVisual. */
     interface VisualInitOptions {
@@ -4111,7 +4360,7 @@ declare module powerbi {
     }
     interface SortableFieldDescriptor {
         queryName: string;
-        sortDirection?: data.QuerySortDirection;
+        sortDirection?: SortDirection;
     }
     enum ViewMode {
         View = 0,
@@ -4153,10 +4402,8 @@ declare module powerbi {
         setWarnings(clientWarnings: IVisualWarning[]): void;
         /** Sets a toolbar on the host. */
         setToolbar($selector: JQuery): void;
-    }
-    interface IViewport {
-        height: number;
-        width: number;
+        /** Gets Geocoding Service. */
+        geocoder(): IGeocoder;
     }
     /** Animation options for visuals. */
     interface AnimationOptions {
@@ -4181,6 +4428,30 @@ declare module powerbi {
     interface DragEventArgs {
         event: DragEvent;
         data: VisualDragPayload;
+    }
+    /** Defines geocoding services. */
+    interface IGeocoder {
+        geocode(query: string, category?: string): IPromise<IGeocodeCoordinate>;
+        geocodeBoundary(latitude: number, longitude: number, category: string, levelOfDetail?: number, maxGeoData?: number): IPromise<IGeocodeBoundaryCoordinate>;
+    }
+    interface IGeocodeCoordinate {
+        latitude: number;
+        longitude: number;
+    }
+    interface IGeocodeBoundaryCoordinate {
+        latitude?: number;
+        longitude?: number;
+        locations?: IGeocodeBoundaryPolygon[];
+    }
+    interface IGeocodeBoundaryPolygon {
+        nativeBing: string;
+        /** array of lat/long pairs as [lat1, long1, lat2, long2,...] */
+        geographic?: Float64Array;
+        /** array of absolute pixel position pairs [x1,y1,x2,y2,...]. It can be used by the client for cache the data. */
+        absolute?: Float64Array;
+        absoluteBounds?: IRect;
+        /** string of absolute pixel position pairs "x1 y1 x2 y2...". It can be used by the client for cache the data. */
+        absoluteString?: string;
     }
     interface SelectorForColumn {
         [queryName: string]: data.DataRepetitionSelector;
@@ -4227,14 +4498,14 @@ declare module powerbi {
     }
     interface VisualObjectInstanceContainer {
         displayName: data.DisplayNameGetter;
-        /** Defines a property that is used to expand/collapse the container. */
-        expander?: data.DataViewObjectPropertyDefinition;
     }
     interface VisualObjectInstancesToPersist {
-        /** Instances which should be merged with existing instances */
+        /** Instances which should be merged with existing instances. */
         merge?: VisualObjectInstance[];
         /** Instances which should replace existing instances. */
         replace?: VisualObjectInstance[];
+        /** Instances which should be deleted from the existing instances. */
+        remove?: VisualObjectInstance[];
     }
 }
 declare module powerbi.visuals {
@@ -4247,6 +4518,8 @@ declare module powerbi.visuals {
         y: number;
         constructor(x?: number, y?: number);
     }
+}
+declare module powerbi.visuals {
     interface IRect {
         left: number;
         top: number;
@@ -4260,179 +4533,6 @@ declare module powerbi.visuals {
         height: number;
         constructor(left?: number, top?: number, width?: number, height?: number);
     }
-    interface I2DTransformMatrix {
-        m00: number;
-        m01: number;
-        m02: number;
-        m10: number;
-        m11: number;
-        m12: number;
-    }
-    /** Transformation matrix math wrapper */
-    class Transform {
-        private _inverse;
-        matrix: I2DTransformMatrix;
-        constructor(m?: I2DTransformMatrix);
-        applyToPoint(point: IPoint): IPoint;
-        applyToRect(rect: Rect): IRect;
-        translate(xOffset: number, yOffset: number): void;
-        scale(xScale: number, yScale: number): void;
-        rotate(angleInRadians: number): void;
-        add(other: Transform): void;
-        getInverse(): Transform;
-    }
-    function createTranslateMatrix(xOffset: number, yOffset: number): I2DTransformMatrix;
-    function createScaleMatrix(xScale: number, yScale: number): I2DTransformMatrix;
-    function createRotationMatrix(angleInRads: number): I2DTransformMatrix;
-    function createInverseMatrix(m: I2DTransformMatrix): I2DTransformMatrix;
-    class MapPolygonInfo {
-        private _locationRect;
-        private _baseRect;
-        private _currentRect;
-        constructor();
-        reCalc(mapControl: Microsoft.Maps.Map, width: number, height: number): void;
-        scale: number;
-        transform: Transform;
-        outherTransform: Transform;
-        setViewBox(svg: SVGSVGElement): void;
-        innerTransform: Transform;
-        transformToString(transform: Transform): string;
-    }
-}
-declare module powerbi.visuals.BI.Services.GeocodingManager {
-    var Settings: {
-        MaxBingRequest: number;
-        MaxCacheSize: number;
-        MaxCacheSizeOverflow: number;
-        BingKey: string;
-        BingUrl: string;
-        BingUrlGeodata: string;
-        UseDoubleArrayGeodataResult: boolean;
-        UseDoubleArrayDequeueTimeout: number;
-    };
-    interface BingAjaxService {
-        (url: string, settings: JQueryAjaxSettings): any;
-    }
-    var safeCharacters: string;
-    /** Note: Used for test mockup */
-    var BingAjaxCall: BingAjaxService;
-    var CategoryTypes: {
-        Address: string;
-        City: string;
-        Continent: string;
-        CountryRegion: string;
-        County: string;
-        Longitude: string;
-        Latitude: string;
-        Place: string;
-        PostalCode: string;
-        StateOrProvince: string;
-    };
-    var CategoryTypeArray: string[];
-    function isCategoryType(value: string): boolean;
-    var BingEntities: {
-        Continent: string;
-        Sovereign: string;
-        CountryRegion: string;
-        AdminDivision1: string;
-        AdminDivision2: string;
-        PopulatedPlace: string;
-        Postcode: string;
-        Postcode1: string;
-        Neighborhood: string;
-        Address: string;
-    };
-    interface ILocation {
-        latitude: number;
-        longitude: number;
-    }
-    interface ILocationRect {
-        northWest: ILocation;
-        southEast: ILocation;
-    }
-    interface GeocodeCallback {
-        (error: Error, coordinate: IGeocodeCoordinate): void;
-    }
-    interface IGeocodeQuery {
-        query: string;
-        category: string;
-        levelOfDetail?: number;
-        longitude?: number;
-        latitude?: number;
-    }
-    interface IGeocodeBoundaryPolygon {
-        nativeBing: string;
-        /** array of lat/long pairs as [lat1, long1, lat2, long2,...] */
-        geographic?: Float64Array;
-        geographicBounds?: Microsoft.Maps.LocationRect;
-        /** array of absolute pixel position pairs [x1,y1,x2,y2,...]. It can be used by the client for cache the data. */
-        absolute?: Float64Array;
-        absoluteBounds?: Rect;
-        /** string of absolute pixel position pairs "x1 y1 x2 y2...". It can be used by the client for cache the data. */
-        absoluteString?: string;
-    }
-    interface IGeocodeCoordinate {
-        latitude?: number;
-        longitude?: number;
-        locations?: IGeocodeBoundaryPolygon[];
-    }
-    class GeocodeQuery implements IGeocodeQuery {
-        query: string;
-        category: string;
-        key: string;
-        private _cacheHits;
-        constructor(query?: string, category?: string);
-        incrementCacheHit(): void;
-        getCacheHits(): number;
-        getBingEntity(): string;
-        getUrl(): string;
-    }
-    class GeocodeBoundaryQuery extends GeocodeQuery {
-        latitude: number;
-        longitude: number;
-        levelOfDetail: number;
-        maxGeoData: number;
-        constructor(latitude: number, longitude: number, category: any, levelOfDetail: any, maxGeoData?: number);
-        getBingEntity(): string;
-        getUrl(): string;
-    }
-    function geocodeCore(geocodeQuery: GeocodeQuery): any;
-    function geocode(query: string, category?: string): any;
-    function geocodeBoundary(latitude: number, longitude: number, category?: string, levelOfDetail?: number, maxGeoData?: number): any;
-    function reset(): void;
-}
-declare module powerbi.visuals.BI.Services.MapServices {
-    var MinAllowedLatitude: number;
-    var MaxAllowedLatitude: number;
-    var MinAllowedLongitude: number;
-    var MaxAllowedLongitude: number;
-    var TileSize: number;
-    var MaxLevelOfDetail: number;
-    var MinLevelOfDetail: number;
-    var MaxAutoZoomLevel: number;
-    var DefaultLevelOfDetail: number;
-    var WorkerErrorName: string;
-    function clip(n: number, minValue: number, maxValue: number): number;
-    function getMapSize(levelOfDetail: number): number;
-    /**
-     * @param latLongArray - is a Float64Array as [lt0, lon0, lat1, long1, lat2, long2,....]
-     * @returns Float64Array as [x0, y0, x1, y1, x2, y2,....]
-     */
-    function latLongToPixelXYArray(latLongArray: Float64Array, levelOfDetail: number): Float64Array;
-    function pointArrayToString(array: Float64Array): any;
-    function pointArrayToArray(array: Float64Array): number[];
-    function getLocationBoundaries(latLongArray: Float64Array): Microsoft.Maps.LocationRect;
-    /**
-     * Note: this code is taken from Bing.
-     *  see Point Compression Algorithm http://msdn.microsoft.com/en-us/library/jj158958.aspx
-     *  see Decompression Algorithm in http://msdn.microsoft.com/en-us/library/dn306801.aspx
-     */
-    function parseEncodedSpatialValueArray(value: any): Float64Array;
-    function calcGeoData(data: powerbi.visuals.BI.Services.GeocodingManager.IGeocodeCoordinate): void;
-    function latLongToPixelXY(latitude: number, longitude: number, levelOfDetail: number): powerbi.visuals.Point;
-    function locationToPixelXY(location: Microsoft.Maps.Location, levelOfDetail: number): powerbi.visuals.Point;
-    function locationRectToRectXY(locationRect: Microsoft.Maps.LocationRect, levelOfDetail: number): powerbi.visuals.Rect;
-    function pixelXYToLocation(pixelX: number, pixelY: number, levelOfDetail: number): Microsoft.Maps.Location;
 }
 declare module powerbi.visuals {
     enum LegendIcon {
@@ -4468,12 +4568,16 @@ declare module powerbi.visuals {
         title?: string;
         dataPoints: LegendDataPoint[];
         grouped?: boolean;
+        labelColor?: string;
+        fontSize?: number;
     }
-    var legendProps: {
+    const legendProps: {
         show: string;
         position: string;
         titleText: string;
         showTitle: string;
+        labelColor: string;
+        fontSize: string;
     };
     function createLegend(legendParentElement: JQuery, interactive: boolean, interactivityService: IInteractivityService, isScrollable?: boolean, legendPosition?: LegendPosition): ILegend;
     interface ILegend {
@@ -4489,8 +4593,164 @@ declare module powerbi.visuals {
     }
     function getIconClass(iconType: LegendIcon): string;
     function getLabelMaxSize(currentViewport: IViewport, numItems: number, hasTitle: boolean): string;
+    class SVGLegend implements ILegend {
+        private orientation;
+        private viewport;
+        private parentViewport;
+        private svg;
+        private group;
+        private clearCatcher;
+        private element;
+        private interactivityService;
+        private legendDataStartIndex;
+        private arrowPosWindow;
+        private data;
+        private isScrollable;
+        private lastCalculatedWidth;
+        private visibleLegendWidth;
+        private visibleLegendHeight;
+        private legendFontSizeMarginDifference;
+        private legendFontSizeMarginValue;
+        static DefaultFontSizeInPt: number;
+        private static LegendIconRadius;
+        private static MaxTextLength;
+        private static MaxTitleLength;
+        private static TextAndIconPadding;
+        private static TitlePadding;
+        private static LegendEdgeMariginWidth;
+        private static LegendMaxWidthFactor;
+        private static TopLegendHeight;
+        private static DefaultTextMargin;
+        private static DefaultMaxLegendFactor;
+        private static LegendArrowOffset;
+        private static LegendArrowHeight;
+        private static LegendArrowWidth;
+        private static LegendArrowTranslateY;
+        private static DefaultFontFamily;
+        private static DefaultTitleFontFamily;
+        private static LegendItem;
+        private static LegendText;
+        private static LegendIcon;
+        private static LegendTitle;
+        private static NavigationArrow;
+        constructor(element: JQuery, legendPosition: LegendPosition, interactivityService: IInteractivityService, isScrollable: boolean);
+        private updateLayout();
+        private calculateViewport();
+        private getFloat();
+        getMargins(): IViewport;
+        isVisible(): boolean;
+        changeOrientation(orientation: LegendPosition): void;
+        getOrientation(): LegendPosition;
+        drawLegend(data: LegendData, viewport: IViewport): void;
+        drawLegendInternal(data: LegendData, viewport: IViewport, autoWidth: boolean): void;
+        private normalizePosition(points);
+        private calculateTitleLayout(title);
+        /** Performs layout offline for optimal perfomance */
+        private calculateLayout(data, autoWidth);
+        private updateNavigationArrowLayout(navigationArrows, remainingDataLength, visibleDataLength);
+        private calculateHorizontalNavigationArrowsLayout(title);
+        private calculateVerticalNavigationArrowsLayout(title);
+        private calculateHorizontalLayout(dataPoints, title, navigationArrows);
+        private calculateVerticalLayout(dataPoints, title, navigationArrows, autoWidth);
+        private drawNavigationArrows(layout);
+        private isTopOrBottom(orientation);
+        private isCentered(orientation);
+        reset(): void;
+        private static getTextProperties(isTitle, text?, fontSize?);
+    }
     module LegendData {
+        var DefaultLegendLabelFillColor: string;
         function update(legendData: LegendData, legendObject: DataViewObject): void;
+    }
+}
+declare module powerbi.visuals {
+    module axisScale {
+        const linear: string;
+        const log: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module axisStyle {
+        const showBoth: string;
+        const showTitleOnly: string;
+        const showUnitOnly: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module axisType {
+        const scalar: string;
+        const categorical: string;
+        const both: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module basicShapeType {
+        const rectangle: string;
+        const oval: string;
+        const line: string;
+        const arrow: string;
+        const triangle: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module imageScalingType {
+        const normal: string;
+        const fit: string;
+        const fill: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module labelPosition {
+        const insideEnd: string;
+        const insideCenter: string;
+        const outsideEnd: string;
+        const insideBase: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module legendPosition {
+        const top: string;
+        const bottom: string;
+        const left: string;
+        const right: string;
+        const topCenter: string;
+        const bottomCenter: string;
+        const leftCenter: string;
+        const rightCenter: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module outline {
+        const none: string;
+        const bottomOnly: string;
+        const topOnly: string;
+        const topBottom: string;
+        const leftRight: string;
+        const frame: string;
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module slicerOrientation {
+        enum Orientation {
+            Vertical = 0,
+            Horizontal = 1,
+        }
+        const type: IEnumType;
+    }
+}
+declare module powerbi.visuals {
+    module yAxisPosition {
+        const left: string;
+        const right: string;
+        const type: IEnumType;
     }
 }
 declare module powerbi.visuals {
@@ -4524,18 +4784,17 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     interface ColumnChartAnimationOptions extends IAnimationOptions {
         viewModel: ColumnChartData;
         series: D3.UpdateSelection;
         layout: IColumnLayout;
         itemCS: ClassAndSelector;
         mainGraphicsContext: D3.Selection;
-        labelLayout: ILabelLayout;
         viewPort: IViewport;
     }
     interface ColumnChartAnimationResult extends IAnimationResult {
         shapes: D3.UpdateSelection;
-        dataLabels: D3.UpdateSelection;
     }
     type IColumnChartAnimator = IAnimator<IAnimatorOptions, ColumnChartAnimationOptions, ColumnChartAnimationResult>;
     class WebColumnChartAnimator extends BaseAnimator<IAnimatorOptions, ColumnChartAnimationOptions, ColumnChartAnimationResult> implements IColumnChartAnimator {
@@ -4546,7 +4805,6 @@ declare module powerbi.visuals {
         private animateHighlightedToHighlighted(options);
         private animateHighlightedToNormal(options);
         private animateDefaultShapes(data, series, layout, itemCS);
-        private animateDefaultDataLabels(options);
     }
 }
 declare module powerbi.visuals {
@@ -4642,15 +4900,34 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
-    var animatedTextObjectDescs: data.DataViewObjectDescriptors;
-    var animatedNumberCapabilities: VisualCapabilities;
+    const animatedTextObjectDescs: data.DataViewObjectDescriptors;
+    const animatedNumberCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var basicShapeCapabilities: VisualCapabilities;
+    const basicShapeCapabilities: VisualCapabilities;
+    const basicShapeProps: {
+        general: {
+            shapeType: DataViewObjectPropertyIdentifier;
+        };
+        line: {
+            transparency: DataViewObjectPropertyIdentifier;
+            weight: DataViewObjectPropertyIdentifier;
+            roundEdge: DataViewObjectPropertyIdentifier;
+            lineColor: DataViewObjectPropertyIdentifier;
+        };
+        fill: {
+            transparency: DataViewObjectPropertyIdentifier;
+            fillColor: DataViewObjectPropertyIdentifier;
+            show: DataViewObjectPropertyIdentifier;
+        };
+        rotation: {
+            angle: DataViewObjectPropertyIdentifier;
+        };
+    };
 }
 declare module powerbi.visuals {
     function getColumnChartCapabilities(transposeAxes?: boolean): VisualCapabilities;
-    var columnChartProps: {
+    const columnChartProps: {
         dataPoint: {
             defaultColor: DataViewObjectPropertyIdentifier;
             fill: DataViewObjectPropertyIdentifier;
@@ -4662,22 +4939,28 @@ declare module powerbi.visuals {
         categoryAxis: {
             axisType: DataViewObjectPropertyIdentifier;
         };
+        legend: {
+            labelColor: DataViewObjectPropertyIdentifier;
+        };
     };
 }
 declare module powerbi.visuals {
-    var comboChartCapabilities: VisualCapabilities;
-    var comboChartProps: {
+    const comboChartCapabilities: VisualCapabilities;
+    const comboChartProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
         valueAxis: {
             secShow: DataViewObjectPropertyIdentifier;
         };
+        legend: {
+            labelColor: DataViewObjectPropertyIdentifier;
+        };
     };
 }
 declare module powerbi.visuals {
-    var donutChartCapabilities: VisualCapabilities;
-    var donutChartProps: {
+    const donutChartCapabilities: VisualCapabilities;
+    const donutChartProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
@@ -4691,18 +4974,19 @@ declare module powerbi.visuals {
             position: DataViewObjectPropertyIdentifier;
             showTitle: DataViewObjectPropertyIdentifier;
             titleText: DataViewObjectPropertyIdentifier;
+            labelColor: DataViewObjectPropertyIdentifier;
         };
     };
 }
 declare module powerbi.visuals {
-    var dataDotChartCapabilities: VisualCapabilities;
+    const dataDotChartCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var filledMapCapabilities: VisualCapabilities;
+    const filledMapCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var funnelChartCapabilities: VisualCapabilities;
-    var funnelChartProps: {
+    const funnelChartCapabilities: VisualCapabilities;
+    const funnelChartProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
@@ -4713,16 +4997,19 @@ declare module powerbi.visuals {
     };
 }
 declare module powerbi.visuals {
-    var gaugeRoleNames: {
+    const gaugeRoleNames: {
         y: string;
         minValue: string;
         maxValue: string;
         targetValue: string;
     };
-    var gaugeCapabilities: VisualCapabilities;
+    const gaugeCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var imageVisualCapabilities: VisualCapabilities;
+    const imageVisualCapabilities: VisualCapabilities;
+}
+declare module powerbi.visuals {
+    var scriptVisualCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals.samples {
     var consoleWriterCapabilities: VisualCapabilities;
@@ -4736,8 +5023,8 @@ declare module powerbi.visuals.samples {
     }
 }
 declare module powerbi.visuals {
-    var lineChartCapabilities: VisualCapabilities;
-    var lineChartProps: {
+    const lineChartCapabilities: VisualCapabilities;
+    const lineChartProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
@@ -4748,11 +5035,14 @@ declare module powerbi.visuals {
         categoryAxis: {
             axisType: DataViewObjectPropertyIdentifier;
         };
+        legend: {
+            labelColor: DataViewObjectPropertyIdentifier;
+        };
     };
 }
 declare module powerbi.visuals {
-    var mapCapabilities: VisualCapabilities;
-    var mapProps: {
+    const mapCapabilities: VisualCapabilities;
+    const mapProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
@@ -4770,17 +5060,17 @@ declare module powerbi.visuals {
     };
 }
 declare module powerbi.visuals {
-    var multiRowCardCapabilities: VisualCapabilities;
+    const multiRowCardCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var richTextboxCapabilities: VisualCapabilities;
+    const richTextboxCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var cheerMeterCapabilities: VisualCapabilities;
+    const cheerMeterCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var scatterChartCapabilities: VisualCapabilities;
-    var scatterChartProps: {
+    const scatterChartCapabilities: VisualCapabilities;
+    const scatterChartProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
@@ -4794,26 +5084,28 @@ declare module powerbi.visuals {
         fillPoint: {
             show: DataViewObjectPropertyIdentifier;
         };
-    };
-}
-declare module powerbi.visuals {
-    var playChartCapabilities: VisualCapabilities;
-    var playChartProps: {
-        general: {
-            formatString: DataViewObjectPropertyIdentifier;
+        colorByCategory: {
+            show: DataViewObjectPropertyIdentifier;
         };
-        dataPoint: {
-            defaultColor: DataViewObjectPropertyIdentifier;
-            fill: DataViewObjectPropertyIdentifier;
+        currentFrameIndex: {
+            index: DataViewObjectPropertyIdentifier;
+        };
+        legend: {
+            labelColor: DataViewObjectPropertyIdentifier;
         };
     };
 }
 declare module powerbi.visuals {
-    var slicerCapabilities: VisualCapabilities;
-    var slicerProps: {
+    const slicerCapabilities: VisualCapabilities;
+    const slicerProps: {
         general: {
             outlineColor: DataViewObjectPropertyIdentifier;
             outlineWeight: DataViewObjectPropertyIdentifier;
+            orientation: DataViewObjectPropertyIdentifier;
+        };
+        selection: {
+            selectAllCheckboxEnabled: DataViewObjectPropertyIdentifier;
+            singleSelect: DataViewObjectPropertyIdentifier;
         };
         header: {
             show: DataViewObjectPropertyIdentifier;
@@ -4822,7 +5114,7 @@ declare module powerbi.visuals {
             outline: DataViewObjectPropertyIdentifier;
             textSize: DataViewObjectPropertyIdentifier;
         };
-        Rows: {
+        items: {
             fontColor: DataViewObjectPropertyIdentifier;
             background: DataViewObjectPropertyIdentifier;
             outline: DataViewObjectPropertyIdentifier;
@@ -4831,22 +5123,23 @@ declare module powerbi.visuals {
         selectedPropertyIdentifier: DataViewObjectPropertyIdentifier;
         filterPropertyIdentifier: DataViewObjectPropertyIdentifier;
         formatString: DataViewObjectPropertyIdentifier;
+        defaultValue: DataViewObjectPropertyIdentifier;
     };
 }
 declare module powerbi.visuals {
-    var tableCapabilities: VisualCapabilities;
+    const tableCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var matrixRoleNames: {
+    const matrixRoleNames: {
         rows: string;
         columns: string;
         values: string;
     };
-    var matrixCapabilities: VisualCapabilities;
+    const matrixCapabilities: VisualCapabilities;
 }
 declare module powerbi.visuals {
-    var treemapCapabilities: VisualCapabilities;
-    var treemapProps: {
+    const treemapCapabilities: VisualCapabilities;
+    const treemapProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
@@ -4858,6 +5151,7 @@ declare module powerbi.visuals {
             position: DataViewObjectPropertyIdentifier;
             showTitle: DataViewObjectPropertyIdentifier;
             titleText: DataViewObjectPropertyIdentifier;
+            labelColor: DataViewObjectPropertyIdentifier;
         };
         labels: {
             show: DataViewObjectPropertyIdentifier;
@@ -4871,15 +5165,18 @@ declare module powerbi.visuals {
     };
 }
 declare module powerbi.visuals {
-    var cardCapabilities: VisualCapabilities;
+    const cardCapabilities: VisualCapabilities;
     var cardProps: {
-        cardTitle: {
+        categoryLabels: {
             show: DataViewObjectPropertyIdentifier;
+            color: DataViewObjectPropertyIdentifier;
+            fontSize: DataViewObjectPropertyIdentifier;
         };
         labels: {
             color: DataViewObjectPropertyIdentifier;
             labelPrecision: DataViewObjectPropertyIdentifier;
             labelDisplayUnits: DataViewObjectPropertyIdentifier;
+            fontSize: DataViewObjectPropertyIdentifier;
         };
         wordWrap: {
             show: DataViewObjectPropertyIdentifier;
@@ -4887,8 +5184,8 @@ declare module powerbi.visuals {
     };
 }
 declare module powerbi.visuals {
-    var waterfallChartCapabilities: VisualCapabilities;
-    var waterfallChartProps: {
+    const waterfallChartCapabilities: VisualCapabilities;
+    const waterfallChartProps: {
         general: {
             formatString: DataViewObjectPropertyIdentifier;
         };
@@ -4897,43 +5194,75 @@ declare module powerbi.visuals {
             decreaseFill: DataViewObjectPropertyIdentifier;
             totalFill: DataViewObjectPropertyIdentifier;
         };
+        legend: {
+            labelColor: DataViewObjectPropertyIdentifier;
+        };
     };
 }
 declare module powerbi.visuals.capabilities {
-    var animatedNumber: VisualCapabilities;
-    var areaChart: VisualCapabilities;
-    var barChart: VisualCapabilities;
-    var card: VisualCapabilities;
-    var multiRowCard: VisualCapabilities;
-    var clusteredBarChart: VisualCapabilities;
-    var clusteredColumnChart: VisualCapabilities;
-    var columnChart: VisualCapabilities;
-    var comboChart: VisualCapabilities;
-    var dataDotChart: VisualCapabilities;
-    var dataDotClusteredColumnComboChart: VisualCapabilities;
-    var dataDotStackedColumnComboChart: VisualCapabilities;
-    var donutChart: VisualCapabilities;
-    var funnel: VisualCapabilities;
-    var gauge: VisualCapabilities;
-    var hundredPercentStackedBarChart: VisualCapabilities;
-    var hundredPercentStackedColumnChart: VisualCapabilities;
-    var image: VisualCapabilities;
-    var lineChart: VisualCapabilities;
-    var lineStackedColumnComboChart: VisualCapabilities;
-    var lineClusteredColumnComboChart: VisualCapabilities;
-    var map: VisualCapabilities;
-    var filledMap: VisualCapabilities;
-    var treemap: VisualCapabilities;
-    var pieChart: VisualCapabilities;
-    var scatterChart: VisualCapabilities;
-    var playChart: VisualCapabilities;
-    var table: VisualCapabilities;
-    var matrix: VisualCapabilities;
-    var slicer: VisualCapabilities;
-    var textbox: VisualCapabilities;
-    var waterfallChart: VisualCapabilities;
-    var cheerMeter: VisualCapabilities;
-    var heatMap: VisualCapabilities;
+    let animatedNumber: VisualCapabilities;
+    let areaChart: VisualCapabilities;
+    let barChart: VisualCapabilities;
+    let card: VisualCapabilities;
+    let multiRowCard: VisualCapabilities;
+    let clusteredBarChart: VisualCapabilities;
+    let clusteredColumnChart: VisualCapabilities;
+    let columnChart: VisualCapabilities;
+    let comboChart: VisualCapabilities;
+    let dataDotChart: VisualCapabilities;
+    let dataDotClusteredColumnComboChart: VisualCapabilities;
+    let dataDotStackedColumnComboChart: VisualCapabilities;
+    let donutChart: VisualCapabilities;
+    let funnel: VisualCapabilities;
+    let gauge: VisualCapabilities;
+    let hundredPercentStackedBarChart: VisualCapabilities;
+    let hundredPercentStackedColumnChart: VisualCapabilities;
+    let image: VisualCapabilities;
+    let lineChart: VisualCapabilities;
+    let lineStackedColumnComboChart: VisualCapabilities;
+    let lineClusteredColumnComboChart: VisualCapabilities;
+    let map: VisualCapabilities;
+    let filledMap: VisualCapabilities;
+    let treemap: VisualCapabilities;
+    let pieChart: VisualCapabilities;
+    let scatterChart: VisualCapabilities;
+    let table: VisualCapabilities;
+    let matrix: VisualCapabilities;
+    let slicer: VisualCapabilities;
+    let textbox: VisualCapabilities;
+    let waterfallChart: VisualCapabilities;
+    let cheerMeter: VisualCapabilities;
+    let scriptVisual: VisualCapabilities;
+}
+declare module powerbi.visuals {
+    interface CartesianBehaviorOptions {
+        layerOptions: any[];
+        clearCatcher: D3.Selection;
+    }
+    class CartesianChartBehavior implements IInteractiveBehavior {
+        private behaviors;
+        constructor(behaviors: IInteractiveBehavior[]);
+        bindEvents(options: CartesianBehaviorOptions, selectionHandler: ISelectionHandler): void;
+        renderSelection(hasSelection: boolean): void;
+    }
+}
+declare module powerbi.visuals {
+    interface PlayBehaviorOptions {
+        data: PlayChartData;
+        svg: D3.Selection;
+        renderTraceLine?: (options: PlayBehaviorOptions, selectedPoints: SelectableDataPoint[], shouldAnimate: boolean) => void;
+        dataPointSelection?: D3.Selection;
+        visualBehavior?: IInteractiveBehavior;
+        visualBehaviorOptions?: any;
+        xScale: D3.Scale.GenericScale<any>;
+        yScale: D3.Scale.GenericScale<any>;
+        colorBorder?: boolean;
+    }
+    class PlayChartWebBehavior implements IInteractiveBehavior {
+        private options;
+        bindEvents(options: PlayBehaviorOptions, selectionHandler: ISelectionHandler): void;
+        renderSelection(hasSelection: boolean): void;
+    }
 }
 declare module powerbi.visuals {
     interface ColumnBehaviorOptions {
@@ -4941,7 +5270,6 @@ declare module powerbi.visuals {
         bars: D3.Selection;
         mainGraphicsContext: D3.Selection;
         hasHighlights: boolean;
-        labelLayout: ILabelLayout;
         viewport: IViewport;
         axisOptions: ColumnAxisOptions;
         showLabel: boolean;
@@ -5001,11 +5329,13 @@ declare module powerbi.visuals {
         dots: D3.Selection;
         areas: D3.Selection;
         isPartOfCombo?: boolean;
+        tooltipOverlay: D3.Selection;
     }
     class LineChartWebBehavior implements IInteractiveBehavior {
         private lines;
         private dots;
         private areas;
+        private tooltipOverlay;
         bindEvents(options: LineChartBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
     }
@@ -5093,25 +5423,30 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
+    interface SlicerOrientationBehaviorOptions {
+        behaviorOptions: SlicerBehaviorOptions;
+        orientation: slicerOrientation.Orientation;
+    }
     interface SlicerBehaviorOptions {
-        slicerItemContainers: D3.Selection;
-        slicerItemLabels: D3.Selection;
-        slicerItemInputs: D3.Selection;
-        slicerClear: D3.Selection;
+        slicerContainer: D3.Selection;
+        itemLabels: D3.Selection;
+        clear: D3.Selection;
         dataPoints: SlicerDataPoint[];
         interactivityService: IInteractivityService;
-        slicerSettings: SlicerSettings;
+        settings: SlicerSettings;
     }
     class SlicerWebBehavior implements IInteractiveBehavior {
-        private slicerItemLabels;
-        private slicerItemInputs;
-        private dataPoints;
-        private interactivityService;
-        private slicerSettings;
-        bindEvents(options: SlicerBehaviorOptions, selectionHandler: ISelectionHandler): void;
+        private behavior;
+        bindEvents(options: SlicerOrientationBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
-        private renderMouseover();
-        static styleSlicerInputs(slicerItemInputs: D3.Selection, hasSelection: boolean): void;
+        static bindSlicerEvents(slicerContainer: D3.Selection, slicers: D3.Selection, slicerClear: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService): void;
+        static setSelectionOnSlicerItems(selectableItems: D3.Selection, itemLabel: D3.Selection, hasSelection: boolean, interactivityService: IInteractivityService, slicerSettings: SlicerSettings): void;
+        static styleSlicerItems(slicerItems: D3.Selection, hasSelection: boolean): void;
+        private static bindSlicerItemSelectionEvent(slicers, selectionHandler, slicerSettings, interactivityService);
+        private static bindSlicerClearEvent(slicerClear, selectionHandler);
+        private static styleSlicerContainer(slicerContainer, interactivityService);
+        private static isMultiSelect(event, settings, interactivityService);
+        private createWebBehavior(options);
     }
 }
 declare module powerbi.visuals {
@@ -5166,21 +5501,13 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
-    module aspectRatioHelper {
-        function getDefaultShow(): boolean;
-        function getDefaultValues(): {
-            show: boolean;
-        };
-    }
-}
-declare module powerbi.visuals {
     import ITextAsSVGMeasurer = powerbi.ITextAsSVGMeasurer;
     /**
      * Default ranges are for when we have a field chosen for the axis,
      * but no values are returned by the query.
      */
-    var fallBackDomain: number[];
-    var fallbackDateDomain: number[];
+    const fallBackDomain: number[];
+    const fallbackDateDomain: number[];
     interface IAxisProperties {
         /**
          * The D3 Scale object.
@@ -5238,6 +5565,10 @@ declare module powerbi.visuals {
          * (optional) Whether log scale is possible on the current domain.
          */
         isLogScaleAllowed?: boolean;
+        /**
+         * (optional) Whether domain contains zero value and log scale is enabled.
+         */
+        hasDisallowedZeroInDomain?: boolean;
     }
     interface IMargin {
         top: number;
@@ -5300,6 +5631,10 @@ declare module powerbi.visuals {
         categoryThickness?: number;
         /** (optional) the scale type of the axis. e.g. log, linear */
         scaleType?: string;
+        /** (optional) user selected display units */
+        axisDisplayUnits?: number;
+        /** (optional) user selected precision */
+        axisPrecision?: number;
     }
     interface CreateScaleResult {
         scale: D3.Scale.GenericScale<any>;
@@ -5339,7 +5674,7 @@ declare module powerbi.visuals {
         function invertScale(scale: any, x: any): any;
         function extent(scale: any): number[];
         function invertOrdinalScale(scale: D3.Scale.OrdinalScale, x: number): any;
-        function getOrdinalScaleClosestDataPointIndex(scale: D3.Scale.OrdinalScale, x: number): number;
+        function findClosestXAxisIndex(categoryValue: number, categoryAxisValues: CartesianDataPoint[]): number;
         function diffScaled(scale: D3.Scale.GenericScale<any>, value1: any, value2: any): number;
         function createDomain(data: CartesianSeries[], axisType: ValueType, isScalar: boolean, forcedScalarDomain: any[]): number[];
         function ensureValuesInRange(values: number[], min: number, max: number): number[];
@@ -5357,7 +5692,7 @@ declare module powerbi.visuals {
          * Format the linear tick labels or the category labels.
          */
         function formatAxisTickValues(axis: D3.Svg.Axis, tickValues: any[], formatter: IValueFormatter, dataType: ValueType, isScalar: boolean, getValueFn?: (index: number, type: ValueType) => any): any[];
-        function getMinTickValueInterval(formatString: string, columnType: ValueType): number;
+        function getMinTickValueInterval(formatString: string, columnType: ValueType, is100Pct?: boolean): number;
         /**
          * Creates a [min,max] from your Cartiesian data values.
          *
@@ -5368,14 +5703,14 @@ declare module powerbi.visuals {
         module LabelLayoutStrategy {
             function willLabelsFit(axisProperties: IAxisProperties, availableWidth: number, textMeasurer: ITextAsSVGMeasurer, properties: TextProperties): boolean;
             function willLabelsWordBreak(axisProperties: IAxisProperties, margin: IMargin, availableWidth: number, textWidthMeasurer: ITextAsSVGMeasurer, textHeightMeasurer: ITextAsSVGMeasurer, textTruncator: (properties: TextProperties, maxWidth: number) => string, properties: TextProperties): boolean;
-            var DefaultRotation: {
+            const DefaultRotation: {
                 sine: number;
                 cosine: number;
                 tangent: number;
                 transform: string;
                 dy: string;
             };
-            var DefaultRotationWithScrollbar: {
+            const DefaultRotationWithScrollbar: {
                 sine: number;
                 cosine: number;
                 tangent: number;
@@ -5411,14 +5746,24 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
-    module shapeFactory {
+    module ShapeFactory {
         module ShapeFactoryConsts {
             const PaddingConstRatio: number;
+            const TrianglePaddingConstRatio: number;
+            const TriangleEndPaddingConstRatio: number;
             const ShapeConstRatio: number;
             const SmallPaddingConstValue: number;
             const OvalRadiusConst: number;
             const OvalRadiusConstPadding: number;
+            const ArrowLeftHeadPoint: Point;
+            const ArrowMiddleHeadPoint: Point;
+            const ArrowRightHeadPoint: Point;
+            const ArrowRightMiddleHeadPoint: Point;
+            const ArrowBottomRightPoint: Point;
+            const ArrowBottomLeftPoint: Point;
+            const ArrowLeftMiddleHeadPoint: Point;
         }
+        /** this function creates a rectangle svg   */
         function createRectangle(data: BasicShapeData, viewportHeight: number, viewportWidth: number, selectedElement: D3.Selection, degrees: number): void;
         /** this function creates a oval svg   */
         function createOval(data: BasicShapeData, viewportHeight: number, viewportWidth: number, selectedElement: D3.Selection, degrees: number): void;
@@ -5435,6 +5780,7 @@ declare module powerbi.visuals {
         function getCategoryAxisProperties(dataViewMetadata: DataViewMetadata, axisTitleOnByDefault?: boolean): DataViewObject;
         function getValueAxisProperties(dataViewMetadata: DataViewMetadata, axisTitleOnByDefault?: boolean): DataViewObject;
         function isScalar(isScalar: boolean, xAxisCardProperties: DataViewObject): boolean;
+        function getPrecision(precision: DataViewPropertyValue): number;
     }
 }
 declare module powerbi.visuals {
@@ -5451,6 +5797,10 @@ declare module powerbi.visuals {
          */
         getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.SQExpr[], value: string): string;
         /**
+         * Gets the color scale for the given series.
+         */
+        getColorScaleForSeries(fieldIds: powerbi.data.SQExpr[]): IColorScale;
+        /**
          * Gets the color for the given measure.
          */
         getColorForMeasure(objects: DataViewObjects, measureKey: any): string;
@@ -5458,13 +5808,14 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     module ColumnUtil {
-        var DimmedOpacity: number;
-        var DefaultOpacity: number;
+        const DimmedOpacity: number;
+        const DefaultOpacity: number;
         function getTickCount(min: number, max: number, valuesMetadata: DataViewMetadataColumn[], maxTickCount: number, is100Pct: boolean, forcedTickCount?: number): number;
         function applyUserMinMax(isScalar: boolean, dataView: DataViewCategorical, xAxisCardProperties: DataViewObject): DataViewCategorical;
         function transformDomain(dataView: DataViewCategorical, min: DataViewPropertyValue, max: DataViewPropertyValue): DataViewCategorical;
-        function getCategoryAxis(data: ColumnChartData, size: number, layout: CategoryLayout, isVertical: boolean, forcedXMin?: DataViewPropertyValue, forcedXMax?: DataViewPropertyValue, axisScaleType?: string): IAxisProperties;
+        function getCategoryAxis(data: ColumnChartData, size: number, layout: CategoryLayout, isVertical: boolean, forcedXMin?: DataViewPropertyValue, forcedXMax?: DataViewPropertyValue, axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
         function applyInteractivity(columns: D3.Selection, onDragStart: any): void;
         function getFillOpacity(selected: boolean, highlight: boolean, hasSelection: boolean, hasPartialHighlights: boolean): number;
         function getClosestColumnIndex(coordinate: number, columnsCenters: number[]): number;
@@ -5476,7 +5827,7 @@ declare module powerbi.visuals {
         function calculatePosition(d: ColumnChartDataPoint, axisOptions: ColumnAxisOptions): number;
     }
     module ClusteredUtil {
-        function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], interval: number): IValueFormatter;
+        function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], interval: number, axisDisplayUnits?: number, axisPrecision?: number): IValueFormatter;
         function clearColumns(mainGraphicsContext: D3.Selection, itemCS: ClassAndSelector): void;
     }
     interface ValueMultiplers {
@@ -5486,8 +5837,8 @@ declare module powerbi.visuals {
     module StackedUtil {
         function getSize(scale: D3.Scale.GenericScale<any>, size: number): number;
         function calcValueDomain(data: ColumnChartSeries[], is100pct: boolean): NumberRange;
-        function getValueAxis(data: ColumnChartData, is100Pct: boolean, size: number, scaleRange: number[], forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string): IAxisProperties;
-        function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], is100Pct: boolean, interval: number): IValueFormatter;
+        function getValueAxis(data: ColumnChartData, is100Pct: boolean, size: number, scaleRange: number[], forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
+        function createValueFormatter(valuesMetadata: DataViewMetadataColumn[], is100Pct: boolean, interval: number, axisDisplayUnits?: number, axisPrecision?: number): IValueFormatter;
         function getStackedMultiplier(dataView: DataViewCategorical, rowIdx: number, seriesCount: number, categoryCount: number, converterStrategy: IColumnChartConverterStrategy): ValueMultiplers;
         function clearColumns(mainGraphicsContext: D3.Selection, itemCS: ClassAndSelector): void;
     }
@@ -5524,13 +5875,24 @@ declare module powerbi.visuals {
     interface PointDataLabelsSettings extends VisualDataLabelsSettings {
         position: PointLabelPosition;
     }
+    interface LabelFormattedTextOptions {
+        label: any;
+        maxWidth?: number;
+        format?: string;
+        formatter?: IValueFormatter;
+        fontSize?: number;
+    }
     interface VisualDataLabelsSettings {
         show: boolean;
+        showLabelPerSeries?: boolean;
+        isSeriesExpanded?: boolean;
         displayUnits?: number;
         showCategory?: boolean;
         position?: any;
         precision?: number;
         labelColor: string;
+        categoryLabelColor?: string;
+        fontSize?: number;
     }
     interface VisualDataLabelsSettingsOptions {
         show: boolean;
@@ -5541,6 +5903,8 @@ declare module powerbi.visuals {
         position?: boolean;
         positionObject?: string[];
         selector?: powerbi.data.Selector;
+        fontSize?: boolean;
+        showAll?: boolean;
     }
     interface LabelEnabledDataPoint {
         labelX?: number;
@@ -5549,6 +5913,7 @@ declare module powerbi.visuals {
         labeltext?: string;
         labelFormatString?: string;
         isLabelInside?: boolean;
+        labelFontSize?: number;
     }
     interface IColumnFormatterCache {
         [column: string]: IValueFormatter;
@@ -5574,23 +5939,33 @@ declare module powerbi.visuals {
         labelDisplayUnits: number;
         labelPrecision?: number;
         labelPosition: any;
+        fontSize?: number;
+        showAll?: boolean;
+        showSeries?: boolean;
     }
     module dataLabelUtils {
-        var labelMargin: number;
-        var maxLabelWidth: number;
-        var defaultColumnLabelMargin: number;
-        var defaultColumnHalfLabelHeight: number;
-        var LabelTextProperties: TextProperties;
-        var defaultLabelColor: string;
-        var defaultInsideLabelColor: string;
-        var hundredPercentFormat: string;
+        const minLabelFontSize: number;
+        const labelMargin: number;
+        const maxLabelWidth: number;
+        const defaultColumnLabelMargin: number;
+        const defaultColumnHalfLabelHeight: number;
+        const DefaultFontSizeInPt: number;
+        const LabelTextProperties: TextProperties;
+        const defaultLabelColor: string;
+        const defaultInsideLabelColor: string;
+        const hundredPercentFormat: string;
+        const defaultLabelPrecision: number;
         function updateLabelSettingsFromLabelsObject(labelsObj: DataLabelObject, labelSettings: VisualDataLabelsSettings): void;
-        function getDefaultLabelSettings(show?: boolean, labelColor?: string, labelPrecision?: number, format?: string): VisualDataLabelsSettings;
-        function getDefaultTreemapLabelSettings(format?: string): VisualDataLabelsSettings;
-        function getDefaultColumnLabelSettings(isLabelPositionInside: boolean, format?: string): VisualDataLabelsSettings;
-        function getDefaultPointLabelSettings(format?: string): PointDataLabelsSettings;
-        function getDefaultDonutLabelSettings(format?: string): VisualDataLabelsSettings;
-        function getDefaultFunnelLabelSettings(format?: string): VisualDataLabelsSettings;
+        function getDefaultLabelSettings(show?: boolean, labelColor?: string, fontSize?: number): VisualDataLabelsSettings;
+        function getDefaultCardLabelSettings(labelColor: string, categoryLabelColor: string, fontSize?: number): VisualDataLabelsSettings;
+        function getDefaultTreemapLabelSettings(): VisualDataLabelsSettings;
+        function getDefaultColumnLabelSettings(isLabelPositionInside: boolean): VisualDataLabelsSettings;
+        function getDefaultPointLabelSettings(): PointDataLabelsSettings;
+        function getDefaultMapLabelSettings(): PointDataLabelsSettings;
+        function getDefaultDonutLabelSettings(): VisualDataLabelsSettings;
+        function getDefaultGaugeLabelSettings(): VisualDataLabelsSettings;
+        function getDefaultFunnelLabelSettings(): VisualDataLabelsSettings;
+        function getLabelPrecision(precision: number, format: string): number;
         function drawDefaultLabelsForDataPointChart(data: any[], context: D3.Selection, layout: ILabelLayout, viewport: IViewport, isAnimator?: boolean, animationDuration?: number, hasSelection?: boolean): D3.UpdateSelection;
         /**
          * Note: Funnel chart uses animation and does not use collision detection.
@@ -5599,7 +5974,7 @@ declare module powerbi.visuals {
         function drawDefaultLabelsForDonutChart(data: any[], context: D3.Selection, layout: ILabelLayout, viewport: IViewport, radius: number, arc: D3.Svg.Arc, outerArc: D3.Svg.Arc): void;
         function cleanDataLabels(context: D3.Selection, removeLines?: boolean): void;
         function setHighlightedLabelsOpacity(context: D3.Selection, hasSelection: boolean, hasHighlights: boolean): void;
-        function getLabelFormattedText(label: string | number, maxWidth?: number, format?: string, formatter?: IValueFormatter): string;
+        function getLabelFormattedText(options: LabelFormattedTextOptions): string;
         function getLabelLayoutXYForWaterfall(xAxisProperties: IAxisProperties, categoryWidth: number, yAxisProperties: IAxisProperties, dataDomain: number[]): LabelPosition;
         function doesDataLabelFitInShape(d: WaterfallChartDataPoint, yAxisProperties: IAxisProperties, layout: WaterfallLayout): boolean;
         function getMapLabelLayout(labelSettings: PointDataLabelsSettings): ILabelLayout;
@@ -5608,10 +5983,34 @@ declare module powerbi.visuals {
         function getScatterChartLabelLayout(xScale: D3.Scale.GenericScale<any>, yScale: D3.Scale.GenericScale<any>, labelSettings: PointDataLabelsSettings, viewport: IViewport, sizeRange: NumberRange): ILabelLayout;
         function getLineChartLabelLayout(xScale: D3.Scale.GenericScale<any>, yScale: D3.Scale.GenericScale<any>, labelSettings: PointDataLabelsSettings, isScalar: boolean, axisFormatter: IValueFormatter): ILabelLayout;
         function getDonutChartLabelLayout(labelSettings: VisualDataLabelsSettings, radius: number, outerArc: D3.Svg.Arc, viewport: IViewport, value2: number): ILabelLayout;
-        function getFunnelChartLabelLayout(data: FunnelData, axisOptions: FunnelAxisOptions, innerTextHeightDelta: number, textMinimumPadding: number, labelSettings: VisualDataLabelsSettings, currentViewport: IViewport): ILabelLayout;
+        function getFunnelChartLabelLayout(data: FunnelData, axisOptions: FunnelAxisOptions, textMinimumPadding: number, labelSettings: VisualDataLabelsSettings, currentViewport: IViewport): ILabelLayout;
         function enumerateDataLabels(options: VisualDataLabelsSettingsOptions): ObjectEnumerationBuilder;
-        function enumerateCategoryLabels(enumeration: ObjectEnumerationBuilder, dataLabelsSettings: VisualDataLabelsSettings, withFill: boolean, isDonutChart?: boolean, isTreeMap?: boolean): void;
+        function enumerateCategoryLabels(enumeration: ObjectEnumerationBuilder, dataLabelsSettings: VisualDataLabelsSettings, withFill: boolean, isShowCategory?: boolean, fontSize?: number): void;
         function createColumnFormatterCacheManager(): IColumnFormatterCacheManager;
+        function getOptionsForLabelFormatter(labelSetting: VisualDataLabelsSettings, formatString: string, value2?: number, precision?: number): ValueFormatterOptions;
+    }
+}
+declare module powerbi.visuals {
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    module NewDataLabelUtils {
+        const DefaultLabelFontSizeInPt: number;
+        let startingLabelOffset: number;
+        let maxLabelOffset: number;
+        let maxLabelWidth: number;
+        let hundredPercentFormat: string;
+        let LabelTextProperties: TextProperties;
+        let defaultLabelColor: string;
+        let defaultInsideLabelColor: string;
+        let labelGraphicsContextClass: ClassAndSelector;
+        let labelBackgroundGraphicsContextClass: ClassAndSelector;
+        function drawDefaultLabels(context: D3.Selection, dataLabels: Label[], numeric?: boolean): D3.UpdateSelection;
+        function animateDefaultLabels(context: D3.Selection, dataLabels: Label[], duration: number, numeric?: boolean, easeType?: string): D3.UpdateSelection;
+        /** Draws black rectangles based on the bounding bx of labels, to be used in debugging */
+        function drawLabelBackground(context: D3.Selection, dataLabels: Label[], fill?: string, fillOpacity?: number): D3.UpdateSelection;
+        function getLabelFormattedText(label: string | number, format?: string, formatter?: IValueFormatter): string;
+        function getDisplayUnitValueFromAxisFormatter(axisFormatter: IValueFormatter, labelSettings: VisualDataLabelsSettings): number;
+        function createColumnFormatterCacheManager(): IColumnFormatterCacheManager;
+        function removeDuplicates(labelDataPoints: LabelDataPoint[]): LabelDataPoint[];
     }
 }
 declare module powerbi.visuals {
@@ -5630,9 +6029,14 @@ declare module powerbi.visuals {
         interface KpiImageMetadata {
             statusGraphic: string;
             caption: string;
+            class: string;
         }
-        function getClassForKpi(statusGraphic: string, value: string, kpiImageSize?: KpiImageSize): string;
-        function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, target: string, kpiImageSize?: KpiImageSize): KpiImageMetadata;
+        interface KPIGraphicClass {
+            kpiIconClass: string;
+            statusValues: string[];
+        }
+        function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: string, kpiImageSize?: KpiImageSize): string;
+        function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: string, kpiImageSize?: KpiImageSize): KpiImageMetadata;
     }
 }
 declare module powerbi.visuals {
@@ -5662,6 +6066,76 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
+    module MapUtil {
+        const Settings: {
+            MaxBingRequest: number;
+            MaxCacheSize: number;
+            MaxCacheSizeOverflow: number;
+            BingKey: string;
+            BingUrl: string;
+            BingUrlGeodata: string;
+            UseDoubleArrayGeodataResult: boolean;
+            UseDoubleArrayDequeueTimeout: number;
+        };
+        const MinAllowedLatitude: number;
+        const MaxAllowedLatitude: number;
+        const MinAllowedLongitude: number;
+        const MaxAllowedLongitude: number;
+        const TileSize: number;
+        const MaxLevelOfDetail: number;
+        const MinLevelOfDetail: number;
+        const MaxAutoZoomLevel: number;
+        const DefaultLevelOfDetail: number;
+        const WorkerErrorName: string;
+        const CategoryTypes: {
+            Address: string;
+            City: string;
+            Continent: string;
+            CountryRegion: string;
+            County: string;
+            Longitude: string;
+            Latitude: string;
+            Place: string;
+            PostalCode: string;
+            StateOrProvince: string;
+        };
+        function clip(n: number, minValue: number, maxValue: number): number;
+        function getMapSize(levelOfDetail: number): number;
+        /**
+         * @param latLongArray - is a Float64Array as [lt0, lon0, lat1, long1, lat2, long2,....]
+         * @returns Float64Array as [x0, y0, x1, y1, x2, y2,....]
+         */
+        function latLongToPixelXYArray(latLongArray: Float64Array, levelOfDetail: number): Float64Array;
+        function pointArrayToString(array: Float64Array): any;
+        function pointArrayToArray(array: Float64Array): number[];
+        function getLocationBoundaries(latLongArray: Float64Array): Microsoft.Maps.LocationRect;
+        /**
+         * Note: this code is taken from Bing.
+         *  see Point Compression Algorithm http://msdn.microsoft.com/en-us/library/jj158958.aspx
+         *  see Decompression Algorithm in http://msdn.microsoft.com/en-us/library/dn306801.aspx
+         */
+        function parseEncodedSpatialValueArray(value: any): Float64Array;
+        function calcGeoData(data: IGeocodeBoundaryCoordinate): void;
+        function locationToPixelXY(location: Microsoft.Maps.Location, levelOfDetail: number): powerbi.visuals.Point;
+        function locationRectToRectXY(locationRect: Microsoft.Maps.LocationRect, levelOfDetail: number): powerbi.visuals.Rect;
+        function latLongToPixelXY(latitude: number, longitude: number, levelOfDetail: number): powerbi.visuals.Point;
+        function pixelXYToLocation(pixelX: number, pixelY: number, levelOfDetail: number): Microsoft.Maps.Location;
+    }
+    class MapPolygonInfo {
+        private _locationRect;
+        private _baseRect;
+        private _currentRect;
+        constructor();
+        reCalc(mapControl: Microsoft.Maps.Map, width: number, height: number): void;
+        scale: number;
+        transform: Transform;
+        outherTransform: Transform;
+        setViewBox(svg: SVGSVGElement): void;
+        innerTransform: Transform;
+        transformToString(transform: Transform): string;
+    }
+}
+declare module powerbi.visuals {
     import Selector = powerbi.data.Selector;
     import SelectorsByColumn = powerbi.SelectorsByColumn;
     import SelectorForColumn = powerbi.SelectorForColumn;
@@ -5673,6 +6147,7 @@ declare module powerbi.visuals {
         private selector;
         private selectorsByColumn;
         private key;
+        private keyWithoutHighlight;
         highlight: boolean;
         constructor(selector: Selector, highlight: boolean);
         equals(other: SelectionId): boolean;
@@ -5681,6 +6156,7 @@ declare module powerbi.visuals {
          */
         includes(other: SelectionId, ignoreHighlight?: boolean): boolean;
         getKey(): string;
+        getKeyWithoutHighlight(): string;
         /**
          * Temporary workaround since a few things currently rely on this, but won't need to.
          */
@@ -5762,12 +6238,6 @@ declare module powerbi.visuals {
             function equal(size1: ISize, size2: ISize): boolean;
             function equalWithPrecision(size1: ISize, size2: ISize): boolean;
             function parseSize(value: any, defaultValue?: ISize): ISize;
-        }
-        interface IRect {
-            left: number;
-            top: number;
-            width: number;
-            height: number;
         }
         module Rect {
             function getOffset(rect: IRect): IPoint;
@@ -5851,6 +6321,44 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
+    /** Utility class for slicer*/
+    module SlicerUtil {
+        /** CSS selectors for slicer elements. */
+        module Selectors {
+            const HeaderContainer: jsCommon.CssConstants.ClassAndSelector;
+            const Header: jsCommon.CssConstants.ClassAndSelector;
+            const HeaderText: jsCommon.CssConstants.ClassAndSelector;
+            const Body: jsCommon.CssConstants.ClassAndSelector;
+            const LabelText: jsCommon.CssConstants.ClassAndSelector;
+            const Clear: jsCommon.CssConstants.ClassAndSelector;
+            const MultiSelectEnabled: jsCommon.CssConstants.ClassAndSelector;
+        }
+        /** Const declarations*/
+        module DisplayNameKeys {
+            const Clear: string;
+            const SelectAll: string;
+        }
+        /** Helper class for creating and measuring slicer DOM elements  */
+        module DOMHelper {
+            function createSlicerHeader(hostServices: IVisualHostServices): HTMLElement;
+            function getHeaderTextProperties(settings: SlicerSettings): TextProperties;
+            function getSlicerBodyViewport(currentViewport: IViewport, settings: SlicerSettings, headerTextProperties: TextProperties): IViewport;
+            function updateSlicerBodyDimensions(currentViewport: IViewport, slicerBody: D3.Selection, settings: SlicerSettings): void;
+            function getHeaderHeight(settings: SlicerSettings, textProperties: TextProperties): number;
+            function getRowHeight(settings: SlicerSettings, textProperties: TextProperties): number;
+            function styleSlicerHeader(slicerHeader: D3.Selection, settings: SlicerSettings, headerText: string): void;
+            function setSlicerTextStyle(slicerText: D3.Selection, settings: SlicerSettings): void;
+            function getBorderStyle(outlineElement: string): string;
+            function getBorderWidth(outlineElement: string, outlineWeight: number): string;
+            function getRowsOutlineWidth(outlineElement: string, outlineWeight: number): number;
+        }
+        /** Helper class for slicer settings  */
+        module SettingsHelper {
+            function areSettingsDefined(data: SlicerData): boolean;
+        }
+    }
+}
+declare module powerbi.visuals {
     /**
      * Contains functions/constants to aid in SVG manupilation.
      */
@@ -5863,7 +6371,7 @@ declare module powerbi.visuals {
          * To avoid scientific notation, start or end the transition at 1e-6,
          * which is the smallest value that is not stringified in exponential notation.
          */
-        var AlmostZero: number;
+        const AlmostZero: number;
         /**
          * Creates a translate string for use with the SVG transform call.
          */
@@ -5924,6 +6432,10 @@ declare module powerbi.visuals {
             path: string;
             transform: string;
         };
+        /**
+         * Use the ratio of the scaled bounding rect and the SVG DOM bounding box to get the x and y transform scale values
+         */
+        function getTransformScaleRatios(svgElement: SVGSVGElement): Point;
     }
 }
 declare module powerbi.visuals {
@@ -6003,10 +6515,19 @@ declare module powerbi.visuals {
         private extend(target, source, propertyName);
         static merge(x: VisualObjectInstanceEnumeration, y: VisualObjectInstanceEnumeration): VisualObjectInstanceEnumerationObject;
         static normalize(x: VisualObjectInstanceEnumeration): VisualObjectInstanceEnumerationObject;
+        static getContainerForInstance(enumeration: VisualObjectInstanceEnumerationObject, instance: VisualObjectInstance): VisualObjectInstanceContainer;
+    }
+}
+declare module powerbi.visuals {
+    /** Helper module for converting a DataView into SlicerData. */
+    module DataConversion {
+        function convert(dataView: DataView, localizedSelectAllText: string, interactivityService: IInteractivityService, hostServices?: IVisualHostServices): SlicerData;
+        function getDataViewDefaultValue(dataView: DataView): DefaultValueDefinition;
     }
 }
 declare module powerbi {
     import shapes = powerbi.visuals.shapes;
+    import IRect = powerbi.visuals.IRect;
     /** Defines possible content positions.  */
     enum ContentPositions {
         /** Content position is not defined. */
@@ -6100,7 +6621,7 @@ declare module powerbi {
         /** The point to which label is anchored.  */
         anchorPoint?: shapes.IPoint;
         /** The rectangle to which label is anchored. */
-        anchorRect?: shapes.IRect;
+        anchorRect?: IRect;
         /** Disable label rendering and processing. */
         hideLabel?: boolean;
         /**
@@ -6126,7 +6647,7 @@ declare module powerbi {
     /** Interface used in internal arrange structures. */
     interface IArrangeGridElementInfo {
         element: IDataLabelInfo;
-        rect: shapes.IRect;
+        rect: IRect;
     }
     /**
     * Arranges label elements using the anchor point or rectangle. Collisions
@@ -6174,7 +6695,7 @@ declare module powerbi {
         private calculateContentPosition(anchoredElementInfo, contentPosition, contentSize, offset);
         /** (Private) Check for collisions. */
         private hasCollisions(arrangeGrid, info, position, size);
-        static isValid(rect: shapes.IRect): boolean;
+        static isValid(rect: IRect): boolean;
     }
     /**
     * Utility class to speed up the conflict detection by collecting the arranged items in the DataLabelsPanel.
@@ -6196,13 +6717,13 @@ declare module powerbi {
          * @param element The label element to register.
          * @param rect The label element position rectangle.
          */
-        add(element: IDataLabelInfo, rect: shapes.IRect): void;
+        add(element: IDataLabelInfo, rect: IRect): void;
         /**
          * Checks for conflict of given rectangle in registered elements.
          * @param rect The rectengle to check.
          * @return True if conflict is detected.
          */
-        hasConflict(rect: shapes.IRect): boolean;
+        hasConflict(rect: IRect): boolean;
         /**
          * Calculates the number of rows or columns in a grid
          * @param step is the largest label size (width or height)
@@ -6218,6 +6739,222 @@ declare module powerbi {
          * @return grid index as a thickness object.
          */
         private getGridIndexRect(rect);
+    }
+}
+declare module powerbi {
+    import shapes = powerbi.visuals.shapes;
+    import ISize = shapes.ISize;
+    import IRect = powerbi.visuals.IRect;
+    import IPoint = shapes.IPoint;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    /**
+     * Defines possible data label positions relative to rectangles
+     */
+    enum RectLabelPosition {
+        /** Position is not defined. */
+        None = 0,
+        /** Content is placed inside the parent rectangle in the center. */
+        InsideCenter = 1,
+        /** Content is placed inside the parent rectangle at the base. */
+        InsideBase = 2,
+        /** Content is placed inside the parent rectangle at the end. */
+        InsideEnd = 4,
+        /** Content is placed outside the parent rectangle at the base. */
+        OutsideBase = 8,
+        /** Content is placed outside the parent rectangle at the end. */
+        OutsideEnd = 16,
+        /** Content supports all possible positions. */
+        All = 31,
+        /** Content supports positions inside the rectangle */
+        InsideAll = 7,
+    }
+    /**
+     * Defines possible data label positions relative to points or circles
+     */
+    enum NewPointLabelPosition {
+        /** Position is not defined. */
+        None = 0,
+        Above = 1,
+        Below = 2,
+        Left = 4,
+        Right = 8,
+        BelowRight = 16,
+        BelowLeft = 32,
+        AboveRight = 64,
+        AboveLeft = 128,
+        Center = 256,
+        All = 511,
+    }
+    /**
+     * Rectangle orientation, defined by vertical vs horizontal and which direction
+     * the "base" is at.
+     */
+    enum NewRectOrientation {
+        /** Rectangle with no specific orientation. */
+        None = 0,
+        /** Vertical rectangle with base at the bottom. */
+        VerticalBottomBased = 1,
+        /** Vertical rectangle with base at the top. */
+        VerticalTopBased = 2,
+        /** Horizontal rectangle with base at the left. */
+        HorizontalLeftBased = 3,
+        /** Horizontal rectangle with base at the right. */
+        HorizontalRightBased = 4,
+    }
+    interface LabelParentRect {
+        /** The rectangle this data label belongs to */
+        rect: IRect;
+        /** The orientation of the parent rectangle */
+        orientation: NewRectOrientation;
+        /** Valid positions to place the label ordered by preference */
+        validPositions: RectLabelPosition[];
+    }
+    interface LabelParentPoint {
+        /** The point this data label belongs to */
+        point: IPoint;
+        /** The radius of the point to be added to the offset (for circular geometry) */
+        radius: number;
+        /** Valid positions to place the label ordered by preference */
+        validPositions: NewPointLabelPosition[];
+    }
+    interface LabelDataPoint {
+        /** Text to be displayed in the label */
+        text: string;
+        /** The measured size of the text */
+        textSize: ISize;
+        /** Is data label preferred? */ isPreferred: boolean;
+        /** Color to use for the data label if drawn inside */
+        insideFill: string;
+        /** Color to use for the data label if drawn outside */
+        outsideFill: string;
+        /** Whether or not the data label has been rendered */
+        hasBeenRendered?: boolean;
+        /** Whether the parent shape is a rectangle or point */
+        isParentRect: boolean;
+        /** The parent geometry for the data label */
+        parentShape: LabelParentRect | LabelParentPoint;
+        /** The identity of the data point associated with the data label */
+        identity: powerbi.visuals.SelectionId;
+        /** The font size of the data point associated with the data label */
+        fontSize?: number;
+    }
+    interface Label extends SelectableDataPoint {
+        /** Text to be displayed in the label */
+        text: string;
+        /** The bounding box for the label */
+        boundingBox: IRect;
+        /** Whether or not the data label should be rendered */
+        isVisible: boolean;
+        /** The fill color of the data label */
+        fill: string;
+        /** The text size of the data label */
+        fontSize?: number;
+    }
+    class LabelArrangeGrid {
+        private grid;
+        private viewport;
+        private cellSize;
+        private columnCount;
+        private rowCount;
+        /**
+         * A multiplier applied to the largest width height to attempt to balance # of
+         * labels in each cell and number of cells each label belongs to
+         */
+        private static cellSizeMultiplier;
+        constructor(labelDataPoints: LabelDataPoint[], viewport: IViewport);
+        add(rect: IRect): void;
+        hasConflict(rect: IRect): boolean;
+        private isWithinGridViewport(rect);
+        private getContainingGridSubsection(rect);
+        private static getCellCount(step, length, minCount, maxCount);
+        private static bound(value, min, max);
+    }
+    interface DataLabelLayoutOptions {
+        /** The amount of offset to start with when the data label is not centered */
+        startingOffset: number;
+        /** Maximum distance labels will be offset by */
+        maximumOffset: number;
+        /** The amount to increase the offset each attempt while laying out labels */
+        offsetIterationDelta?: number;
+        /** Horizontal padding used for checking whether a label is inside a parent shape */
+        horizontalPadding?: number;
+        /** Vertical padding used for checking whether a label is inside a parent shape */
+        verticalPadding?: number;
+    }
+    class LabelLayout {
+        /** Maximum distance labels will be offset by */
+        private maximumOffset;
+        /** The amount to increase the offset each attempt while laying out labels */
+        private offsetIterationDelta;
+        /** The amount of offset to start with when the data label is not centered */
+        private startingOffset;
+        /** Padding used for checking whether a label is inside a parent shape */
+        private horizontalPadding;
+        /** Padding used for checking whether a label is inside a parent shape */
+        private verticalPadding;
+        private static defaultOffsetIterationDelta;
+        private static defaultHorizontalPadding;
+        private static defaultVerticalPadding;
+        constructor(options: DataLabelLayoutOptions);
+        /**
+         * Arrange takes a set of data labels and lays them out them in order, assuming that
+         * the given array has already been sorted with the most preferred labels at the
+         * front.
+         *
+         * Details:
+         * - We iterate over offsets from the target position, increasing from 0
+         * - For each offset, we iterate over each data label
+         * - For each data label, we iterate over each position that is valid for
+         *     both the specific label and this layout
+         * - When a valid position is found, we position the label there and no longer
+         *     reposition it.
+         * - This prioritizes the earlier labels to be positioned closer to their
+         *     target points in the position they prefer.
+         * - This prioritizes putting data labels close to a valid position over
+         *     placing them at their preferred position (it will place it at a less
+         *     preferred position if it will be a smaller offset)
+         */
+        layout(labelDataPoints: LabelDataPoint[], viewport: IViewport): Label[];
+        private positionDataLabels(labelDataPoints, viewport, grid);
+        private tryPositionForRectPositions(labelPoint, grid, currentLabelOffset, currentCenteredLabelOffset);
+        /**
+         * Tests a particular position/offset combination for the given data label.
+         * If the label can be placed, returns the resulting bounding box for the data
+         * label.  If not, returns null.
+         */
+        private static tryPositionRect(grid, position, labelDataPoint, offset, centerOffset);
+        private tryPositionForPointPositions(labelPoint, grid, currentLabelOffset);
+        private static tryPositionPoint(grid, position, labelDataPoint, offset);
+    }
+    /**
+     * (Private) Contains methods for calculating the bounding box of a data label
+     */
+    module DataLabelRectPositioner {
+        function getLabelRect(labelDataPoint: LabelDataPoint, position: RectLabelPosition, offset: number): IRect;
+        function canFitWithinParent(labelDataPoint: LabelDataPoint, horizontalPadding: number, verticalPadding: number): boolean;
+        function isLabelWithinParent(labelRect: IRect, labelPoint: LabelDataPoint, horizontalPadding: number, verticalPadding: number): boolean;
+        function topInside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function bottomInside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function rightInside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function leftInside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function topOutside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function bottomOutside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function rightOutside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function leftOutside(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function middleHorizontal(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+        function middleVertical(labelSize: ISize, parentRect: IRect, offset: number): IRect;
+    }
+    module DataLabelPointPositioner {
+        function getLabelRect(labelDataPoint: LabelDataPoint, position: NewPointLabelPosition, offset: number): IRect;
+        function above(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function below(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function left(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function right(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function belowLeft(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function belowRight(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function aboveLeft(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function aboveRight(labelSize: ISize, parentPoint: IPoint, offset: number): IRect;
+        function center(labelSize: ISize, parentPoint: IPoint): IRect;
     }
 }
 declare module powerbi {
@@ -6354,9 +7091,11 @@ declare module powerbi {
         private static getNonScientificFormatWithPrecision(baseFormat?, decimals?);
         private static getFormatWithPrecision(decimals?);
         /** Formats a single value by choosing an appropriate base for the DisplayUnitSystem before formatting. */
-        formatSingleValue(value: number, format: string, decimals?: number): string;
+        formatSingleValue(value: number, format: string, decimals?: number, trailingZeros?: boolean): string;
         private shouldUseValuePrecision(value);
         private removeFractionIfNecessary(formatString);
+        protected isScientific(value: number): boolean;
+        protected hasScientitifcFormat(format: string): boolean;
     }
     /** Provides a unit system that is defined by formatting in the model, and is suitable for visualizations shown in single number visuals in explore mode. */
     class NoDisplayUnitSystem extends DisplayUnitSystem {
@@ -6369,7 +7108,6 @@ declare module powerbi {
         private static _scientificBigNumbersBoundary;
         constructor(unitLookup: (exponent: number) => DisplayUnitSystemNames);
         format(data: number, format: string, decimals?: number, trailingZeros?: boolean): string;
-        private isScientific(value);
         static reset(): void;
         private static getUnits(unitLookup);
     }
@@ -6385,12 +7123,15 @@ declare module powerbi {
     class DataLabelsDisplayUnitSystem extends DisplayUnitSystem {
         static UNSUPPORTED_FORMATS: RegExp;
         static PERCENTAGE_FORMAT: string;
+        static SUPPORTED_SCIENTIFIC_FORMATS: RegExp;
         private static _units;
         constructor(unitLookup: (exponent: number) => DisplayUnitSystemNames);
         isFormatSupported(format: string): boolean;
         getNumberOfDecimalsForFormatting(format: string, decimals?: number): number;
         shouldRespectScalingUnit(format: string): boolean;
         private static getUnits(unitLookup);
+        format(data: number, format: string, decimals?: number, trailingZeros?: boolean): string;
+        private shouldFallbackToScientific(value, format);
     }
     interface DisplayUnitSystemNames {
         title: string;
@@ -6450,13 +7191,16 @@ declare module powerbi {
 }
 declare module powerbi.visuals {
     /**
-     * Formats the value using provided format expression and culture
+     * Formats the value using provided format expression
      * @param value - value to be formatted and converted to string.
      * @param format - format to be applied if the number shouldn't be abbreviated.
      * If the number should be abbreviated this string is checked for special characters like $ or % if any
      */
     interface ICustomValueFormatter {
         (value: any, format?: string): string;
+    }
+    interface ICustomValueColumnFormatter {
+        (value: any, column: DataViewMetadataColumn, formatStringProp: DataViewObjectPropertyIdentifier): string;
     }
     interface ValueFormatterOptions {
         /** The format string to use. */
@@ -6506,7 +7250,7 @@ declare module powerbi.visuals {
         /** Creates an IValueFormatter to be used for a range of values. */
         function create(options: ValueFormatterOptions): IValueFormatter;
         function format(value: any, format?: string, allowFormatBeautification?: boolean): string;
-        function formatRaw(value: any, format?: string): string;
+        function formatValueColumn(value: any, column: DataViewMetadataColumn, formatStringProp: DataViewObjectPropertyIdentifier): string;
         function getFormatString(column: DataViewMetadataColumn, formatStringProperty: DataViewObjectPropertyIdentifier, suppressTypeFallback?: boolean): string;
         /** The returned string will look like 'A, B, ..., and C'  */
         function formatListAnd(strings: string[]): string;
@@ -6539,10 +7283,11 @@ declare module powerbi.visuals {
         setWarnings(warnings: IVisualWarning[]): void;
         setToolbar($toolbar: JQuery): void;
         shouldRetainSelection(): boolean;
+        geocoder(): IGeocoder;
         private static beautify(format);
         private static describeUnit(exponent);
     }
-    var defaultVisualHostServices: IVisualHostServices;
+    const defaultVisualHostServices: IVisualHostServices;
 }
 declare module powerbi.visuals {
     interface SelectableDataPoint {
@@ -6558,6 +7303,7 @@ declare module powerbi.visuals {
      */
     function appendClearCatcher(selection: D3.Selection): D3.Selection;
     function isCategoryColumnSelected(propertyId: DataViewObjectPropertyIdentifier, categories: DataViewCategoricalColumn, idx: number): boolean;
+    function dataHasSelection(data: SelectableDataPoint[]): boolean;
     interface IInteractiveBehavior {
         bindEvents(behaviorOptions: any, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
@@ -6567,8 +7313,10 @@ declare module powerbi.visuals {
      */
     interface InteractivityServiceOptions {
         isLegend?: boolean;
+        isLabels?: boolean;
         overrideSelectionFromData?: boolean;
         hasSelectionOverride?: boolean;
+        slicerDefaultValueHandler?: SlicerDefaultValueHandler;
     }
     /**
      * Responsible for managing interactivity between the hosting visual and its peers
@@ -6586,8 +7334,10 @@ declare module powerbi.visuals {
         legendHasSelection(): boolean;
         /** Checks whether the selection mode is inverted or normal */
         isSelectionModeInverted(): boolean;
-        /** Sets whether the seleciton mode is inverted or normal */
+        /** Sets whether the selection mode is inverted or normal */
         setSelectionModeInverted(inverted: boolean): void;
+        setDefaultValueMode(useDefaultValue: boolean): void;
+        isDefaultValueEnabled(): boolean;
     }
     interface ISelectionHandler {
         /** Handles a selection event by selecting the given data point */
@@ -6603,12 +7353,16 @@ declare module powerbi.visuals {
         private hostService;
         private renderSelectionInVisual;
         private renderSelectionInLegend;
+        private renderSelectionInLabels;
         private selectedIds;
         private isInvertedSelectionMode;
         private hasSelectionOverride;
         private behavior;
+        private slicerDefaultValueHandler;
+        private useDefaultValue;
         selectableDataPoints: SelectableDataPoint[];
         selectableLegendDataPoints: SelectableDataPoint[];
+        selectableLabelsDataPoints: SelectableDataPoint[];
         constructor(hostServices: IVisualHostServices);
         /** Binds the vsiual to the interactivityService */
         bind(dataPoints: SelectableDataPoint[], behavior: IInteractiveBehavior, behaviorOptions: any, options?: InteractivityServiceOptions): void;
@@ -6622,19 +7376,22 @@ declare module powerbi.visuals {
          */
         hasSelection(): boolean;
         legendHasSelection(): boolean;
+        labelsHasSelection(): boolean;
         isSelectionModeInverted(): boolean;
         setSelectionModeInverted(inverted: boolean): void;
         handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void;
         handleClearSelection(): void;
         toggleSelectionModeInversion(): boolean;
         persistSelectionFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): void;
+        setDefaultValueMode(useDefaultValue: boolean): void;
+        isDefaultValueEnabled(): boolean;
         private renderAll();
         /** Marks a data point as selected and syncs selection with the host. */
         private select(d, multiSelect);
         private selectInverted(d, multiSelect);
         private removeId(toRemove);
         /** Note: Public for UnitTesting */
-        createPropertiesWithFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): VisualObjectInstance[];
+        createChangeForFilterProperty(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): VisualObjectInstancesToPersist;
         private sendSelectionToHost();
         private takeSelectionStateFromDataPoints(dataPoints);
         /**
@@ -6650,14 +7407,80 @@ declare module powerbi.visuals {
         private syncSelectionState();
         private syncSelectionStateInverted();
         private applyToAllSelectableDataPoints(action);
+        private static updateSelectableDataPointsBySelectedIds(selectableDataPoints, selectedIds);
+        private static checkDatapointAgainstSelectedIds(datapoint, selectedIds);
     }
 }
-declare module powerbi.visuals.BI.Services {
-    import GeocodeQuery = GeocodingManager.GeocodeQuery;
-    import IGeocodeCoordinate = GeocodingManager.IGeocodeCoordinate;
+declare module powerbi.visuals.services {
+    function createGeocoder(): IGeocoder;
+    interface BingAjaxService {
+        (url: string, settings: JQueryAjaxSettings): any;
+    }
+    const safeCharacters: string;
+    /** Note: Used for test mockup */
+    let BingAjaxCall: BingAjaxService;
+    const CategoryTypeArray: string[];
+    function isCategoryType(value: string): boolean;
+    const BingEntities: {
+        Continent: string;
+        Sovereign: string;
+        CountryRegion: string;
+        AdminDivision1: string;
+        AdminDivision2: string;
+        PopulatedPlace: string;
+        Postcode: string;
+        Postcode1: string;
+        Neighborhood: string;
+        Address: string;
+    };
+    interface ILocation {
+        latitude: number;
+        longitude: number;
+    }
+    interface ILocationRect {
+        northWest: ILocation;
+        southEast: ILocation;
+    }
+    interface GeocodeCallback {
+        (error: Error, coordinate: IGeocodeCoordinate): void;
+    }
+    interface IGeocodeQuery {
+        query: string;
+        category: string;
+        levelOfDetail?: number;
+        longitude?: number;
+        latitude?: number;
+    }
+    class GeocodeQuery implements IGeocodeQuery {
+        query: string;
+        category: string;
+        key: string;
+        private _cacheHits;
+        constructor(query?: string, category?: string);
+        incrementCacheHit(): void;
+        getCacheHits(): number;
+        getBingEntity(): string;
+        getUrl(): string;
+    }
+    class GeocodeBoundaryQuery extends GeocodeQuery {
+        latitude: number;
+        longitude: number;
+        levelOfDetail: number;
+        maxGeoData: number;
+        constructor(latitude: number, longitude: number, category: any, levelOfDetail: any, maxGeoData?: number);
+        getBingEntity(): string;
+        getUrl(): string;
+    }
+    function geocodeCore(geocodeQuery: GeocodeQuery): any;
+    function geocode(query: string, category?: string): any;
+    function geocodeBoundary(latitude: number, longitude: number, category?: string, levelOfDetail?: number, maxGeoData?: number): any;
+    function reset(): void;
+}
+declare module powerbi.visuals.services {
     interface IGeocodingCache {
         getCoordinates(query: GeocodeQuery): IGeocodeCoordinate;
         registerCoordinates(query: GeocodeQuery, coordinate: IGeocodeCoordinate): void;
+        registerCoordinates(query: GeocodeQuery, coordinate: IGeocodeBoundaryCoordinate): void;
     }
     function createGeocodingCache(maxCacheSize: number, maxCacheSizeOverflow: number): IGeocodingCache;
 }
@@ -6666,6 +7489,10 @@ declare module powerbi.visuals {
         getPlugin(type: string): IVisualPlugin;
         getVisuals(): IVisualPlugin[];
         capabilities(type: string): VisualCapabilities;
+        removeAnyCustomVisuals(): void;
+        requireSandbox(plugin: IVisualPlugin): boolean;
+        isCustomVisual(visual: string): boolean;
+        shouldDisableVisual(type: string, mapDisabled: boolean): boolean;
     }
     interface MinervaVisualFeatureSwitches {
         heatMap?: boolean;
@@ -6674,21 +7501,22 @@ declare module powerbi.visuals {
          */
         dataDotChartEnabled?: boolean;
         /**
-         * To show or not the custom visualizations created.
-         */
-        devToolsEnabled?: boolean;
-        /**
          * Visual should prefer to request a higher volume of data.
          */
         preferHigherDataVolume?: boolean;
         /**
-         * Enable the PlayAxis visual
-         */
-        playAxisEnabled?: boolean;
-        /**
         * Is data label per series enabled for the visual
         */
         seriesLabelFormattingEnabled?: boolean;
+        sandboxVisualsEnabled?: boolean;
+        /** Pivot operator when categorical mapping wants data reduction across both hierarchies */
+        categoricalPivotEnabled?: boolean;
+        /**
+        * An R visual is available
+        */
+        scriptVisualEnabled?: boolean;
+        isLabelInteractivityEnabled?: boolean;
+        stackedAreaEnabled?: boolean;
     }
     interface SmallViewPortProperties {
         cartesianSmallViewPortProperties: CartesianSmallViewPortProperties;
@@ -6705,15 +7533,21 @@ declare module powerbi.visuals {
             getVisuals(): IVisualPlugin[];
             getPlugin(type: string): IVisualPlugin;
             capabilities(type: string): VisualCapabilities;
+            requireSandbox(plugin: IVisualPlugin): boolean;
+            removeAnyCustomVisuals(): void;
+            isCustomVisual(visual: string): boolean;
+            shouldDisableVisual(type: string, mapDisabled: boolean): boolean;
         }
-        function createPlugin(visualPlugins: jsCommon.IStringDictionary<IVisualPlugin>, base: IVisualPlugin, create: IVisualFactoryMethod): void;
+        function createPlugin(visualPlugins: jsCommon.IStringDictionary<IVisualPlugin>, base: IVisualPlugin, create: IVisualFactoryMethod, modifyPluginFn?: (plugin: IVisualPlugin) => void): void;
         class MinervaVisualPluginService extends VisualPluginService {
             private featureSwitches;
             private visualPlugins;
             constructor(featureSwitches: MinervaVisualFeatureSwitches);
             getVisuals(): IVisualPlugin[];
+            private pushPluginIntoConveratbleTypes(convertibleVisualTypes, plugin);
             private addCustomVisualizations(convertibleVisualTypes);
             getPlugin(type: string): IVisualPlugin;
+            requireSandbox(plugin: IVisualPlugin): boolean;
         }
         class PlaygroundVisualPluginService extends VisualPluginService {
             private visualPlugins;
@@ -6730,6 +7564,14 @@ declare module powerbi.visuals {
             private visualPlugins;
             constructor(featureSwitches: MinervaVisualFeatureSwitches);
             getPlugin(type: string): IVisualPlugin;
+            requireSandbox(plugin: IVisualPlugin): boolean;
+        }
+        class InsightsPluginService extends VisualPluginService {
+            private featureSwitches;
+            private visualPlugins;
+            constructor(featureSwitches: MinervaVisualFeatureSwitches);
+            getPlugin(type: string): IVisualPlugin;
+            requireSandbox(plugin: IVisualPlugin): boolean;
         }
         class MobileVisualPluginService extends VisualPluginService {
             private visualPlugins;
@@ -6745,6 +7587,7 @@ declare module powerbi.visuals {
         function create(): IVisualPluginService;
         function createMinerva(featureSwitches: MinervaVisualFeatureSwitches): IVisualPluginService;
         function createDashboard(featureSwitches: MinervaVisualFeatureSwitches): IVisualPluginService;
+        function createInsights(featureSwitches: MinervaVisualFeatureSwitches): IVisualPluginService;
         function createMobile(smallViewPortProperties?: SmallViewPortProperties): IVisualPluginService;
     }
 }
@@ -7050,8 +7893,9 @@ declare module powerbi.visuals.controls.internal {
         getCellContentWidth(cell: ITablixCell): number;
     }
     class CanvasColumnPresenter extends TablixColumnPresenter {
-        private columnWidthCallback;
-        constructor(widthCallback: () => number);
+        private _gridPresenter;
+        private _columnIndex;
+        constructor(gridPresenter: CanvasTablixGridPresenter, index: number);
         getCellWidth(cell: ITablixCell): number;
         getCellContentWidth(cell: ITablixCell): number;
     }
@@ -7059,7 +7903,8 @@ declare module powerbi.visuals.controls.internal {
         protected _table: HTMLTableElement;
         protected _owner: TablixGrid;
         private _footerTable;
-        constructor();
+        private _columnWidthManager;
+        constructor(columnWidthManager?: TablixColumnWidthManager);
         initialize(owner: TablixGrid, gridHost: HTMLElement, footerHost: HTMLElement, control: TablixControl): void;
         getWidth(): number;
         getHeight(): number;
@@ -7073,6 +7918,8 @@ declare module powerbi.visuals.controls.internal {
         onAddFooterRow(row: TablixRow): void;
         onClear(): void;
         onFillColumnsProportionallyChanged(value: boolean): void;
+        invokeColumnResizeCallBack(columnIndex: number, width: number): void;
+        getPersistedCellWidth(columnIndex: number): number;
     }
     class DashboardTablixGridPresenter extends TablixGridPresenter {
         private _sizeComputationManager;
@@ -7084,8 +7931,7 @@ declare module powerbi.visuals.controls.internal {
         getHeight(): number;
     }
     class CanvasTablixGridPresenter extends TablixGridPresenter {
-        private columnWidthsCallback;
-        constructor(columnWidthsCallback: () => number[]);
+        constructor(columnWidthManager: TablixColumnWidthManager);
         createRowPresenter(): TablixRowPresenter;
         createColumnPresenter(index: number): TablixColumnPresenter;
         getWidth(): number;
@@ -7228,8 +8074,8 @@ declare module powerbi.visuals.controls.internal {
         private _fixedToAligningWidth;
         private _presenter;
         private _owner;
-        private _columnWidthChangedCallback;
-        constructor(presenter: TablixColumnPresenter, columnWidthChangedCallback: ColumnWidthCallbackType);
+        private _columnIndex;
+        constructor(presenter: TablixColumnPresenter, columnIndex: number);
         initialize(owner: TablixGrid): void;
         owner: TablixGrid;
         private getType();
@@ -7329,8 +8175,7 @@ declare module powerbi.visuals.controls.internal {
         private _emptyFooterSpaceCell;
         _presenter: TablixGridPresenter;
         private _fillColumnsProportionally;
-        private _columnWidthChangedCallback;
-        constructor(presenter: TablixGridPresenter, columnWidthChangedCallback: ColumnWidthCallbackType);
+        constructor(presenter: TablixGridPresenter);
         initialize(owner: TablixControl, gridHost: HTMLElement, footerHost: HTMLElement): void;
         owner: TablixControl;
         fillColumnsProportionally: boolean;
@@ -7368,12 +8213,12 @@ declare module powerbi.visuals.controls.internal {
     class SizeComputationManager {
         private static DashboardCellPaddingLeft;
         private static DashboardCellPaddingRight;
-        private static DashboardRowHeight;
         private static TablixMinimumColumnWidth;
         private _viewport;
         private _columnCount;
         private _cellWidth;
         private _cellHeight;
+        private _scalingFactor;
         hasImageContent: boolean;
         visibleWidth: number;
         visibleHeight: number;
@@ -7385,6 +8230,8 @@ declare module powerbi.visuals.controls.internal {
         contentWidth: number;
         contentHeight: number;
         updateColumnCount(columnCount: number): void;
+        updateRowHeight(rowHeight: number): void;
+        updateScalingFactor(scalingFactor: number): void;
         updateViewport(viewport: IViewport): void;
         private computeColumnWidth(totalColumnCount);
         private computeColumnHeight();
@@ -7622,6 +8469,7 @@ declare module powerbi.visuals.controls.internal {
         measureSampleText(parentElement: HTMLElement): void;
     }
     class DashboardTablixLayoutManager extends TablixLayoutManager {
+        private _characterHeight;
         private _sizeComputationManager;
         constructor(binder: ITablixBinder, sizeComputationManager: SizeComputationManager, grid: TablixGrid, rowRealizationManager: RowRealizationManager, columnRealizationManager: ColumnRealizationManager);
         static createLayoutManager(binder: ITablixBinder): DashboardTablixLayoutManager;
@@ -7642,8 +8490,8 @@ declare module powerbi.visuals.controls.internal {
     class CanvasTablixLayoutManager extends TablixLayoutManager {
         private characterWidth;
         private characterHeight;
-        constructor(binder: ITablixBinder, grid: TablixGrid, rowRealizationManager: RowRealizationManager, columnRealizationManager: ColumnRealizationManager, columnWidthChangedCallback: ColumnWidthCallbackType);
-        static createLayoutManager(binder: ITablixBinder, columnWidthsCallback: () => number[], columnWidthChangedCallback: ColumnWidthCallbackType): CanvasTablixLayoutManager;
+        constructor(binder: ITablixBinder, grid: TablixGrid, rowRealizationManager: RowRealizationManager, columnRealizationManager: ColumnRealizationManager);
+        static createLayoutManager(binder: ITablixBinder, columnWidthManager: TablixColumnWidthManager): CanvasTablixLayoutManager;
         getTablixClassName(): string;
         getLayoutKind(): TablixLayoutKind;
         measureSampleText(parentElement: HTMLElement): void;
@@ -7681,8 +8529,9 @@ declare module powerbi.visuals.controls.internal {
         function createDiv(): HTMLDivElement;
         function appendATagToBodyCell(value: string, cell: controls.ITablixCell): void;
         function appendImgTagToBodyCell(value: string, cell: controls.ITablixCell): void;
-        function createKpiDom(kpiStatusGraphic: string, kpiValue: string): JQuery;
-        function isValidStatusGraphic(kpiStatusGraphic: string, kpiValue: string): boolean;
+        function createKpiDom(kpi: DataViewKpiColumnMetadata, kpiValue: string): JQuery;
+        function appendSortImageToColumnHeader(sort: SortDirection, cell: controls.ITablixCell): void;
+        function isValidStatusGraphic(kpi: DataViewKpiColumnMetadata, kpiValue: string): boolean;
     }
 }
 declare module powerbi.visuals.controls {
@@ -7825,6 +8674,7 @@ declare module powerbi.visuals.controls {
     }
 }
 declare module powerbi.visuals.controls {
+    const TablixDefaultTextSize: number;
     interface TablixRenderArgs {
         rowScrollOffset?: number;
         columnScrollOffset?: number;
@@ -7855,9 +8705,14 @@ declare module powerbi.visuals.controls {
     interface TablixOptions {
         interactive?: boolean;
         enableTouchSupport?: boolean;
+        layoutKind?: TablixLayoutKind;
+        fontSize?: string;
     }
     class TablixControl {
         private static UnitOfMeasurement;
+        private static TablixContainerClassName;
+        private static TablixFixSizedClassName;
+        private static DefaultFontSize;
         private _hierarchyNavigator;
         private _binder;
         private _columnDimension;
@@ -7867,7 +8722,6 @@ declare module powerbi.visuals.controls {
         private _mainDiv;
         private _footerDiv;
         private _scrollbarWidth;
-        private _fixSizedClassName;
         private _touchManager;
         private _columnTouchDelegate;
         private _rowTouchDelegate;
@@ -7884,6 +8738,7 @@ declare module powerbi.visuals.controls {
         private _maxHeight;
         private _minWidth;
         private _minHeight;
+        private _fontSize;
         private _options;
         private _isTouchEnabled;
         private _renderIterationCount;
@@ -7903,6 +8758,7 @@ declare module powerbi.visuals.controls {
         maxHeight: number;
         minWidth: number;
         minHeight: number;
+        fontSize: string;
         scrollbarWidth: number;
         updateModels(resetScrollOffsets: boolean, rowModel?: any, columnModel?: any): void;
         updateColumnDimensions(rowHierarchyWidth: number, columnHierarchyWidth: number, count: number): void;
@@ -8442,6 +9298,7 @@ declare module powerbi.visuals {
         private getAdjustedFontHeightCore(nodeToMeasure, availableWidth, seedFontHeight, iteration);
         clear(): void;
         doValueTransition(startValue: any, endValue: any, displayUnitSystemType: DisplayUnitSystemType, animationOptions: AnimationOptions, duration: number, forceUpdate: boolean, formatter?: IValueFormatter): void;
+        setTextColor(color: string): void;
         getSeedFontHeight(boundingWidth: number, boundingHeight: number): number;
         getTranslateX(width: number): number;
         getTranslateY(height: number): number;
@@ -8456,14 +9313,16 @@ declare module powerbi.visuals {
     class AnimatedNumber extends AnimatedText implements IVisual {
         private options;
         private dataViews;
+        private formatter;
         constructor(svg?: D3.Selection, animator?: IGenericAnimator);
         init(options: VisualInitOptions): void;
         updateViewportDependantProperties(): void;
         update(options: VisualUpdateOptions): void;
+        setFormatter(formatter?: IValueFormatter): void;
         onDataChanged(options: VisualDataChangedOptions): void;
         onResizing(viewport: IViewport): void;
         canResizeTo(viewport: IViewport): boolean;
-        private updateInternal(target, suppressAnimations, forceUpdate?);
+        private updateInternal(target, suppressAnimations, forceUpdate?, formatter?);
     }
 }
 declare module powerbi.visuals {
@@ -8471,7 +9330,6 @@ declare module powerbi.visuals {
         general: BasicShapeDataViewObject;
         line: LineObject;
         fill: FillObject;
-        lockAspect: LockAspectObject;
         rotation: RotationObject;
     }
     interface LineObject extends DataViewObject {
@@ -8483,9 +9341,6 @@ declare module powerbi.visuals {
     interface FillObject extends DataViewObject {
         transparency: number;
         fillColor: Fill;
-        show: boolean;
-    }
-    interface LockAspectObject extends DataViewObject {
         show: boolean;
     }
     interface RotationObject extends DataViewObject {
@@ -8503,7 +9358,6 @@ declare module powerbi.visuals {
         showFill: boolean;
         fillColor: string;
         shapeTransparency: number;
-        lockAspectRatio: boolean;
         roundEdge: number;
         angle: number;
     }
@@ -8515,6 +9369,7 @@ declare module powerbi.visuals {
         static DefaultShape: string;
         static DefaultStrokeColor: string;
         static DefaultFillColor: string;
+        static DefaultFillShowValue: boolean;
         static DefaultFillTransValue: number;
         static DefaultWeightValue: number;
         static DefaultLineTransValue: number;
@@ -8536,14 +9391,14 @@ declare module powerbi.visuals {
         fillColor: string;
         /**property for the shape fill transparency */
         shapeTransparency: number;
-        /**property for showing the lock aspect ratio */
-        lockAspectRatio: boolean;
         /**property for the shape angle */
         angle: number;
         init(options: VisualInitOptions): void;
         constructor(options?: VisualInitOptions);
         update(options: VisualUpdateOptions): void;
         private getDataFromDataView(dataViewObject);
+        private scaleTo360Deg(angle);
+        private getValueFromColor(color);
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
         render(): void;
     }
@@ -8552,21 +9407,21 @@ declare module powerbi.visuals {
     const enum CartesianChartType {
         Line = 0,
         Area = 1,
-        ClusteredColumn = 2,
-        StackedColumn = 3,
-        ClusteredBar = 4,
-        StackedBar = 5,
-        HundredPercentStackedBar = 6,
-        HundredPercentStackedColumn = 7,
-        Scatter = 8,
-        ComboChart = 9,
-        DataDot = 10,
-        Waterfall = 11,
-        LineClusteredColumnCombo = 12,
-        LineStackedColumnCombo = 13,
-        DataDotClusteredColumnCombo = 14,
-        DataDotStackedColumnCombo = 15,
-        Play = 16,
+        StackedArea = 2,
+        ClusteredColumn = 3,
+        StackedColumn = 4,
+        ClusteredBar = 5,
+        StackedBar = 6,
+        HundredPercentStackedBar = 7,
+        HundredPercentStackedColumn = 8,
+        Scatter = 9,
+        ComboChart = 10,
+        DataDot = 11,
+        Waterfall = 12,
+        LineClusteredColumnCombo = 13,
+        LineStackedColumnCombo = 14,
+        DataDotClusteredColumnCombo = 15,
+        DataDotStackedColumnCombo = 16,
     }
     interface CalculateScaleAndDomainOptions {
         viewport: IViewport;
@@ -8579,6 +9434,10 @@ declare module powerbi.visuals {
         forceMerge: boolean;
         categoryAxisScaleType: string;
         valueAxisScaleType: string;
+        categoryAxisDisplayUnits?: number;
+        categoryAxisPrecision?: number;
+        valueAxisDisplayUnits?: number;
+        valueAxisPrecision?: number;
     }
     interface MergedValueAxisResult {
         domain: number[];
@@ -8610,10 +9469,11 @@ declare module powerbi.visuals {
         cartesianSmallViewPortProperties?: CartesianSmallViewPortProperties;
         behavior?: IInteractiveBehavior;
         seriesLabelFormattingEnabled?: boolean;
+        isLabelInteractivityEnabled?: boolean;
     }
     interface ICartesianVisual {
         init(options: CartesianVisualInitOptions): void;
-        setData(dataViews: DataView[]): void;
+        setData(dataViews: DataView[], resized?: boolean): void;
         calculateAxesProperties(options: CalculateScaleAndDomainOptions): IAxisProperties[];
         overrideXScale(xProperties: IAxisProperties): void;
         render(suppressAnimations: boolean): CartesianVisualRenderResult;
@@ -8631,10 +9491,13 @@ declare module powerbi.visuals {
         interactivityService?: IInteractivityService;
         animator?: IGenericAnimator;
         seriesLabelFormattingEnabled?: boolean;
+        isLabelInteractivityEnabled?: boolean;
     }
     interface CartesianVisualRenderResult {
         dataPoints: SelectableDataPoint[];
         behaviorOptions: any;
+        labelDataPoints: LabelDataPoint[];
+        labelsAreNumeric: boolean;
     }
     interface CartesianDataPoint {
         categoryValue: any;
@@ -8655,6 +9518,8 @@ declare module powerbi.visuals {
     interface CartesianVisualInitOptions extends VisualInitOptions {
         svg: D3.Selection;
         cartesianHost: ICartesianVisualHost;
+        chartType?: CartesianChartType;
+        labelsContext?: D3.Selection;
     }
     interface ICartesianVisualHost {
         updateLegend(data: LegendData): void;
@@ -8747,6 +9612,7 @@ declare module powerbi.visuals {
         private leftRightMarginLimit;
         private sharedColorPalette;
         private seriesLabelFormattingEnabled;
+        private isLabelInteractivityEnabled;
         animator: IGenericAnimator;
         private isScrollable;
         private scrollY;
@@ -8755,6 +9621,8 @@ declare module powerbi.visuals {
         private isYScrollBarVisible;
         private svgScrollable;
         private axisGraphicsContextScrollable;
+        private labelGraphicsContextScrollable;
+        private labelBackgroundGraphicsContextScrollable;
         private brushGraphicsContext;
         private brushContext;
         private brush;
@@ -8767,6 +9635,7 @@ declare module powerbi.visuals {
         private static getAxisVisibility(type);
         constructor(options: CartesianConstructorOptions);
         init(options: VisualInitOptions): void;
+        private needsPlayAxisMargin();
         private renderAxesLabels(options);
         private adjustMargins(viewport);
         private translateAxes(viewport);
@@ -8800,6 +9669,7 @@ declare module powerbi.visuals {
         private static getUnitType(axis, axisPropertiesLookup);
         private static clampBrushExtent(brush, viewportWidth, minExtent);
         private getMaxMarginFactor();
+        private static getChartViewport(viewport, margin);
         private renderChart(mainAxisScale, axes, width, tickLabelMargins, chartHasAxisLabels, axisLabels, viewport, suppressAnimations, scrollScale?, extent?);
         /**
          * Within the context of the given selection (g), find the offset of
@@ -8865,6 +9735,7 @@ declare module powerbi.visuals {
         labelSettings: VisualDataLabelsSettings;
         axesLabels: ChartAxesLabels;
         hasDynamicSeries: boolean;
+        isMultiMeasure: boolean;
         defaultDataPointColor?: string;
         showAllDataPoints?: boolean;
     }
@@ -8923,22 +9794,22 @@ declare module powerbi.visuals {
     }
     interface IColumnLayout {
         shapeLayout: {
-            width: (d: ColumnChartDataPoint, i) => number;
-            x: (d: ColumnChartDataPoint, i) => number;
-            y: (d: ColumnChartDataPoint, i) => number;
-            height: (d: ColumnChartDataPoint, i) => number;
+            width: (d: ColumnChartDataPoint) => number;
+            x: (d: ColumnChartDataPoint) => number;
+            y: (d: ColumnChartDataPoint) => number;
+            height: (d: ColumnChartDataPoint) => number;
         };
         shapeLayoutWithoutHighlights: {
-            width: (d: ColumnChartDataPoint, i) => number;
-            x: (d: ColumnChartDataPoint, i) => number;
-            y: (d: ColumnChartDataPoint, i) => number;
-            height: (d: ColumnChartDataPoint, i) => number;
+            width: (d: ColumnChartDataPoint) => number;
+            x: (d: ColumnChartDataPoint) => number;
+            y: (d: ColumnChartDataPoint) => number;
+            height: (d: ColumnChartDataPoint) => number;
         };
         zeroShapeLayout: {
-            width: (d: ColumnChartDataPoint, i) => number;
-            x: (d: ColumnChartDataPoint, i) => number;
-            y: (d: ColumnChartDataPoint, i) => number;
-            height: (d: ColumnChartDataPoint, i) => number;
+            width: (d: ColumnChartDataPoint) => number;
+            x: (d: ColumnChartDataPoint) => number;
+            y: (d: ColumnChartDataPoint) => number;
+            height: (d: ColumnChartDataPoint) => number;
         };
     }
     interface ColumnChartContext {
@@ -8947,24 +9818,26 @@ declare module powerbi.visuals {
         duration: number;
         margin: IMargin;
         mainGraphicsContext: D3.Selection;
+        labelGraphicsContext: D3.Selection;
         layout: CategoryLayout;
         animator: IColumnChartAnimator;
         onDragStart?: (datum: ColumnChartDataPoint) => void;
         interactivityService: IInteractivityService;
         viewportHeight: number;
+        viewportWidth: number;
         is100Pct: boolean;
     }
     interface IColumnChartStrategy {
         setData(data: ColumnChartData): void;
         setupVisualProps(columnChartProps: ColumnChartContext): void;
-        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string): IAxisProperties;
-        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string): IAxisProperties;
+        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
+        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
         drawColumns(useAnimation: boolean): ColumnChartDrawInfo;
         selectColumn(selectedColumnIndex: number, lastSelectedColumnIndex: number): void;
         getClosestColumnIndex(x: number, y: number): number;
     }
     interface IColumnChartConverterStrategy {
-        getLegend(colors: IDataColorPalette, defaultColor?: string): LegendSeriesInfo;
+        getLegend(colors: IDataColorPalette, defaultLegendLabelColor: string, defaultColor?: string): LegendSeriesInfo;
         getValueBySeriesAndCategory(series: number, category: number): number;
         getMeasureNameByIndex(series: number, category: number): string;
         hasHighlightValues(series: number): boolean;
@@ -8975,24 +9848,23 @@ declare module powerbi.visuals {
         seriesSources: DataViewMetadataColumn[];
         seriesObjects: DataViewObjects[][];
     }
-    interface ClassAndSelector {
-        class: string;
-        selector: string;
-    }
     interface ColumnChartDrawInfo {
         shapesSelection: D3.Selection;
-        labelLayout: ILabelLayout;
         viewport: IViewport;
         axisOptions: ColumnAxisOptions;
+        labelDataPoints: LabelDataPoint[];
     }
     /**
      * Renders a stacked and clustered column chart.
      */
     class ColumnChart implements ICartesianVisual {
         private static ColumnChartClassName;
-        static SeriesClasses: ClassAndSelector;
+        static clusteredValidLabelPositions: RectLabelPosition[];
+        static stackedValidLabelPositions: RectLabelPosition[];
+        static SeriesClasses: jsCommon.CssConstants.ClassAndSelector;
         private svg;
         private mainGraphicsContext;
+        private labelGraphicsContext;
         private xAxisProperties;
         private yAxisProperties;
         private currentViewport;
@@ -9021,7 +9893,7 @@ declare module powerbi.visuals {
         updateVisualMetadata(x: IAxisProperties, y: IAxisProperties, margin: any): void;
         init(options: CartesianVisualInitOptions): void;
         private getCategoryLayout(numCategoryValues, options);
-        static converter(dataView: DataViewCategorical, colors: IDataColorPalette, is100PercentStacked?: boolean, isScalar?: boolean, supportsOverflow?: boolean, dataViewMetadata?: DataViewMetadata, chartType?: ColumnChartType): ColumnChartData;
+        static converter(dataView: DataViewCategorical, colors: IDataColorPalette, is100PercentStacked?: boolean, isScalar?: boolean, supportsOverflow?: boolean, dataViewMetadata?: DataViewMetadata, chartType?: ColumnChartType, interactivityService?: IInteractivityService): ColumnChartData;
         private static createDataPoints(dataViewCat, categories, categoryIdentities, legend, seriesObjectsList, converterStrategy, defaultLabelSettings, is100PercentStacked?, isScalar?, supportsOverflow?, isCategoryAlsoSeries?, categoryObjectsList?, defaultDataPointColor?, chartType?, categoryMetadata?);
         private static getDataPointColor(legendItem, categoryIndex, dataPointObjects?);
         private static getStackedLabelColor(isNegative, seriesIndex, seriesCount, categoryIndex, rawValues);
@@ -9034,7 +9906,7 @@ declare module powerbi.visuals {
         hasLegend(): boolean;
         enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, options: EnumerateVisualObjectInstancesOptions): void;
         private enumerateDataLabels(enumeration);
-        private getLabelSettingsOptions(enumeration, labelSettings, isSeries, series?);
+        private getLabelSettingsOptions(enumeration, labelSettings, series?, showAll?);
         private enumerateDataPoints(enumeration);
         calculateAxesProperties(options: CalculateScaleAndDomainOptions): IAxisProperties[];
         getPreferredPlotArea(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport;
@@ -9062,14 +9934,16 @@ declare module powerbi.visuals {
         private yProps;
         private categoryLayout;
         private viewportHeight;
+        private viewportWidth;
         private columnsCenters;
         private columnSelectionLineHandle;
         private animator;
         private interactivityService;
+        private layout;
         setupVisualProps(columnChartProps: ColumnChartContext): void;
         setData(data: ColumnChartData): void;
-        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string): IAxisProperties;
-        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string): IAxisProperties;
+        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
+        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
         drawColumns(useAnimation: boolean): ColumnChartDrawInfo;
         selectColumn(selectedColumnIndex: number, lastSelectedColumnIndex: number): void;
         getClosestColumnIndex(x: number, y: number): number;
@@ -9079,7 +9953,7 @@ declare module powerbi.visuals {
         private getColumnsCenters();
         private moveHandle(selectedColumnIndex);
         static getLayout(data: ColumnChartData, axisOptions: ColumnAxisOptions): IColumnLayout;
-        private getLabelLayoutXY(axisOptions, labelSettings);
+        private createLabelDataPoints();
     }
     class ClusteredBarChartStrategy implements IColumnChartStrategy {
         private static classes;
@@ -9093,14 +9967,16 @@ declare module powerbi.visuals {
         private yProps;
         private categoryLayout;
         private viewportHeight;
+        private viewportWidth;
         private barsCenters;
         private columnSelectionLineHandle;
         private animator;
         private interactivityService;
+        private layout;
         setupVisualProps(barChartProps: ColumnChartContext): void;
         setData(data: ColumnChartData): void;
-        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[]): IAxisProperties;
-        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string): IAxisProperties;
+        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
+        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
         drawColumns(useAnimation: boolean): ColumnChartDrawInfo;
         selectColumn(selectedColumnIndex: number, lastSelectedColumnIndex: number): void;
         getClosestColumnIndex(x: number, y: number): number;
@@ -9110,7 +9986,7 @@ declare module powerbi.visuals {
         private getBarsCenters();
         private moveHandle(selectedColumnIndex);
         static getLayout(data: ColumnChartData, axisOptions: ColumnAxisOptions): IColumnLayout;
-        private getLabelLayoutXY(axisOptions, visualWidth, labelSettings);
+        private createLabelDataPoints();
     }
 }
 declare module powerbi.visuals {
@@ -9119,7 +9995,7 @@ declare module powerbi.visuals {
         private data;
         private graphicsContext;
         private width;
-        height: number;
+        private height;
         private margin;
         private xProps;
         private yProps;
@@ -9129,10 +10005,12 @@ declare module powerbi.visuals {
         private animator;
         private interactivityService;
         private viewportHeight;
+        private viewportWidth;
+        private layout;
         setupVisualProps(columnChartProps: ColumnChartContext): void;
         setData(data: ColumnChartData): void;
-        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string): IAxisProperties;
-        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string): IAxisProperties;
+        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
+        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
         drawColumns(useAnimation: boolean): ColumnChartDrawInfo;
         selectColumn(selectedColumnIndex: number, lastSelectedColumnIndex: number): void;
         getClosestColumnIndex(x: number, y: number): number;
@@ -9142,8 +10020,7 @@ declare module powerbi.visuals {
         private getColumnsCenters();
         private moveHandle(selectedColumnIndex);
         static getLayout(data: ColumnChartData, axisOptions: ColumnAxisOptions): IColumnLayout;
-        private getLabelLayoutXY(axisOptions, labelSettings);
-        private getLabelLayoutY(d, is100Pct, axisOptions, labelSettings);
+        private createLabelDataPoints();
     }
     class StackedBarChartStrategy implements IColumnChartStrategy {
         private static classes;
@@ -9160,10 +10037,12 @@ declare module powerbi.visuals {
         private animator;
         private interactivityService;
         private viewportHeight;
+        private viewportWidth;
+        private layout;
         setupVisualProps(barChartProps: ColumnChartContext): void;
         setData(data: ColumnChartData): void;
-        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string): IAxisProperties;
-        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string): IAxisProperties;
+        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
+        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
         drawColumns(useAnimation: boolean): ColumnChartDrawInfo;
         selectColumn(selectedColumnIndex: number, lastInteractiveSelectedColumnIndex: number): void;
         getClosestColumnIndex(x: number, y: number): number;
@@ -9173,7 +10052,7 @@ declare module powerbi.visuals {
         private getBarsCenters();
         private moveHandle(selectedColumnIndex);
         static getLayout(data: ColumnChartData, axisOptions: ColumnAxisOptions): IColumnLayout;
-        private getLabelLayoutXY(axisOptions, visualWidth, labelSettings);
+        private createLabelDataPoints();
     }
 }
 declare module powerbi.visuals.samples {
@@ -9211,6 +10090,7 @@ declare module powerbi.visuals.samples {
     }
     class AsterPlot implements IVisual {
         static capabilities: VisualCapabilities;
+        private static properties;
         private static VisualClassName;
         private static AsterSlice;
         private static OuterLine;
@@ -9245,7 +10125,7 @@ declare module powerbi.visuals {
      * Implementation is in cartesianChart and the various ICartesianVisual implementations.
      */
     module ComboChart {
-        var capabilities: VisualCapabilities;
+        const capabilities: VisualCapabilities;
     }
 }
 /**
@@ -9325,10 +10205,11 @@ declare module powerbi.visuals {
         hasLegend(): boolean;
         private createLegendDataPoints(columnIndex);
         onClearSelection(): void;
-        static converter(dataView: DataView, blankCategoryValue: string): DataDotChartData;
+        static converter(dataView: DataView, blankCategoryValue: string, interactivityService: IInteractivityService): DataDotChartData;
     }
 }
 declare module powerbi.visuals {
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     interface FunnelChartConstructorOptions {
         animator: IFunnelAnimator;
         funnelSmallViewPortProperties?: FunnelSmallViewPortProperties;
@@ -9430,9 +10311,6 @@ declare module powerbi.visuals {
             highlights: ClassAndSelector;
             interactors: ClassAndSelector;
         };
-        labels: {
-            dataLabels: ClassAndSelector;
-        };
         percentBar: {
             root: ClassAndSelector;
             mainLine: ClassAndSelector;
@@ -9456,10 +10334,6 @@ declare module powerbi.visuals {
         static InnerTickSize: number;
         static MinimumInteractorSize: number;
         static InnerTextClassName: string;
-        static CreateSelector: (className: any) => {
-            class: any;
-            selector: string;
-        };
         static Selectors: IFunnelChartSelectors;
         static FunnelBarHighlightClass: string;
         private static VisualClassName;
@@ -9468,7 +10342,6 @@ declare module powerbi.visuals {
         private static MinBarThickness;
         private static LabelFunnelPadding;
         private static InnerTextMinimumPadding;
-        private static InnerTextHeightDelta;
         private static StandardTextProperties;
         private static OverflowingHighlightWidthRatio;
         private svg;
@@ -9493,7 +10366,9 @@ declare module powerbi.visuals {
          */
         animator: IFunnelAnimator;
         constructor(options?: FunnelChartConstructorOptions);
-        static converter(dataView: DataView, colors: IDataColorPalette, defaultDataPointColor?: string): FunnelData;
+        private static isValidValueColumn(valueColumn);
+        private static getFirstValidValueColumn(values);
+        static converter(dataView: DataView, colors: IDataColorPalette, hostServices: IVisualHostServices, defaultDataPointColor?: string): FunnelData;
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
         private enumerateDataPoints(enumeration);
         init(options: VisualInitOptions): void;
@@ -9516,6 +10391,7 @@ declare module powerbi.visuals {
         private static drawPercentBarComponents(graphicsContext, data, layout);
         static drawPercentBars(data: FunnelData, graphicsContext: D3.Selection, layout: IFunnelLayout, isHidingPercentBars: boolean): void;
         private showCategoryLabels();
+        private static addFunnelPercentsToTooltip(tooltipInfo, hostServices, percentOfFirst?, percentOfPrevious?, highlight?);
     }
 }
 declare module powerbi.visuals {
@@ -9525,6 +10401,8 @@ declare module powerbi.visuals {
         total: number;
         metadataColumn: DataViewMetadataColumn;
         targetSettings: GaugeTargetSettings;
+        dataLabelsSettings: VisualDataLabelsSettings;
+        calloutValueLabelsSettings: VisualDataLabelsSettings;
     }
     interface GaugeTargetSettings {
         min: number;
@@ -9586,7 +10464,7 @@ declare module powerbi.visuals {
         private static DefaultTargetSettings;
         private static InnerRadiusFactor;
         private static KpiBandDistanceFromMainArc;
-        private static MainGaugeGroupElementName;
+        private static MainGaugeGroupClassName;
         private static LabelText;
         private static TargetConnector;
         private static TargetText;
@@ -9622,11 +10500,13 @@ declare module powerbi.visuals {
         private dataViews;
         animator: IGenericAnimator;
         constructor(options?: GaugeConstructorOptions);
-        enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
-        private enumerateAxis();
+        enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
+        private getDataLabelSettingsOptions(enumeration, labelSettings);
+        private enumerateAxis(enumeration);
         private static getGaugeObjectsProperties(dataView);
         init(options: VisualInitOptions): void;
         update(options: VisualUpdateOptions): void;
+        private updateCalloutValue(suppressAnimations);
         onDataChanged(options: VisualDataChangedOptions): void;
         onResizing(viewport: IViewport): void;
         onStyleChanged(newStyle: IVisualStyle): void;
@@ -9635,10 +10515,12 @@ declare module powerbi.visuals {
         private static overrideGaugeSettings(settings, gaugeObjectsSettings);
         /** Note: Made public for testability */
         static converter(dataView: DataView): GaugeData;
+        private static convertDataLableSettings(dataview, objectName);
         static getMetaDataColumn(dataView: DataView): DataViewMetadataColumn;
         private initKpiBands();
         private updateKpiBands(radius, innerRadiusFactor, tString, kpiAngleAttr);
         private removeTargetElements();
+        private getTargetRatio();
         private updateTargetLine(radius, innerRadius, left, top);
         /** Note: public for testability */
         getAnimatedNumberProperties(radius: number, innerRadiusFactor: number, top: number, left: number): AnimatedNumberProperties;
@@ -9646,12 +10528,13 @@ declare module powerbi.visuals {
         getGaugeVisualProperties(): GaugeVisualProperties;
         /** Note: public for testability */
         drawViewPort(drawOptions: GaugeVisualProperties): void;
-        private createTicks(total);
+        private createTicks();
         private updateInternal(suppressAnimations);
         private updateVisualStyles();
         private updateVisualConfigurations();
         private appendTextAlongArc(ticks, radius, height, width, margin);
         private truncateTextIfNeeded(text, positionX, onRight);
+        private getFormatter(dataLabelSettings, value2?);
         private appendTargetTextAlongArc(radius, height, width, margin);
         private arcTween(transition, arr);
         private showMinMaxLabelsOnBottom();
@@ -9660,11 +10543,6 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
-    var imageScalingType: {
-        normal: string;
-        fit: string;
-        fill: string;
-    };
     interface ImageDataViewObjects extends DataViewObjects {
         general: ImageDataViewObject;
         imageScaling: ImageScalingDataViewObject;
@@ -9723,6 +10601,8 @@ declare module powerbi {
          */
         getSentimentColors(): IColorInfo[];
         getBasePickerColors(): IColorInfo[];
+        /** Gets all the colors for the color palette **/
+        getAllColors?(): IColorInfo[];
     }
     interface IColorScale {
         /** Gets the color associated with the given key. */
@@ -9734,6 +10614,7 @@ declare module powerbi {
         clearAndRotateScale(): void;
         /** Returns a copy of the current scale. */
         clone(): IColorScale;
+        getDomain(): any[];
     }
     interface IColorInfo extends IStyleInfo {
         value: string;
@@ -9751,6 +10632,8 @@ declare module powerbi.visuals {
         yAxisProperties: IAxisProperties;
         margin: any;
     }
+    interface LineChartCategoriesData extends LineChartDataPoint {
+    }
     interface LineChartData extends CartesianData {
         series: LineChartSeries[];
         isScalar?: boolean;
@@ -9758,8 +10641,10 @@ declare module powerbi.visuals {
         axesLabels: ChartAxesLabels;
         hasDynamicSeries?: boolean;
         defaultSeriesColor?: string;
+        categoryData?: LineChartCategoriesData[];
     }
     interface LineChartSeries extends CartesianSeries, SelectableDataPoint {
+        displayName: string;
         key: string;
         lineIndex: number;
         color: string;
@@ -9769,19 +10654,27 @@ declare module powerbi.visuals {
         labelSettings: VisualDataLabelsSettings;
     }
     interface LineChartDataPoint extends CartesianDataPoint, TooltipEnabledDataPoint, SelectableDataPoint, LabelEnabledDataPoint {
-        categoryValue: any;
         value: number;
         categoryIndex: number;
         seriesIndex: number;
         key: string;
         labelSettings: VisualDataLabelsSettings;
         pointColor?: string;
+        stackedValue?: number;
+    }
+    interface HoverLineDataPoint {
+        color: string;
+        label: string;
+        category: string;
+        measure: any;
+        value: number;
     }
     const enum LineChartType {
         default = 1,
         area = 2,
         smooth = 4,
         lineShadow = 8,
+        stackedArea = 16,
     }
     /**
      * Renders a data series as a line visual.
@@ -9789,27 +10682,28 @@ declare module powerbi.visuals {
     class LineChart implements ICartesianVisual {
         private static ClassName;
         private static MainGraphicsContextClassName;
-        private static CategoryClassName;
-        private static CategoryClassSelector;
+        private static CategorySelector;
         private static CategoryValuePoint;
         private static CategoryPointSelector;
+        private static CategoryAreaSelector;
+        private static HoverLineCircleDot;
         private static PointRadius;
-        private static CategoryAreaClassName;
-        private static CategoryAreaClassSelector;
         private static HorizontalShift;
         private static CircleRadius;
         private static PathElementName;
         private static CircleElementName;
         private static CircleClassName;
         private static LineElementName;
+        private static RectOverlayName;
         static AreaFillOpacity: number;
         static DimmedAreaFillOpacity: number;
         private isInteractiveChart;
         private isScrollable;
         private element;
+        private cartesainSVG;
         private mainGraphicsContext;
         private mainGraphicsSVG;
-        private toolTipContext;
+        private hoverLineContext;
         private options;
         private dataViewCat;
         private colors;
@@ -9829,11 +10723,16 @@ declare module powerbi.visuals {
         private interactivityService;
         private animator;
         private seriesLabelFormattingEnabled;
+        private static validLabelPositions;
+        private static validStackedLabelPositions;
+        private overlayRect;
+        private isComboChart;
         static customizeQuery(options: CustomizeQueryOptions): void;
         static getSortableRoles(options: VisualSortableOptions): string[];
-        static converter(dataView: DataView, blankCategoryValue: string, colors: IDataColorPalette, isScalar: boolean, interactivityService?: IInteractivityService): LineChartData;
+        static converter(dataView: DataView, blankCategoryValue: string, colors: IDataColorPalette, isScalar: boolean, interactivityService?: IInteractivityService, shouldCalculateStacked?: boolean): LineChartData;
         static getInteractiveLineChartDomElement(element: JQuery): HTMLElement;
         private static getColor(colorHelper, hasDynamicSeries, values, grouped, seriesIndex, groupedIdentity);
+        private static createStackedValueDomain(data);
         constructor(options: LineChartConstructorOptions);
         init(options: CartesianVisualInitOptions): void;
         setData(dataViews: DataView[]): void;
@@ -9844,7 +10743,7 @@ declare module powerbi.visuals {
         enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, options: EnumerateVisualObjectInstancesOptions): void;
         private enumerateDataPoints(enumeration);
         private enumerateDataLabels(enumeration);
-        private getLabelSettingsOptions(enumeration, labelSettings, isSeries, series?);
+        private getLabelSettingsOptions(enumeration, labelSettings, series?, showAll?);
         overrideXScale(xProperties: IAxisProperties): void;
         onClearSelection(): void;
         render(suppressAnimations: boolean): CartesianVisualRenderResult;
@@ -9853,7 +10752,8 @@ declare module powerbi.visuals {
         /**
          * Note: Static for tests.
          */
-        static getTooltipInfoByPointX(lineChart: LineChart, pointData: any, pointX: number): TooltipDataItem[];
+        getSeriesTooltipInfo(pointData: HoverLineDataPoint[]): TooltipDataItem[];
+        getTooltipInfoByPointX(pointData: any, pointX: number): TooltipDataItem[];
         getVisualCategoryAxisIsScalar(): boolean;
         getSupportedCategoryAxisType(): string;
         getPreferredPlotArea(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport;
@@ -9870,8 +10770,12 @@ declare module powerbi.visuals {
           * the previous and next data point are both null.
           */
         private shouldDrawCircle(d, i);
+        selectColumnForToolTip(columnIndex: number, force?: boolean): HoverLineDataPoint[];
+        private setHoverLineForToolTip(chartX);
+        private setDotsForToolTip(chartX, dataPoints);
         /**
          * Updates the hover line and the legend with the selected colums (given by columnIndex).
+         * This is for the Mobile renderer with InteractiveLegend
          */
         selectColumn(columnIndex: number, force?: boolean): void;
         private setHoverLine(chartX);
@@ -9879,10 +10783,11 @@ declare module powerbi.visuals {
         /**
          * Finds the index of the category of the given x coordinate given.
          */
-        private findIndex(x);
-        private findClosestXAxisIndex(currentX, xAxisValues);
+        private findIndex(pointX);
         private getPosition(x, pathElement);
+        private createTooltipDataPoints(columnIndex);
         private createLegendDataPoints(columnIndex);
+        private createLabelDataPoints();
     }
 }
 declare module powerbi.visuals {
@@ -9892,10 +10797,6 @@ declare module powerbi.visuals {
         mapControlFactory?: IMapControlFactory;
         behavior?: MapBehavior;
     }
-    interface IGeocoder {
-        geocode: (query: string, category?: string) => any;
-        geocodeBoundary: (latitude: number, longitude: number, category: string, levelOfDetail?: number, maxGeoData?: number) => any;
-    }
     interface IMapControlFactory {
         createMapControl(element: HTMLElement, options?: Microsoft.Maps.MapOptions): Microsoft.Maps.Map;
         ensureMap(action: () => void): void;
@@ -9903,9 +10804,9 @@ declare module powerbi.visuals {
     /** Note: public for UnitTest */
     interface MapDataPoint {
         geocodingQuery: string;
-        location?: Microsoft.Maps.Location;
-        cachedLocation?: Microsoft.Maps.Location;
-        paths?: powerbi.visuals.BI.Services.GeocodingManager.IGeocodeBoundaryPolygon[];
+        location?: IGeocodeCoordinate;
+        cachedLocation?: IGeocodeCoordinate;
+        paths?: IGeocodeBoundaryPolygon[];
         value: number;
         radius?: number;
         seriesInfo: MapSeriesInfo;
@@ -9970,6 +10871,8 @@ declare module powerbi.visuals {
          */
         isAutoGeneratedColumn?: boolean;
     }
+    const MaxLevelOfDetail: number;
+    const MinLevelOfDetail: number;
     class MapBubbleDataPointRenderer implements IMapDataPointRenderer {
         private mapControl;
         private values;
@@ -9979,9 +10882,13 @@ declare module powerbi.visuals {
         private clearCatcher;
         private bubbleGraphicsContext;
         private sliceGraphicsContext;
+        private labelGraphicsContext;
+        private labelBackgroundGraphicsContext;
         private sliceLayout;
         private arc;
         private dataLabelsSettings;
+        private static validLabelPositions;
+        private mapData;
         constructor();
         init(mapControl: Microsoft.Maps.Map, mapDiv: JQuery, addClearCatcher: boolean): void;
         addDataPoint(dataPoint: MapDataPoint): void;
@@ -9994,6 +10901,7 @@ declare module powerbi.visuals {
         getDefaultMap(geocodingCategory: string, dataPointCount: number): void;
         converter(viewport: IViewport, dataView: DataView, interactivityService: IInteractivityService, labelSettings: PointDataLabelsSettings): MapData;
         updateInternal(data: MapData, viewport: IViewport, dataChanged: boolean, interactivityService: IInteractivityService): MapBehaviorOptions;
+        private createLabelDataPoints();
     }
     interface FilledMapParams {
         level: number;
@@ -10011,7 +10919,7 @@ declare module powerbi.visuals {
         private shapeGraphicsContext;
         private maxShapeDimension;
         static getFilledMapParams(category: string, dataCount: number): FilledMapParams;
-        static buildPaths(locations: visuals.BI.Services.GeocodingManager.IGeocodeBoundaryPolygon[]): visuals.BI.Services.GeocodingManager.IGeocodeBoundaryPolygon[];
+        static buildPaths(locations: IGeocodeBoundaryPolygon[]): IGeocodeBoundaryPolygon[];
         constructor();
         init(mapControl: Microsoft.Maps.Map, mapDiv: JQuery, addClearCatcher: boolean): void;
         beginDataPointUpdate(geocodingCategory: string, dataPointCount: number): void;
@@ -10077,6 +10985,7 @@ declare module powerbi.visuals {
         static legendObject(dataView: DataView): DataViewObject;
         static isLegendHidden(dataView: DataView): boolean;
         static legendPosition(dataView: DataView): LegendPosition;
+        static getLegendFontSize(dataView: DataView): number;
         static isShowLegendTitle(dataView: DataView): boolean;
         private legendTitle();
         private renderLegend(legendData);
@@ -10084,7 +10993,7 @@ declare module powerbi.visuals {
         static calculateGroupSizes(categorical: DataViewCategorical, grouped: DataViewValueColumnGroup[], groupSizeTotals: number[], sizeMeasureIndex: number, currentValueScale: SimpleRange): SimpleRange;
         /** Note: public for UnitTest */
         static createMapDataPoint(group: string, value: number, seriesInfo: MapSeriesInfo, radius: number, colors: IDataColorPalette, categoryIdentity: DataViewScopeIdentity): MapDataPoint;
-        static calculateSeriesLegend(grouped: DataViewValueColumnGroup[], groupIndex: number, sizeMeasureIndex: number, colors: IDataColorPalette, defaultDataPointColor?: string, seriesSource?: data.SQExpr[]): LegendDataPoint[];
+        static calculateSeriesLegend(grouped: DataViewValueColumnGroup[], groupIndex: number, sizeMeasureIndex: number, colors: IDataColorPalette, defaultDataPointColor?: string, seriesSource?: data.SQExpr[], interactivityService?: IInteractivityService): LegendDataPoint[];
         /** Note: public for UnitTest */
         static calculateSeriesInfo(grouped: DataViewValueColumnGroup[], groupIndex: number, sizeMeasureIndex: number, longitudeMeasureIndex: number, latitudeMeasureIndex: number, colors: IDataColorPalette, defaultDataPointColor?: string, objectsDefinitions?: DataViewObjects[], seriesSource?: data.SQExpr[]): MapSeriesInfo;
         private static getOptionalMeasure(seriesValues, measureIndex, groupIndex, defaultValue);
@@ -10099,6 +11008,7 @@ declare module powerbi.visuals {
         static enumerateDataPoints(enumeration: ObjectEnumerationBuilder, dataPoints: LegendDataPoint[], colors: IDataColorPalette, hasDynamicSeries: boolean, defaultDataPointColor: string, showAllDataPoints: boolean, bubbleData: MapBubble[]): void;
         static enumerateLegend(enumeration: ObjectEnumerationBuilder, dataView: DataView, legend: ILegend, legendTitle: string): void;
         onDataChanged(options: VisualDataChangedOptions): void;
+        private swapLogoContainerChildElement();
         /** Note: Public for UnitTests */
         static showLocationMissingWarningIfNecessary(dataView: powerbi.DataView): IVisualWarning[];
         onResizing(viewport: IViewport): void;
@@ -10109,7 +11019,6 @@ declare module powerbi.visuals {
         private updateOffsets(dataChanged);
         onClearSelection(): void;
         private clearDataPoints();
-        private static createDefaultGeocoder();
         private getDefaultMapControlFactory();
     }
 }
@@ -10154,14 +11063,14 @@ declare module powerbi.visuals {
         private static multiRowCardClass;
         private static Card;
         private static Title;
-        private static ImageTitle;
-        private static KPITitle;
         private static CardItemContainer;
         private static Caption;
-        private static ImageCaption;
         private static Details;
         private static TitleUrlSelector;
         private static CaptionUrlSelector;
+        private static TitleImageSelector;
+        private static CaptionImageSelector;
+        private static KPITitle;
         /**
          * Cards have specific styling so defined inline styles and also to support theming and improve performance.
          */
@@ -10237,8 +11146,8 @@ declare module powerbi.visuals {
         private static convertFormatAttributesToTextStyle(attributes);
     }
     module RichText {
-        var defaultFont: string;
-        var defaultFontSize: string;
+        let defaultFont: string;
+        const defaultFontSize: string;
         function getFontFamily(font: string): string;
         class QuillWrapper {
             private editor;
@@ -10289,7 +11198,7 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
-    var cheerMeterProps: {
+    const cheerMeterProps: {
         dataPoint: {
             defaultColor: DataViewObjectPropertyIdentifier;
             fill: DataViewObjectPropertyIdentifier;
@@ -10342,6 +11251,7 @@ declare module powerbi.visuals {
         radius: RadiusData;
         fill: string;
         category: string;
+        fontSize?: number;
     }
     interface RadiusData {
         sizeMeasure: DataViewValueColumn;
@@ -10352,7 +11262,7 @@ declare module powerbi.visuals {
         maxRange: number;
         delta: number;
     }
-    interface ScatterChartData {
+    interface ScatterChartData extends PlayableChartData {
         xCol: DataViewMetadataColumn;
         yCol: DataViewMetadataColumn;
         dataPoints: ScatterChartDataPoint[];
@@ -10366,8 +11276,22 @@ declare module powerbi.visuals {
         hasDynamicSeries?: boolean;
         fillPoint?: boolean;
         colorBorder?: boolean;
+        colorByCategory?: boolean;
     }
-    class ScatterChart implements ICartesianVisual {
+    interface ScatterConverterOptions extends PlayableConverterOptions {
+        viewport: IViewport;
+        colors: any;
+        interactivityService?: any;
+        categoryAxisProperties?: any;
+        valueAxisProperties?: any;
+    }
+    const enum QuadrantNumber {
+        First = 0,
+        Second = 1,
+        Third = 2,
+        Fourth = 3,
+    }
+    class ScatterChart implements ICartesianVisual, PlayableVisual {
         private static ScatterChartCircleTagName;
         private static BubbleRadius;
         static DefaultBubbleOpacity: number;
@@ -10378,14 +11302,17 @@ declare module powerbi.visuals {
         private static MaxSizeRange;
         private static ClassName;
         private static MainGraphicsContextClassName;
+        private static validLabelPositions;
         private static DotClasses;
         private svg;
         private element;
         private mainGraphicsContext;
         private mainGraphicsG;
+        private labelGraphicsContext;
         private currentViewport;
         private style;
         private data;
+        private playData;
         private dataView;
         private host;
         private margin;
@@ -10402,15 +11329,22 @@ declare module powerbi.visuals {
         private animator;
         constructor(options: ScatterChartConstructorOptions);
         init(options: CartesianVisualInitOptions): void;
-        static converter(dataView: DataView, currentViewport: IViewport, colorPalette: IDataColorPalette, interactivityService?: IInteractivityService, categoryAxisProperties?: DataViewObject, valueAxisProperties?: DataViewObject): ScatterChartData;
+        private static getObjectProperties(dataViewMetadata, dataLabelsSettings?);
+        static converter(dataView: DataView, options: ScatterConverterOptions): ScatterChartData;
         private static getSizeRangeForGroups(dataViewValueGroups, sizeColumnIndex);
-        private static createDataPoints(dataValues, metadata, categories, categoryValues, categoryFormatter, categoryIdentities, categoryObjects, colorPalette, viewport, hasDynamicSeries, labelSettings, defaultDataPointColor?, categoryQueryName?);
+        private static createDataPoints(dataValues, metadata, categories, categoryValues, categoryFormatter, categoryIdentities, categoryObjects, colorPalette, viewport, hasDynamicSeries, labelSettings, defaultDataPointColor?, categoryQueryName?, colorByCategory?);
         private static createSeriesLegend(dataValues, colorPalette, categorical, formatString, defaultDataPointColor);
         static getBubbleRadius(radiusData: RadiusData, sizeRange: NumberRange, viewPort: IViewport): number;
         static getMeasureValue(measureIndex: number, seriesValues: DataViewValueColumn[]): DataViewValueColumn;
         private static getMetadata(grouped, source);
         private static getDefaultMeasureIndex(count, usedIndex, usedIndex2);
-        setData(dataViews: DataView[]): void;
+        /**
+         * create a new viewmodel
+        */
+        static getDefaultData(): ScatterChartData;
+        renderAtFrameIndex(frameIndex: number): void;
+        setData(dataViews: DataView[], resized?: boolean): void;
+        private mergeSizeRanges();
         calculateLegend(): LegendData;
         hasLegend(): boolean;
         enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, options: EnumerateVisualObjectInstancesOptions): void;
@@ -10419,8 +11353,8 @@ declare module powerbi.visuals {
         calculateAxesProperties(options: CalculateScaleAndDomainOptions): IAxisProperties[];
         overrideXScale(xProperties: IAxisProperties): void;
         render(suppressAnimations: boolean): CartesianVisualRenderResult;
-        private drawScatterMarkers(scatterData, hasSelection, sizeRange, duration);
-        private getStrokeFill(d, colorBorder);
+        private drawScatterMarkers(scatterData, hasSelection, sizeRange, duration, easeType?);
+        static getStrokeFill(d: ScatterChartDataPoint, colorBorder: boolean): string;
         static getBubblePixelAreaSizeRange(viewPort: IViewport, minSizeRange: number, maxSizeRange: number): DataRange;
         static project(value: number, actualSizeDataRange: DataRange, bubblePixelAreaSizeRange: DataRange): number;
         static projectSizeToPixels(size: number, actualSizeDataRange: DataRange, bubblePixelAreaSizeRange: DataRange): number;
@@ -10428,218 +11362,158 @@ declare module powerbi.visuals {
         static getBubbleOpacity(d: ScatterChartDataPoint, hasSelection: boolean): number;
         onClearSelection(): void;
         getSupportedCategoryAxisType(): string;
+        private createLabelDataPoints();
+        static sortBubbles(a: ScatterChartDataPoint, b: ScatterChartDataPoint): number;
+        private getPreferredLabelsKeys(dataPoints);
+        private getQuadrantsCenters(visualWidth, visualHeight);
+        private getCandidateLabels(visualCenter, quadrantsCenters, datapoints);
+        private getPointQuadrantNumber(x, y, centerPoint);
+        private getDistanceBetweenPoints(x1, y1, x2, y2);
+        private isLabelPreferred(key, preferredLabelsKeys);
     }
 }
 declare module powerbi.visuals {
-    interface PlayChartConstructorOptions extends CartesianVisualConstructorOptions {
-        isFrozen?: boolean;
-    }
-    interface PlayChartDataPoint extends SelectableDataPoint, TooltipEnabledDataPoint, LabelEnabledDataPoint {
-        x: any;
-        y: any;
-        size: any;
-        radius: RadiusData;
-        fill: string;
-        category: string;
+    interface PlayableVisual {
+        renderAtFrameIndex(frameIndex: number): void;
     }
     interface PlayChartData {
-        xCol: DataViewMetadataColumn;
-        yCol: DataViewMetadataColumn;
-        dataPoints: PlayChartDataPoint[];
-        legendData: LegendData;
-        axesLabels: ChartAxesLabels;
-        size?: DataViewMetadataColumn;
-        sizeRange: NumberRange;
-        dataLabelsSettings: PointDataLabelsSettings;
-        defaultDataPointColor?: string;
-        showAllDataPoints?: boolean;
-        hasDynamicSeries?: boolean;
-        fillPoint?: boolean;
-        colorBorder?: boolean;
+        host?: IVisualHostServices;
         frameKeys: any[];
-        allDataPoints?: PlayChartDataPoint[][];
+        allViewModels?: PlayableChartData[];
+        currentViewModel?: PlayableChartData;
         currentFrameIndex?: number;
-        lastRenderedFrameIndex?: number;
-        colorByCategory?: boolean;
+        lastRenderedTraceFrameIndex?: number;
         currentViewport?: IViewport;
+        lastRenderedViewport?: IViewport;
+        frameCount?: number;
+        isPlaying?: boolean;
+        element?: JQuery;
+        svg?: JQuery;
+        playAxisContainer?: JQuery;
+        playButton?: JQuery;
+        playButtonCircle?: JQuery;
+        slider?: JQuery;
+        callout?: JQuery;
+        ridiculousFlagForPersistProperties?: boolean;
+        renderAtFrameIndexFn?(frameIndex: number): void;
     }
-    class PlayChart implements ICartesianVisual {
-        private static PlayChartCircleTagName;
-        private static BubbleRadius;
-        static DefaultBubbleOpacity: number;
-        static DimmedBubbleOpacity: number;
-        static StrokeDarkenColorValue: number;
-        private static AreaOf300By300Chart;
-        private static MinSizeRange;
-        private static MaxSizeRange;
-        private static ClassName;
-        private static MainGraphicsContextClassName;
-        private static DataLabelsContextClassName;
-        private static FrameDuration;
-        private static FrameDurationFudge;
-        private static SliderMarginLeft;
-        private static SliderMarginRight;
-        private static DotClasses;
-        private svg;
-        private element;
-        private mainGraphicsContext;
-        private dataLabelsContext;
-        private clearCatcher;
-        private mainGraphicsG;
-        private currentViewport;
-        private lastRenderedViewport;
-        private style;
-        private data;
-        private dataView;
-        private host;
-        private margin;
-        private xAxisProperties;
-        private yAxisProperties;
-        private colors;
-        private options;
-        private interactivity;
-        private cartesianVisualHost;
-        private isInteractiveChart;
-        private interactivityService;
-        private categoryAxisProperties;
-        private valueAxisProperties;
-        private animator;
-        private isFrozen;
-        private frameCount;
-        private isPlaying;
-        private playAxisContainer;
-        private playButton;
-        private slider;
-        private callout;
-        private ridiculousFlagForPersistProperties;
-        constructor(options: PlayChartConstructorOptions);
-        init(options: CartesianVisualInitOptions): void;
-        private static convertMatrixToCategorical(matrix, frame);
-        private static getObjectProperties(dataViewMetadata, dataLabelsSettings?);
-        static converter(dataView: DataView, currentViewport: IViewport, colorPalette: IDataColorPalette, interactivityService?: IInteractivityService, categoryAxisProperties?: DataViewObject, valueAxisProperties?: DataViewObject): PlayChartData;
-        private static getSizeRangeForGroups(dataViewValueGroups, sizeColumnIndex);
-        private static createDataPoints(dataValues, metadata, categories, categoryValues, categoryFormatter, categoryIdentities, categoryObjects, colorPalette, viewport, hasDynamicSeries, labelSettings, defaultDataPointColor?, colorByCategory?);
-        private static createSeriesLegend(dataValues, colorPalette, categorical, formatString, defaultDataPointColor);
-        static getBubbleRadius(radiusData: RadiusData, sizeRange: NumberRange, viewPort: IViewport): number;
-        static getMeasureValue(measureIndex: number, seriesValues: DataViewValueColumn[]): DataViewValueColumn;
-        private static getMetadata(grouped, source);
-        private static getDefaultMeasureIndex(count, usedIndex, usedIndex2);
-        setData(dataViews: DataView[]): void;
-        calculateLegend(): LegendData;
-        hasLegend(): boolean;
-        enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, options: EnumerateVisualObjectInstancesOptions): void;
-        private hasSizeMeasure();
-        private enumerateDataPoints(enumeration);
-        calculateAxesProperties(options: CalculateScaleAndDomainOptions): IAxisProperties[];
-        overrideXScale(xProperties: IAxisProperties): void;
-        private createSliderDOM();
-        private createSliderControl(slider, sliderWidth);
-        private createPipsFilterFn(sliderWidth);
-        render(suppressAnimations: boolean): CartesianVisualRenderResult;
-        static renderTraceLine(options: PlayBehaviorOptions, selectedPoints: SelectableDataPoint[], shouldAnimate: boolean): void;
-        private play();
-        private persistFrameIndex(frameIndex);
-        private playNextFrame(startFrame?, endFrame?);
-        private playComplete();
-        private drawPlayMarkers(playData, hasSelection, sizeRange, suppressAnimations);
-        static getStrokeFill(d: ScatterChartDataPoint, colorBorder: boolean): string;
-        static getBubblePixelAreaSizeRange(viewPort: IViewport, minSizeRange: number, maxSizeRange: number): DataRange;
-        static project(value: number, actualSizeDataRange: DataRange, bubblePixelAreaSizeRange: DataRange): number;
-        static projectSizeToPixels(size: number, actualSizeDataRange: DataRange, bubblePixelAreaSizeRange: DataRange): number;
-        static rangeContains(range: DataRange, value: number): boolean;
-        static getBubbleOpacity(d: PlayChartDataPoint, hasSelection: boolean): number;
-        onClearSelection(): void;
-        getSupportedCategoryAxisType(): string;
+    interface PlayableChartData {
+        dataPoints: any[];
+    }
+    interface PlayableConverterOptions {
+        viewport: IViewport;
+    }
+    module PlayChart {
+        const FrameAnimationDuration: number;
+        const ClassName: string;
+        function init(options: CartesianVisualInitOptions, playData: PlayChartData): void;
+        function convertMatrixToCategorical(matrix: DataViewMatrix, frame: number): DataViewCategorical;
+        function converter(dataView: DataView, visualConverter: (dataView: DataView, options: any) => any, visualConverterOptions: any): PlayChartData;
+        function getDefaultPlayData(): PlayChartData;
+        function setData(playData: PlayChartData, dataView: DataView, visualConverter: (dataView: DataView, options: any) => any, visualConverterOptions: PlayableConverterOptions, resized?: boolean): PlayChartData;
+        function getMinMaxForAllFrames(playData: PlayChartData): {
+            xRange: NumberRange;
+            yRange: NumberRange;
+        };
+        function clearPlayDOM(playData: PlayChartData): void;
+        function render(playData: PlayChartData, behaviorOptions: PlayBehaviorOptions, interactivityService: IInteractivityService, suppressAnimations: boolean): CartesianVisualRenderResult;
+        function renderScatterTraceLine(options: PlayBehaviorOptions, selectedPoints: SelectableDataPoint[], shouldAnimate: boolean): void;
+        function play(playData: PlayChartData, behaviorOptions: PlayBehaviorOptions, interactivityService: IInteractivityService): void;
     }
 }
 declare module powerbi.visuals {
+    import SlicerOrientation = slicerOrientation.Orientation;
+    interface SlicerDefaultValueHandler {
+        getDefaultValue(): data.SQConstantExpr;
+        getIdentityFields(): data.SQExpr[];
+    }
     interface SlicerConstructorOptions {
-        behavior?: SlicerWebBehavior;
+        behavior?: IInteractiveBehavior;
+    }
+    interface ISlicerVisual {
+        init(options: VisualInitOptions): IInteractivityService;
+        render(options: SlicerRenderOptions): void;
+    }
+    interface SlicerRenderOptions {
+        dataView: DataView;
+        data: SlicerData;
+        viewport: IViewport;
     }
     interface SlicerData {
         categorySourceName: string;
-        formatString: string;
         slicerDataPoints: SlicerDataPoint[];
         slicerSettings: SlicerSettings;
         hasSelectionOverride?: boolean;
     }
     interface SlicerDataPoint extends SelectableDataPoint {
         value: string;
-        mouseOver: boolean;
-        mouseOut: boolean;
+        tooltip: string;
         isSelectAllDataPoint?: boolean;
     }
     interface SlicerSettings {
         general: {
             outlineColor: string;
             outlineWeight: number;
+            orientation: SlicerOrientation;
         };
         header: {
             borderBottomWidth: number;
             show: boolean;
             outline: string;
             fontColor: string;
-            background: string;
+            background?: string;
             textSize: number;
         };
         slicerText: {
             color: string;
-            hoverColor: string;
-            selectionColor: string;
             outline: string;
-            background: string;
+            background?: string;
             textSize: number;
         };
+        selection: {
+            selectAllCheckboxEnabled: boolean;
+            singleSelect: boolean;
+        };
     }
-    class Slicer implements IVisual {
+    interface CheckboxStyle {
+        transform: string;
+        'transform-origin': string;
+        'font-size': string;
+    }
+    class Slicer implements IVisual, SlicerDefaultValueHandler {
         private element;
         private currentViewport;
         private dataView;
+        private options;
         private slicerHeader;
         private slicerBody;
+        private slicerContainer;
         private listView;
         private slicerData;
         private settings;
         private interactivityService;
         private behavior;
         private hostServices;
-        private static clearTextKey;
-        private static selectAllTextKey;
+        private slicerVisual;
+        private slicerOrientation;
         private waitingForData;
+        private renderAsImage;
         private textProperties;
-        private static CheckboxSpritePixelSizeMinimum;
-        private static CheckboxSpritePixelSize;
-        private static CheckboxSpritePixelSizeRange;
-        private static Container;
-        private static Header;
-        private static HeaderText;
-        private static Body;
-        private static ItemContainer;
-        private static LabelText;
-        private static Input;
-        private static Clear;
         static DefaultStyleProperties(): SlicerSettings;
         constructor(options?: SlicerConstructorOptions);
-        static converter(dataView: DataView, localizedSelectAllText: string, interactivityService: IInteractivityService): SlicerData;
+        static converter(dataView: DataView, localizedSelectAllText: string, interactivityService: IInteractivityService, hostServices?: IVisualHostServices): SlicerData;
         init(options: VisualInitOptions): void;
         onDataChanged(options: VisualDataChangedOptions): void;
         onResizing(finalViewport: IViewport): void;
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
-        private enumerateHeader(data);
-        private enumerateRows(data);
-        private enumerateGeneral(data);
+        getDefaultValue(): data.SQConstantExpr;
+        getIdentityFields(): data.SQExpr[];
         private updateInternal(resetScrollbarPosition);
-        private initContainer();
+        private orientationHasChanged(slicerOrientation);
+        private render(data, resetScrollbarPosition);
+        private updateSelectionStyle();
+        private initVerticalSlicer(options);
         private onLoadMoreData();
-        private getSlicerBodyViewport(currentViewport);
-        private updateSlicerBodyDimensions();
-        private getTextProperties(textSize);
-        private getHeaderHeight();
-        private getRowHeight();
-        private getCheckboxScale();
-        private buildCheckboxStyle();
-        private getBorderStyle(outlineElement);
-        private getBorderWidth(outlineElement, outlineWeight);
     }
 }
 declare module powerbi.visuals {
@@ -10668,7 +11542,7 @@ declare module powerbi.visuals {
     class TableHierarchyNavigator implements controls.ITablixHierarchyNavigator, TableDataAdapter {
         private tableDataView;
         private formatter;
-        constructor(tableDataView: DataViewVisualTable, formatter: ICustomValueFormatter);
+        constructor(tableDataView: DataViewVisualTable, formatter: ICustomValueColumnFormatter);
         /**
          * Returns the depth of a hierarchy.
          */
@@ -10733,13 +11607,13 @@ declare module powerbi.visuals {
     }
     interface TableBinderOptions {
         onBindRowHeader?(item: any): void;
-        onColumnHeaderClick?(queryName: string): void;
+        onColumnHeaderClick?(queryName: string, sortDirection: SortDirection): void;
     }
     /**
      * Note: Public for testability.
      */
     class TableBinder implements controls.ITablixBinder {
-        private static columnHeaderClassName;
+        private static sortIcon;
         private static rowClassName;
         private static lastRowClassName;
         private static footerClassName;
@@ -10789,6 +11663,7 @@ declare module powerbi.visuals {
         /** Property that drives whether columns should use automatically calculated (based on content) sizes for width or use persisted sizes.
         Default is true i.e. automatically calculate width based on column content */
         autoSizeColumnWidth: boolean;
+        textSize: number;
     }
     interface ColumnWidthCallbackType {
         (index: number, width: number): void;
@@ -10797,6 +11672,7 @@ declare module powerbi.visuals {
         static formatStringProp: DataViewObjectPropertyIdentifier;
         static totalsProp: DataViewObjectPropertyIdentifier;
         static autoSizeProp: DataViewObjectPropertyIdentifier;
+        static textSizeProp: DataViewObjectPropertyIdentifier;
         private static preferredLoadMoreThreshold;
         private element;
         private currentViewport;
@@ -10829,7 +11705,9 @@ declare module powerbi.visuals {
         private updateViewport(newViewport);
         private refreshControl(clear);
         private getLayoutKind();
-        private createOrUpdateHierarchyNavigatorAndControl();
+        private createOrUpdateHierarchyNavigator();
+        private createTablixControl();
+        private createColumnWidthManager();
         private createControl(dataNavigator);
         private updateInternal(dataView, previousDataView);
         private shouldClearControl(previousDataView, newDataView);
@@ -10837,8 +11715,10 @@ declare module powerbi.visuals {
         private shouldShowTotals(dataView);
         private static shouldShowTotals(objects);
         private shouldAutoSizeColumnWidth(objects);
+        private static getTextSize(objects);
+        private getFontSize();
         private onBindRowHeader(item);
-        private onColumnHeaderClick(queryName);
+        private onColumnHeaderClick(queryName, sortDirection);
         /**
          * Note: Public for testability.
          */
@@ -10901,6 +11781,7 @@ declare module powerbi.visuals {
         rowSubtotals: boolean;
         columnSubtotals: boolean;
         autoSizeColumnWidth: boolean;
+        textSize: number;
     }
     interface IMatrixHierarchyNavigator extends controls.ITablixHierarchyNavigator, MatrixDataAdapter {
         getDataViewMatrix(): DataViewMatrix;
@@ -10925,7 +11806,7 @@ declare module powerbi.visuals {
     /**
      * Factory method used by unit tests.
      */
-    function createMatrixHierarchyNavigator(matrix: DataViewMatrix, formatter: ICustomValueFormatter): IMatrixHierarchyNavigator;
+    function createMatrixHierarchyNavigator(matrix: DataViewMatrix, formatter: ICustomValueColumnFormatter): IMatrixHierarchyNavigator;
     interface MatrixBinderOptions {
         onBindRowHeader?(item: MatrixVisualNode): void;
         totalLabel?: string;
@@ -11001,6 +11882,7 @@ declare module powerbi.visuals {
         static rowSubtotals: DataViewObjectPropertyIdentifier;
         static columnSubtotals: DataViewObjectPropertyIdentifier;
         static autoSizeProp: DataViewObjectPropertyIdentifier;
+        static textSizeProp: DataViewObjectPropertyIdentifier;
         private static preferredLoadMoreThreshold;
         /**
          * Note: Public only for testing.
@@ -11031,7 +11913,9 @@ declare module powerbi.visuals {
         private updateViewport(newViewport);
         private refreshControl(clear);
         private getLayoutKind();
-        private createOrUpdateHierarchyNavigatorAndControl();
+        private createOrUpdateHierarchyNavigator();
+        private createTablixControl();
+        private createColumnWidthManager();
         private createControl(matrixNavigator);
         private updateInternal(dataView, previousDataView);
         private shouldClearControl(previousDataView, newDataView);
@@ -11043,6 +11927,8 @@ declare module powerbi.visuals {
         needsMoreData(item: MatrixVisualNode): boolean;
         private static shouldShowRowSubtotals(objects);
         private static shouldShowColumnSubtotals(objects);
+        private static getTextSize(objects);
+        private getFontSize();
         private shouldAutoSizeColumnWidth(objects);
         private getMatrixDataViewObjects();
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
@@ -11194,20 +12080,19 @@ declare module powerbi.visuals {
     }
 }
 declare module powerbi.visuals {
+    interface CardStyleText {
+        textSize: number;
+        color: string;
+    }
+    interface CardStyleValue extends CardStyleText {
+        fontFamily: string;
+    }
     interface CardStyle {
         card: {
             maxFontSize: number;
         };
-        label: {
-            fontSize: number;
-            color: string;
-            height: number;
-        };
-        value: {
-            fontSize: number;
-            color: string;
-            fontFamily: string;
-        };
+        label: CardStyleText;
+        value: CardStyleValue;
     }
     interface CardConstructorOptions {
         isScrollable?: boolean;
@@ -11215,7 +12100,7 @@ declare module powerbi.visuals {
         animator?: IGenericAnimator;
     }
     interface CardFormatSetting {
-        showTitle: boolean;
+        textSize: number;
         labelSettings: VisualDataLabelsSettings;
         wordWrap: boolean;
     }
@@ -11223,8 +12108,9 @@ declare module powerbi.visuals {
         private static cardClassName;
         private static Label;
         private static Value;
+        private static KPIImage;
+        private static cardTextProperties;
         static DefaultStyle: CardStyle;
-        private static Caption;
         private toolTip;
         private animationOptions;
         private displayUnitSystemType;
@@ -11238,10 +12124,12 @@ declare module powerbi.visuals {
         onDataChanged(options: VisualDataChangedOptions): void;
         onResizing(viewport: IViewport): void;
         private updateViewportProperties();
+        private setTextProperties(text, fontSize);
+        private getCardFormatTextSize();
         getAdjustedFontHeight(availableWidth: number, textToMeasure: string, seedFontHeight: number): number;
         clear(valueOnly?: boolean): void;
         private updateInternal(target, suppressAnimations, forceUpdate?);
-        private displayStatusGraphic(statusGraphic, translateX, translateY, columnCaption, valueStyles);
+        private displayStatusGraphic(statusGraphicInfo, translateX, translateY, valueStyles);
         private updateTooltip(target);
         private getDefaultFormatSettings();
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
@@ -11299,6 +12187,351 @@ declare module powerbi.visuals.samples {
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
     }
 }
+declare module powerbi.visuals.samples {
+    interface SunburstSlice {
+        children?: SunburstSlice[];
+        value?: any;
+        color?: string;
+        name?: string;
+        parent?: SunburstSlice;
+        selector: SelectionId;
+        total: number;
+        tooltipInfo?: TooltipDataItem[];
+    }
+    interface SunburstViewModel {
+        root: SunburstSlice;
+    }
+    var sunburstRoleNames: {
+        nodes: string;
+        values: string;
+    };
+    class Sunburst implements IVisual {
+        private static minOpacity;
+        private svg;
+        private g;
+        private arc;
+        private total;
+        private viewport;
+        private colors;
+        private selectionManager;
+        private static roleNames;
+        static capabilities: VisualCapabilities;
+        init(options: VisualInitOptions): void;
+        private static setAllUnhide(selection);
+        update(options: VisualUpdateOptions): void;
+        private updateInternal(dataRootNode);
+        private static getTreePath(node);
+        private onResize();
+        private highlightPath(d, sunBurst, setUnhide);
+        private renderTooltip(selection);
+        private static getTooltipData(displayName, value);
+        private covertTreeNodeToSunBurstNode(originParentNode, sunburstParentNode, colors, pathIdentity, color);
+        converter(dataView: DataView, colors: IDataColorPalette): SunburstSlice;
+    }
+}
+declare module powerbi.visuals.samples {
+    interface RadarChartConstructorOptions {
+        animator?: IGenericAnimator;
+        svg?: D3.Selection;
+        margin?: IMargin;
+    }
+    interface RadarChartDatapoint {
+        x: number;
+        y: number;
+        y0?: number;
+        color?: string;
+        value?: number;
+        label?: string;
+        identity: SelectionId;
+        tooltipInfo?: TooltipDataItem[];
+    }
+    interface RadarChartData {
+        dataPoints: RadarChartDatapoint[][];
+        legendData: LegendData;
+    }
+    class RadarChart implements IVisual {
+        static capabilities: VisualCapabilities;
+        /** Note: Public for testability */
+        static formatStringProp: DataViewObjectPropertyIdentifier;
+        private static VisualClassName;
+        private static Segments;
+        private static SegmentNode;
+        private static Axis;
+        private static AxisNode;
+        private static AxisLabel;
+        private static Chart;
+        private static ChartNode;
+        private static ChartPolygon;
+        private static ChartDot;
+        private svg;
+        private segments;
+        private axis;
+        private chart;
+        private mainGroupElement;
+        private colors;
+        private selectionManager;
+        private dataView;
+        private viewport;
+        private animator;
+        private margin;
+        private legend;
+        private static DefaultMargin;
+        private static SegmentLevels;
+        private static SegmentFactor;
+        private static Radians;
+        private static Scale;
+        private angle;
+        private radius;
+        static converter(dataView: DataView, colors: IDataColorPalette): RadarChartData;
+        constructor(options?: RadarChartConstructorOptions);
+        init(options: VisualInitOptions): void;
+        update(options: VisualUpdateOptions): void;
+        private drawCircularSegments(values);
+        private drawAxes(values);
+        private drawAxesLabels(values);
+        private drawChart(dataPoints, duration);
+    }
+}
+declare module powerbi.visuals.samples {
+    interface DotPlotConstructorOptions {
+        animator?: IGenericAnimator;
+        svg?: D3.Selection;
+        margin?: IMargin;
+        radius?: number;
+        strokeWidth?: number;
+    }
+    interface DotPlotDatapoint {
+        x: number;
+        y: number;
+        color?: string;
+        value?: number;
+        label?: string;
+        identity: SelectionId;
+        tooltipInfo?: TooltipDataItem[];
+    }
+    interface DotPlotData {
+        dataPoints: DotPlotDatapoint[];
+        legendData: LegendData;
+    }
+    class DotPlot implements IVisual {
+        static capabilities: VisualCapabilities;
+        private static VisualClassName;
+        private static DotPlot;
+        private static Axis;
+        private static Dot;
+        private svg;
+        private axis;
+        private dotPlot;
+        private colors;
+        private selectionManager;
+        private dataView;
+        private viewport;
+        private animator;
+        private margin;
+        private legend;
+        private static DefaultMargin;
+        private radius;
+        private strokeWidth;
+        private hostService;
+        private static DefaultRadius;
+        private static DefaultStrokeWidth;
+        private static FrequencyText;
+        private static round10(value, digits?);
+        private static getTooltipData(value);
+        static converter(dataView: DataView, maxDots: number, colors: IDataColorPalette, host: IVisualHostServices): DotPlotData;
+        constructor(options?: DotPlotConstructorOptions);
+        init(options: VisualInitOptions): void;
+        update(options: VisualUpdateOptions): void;
+        private drawDotPlot(data, xScale, yScale);
+        private renderTooltip(selection);
+        private drawAxis(values, xScale, translateY);
+    }
+}
+declare module powerbi.visuals.samples {
+    interface AreaRangeChartConstructorOptions {
+        animator?: IGenericAnimator;
+    }
+    interface AreaRangeChartSeries {
+        name: string;
+        data: AreaRangeChartDataPoint[];
+        color: string;
+        identity: SelectionId;
+    }
+    interface AreaRangeChartDataPoint extends SelectableDataPoint, TooltipEnabledDataPoint, LabelEnabledDataPoint {
+        x: number;
+        y0: number;
+        y1: number;
+    }
+    interface AreaRangeChartLegend extends DataViewObject {
+        show?: boolean;
+        showTitle?: boolean;
+        titleText?: string;
+        position?: LegendPosition;
+    }
+    interface AreaRangeChartSettings {
+        displayName?: string;
+        fillColor?: string;
+        precision: number;
+        legend?: AreaRangeChartLegend;
+        colors?: IColorPalette;
+    }
+    interface AreaRangeChartData {
+        series: AreaRangeChartSeries[];
+        categories: any[];
+        legendData: LegendData;
+        xAxisProperties: IAxisProperties;
+        yAxisProperties: IAxisProperties;
+        settings: AreaRangeChartSettings;
+        formatter: IValueFormatter;
+    }
+    class AreaRangeChart implements IVisual {
+        private static properties;
+        private static RoleNames;
+        static capabilities: VisualCapabilities;
+        private static VisualClassName;
+        private static Chart;
+        private static Area;
+        private static Axis;
+        private static DimmedFillOpacity;
+        private static FillOpacity;
+        private svg;
+        private colors;
+        private selectionManager;
+        private dataView;
+        private viewport;
+        private animator;
+        private margin;
+        private legend;
+        private data;
+        private static DefaultSettings;
+        private static DefaultMargin;
+        private chart;
+        private axis;
+        private axisX;
+        private axisY;
+        private scaleType;
+        constructor(options?: AreaRangeChartConstructorOptions);
+        init(options: VisualInitOptions): void;
+        update(options: VisualUpdateOptions): void;
+        private render(data, duration);
+        private setSize(viewport);
+        private updateElements(height, width);
+        private getObjectsFromDataView(dataView);
+        private getPrecision(objects);
+        private getLegendSettings(objects);
+        private getDataColorsSettings(objects);
+        private parseSettings(dataView);
+        private getTooltipData(categoryColumn, y0, y1, categoryIndex, valueFormatter);
+        converter(dataView: DataView, colors: IDataColorPalette): AreaRangeChartData;
+        private calculateYDomain(valueColumns, lowerMeasureIndex, upperMeasureIndex);
+        private getXAxisProperties(categoryColumn);
+        private getYAxisProperties(valueColumns, lowerMeasureIndex, upperMeasureIndex);
+        private renderAxis(data, duration);
+        private renderChart(data, duration);
+        private static findClosestXAxisIndex(currentX, xAxisValues);
+        static getTooltipInfoByPointX(pointData: any, xScale: D3.Scale.OrdinalScale, pointX: number): TooltipDataItem[];
+        private renderTooltip(selection, xScale);
+        private getLegend(series, title);
+        private enumerateLegend(enumeration);
+        private enumerateDataPoints(enumeration);
+        enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
+    }
+}
+declare module powerbi.visuals {
+    interface HistogramConstructorOptions {
+        svg?: D3.Selection;
+        animator?: IGenericAnimator;
+        margin?: IMargin;
+    }
+    interface HistogramSettings {
+        displayName?: string;
+        fillColor?: string;
+        frequency: boolean;
+        bins?: number;
+        precision: number;
+    }
+    interface HistogramData extends D3.Layout.Bin, TooltipEnabledDataPoint {
+        range: number[];
+    }
+    interface HistogramDataView {
+        data: HistogramData[];
+        xScale?: D3.Scale.LinearScale;
+        yScale?: D3.Scale.LinearScale;
+        settings: HistogramSettings;
+        formatter: IValueFormatter;
+    }
+    class Histogram implements IVisual {
+        private static ClassName;
+        private static FrequencyText;
+        private static DensityText;
+        private static Properties;
+        private static DefaultHistogramSettings;
+        private static Axes;
+        private static Axis;
+        private static Columns;
+        private static Column;
+        private static Legends;
+        private static Legend;
+        static capabilities: VisualCapabilities;
+        private ColumnPadding;
+        private MinColumnHeight;
+        private MinOpacity;
+        private MaxOpacity;
+        private QuantityLabelsOnAxisY;
+        private MinQuantityBins;
+        private MinPrecision;
+        private TooltipDisplayName;
+        private SeparatorNumbers;
+        private LegendSize;
+        private AxisSize;
+        private ExcludeBrackets;
+        private IncludeBrackets;
+        private margin;
+        private durationAnimations;
+        private suppressAnimations;
+        private viewport;
+        private dataView;
+        private selectionManager;
+        private colors;
+        private root;
+        private svg;
+        private main;
+        private axes;
+        private axisX;
+        private axisY;
+        private legend;
+        private columns;
+        private histogramDataView;
+        constructor(histogramConstructorOptions?: HistogramConstructorOptions);
+        init(visualsOptions: VisualInitOptions): void;
+        converter(dataView: DataView): HistogramDataView;
+        private getData(values, data, settings, valueFormatter);
+        private getRange(minValue, maxValue, step, index);
+        private getTooltipData(value, range, settings, includeLeftBorder, valueFormatter);
+        private parseSettings(dataView);
+        private getBins(objects);
+        private getFrequency(objects);
+        private getPrecision(objects);
+        update(visualUpdateOptions: VisualUpdateOptions): void;
+        private setSize(viewport);
+        private updateElements(height, width);
+        private render();
+        private renderColumns();
+        private renderTooltip(selection);
+        private setOpacity(element, isHide?);
+        private animation(element);
+        private getColumnHeight(column, y);
+        private renderAxes();
+        private rangesToArray(data);
+        private rangeToString(range, includeLeftBorder, valueFormatter);
+        private renderLegend();
+        private getDataLegends(settings);
+        private getLegendText(settings);
+        enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
+        private getObjectsFromDataView(dataView);
+        destroy(): void;
+    }
+}
 declare module powerbi.visuals {
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
     class NoMapLocationWarning implements IVisualWarning {
@@ -11330,6 +12563,10 @@ declare module powerbi.visuals {
         getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage;
     }
     class ValuesOutOfRangeWarning implements IVisualWarning {
+        code: string;
+        getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage;
+    }
+    class ZeroValueWarning implements IVisualWarning {
         code: string;
         getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage;
     }
@@ -11378,8 +12615,11 @@ declare module powerbi.visuals {
         private static CategoryValueClasses;
         private static WaterfallConnectorClasses;
         private static defaultTotalColor;
+        private static validLabelPositions;
+        private static validZeroLabelPosition;
         private svg;
         private mainGraphicsContext;
+        private labelGraphicsContext;
         private mainGraphicsSVG;
         private xAxisProperties;
         private yAxisProperties;
@@ -11427,6 +12667,7 @@ declare module powerbi.visuals {
         private getAvailableWidth();
         private getAvailableHeight();
         private getSentimentColorsFromObjects(objects);
+        createLabelDataPoints(): LabelDataPoint[];
     }
 }
 declare module powerbi.visuals {
@@ -11434,6 +12675,8 @@ declare module powerbi.visuals {
     interface TooltipDataItem {
         displayName: string;
         value: string;
+        color?: string;
+        header?: string;
     }
     interface TooltipOptions {
         opacity: number;
@@ -11469,19 +12712,13 @@ declare module powerbi.visuals {
         private static DefaultTooltipOptions;
         private tooltipContainer;
         private isTooltipVisible;
+        private currentTooltipData;
         private customScreenWidth;
         private customScreenHeight;
-        private static containerClassName;
-        private static contentContainerClassName;
-        private static arrowClassName;
-        private static tooltipRowClassName;
-        private static tooltipTitleCellClassName;
-        private static tooltipValueCellClassName;
         static parentContainerSelector: string;
         static highlightedValueDisplayNameResorceKey: string;
         static localizationOptions: TooltipLocalizationOptions;
         constructor(tooltipOptions?: TooltipOptions);
-        /** Note: For tests only */
         isTooltipComponentVisible(): boolean;
         /** Note: For tests only */
         setTestScreenSize(width: number, height: number): void;
@@ -11497,10 +12734,11 @@ declare module powerbi.visuals {
         private getClickedScreenArea(clickedArea);
     }
     module TooltipManager {
-        var ShowTooltips: boolean;
-        var ToolTipInstance: ToolTipComponent;
-        function addTooltip(d3Selection: D3.Selection, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], reloadTooltipDataOnMouseMove?: boolean): void;
+        let ShowTooltips: boolean;
+        let ToolTipInstance: ToolTipComponent;
+        function addTooltip(d3Selection: D3.Selection, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], reloadTooltipDataOnMouseMove?: boolean, onMouseOutDelegate?: () => void): void;
         function showDelayedTooltip(tooltipEvent: TooltipEvent, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], delayInMs: number): number;
+        function hideDelayedTooltip(delayInMs: number): number;
         function setLocalizedStrings(localizationOptions: TooltipLocalizationOptions): void;
     }
     module TooltipBuilder {
@@ -11574,9 +12812,6 @@ declare module powerbi.visuals {
         private static DrillDownAnimationDuration;
         private static OuterArcRadiusRatio;
         private static InnerArcRadiusRatio;
-        private static FontsizeThreshold;
-        private static SmallFontSize;
-        private static NormalFontSize;
         private static InteractiveLegendContainerHeight;
         private static OpaqueOpacity;
         private static SemiTransparentOpacity;
@@ -11587,6 +12822,7 @@ declare module powerbi.visuals {
         private static twoPi;
         static EffectiveZeroValue: number;
         static PolylineOpacity: number;
+        private dataViews;
         private sliceWidthRatio;
         private svg;
         private mainGraphicsContext;
@@ -11624,8 +12860,9 @@ declare module powerbi.visuals {
          */
         animator: IDonutChartAnimator;
         constructor(options?: DonutConstructorOptions);
-        static converter(dataView: DataView, colors: IDataColorPalette, defaultDataPointColor?: string, viewport?: IViewport, disableGeometricCulling?: boolean): DonutData;
+        static converter(dataView: DataView, colors: IDataColorPalette, defaultDataPointColor?: string, viewport?: IViewport, disableGeometricCulling?: boolean, interactivityService?: IInteractivityService): DonutData;
         init(options: VisualInitOptions): void;
+        update(options: VisualUpdateOptions): void;
         onDataChanged(options: VisualDataChangedOptions): void;
         onResizing(viewport: IViewport): void;
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
@@ -11656,51 +12893,82 @@ declare module powerbi.visuals {
         static drawDefaultHighlightShapes(graphicsContext: D3.Selection, donutData: DonutData, layout: DonutLayout, colors: IDataColorPalette, radius: number): D3.UpdateSelection;
         static drawDefaultCategoryLabels(graphicsContext: D3.Selection, donutData: DonutData, layout: DonutLayout, sliceWidthRatio: number, radius: number, viewport: IViewport): void;
         onClearSelection(): void;
-        static getLayout(radius: number, sliceWidthRatio: number, viewport: IViewport): DonutLayout;
+        static getLayout(radius: number, sliceWidthRatio: number, viewport: IViewport, labelSettings: VisualDataLabelsSettings): DonutLayout;
         private static getHighlightRadius(radius, sliceWidthRatio, highlightRatio);
         static cullDataByViewport(dataPoints: DonutDataPoint[], maxValue: number, viewport: IViewport): DonutDataPoint[];
     }
 }
+declare module powerbi.visuals {
+    interface ScriptVisualDataViewObjects extends DataViewObjects {
+        lastSavedImage: ScriptVisualDataViewObject;
+        script: ScriptObject;
+    }
+    interface ScriptVisualDataViewObject extends DataViewObject {
+        imageUrl: string;
+        viewportHeight: number;
+        viewportWidth: number;
+    }
+    interface ScriptObject extends DataViewObject {
+        provider: string;
+        source: string;
+        imageFormat: string;
+    }
+    class ScriptVisual implements IVisual {
+        private element;
+        private imageBackgroundElement;
+        private hostServices;
+        init(options: VisualInitOptions): void;
+        update(options: VisualUpdateOptions): void;
+        private getLastSavedImage(dataView);
+        private updateLastSavedImage(dataView, imageUrl, viewport);
+    }
+}
 declare module powerbi.visuals.plugins {
-    var animatedNumber: IVisualPlugin;
-    var areaChart: IVisualPlugin;
-    var barChart: IVisualPlugin;
-    var basicShape: IVisualPlugin;
-    var card: IVisualPlugin;
-    var multiRowCard: IVisualPlugin;
-    var clusteredBarChart: IVisualPlugin;
-    var clusteredColumnChart: IVisualPlugin;
-    var columnChart: IVisualPlugin;
-    var comboChart: IVisualPlugin;
-    var dataDotChart: IVisualPlugin;
-    var dataDotClusteredColumnComboChart: IVisualPlugin;
-    var dataDotStackedColumnComboChart: IVisualPlugin;
-    var donutChart: IVisualPlugin;
-    var funnel: IVisualPlugin;
-    var gauge: IVisualPlugin;
-    var hundredPercentStackedBarChart: IVisualPlugin;
-    var hundredPercentStackedColumnChart: IVisualPlugin;
-    var image: IVisualPlugin;
-    var lineChart: IVisualPlugin;
-    var lineStackedColumnComboChart: IVisualPlugin;
-    var lineClusteredColumnComboChart: IVisualPlugin;
-    var map: IVisualPlugin;
-    var filledMap: IVisualPlugin;
-    var treemap: IVisualPlugin;
-    var pieChart: IVisualPlugin;
-    var scatterChart: IVisualPlugin;
-    var playChart: IVisualPlugin;
-    var table: IVisualPlugin;
-    var matrix: IVisualPlugin;
-    var slicer: IVisualPlugin;
-    var textbox: IVisualPlugin;
-    var waterfallChart: IVisualPlugin;
-    var cheerMeter: IVisualPlugin;
-    var consoleWriter: IVisualPlugin;
-    var helloIVisual: IVisualPlugin;
-    var asterPlot: IVisualPlugin;
-    var owlGauge: IVisualPlugin;
-    var streamGraph: IVisualPlugin;
+    const animatedNumber: IVisualPlugin;
+    let areaChart: IVisualPlugin;
+    let barChart: IVisualPlugin;
+    let basicShape: IVisualPlugin;
+    let card: IVisualPlugin;
+    let multiRowCard: IVisualPlugin;
+    let clusteredBarChart: IVisualPlugin;
+    let clusteredColumnChart: IVisualPlugin;
+    let columnChart: IVisualPlugin;
+    let comboChart: IVisualPlugin;
+    let dataDotChart: IVisualPlugin;
+    let dataDotClusteredColumnComboChart: IVisualPlugin;
+    let dataDotStackedColumnComboChart: IVisualPlugin;
+    let donutChart: IVisualPlugin;
+    let funnel: IVisualPlugin;
+    let gauge: IVisualPlugin;
+    let hundredPercentStackedBarChart: IVisualPlugin;
+    let hundredPercentStackedColumnChart: IVisualPlugin;
+    let image: IVisualPlugin;
+    let lineChart: IVisualPlugin;
+    let lineStackedColumnComboChart: IVisualPlugin;
+    let lineClusteredColumnComboChart: IVisualPlugin;
+    let map: IVisualPlugin;
+    let filledMap: IVisualPlugin;
+    let treemap: IVisualPlugin;
+    let pieChart: IVisualPlugin;
+    let scatterChart: IVisualPlugin;
+    let stackedAreaChart: IVisualPlugin;
+    let table: IVisualPlugin;
+    let matrix: IVisualPlugin;
+    let slicer: IVisualPlugin;
+    let textbox: IVisualPlugin;
+    let waterfallChart: IVisualPlugin;
+    let cheerMeter: IVisualPlugin;
+    let consoleWriter: IVisualPlugin;
+    let helloIVisual: IVisualPlugin;
+    let asterPlot: IVisualPlugin;
+    let owlGauge: IVisualPlugin;
+    let streamGraph: IVisualPlugin;
+    var sunburst: IVisualPlugin;
+    var radarChart: IVisualPlugin;
+    var dotPlot: IVisualPlugin;
+    let scriptVisual: IVisualPlugin;
+    var histogram: IVisualPlugin;
+    var areaRangeChart: IVisualPlugin;
 }
 declare module powerbi.visuals {
     class DataColorPalette implements IDataColorPalette {
@@ -11722,6 +12990,7 @@ declare module powerbi.visuals {
         getColorByIndex(index: number): IColorInfo;
         getSentimentColors(): IColorInfo[];
         getBasePickerColors(): IColorInfo[];
+        getAllColors(): IColorInfo[];
         private createScale();
     }
     class D3ColorScale implements IColorScale {
@@ -11730,37 +12999,61 @@ declare module powerbi.visuals {
         getColor(key: any): IColorInfo;
         clearAndRotateScale(): void;
         clone(): IColorScale;
+        getDomain(): any[];
         static createFromColors(colors: IColorInfo[]): D3ColorScale;
     }
 }
 declare module powerbi.visuals {
-    interface CartesianBehaviorOptions {
-        layerOptions: any[];
-        clearCatcher: D3.Selection;
+    interface HorizontalSlicerBehaviorOptions extends SlicerBehaviorOptions {
+        itemsContainer: D3.Selection;
     }
-    class CartesianChartBehavior implements IInteractiveBehavior {
-        private behaviors;
-        constructor(behaviors: IInteractiveBehavior[]);
-        bindEvents(options: CartesianBehaviorOptions, selectionHandler: ISelectionHandler): void;
+    class HorizontalSlicerWebBehavior implements IInteractiveBehavior {
+        private itemLabels;
+        private dataPoints;
+        private interactivityService;
+        private slicerSettings;
+        bindEvents(options: HorizontalSlicerBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
     }
 }
 declare module powerbi.visuals {
-    interface PlayBehaviorOptions extends ScatterBehaviorOptions {
-        data: PlayChartData;
-        dataViewCat?: powerbi.DataViewCategorical;
-        svg?: D3.Selection;
-        dataView?: powerbi.DataView;
-        renderTraceLine?: (options: PlayBehaviorOptions, selectedPoints: SelectableDataPoint[], shouldAnimate: boolean) => void;
-        labelsSelection: D3.Selection;
+    interface LabelsBehaviorOptions {
+        labelItems: D3.Selection;
     }
-    class PlayChartWebBehavior implements IInteractiveBehavior {
-        private bubbles;
-        private shouldEnableFill;
-        private options;
-        bindEvents(options: PlayBehaviorOptions, selectionHandler: ISelectionHandler): void;
+    class LabelsBehavior implements IInteractiveBehavior {
+        static DefaultLabelOpacity: number;
+        static DimmedLabelOpacity: number;
+        private labelItems;
+        bindEvents(options: LabelsBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
     }
+}
+declare module powerbi.visuals {
+    interface VerticalSlicerBehaviorOptions extends SlicerBehaviorOptions {
+        itemContainers: D3.Selection;
+        itemInputs: D3.Selection;
+    }
+    class VerticalSlicerWebBehavior implements IInteractiveBehavior {
+        private itemLabels;
+        private itemInputs;
+        private dataPoints;
+        private interactivityService;
+        private settings;
+        bindEvents(options: VerticalSlicerBehaviorOptions, selectionHandler: ISelectionHandler): void;
+        renderSelection(hasSelection: boolean): void;
+    }
+}
+declare module powerbi.visuals {
+    var playChartCapabilities: VisualCapabilities;
+    var playChartProps: {
+        general: {
+            formatString: DataViewObjectPropertyIdentifier;
+        };
+        dataPoint: {
+            defaultColor: DataViewObjectPropertyIdentifier;
+            fill: DataViewObjectPropertyIdentifier;
+        };
+    };
 }
 declare module powerbi.visuals {
     module CanvasBackgroundHelper {
@@ -11768,6 +13061,90 @@ declare module powerbi.visuals {
         function getDefaultValues(): {
             color: string;
         };
+    }
+}
+declare module powerbi.visuals {
+    interface I2DTransformMatrix {
+        m00: number;
+        m01: number;
+        m02: number;
+        m10: number;
+        m11: number;
+        m12: number;
+    }
+    /** Transformation matrix math wrapper */
+    class Transform {
+        private _inverse;
+        matrix: I2DTransformMatrix;
+        constructor(m?: I2DTransformMatrix);
+        applyToPoint(point: IPoint): IPoint;
+        applyToRect(rect: Rect): IRect;
+        translate(xOffset: number, yOffset: number): void;
+        scale(xScale: number, yScale: number): void;
+        rotate(angleInRadians: number): void;
+        add(other: Transform): void;
+        getInverse(): Transform;
+    }
+    function createTranslateMatrix(xOffset: number, yOffset: number): I2DTransformMatrix;
+    function createScaleMatrix(xScale: number, yScale: number): I2DTransformMatrix;
+    function createRotationMatrix(angleInRads: number): I2DTransformMatrix;
+    function createInverseMatrix(m: I2DTransformMatrix): I2DTransformMatrix;
+}
+declare module powerbi.visuals {
+    module visibilityHelper {
+        /**  Helper method that uses jQuery :visible selector to determine if visual is visible.
+            Elements are considered visible if they consume space in the document. Visible elements have a width or height that is greater than zero.
+            Elements with visibility: hidden or opacity: 0 are considered visible, since they still consume space in the layout.
+        */
+        function partiallyVisible(element: JQuery): boolean;
+    }
+}
+declare module powerbi.visuals {
+    class HorizontalSlicer implements ISlicerVisual {
+        private element;
+        private currentViewport;
+        private data;
+        private interactivityService;
+        private behavior;
+        private hostServices;
+        private dataView;
+        private container;
+        private header;
+        private body;
+        private bodyViewport;
+        private itemsContainer;
+        private rightNavigationArrow;
+        private leftNavigationArrow;
+        private dataStartIndex;
+        private itemsToDisplay;
+        private waitingForData;
+        private textProperties;
+        private leftScrollRequested;
+        private maxItemWidth;
+        constructor(options?: SlicerConstructorOptions);
+        init(options: VisualInitOptions): IInteractivityService;
+        render(options: SlicerRenderOptions): void;
+        private renderCore();
+        private updateStyle(data, itemsToDisplay);
+        private renderItems(data, virtualizedDataPoints, itemsToDisplay, defaultSettings);
+        private bindInteractivityService(data);
+        private calculateVisibleItemCount();
+        private calculateNumberOfItemsOnLeftNavigation(totalWidthOccupiedThusFar);
+        private calculateNumberOfItemsOnRightNavigation(totalWidthOccupiedThusFar);
+        private calculateTotalItemWidth();
+        private normalizePosition(points);
+        private bindNavigationEvents();
+        private registerMouseClickEvents();
+        private registerMouseWheelScrollEvents();
+        private onMouseWheel(wheelDelta);
+        private scrollRight();
+        private scrollLeft();
+        tryLoadMoreData(): void;
+        private isLastRowItem(fieldIndex, columnsToDisplay);
+        private getScaledTextWidth(textSize);
+        private calculateAndSetMaxItemWidth();
+        private getNumberOfItemsToDisplay(widthAvailable);
+        private getDataPointsCount();
     }
 }
 declare module powerbi.visuals.controls {
@@ -11791,18 +13168,22 @@ declare module powerbi.visuals.controls {
         private currentPersistedWidths;
         private callHostPersistProperties;
         private dataViewUpdated;
+        private columnResizeCallback;
         constructor(dataView: DataView, isMatrix: boolean, matrixLeafNodes?: MatrixVisualNode[]);
         getColumnWidths(): number[];
         getTablixColumnWidthsObject(): controls.TablixColumnWidthObject[];
         updateDataView(dataView: DataView, matrixLeafNodes?: MatrixVisualNode[]): void;
-        getVisualObjectInstancesToPersist(): VisualObjectInstance[];
+        getVisualObjectInstancesToPersist(): VisualObjectInstancesToPersist;
         persistColumnWidthsOnHost(): boolean;
         getTablixQueryNames(): string[];
         suppressOnDataChangedNotification: boolean;
+        columnWidthResizeCallback: ColumnWidthCallbackType;
+        getPersistedCellWidth(index: number): number;
         deserializeTablixColumnWidths(): void;
         columnWidthChanged(index: number, width: number): void;
         persistAllColumnWidths(widthsToPersist: number[]): void;
         shouldAutoSizeColumnWidth(): boolean;
+        private getAutoSizeColumnWidthObject();
         private generateVisualObjectInstancesToPersist();
         private removePersistedVisualObjectInstances();
         private deserializeColumnWidths(columnMetaData);

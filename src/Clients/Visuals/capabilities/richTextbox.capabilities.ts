@@ -27,7 +27,7 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export var richTextboxCapabilities: VisualCapabilities = {
+    export const richTextboxCapabilities: VisualCapabilities = {
         objects: {
             general: {
                 properties: {
@@ -38,5 +38,6 @@ module powerbi.visuals {
             }
         },
         suppressDefaultTitle: true,
+        supportsSelection: false,
     };
 }

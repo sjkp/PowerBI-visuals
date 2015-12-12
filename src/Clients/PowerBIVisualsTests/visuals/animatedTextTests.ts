@@ -30,7 +30,7 @@ module powerbitests {
     import AnimatedText = powerbi.visuals.AnimatedText;
 
     describe("AnimatedText", () => {
-        var animatedText: AnimatedText;
+        let animatedText: AnimatedText;
         
         beforeEach(() => {
             animatedText = new AnimatedText("animatedText");
@@ -46,6 +46,21 @@ module powerbitests {
             animatedText.style = powerbi.visuals.visualStyles.create();
 
             expect(animatedText.getSeedFontHeight(100, 90)).toBeLessThan(100);
+        });
+
+        it("AnimatedText TextColor is rgba(51,51,51,1) by default", () => {
+            animatedText.style = powerbi.visuals.visualStyles.create();
+
+            helpers.assertColorsMatch(animatedText.style.titleText.color.value, 'rgba(51,51,51,1)');
+        });
+
+        it("AnimatedText_setTextColor correctly sets style", () => {
+            animatedText.style = powerbi.visuals.visualStyles.create();
+
+            let setTextColor = '#F00';
+            animatedText.setTextColor(setTextColor);
+
+            helpers.assertColorsMatch(animatedText.style.titleText.color.value, setTextColor);
         });
 
         it("AnimatedText_getTextAnchor when the aligment is 'left'", () => {
@@ -96,9 +111,9 @@ module powerbitests {
     });
 
     describe("AnimatedText DOM tests", () => {
-        var animatedTextBuilder: AnimatedTextBuilder;
+        let animatedTextBuilder: AnimatedTextBuilder;
 
-        var animationOptions: powerbi.AnimationOptions = {
+        let animationOptions: powerbi.AnimationOptions = {
             transitionImmediate: true
         };
 
@@ -168,6 +183,19 @@ module powerbitests {
             expect($(".mainText")).toBeInDOM();
             setTimeout(() => {
                 expect($(".mainText").text()).toEqual("(Blank)");
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it("AnimatedText doValueTransition with text color set", (done) => {
+            let setTextColor = 'rgb(255,0,0)';
+        animatedTextBuilder.animatedText.setTextColor(setTextColor);
+
+            animatedTextBuilder.doValueTransition(3, 4);
+            expect($(".animatedText")).toBeInDOM();
+            expect($(".mainText")).toBeInDOM();
+            setTimeout(() => {
+                helpers.assertColorsMatch($(".mainText").css('fill'), setTextColor);
                 done();
             }, DefaultWaitForRender);
         });

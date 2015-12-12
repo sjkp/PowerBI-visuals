@@ -2,7 +2,7 @@
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,14 +11,14 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
@@ -27,15 +27,19 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    
+
     /**
-     * Formats the value using provided format expression and culture
+     * Formats the value using provided format expression
      * @param value - value to be formatted and converted to string.
      * @param format - format to be applied if the number shouldn't be abbreviated.
      * If the number should be abbreviated this string is checked for special characters like $ or % if any
      */
     export interface ICustomValueFormatter {
         (value: any, format?: string): string;
+    }
+
+    export interface ICustomValueColumnFormatter {
+        (value: any, column: DataViewMetadataColumn, formatStringProp: DataViewObjectPropertyIdentifier): string;
     }
 
     export interface ValueFormatterOptions {
@@ -93,12 +97,12 @@ module powerbi.visuals {
 
     export module valueFormatter {
         import StringExtensions = jsCommon.StringExtensions;
-        var BeautifiedFormat: { [x: string]: string } = {
+        const BeautifiedFormat: { [x: string]: string } = {
             '0.00 %;-0.00 %;0.00 %': 'Percentage',
             '0.0 %;-0.0 %;0.0 %': 'Percentage1',
         };
 
-        var defaultLocalizedStrings = {
+        const defaultLocalizedStrings = {
             'NullValue': '(Blank)',
             'BooleanTrue': 'True',
             'BooleanFalse': 'False',
@@ -122,6 +126,10 @@ module powerbi.visuals {
             'Percentage1': '#,0.#%',
             'TableTotalLabel': 'Total',
             'Tooltip_HighlightedValueDisplayName': 'Highlighted',
+            'Funnel_PercentOfFirst': 'Percent of first',
+            'Funnel_PercentOfPrevious': 'Percent of previous',
+            'Funnel_PercentOfFirst_Highlight': 'Percent of first (highlight)',
+            'Funnel_PercentOfPrevious_Highlight': 'Percent of previous (highlight)',
             // Geotagging strings
             'GeotaggingString_Continent': 'continent',
             'GeotaggingString_Continents': 'continents',
@@ -182,7 +190,7 @@ module powerbi.visuals {
         }
 
         // NOTE: Define default locale options, but these can be overriden by setLocaleOptions.
-        var locale: ValueFormatterLocalizationOptions = {
+        let locale: ValueFormatterLocalizationOptions = {
             null: defaultLocalizedStrings['NullValue'],
             true: defaultLocalizedStrings['BooleanTrue'],
             false: defaultLocalizedStrings['BooleanFalse'],
@@ -196,10 +204,15 @@ module powerbi.visuals {
             restatementCompoundOr: defaultLocalizedStrings['RestatementCompoundOr'],
         };
 
-        var MaxScaledDecimalPlaces = 2;
-        var MaxValueForDisplayUnitRounding = 1000;
-        var MinIntegerValueForDisplayUnits = 10000;
-        var MinPrecisionForDisplayUnits = 2;
+        const MaxScaledDecimalPlaces = 2;
+        const MaxValueForDisplayUnitRounding = 1000;
+        const MinIntegerValueForDisplayUnits = 10000;
+        const MinPrecisionForDisplayUnits = 2;
+
+        const DateTimeMetadataColumn: DataViewMetadataColumn = {
+            displayName: '',
+            type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
+        };
 
         export function getFormatMetadata(format: string): powerbi.NumberFormat.NumericFormatMetadata {
             return powerbi.NumberFormat.getCustomFormatMetadata(format);
@@ -243,16 +256,14 @@ module powerbi.visuals {
 
                 let decimals: number;
 
-                if (forcePrecision) {
+                if (forcePrecision)
                     decimals = -options.precision;
-                }
                 else if (displayUnitSystem.displayUnit && displayUnitSystem.displayUnit.value > 1)
                     decimals = -MaxScaledDecimalPlaces;
 
                 return {
                     format: function (value: any): string {
                         let formattedValue: string = getStringFormat(value, true /*nullsAreBlank*/);
-
                         if (!StringExtensions.isNullOrUndefinedOrWhiteSpaceString(formattedValue))
                             return formattedValue;
 
@@ -260,7 +271,7 @@ module powerbi.visuals {
                             value = Double.roundToPrecision(value, Double.pow10(Double.getPrecision(value)));
 
                         return singleValueFormattingMode ?
-                            displayUnitSystem.formatSingleValue(value, format, decimals) :
+                            displayUnitSystem.formatSingleValue(value, format, decimals, forcePrecision) :
                             displayUnitSystem.format(value, format, decimals, forcePrecision);
                     },
                     displayUnit: displayUnitSystem.displayUnit
@@ -293,7 +304,21 @@ module powerbi.visuals {
                 !!allowFormatBeautification ? locale.beautify(format) : format);
         }
 
-        export function formatRaw(value: any, format?: string): string {
+        function getValueFormat(value: any, columnType: ValueType): string {
+            // If column type not defined or is not datetime
+            // ...and the value is of time datetime,
+            // then use the default date format string
+            if ((!columnType || !columnType.dateTime) && value instanceof Date)
+                return getFormatString(DateTimeMetadataColumn, null, false);
+        }
+
+        export function formatValueColumn(value: any, column: DataViewMetadataColumn, formatStringProp: DataViewObjectPropertyIdentifier): string {
+            let format = getFormatString(column, formatStringProp);
+
+            let valueFormat = getValueFormat(value, column.type);
+            if (valueFormat)
+                format = valueFormat;
+
             return formatCore(value, format);
         }
 
@@ -320,7 +345,7 @@ module powerbi.visuals {
             let value = options.value;
             let value2 = options.value2;
             let format = options.format;
-            // For singleValue visuals like card, gauge we don't want to roundoff data to the nearest thousands so format the whole number / integers below 10K to not use display units 
+            // For singleValue visuals like card, gauge we don't want to roundoff data to the nearest thousands so format the whole number / integers below 10K to not use display units
             if (options.formatSingleValues && format) {
 
                 if (Math.abs(value) < MinIntegerValueForDisplayUnits) {
@@ -328,7 +353,7 @@ module powerbi.visuals {
                     let isCustomFormat = !powerbi.NumberFormat.isStandardFormat(format);
 
                     if (isCustomFormat) {
-                        let precision = powerbi.NumberFormat.getCustomFormatMetadata(format, isCustomFormat).precision;
+                        let precision = powerbi.NumberFormat.getCustomFormatMetadata(format, true /*calculatePrecision*/).precision;
 
                         if (precision < MinPrecisionForDisplayUnits)
                             return false;
@@ -396,7 +421,7 @@ module powerbi.visuals {
             }
 
             return result;
-        } 
+        }
 
         /** The returned string will look like 'A, B, ..., and C'  */
         export function formatListAnd(strings: string[]): string {
