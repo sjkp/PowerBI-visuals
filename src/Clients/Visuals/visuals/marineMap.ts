@@ -16,13 +16,80 @@ interface SignalR {
 module powerbi.visuals {
     declare var OpenLayers: any;
 
+    export interface MarineMapCategoryData {
+        id: string;
+        rows: MarineMapDataRow[];
+    }
+
+    export interface MarineMapDataRow {
+        values: any[];
+    }
+
+    export enum MarineMapColumnType {
+        data,
+        latitude,
+        longitude,
+        heading,
+        link
+    }
+
+    export interface MarineMapColumnInfo {
+        displayName: string;
+        queryName: string;
+        format: string;
+        colIndex: number;
+        type: MarineMapColumnType;
+    }
+
+    export interface MarineMapDataModel {
+        columns: MarineMapColumnInfo[];
+        data: MarineMapCategoryData[];
+    };
+
+    export class PopupBuilder {
+        constructor(private id : string, private columnInfos: MarineMapColumnInfo[], private data: MarineMapCategoryData) {
+        }
+
+        public buildHtml(): string {
+            var html = this.buildHeader(this.data.id);
+            var lastDataPoint = this.data.rows[this.data.rows.length - 1];
+            html += '<ul>';
+            $.each(this.columnInfos, (i, column) => {
+                if (column.type == MarineMapColumnType.data) {
+                    html += this.buildRow(column.displayName, lastDataPoint.values[column.colIndex]);
+                }
+            });
+            html += '</ul>';
+            html += this.buildMoreInfo();
+            html += this.buildFooter();
+            return html;
+        }
+
+        private buildHeader(title: string) {
+            return '<div class="popup-title">' + title + '<span id="' + this.id + 'close" class="popup-close">x</span></div>';
+        }
+
+        private buildRow(label: string, value: any) {
+            return '<li><span>' + label + '</span><span>' + value + '</span ></li>';
+        }
+
+        private buildFooter() {
+            return '<div class="popup-footer" > footer < /div>'
+        }
+
+        private buildMoreInfo() {
+            return '<div class="popup-moreinfo">More info</div>';
+        }
+    }
 
 
-
-    export class OpenlayerMap {
+  export class OpenlayerMap {
         constructor(elementId: string) {
             this.drawmap(elementId);
+            this.baseUrl = 'http://localhost:1620';
         }
+
+        private baseUrl;
 
         private map;
         private layer_mapnik;
@@ -44,12 +111,20 @@ module powerbi.visuals {
         private zoom = 2;
 
         private language = 'en';
-        
-         private polylines = {};
-         private ships = {};
+
+        private polylines = {};
+        private ships = {};
+
+        private lineStyle = {
+            strokeColor: '#0000ff',
+            strokeOpacity: 0.5,
+            strokeWidth: 5
+        };
 
 
         private jumpTo(lon, lat, zoom) {
+            //var x = Lon2Merc(lon);
+            //var y = Lat2Merc(lat);
             this.map.setCenter(this.NewLatLong(lat, lon), zoom);
             return false;
         }
@@ -65,48 +140,46 @@ module powerbi.visuals {
         private addMarker(layer, ll, popupContentHTML) {
             var self = this;
             var feature = new OpenLayers.Feature(layer, ll);
-            feature.closeBox = true;
-            feature.popupClass = OpenLayers.Class(OpenLayers.Popup.FramedCloud, { minSize: new OpenLayers.Size(200, 100) });
-            feature.data.popupContentHTML = popupContentHTML;
+            feature.closeBox = false;
+            feature.popupClass = OpenLayers.Class(OpenLayers.Popup.Anchored, { minSize: new OpenLayers.Size(200, 100) });
+            feature.data.popupContentHTML = 
+
 
             feature.data.overflow = "hidden";
 
             var marker = new OpenLayers.Marker(ll);
             marker.feature = feature;
 
-            var markerClick = function(evt) {
+            var markerClick = function (evt) {
                 var feature = this.feature;
                 var marker = this;
-                feature.data.popupContentHTML = "";    
-                $.each(this.columns, function(i, val: MarineMapColumnInfo) {
-                    var data : MarineMapCategoryData = marker.shipdata;
-                    feature.data.popupContentHTML += "<div>"+val.displayName+ ": " + data.rows[data.rows.length-1].values[val.colIndex] + "</div>";
-                });
-                
+        
+                feature.data.popupContentHTML = new PopupBuilder(feature.id, marker.columns, marker.shipdata).buildHtml();
+
                 if (feature.popup == null) {
                     feature.popup = feature.createPopup(feature.closeBox);
+                    feature.popup.setSize(new OpenLayers.Size(300, 200));
                     self.map.addPopup(feature.popup);
                     feature.popup.show();
-
+                    $('#' + feature.id + 'close').click(function () {
+                        feature.popup.toggle();
+                    });
                 } else {
                     feature.popup.toggle();
                 }
 
-                feature.popup.moveTo(self.map.getLayerPxFromLonLat(this.lonlat));
+                feature.popup.moveTo(self.map.getLayerPxFromLonLat(marker.lonlat));
                 OpenLayers.Event.stop(evt);
             };
             marker.events.register("mousedown", marker, markerClick);
 
             layer.addMarker(marker);
+            marker.setUrl(this.baseUrl + '/resources/redpointer.png');
 
             return marker;
         }
-        
-        public resize() {
-            this.map.updateSize();
-        }
 
-        private getTileURL = function(bounds) {
+        private getTileURL = function (bounds) {
             var res = this.map.getResolution();
             var x = Math.round((bounds.left - this.maxExtent.left) / (res * this.tileSize.w));
             var y = Math.round((this.maxExtent.top - bounds.top) / (res * this.tileSize.h));
@@ -124,63 +197,90 @@ module powerbi.visuals {
                 return url + path;
             }
         }
-        
-        public plotdata(model: MarineMapDataModel)
-        {
-            var latIndex = model.latColumnIndex;
-            var longIndex = model.longColumnIdex;
-            if (longIndex == -1 || latIndex == -1)
-            {
+
+        public resize() {
+            this.map.updateSize();
+        }
+
+        public plotdata(model: MarineMapDataModel) {
+            var latIndex = -1;
+            var longIndex = -1;
+            var headingIndex = -1;
+            $.each(model.columns, (i, column) => {
+                if (column.type == MarineMapColumnType.latitude) {
+                    latIndex = column.colIndex;
+                }
+                if (column.type == MarineMapColumnType.longitude) {
+                    longIndex = column.colIndex;
+                }
+                if (column.type == MarineMapColumnType.heading) {
+                    headingIndex = column.colIndex;
+                }
+            });
+
+            if (longIndex == -1 || latIndex == -1) {
                 return;
-            }           
+            }
             $.each(model.data, (i, ship: MarineMapCategoryData) => {
-                    var locations = ship.rows.map((data, i) => {
-                        return this.NewLatLong(data.values[latIndex], data.values[longIndex]);
-                    });
-                    var points = ship.rows.map((data, i) => {
-                        return this.NewGeoPoint(data.values[latIndex], data.values[longIndex]);
-                    });
+                var dataFiltered = ship.rows.filter((row) => {
+                    if (row.values[latIndex] > 0.0 && row.values[longIndex] > 0.0)
+                    {
+                        return true;
+                    }
+                    return false;
+                }).slice(-10);
+                var locations = dataFiltered.map((data, i) => {
+                    return this.NewLatLong(data.values[latIndex], data.values[longIndex]);
+                });
+                var points = dataFiltered.map((data, i) => {
+                    return this.NewGeoPoint(data.values[latIndex], data.values[longIndex]);
+                });
 
 
-                    if (typeof (this.ships[ship.id]) == 'undefined') {
-                        var marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.id);
-                        this.ships[ship.id] = marker;
-                        marker.shipdata = ship;
-                        marker.columns = model.columns;
+                if (typeof (this.ships[ship.id]) == 'undefined') {
+                    var marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.id);
+                    this.ships[ship.id] = marker;
+                    marker.shipdata = ship;
+                    marker.columns = model.columns;
+
+                    $(marker.icon.imageDiv).css('transform-origin', '13px bottom');
+                    $(marker.icon.imageDiv).css('transform', 'rotate(' + ship.rows[ship.rows.length - 1].values[headingIndex] + 'deg)');
+                }
+                else {
+                    var marker = this.ships[ship.id];
+                    marker.shipdata = ship;
+                    marker.columns = model.columns;
+                    //marker.KPI = ship.KPI;
+                    marker.moveTo(this.map.getLayerPxFromLonLat(locations[locations.length - 1]));
+
+
+                    $(marker.icon.imageDiv).css('transform-origin', '13px bottom');
+                    $(marker.icon.imageDiv).css('transform', 'rotate(' + ship.rows[ship.rows.length - 1].values[headingIndex] + 'deg)');
+
+                    if (typeof (this.polylines[ship.id]) == 'undefined') {
+                        var feature = new OpenLayers.Feature.Vector(
+                            new OpenLayers.Geometry.LineString(points), null, this.lineStyle
+                        );
+
+                        this.polylines[ship.id] = feature;
+
+                        this.vectorLayer.addFeatures(feature);
                     }
                     else {
-                        var marker = this.ships[ship.id];
-                        marker.shipdata = ship;
-                        marker.columns = model.columns;
-                        //marker.KPI = ship.KPI;
-                        marker.moveTo(this.map.getLayerPxFromLonLat(locations[locations.length - 1]));
+                        feature = this.polylines[ship.id];
+                        this.vectorLayer.destroyFeatures(feature);
 
-                        if (typeof (this.polylines[ship.id]) == 'undefined') {
-                            var feature = new OpenLayers.Feature.Vector(
-                                new OpenLayers.Geometry.LineString(points)
-                            );
+                        var feature = new OpenLayers.Feature.Vector(
+                            new OpenLayers.Geometry.LineString(points), null, this.lineStyle
+                        );
 
-                            this.polylines[ship.id] = feature;
+                        this.polylines[ship.id] = feature;
 
-                            this.vectorLayer.addFeatures(feature);
-                        }
-                        else {
-
-
-                            feature = this.polylines[ship.id];
-                            this.vectorLayer.destroyFeatures(feature);
-
-                            var feature = new OpenLayers.Feature.Vector(
-                                new OpenLayers.Geometry.LineString(points)
-                            );
-
-                            this.polylines[ship.id] = feature;
-
-                            this.vectorLayer.addFeatures(feature);
-                        }
+                        this.vectorLayer.addFeatures(feature);
                     }
+                }
 
-                });
+            });
         }
 
         private drawmap(mapElementId: string) {
@@ -241,7 +341,7 @@ module powerbi.visuals {
                 name: "Bing Aerial With Labels"
             });
             // Seamark
-            this.layer_seamark = new OpenLayers.Layer.TMS("Seezeichen", "//sjkpreverse.azurewebsites.net/seamark/", { numZoomLevels: 18, type: 'png', getURL: this.getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true, visibility: false });
+            this.layer_seamark = new OpenLayers.Layer.TMS("Seezeichen", "https://sjkpreverse.azurewebsites.net/seamark/", { numZoomLevels: 18, type: 'png', getURL: this.getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true });
 
             this.markerLayer = new OpenLayers.Layer.Markers("Markers");
             this.vectorLayer = new OpenLayers.Layer.Vector("Trails");
@@ -250,89 +350,84 @@ module powerbi.visuals {
             this.map.addControl(new OpenLayers.Control.LayerSwitcher());
             this.jumpTo(this.lon, this.lat, this.zoom);
 
-            /*
-            var locationHub = $.connection.locationHub;
-           
-            locationHub.client.updateLocation = (data) => {
-                $.each(data, function(i, ship) {
-                    var locations = ship.Locations.map((data, i) => {
-                        return this.NewLatLong(data.Latitude, data.Longitude);
+
+            $.ajax({
+                type: "GET",
+                url: 'https://ajax.aspnetcdn.com/ajax/signalr/jquery.signalr-2.2.0.min.js',
+                dataType: "script",
+                cache: true
+            }).done(() => {
+                $.ajax({
+                    type: "GET",
+                    url: this.baseUrl + '/signalr/hubs',
+                    dataType: "script",
+                    cache: true
+                }).done(() => {
+                    $.connection.hub.url = this.baseUrl;
+                    var locationHub = $.connection.locationHub;
+
+                    locationHub.client.updateLocation = (data) => {
+                        $.each(data, (i, ship) => {
+                            var locations = ship.Locations.map((data, i) => {
+                                return this.NewLatLong(data.Latitude, data.Longitude);
+                            });
+                            var points = ship.Locations.map((data, i) => {
+                                return this.NewGeoPoint(data.Latitude, data.Longitude);
+                            });
+
+
+                            if (typeof (this.ships[ship.Id]) == 'undefined') {
+                                var marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.Id);
+                                this.ships[ship.Id] = marker;
+
+
+                            }
+                            else {
+                                var marker = this.ships[ship.Id];
+                                //marker.KPI = ship.KPI;
+                                var lastLoc = locations[locations.length - 1];
+                                marker.moveTo(this.map.getLayerPxFromLonLat(lastLoc));
+
+                                $(marker.icon.imageDiv).css('transform-origin', '13px bottom');
+                                $(marker.icon.imageDiv).css('transform', 'rotate(' + ship.Locations[locations.length - 1].Heading + 'deg)');
+
+                                if (typeof (this.polylines[ship.Id]) == 'undefined') {
+                                    var feature = new OpenLayers.Feature.Vector(
+                                        new OpenLayers.Geometry.LineString(points)
+                                    );
+
+                                    this.polylines[ship.Id] = feature;
+
+                                    this.vectorLayer.addFeatures(feature);
+                                }
+                                else {
+
+
+                                    feature = this.polylines[ship.Id];
+                                    this.vectorLayer.destroyFeatures(feature);
+
+                                    var feature = new OpenLayers.Feature.Vector(
+                                        new OpenLayers.Geometry.LineString(points), null, this.lineStyle);
+
+                                    this.polylines[ship.Id] = feature;
+
+                                    this.vectorLayer.addFeatures(feature);
+
+                                }
+                            }
+
+                        });
+                    };
+
+
+                    $.connection.hub.start().done(function () {
+                        console.log('started');
                     });
-                    var points = ship.Locations.map((data, i) => {
-                        return this.NewGeoPoint(data.Latitude, data.Longitude);
-                    });
-
-
-                    if (typeof (this.ships[ship.Id]) == 'undefined') {
-                        var marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.Id);
-                        this.ships[ship.Id] = marker;
-
-
-                    }
-                    else {
-                        var marker = this.ships[ship.Id];
-                        //marker.KPI = ship.KPI;
-                        marker.moveTo(this.map.getLayerPxFromLonLat(locations[locations.length - 1]));
-
-                        if (typeof (this.polylines[ship.Id]) == 'undefined') {
-                            var feature = new OpenLayers.Feature.Vector(
-                                new OpenLayers.Geometry.LineString(points)
-                            );
-
-                            this.polylines[ship.Id] = feature;
-
-                            this.vectorLayer.addFeatures(feature);
-                        }
-                        else {
-
-
-                            feature = this.polylines[ship.Id];
-                            this.vectorLayer.destroyFeatures(feature);
-
-                            var feature = new OpenLayers.Feature.Vector(
-                                new OpenLayers.Geometry.LineString(points)
-                            );
-
-                            this.polylines[ship.Id] = feature;
-
-                            this.vectorLayer.addFeatures(feature);
-
-                        }
-                    }
-
                 });
-            };
-
-            $.connection.hub.start().done(function() {
-                // Wire up Send button to call NewContosoChatMessage on the server.
-                console.log('started');
             });
-            */
+
         }
     }
-    
-    export interface MarineMapCategoryData {
-        id: string;
-        rows: MarineMapDataRow[];
-    }
-
-    export interface MarineMapDataRow {
-        values: any[];
-    }
-
-    export interface MarineMapColumnInfo {
-        displayName: string;
-        queryName: string;
-        format: string;
-        colIndex: number;
-    }
-
-    export interface MarineMapDataModel {
-        columns: MarineMapColumnInfo[];
-        data: MarineMapCategoryData[];
-        longColumnIdex: number;
-        latColumnIndex: number;
-    };
 
     export class MarineMap implements IVisual {
 		/**
@@ -355,6 +450,14 @@ module powerbi.visuals {
                 },
                 {
                     name: 'Longitude',
+                    kind: VisualDataRoleKind.GroupingOrMeasure,
+                },
+                {
+                    name: 'Heading',
+                    kind: VisualDataRoleKind.GroupingOrMeasure,
+                },
+                {
+                    name: 'Link',
                     kind: VisualDataRoleKind.GroupingOrMeasure,
                 }
             ],
@@ -407,7 +510,9 @@ module powerbi.visuals {
                             select: [
                                 { bind: { to: 'Values' } },
                                 { bind: { to: 'Latitude' } },
-                                { bind: { to: 'Longitude' } }
+                                { bind: { to: 'Longitude' } },
+                                { bind: { to: 'Heading' } },
+                                { bind: { to: 'Link' } }
                             ]
                         }
                     },
@@ -442,35 +547,45 @@ module powerbi.visuals {
             var model: MarineMapDataModel = {
                 columns: [],
                 data: [],
-                latColumnIndex:-1,
-                longColumnIdex: -1,
             };
             var catagoryIndex = -1;
             if (dataView && dataView.metadata) {
                 for (var i: number = 0; i < dataView.metadata.columns.length; i++) {
                     var column = dataView.metadata.columns[i];
+                    
                     if (!column.roles) {
                         continue;
-                    }     
+                    }    
+                    var columnInfo = {
+                        colIndex: i,
+                        format: column.format,
+                        displayName: column.displayName,
+                        queryName: column.queryName,
+                        type: MarineMapColumnType.data
+                    };
+                     
                     if (column.roles["Category"] === true) {
                         catagoryIndex = i;
                     }    
                   
                     if (column.roles["Longitude"] === true)
                     {
-                        model.longColumnIdex = i;
+                        columnInfo.type = MarineMapColumnType.longitude;
                     }
                     
                     if (column.roles["Latitude"] === true)
                     {
-                        model.latColumnIndex = i;
+                        columnInfo.type = MarineMapColumnType.latitude;
                     }
-                    model.columns.push({
-                        colIndex: i,
-                        format: column.format,
-                        displayName: column.displayName,
-                        queryName: column.queryName
-                    });
+                    if (column.roles["Heading"] === true)
+                    {
+                        columnInfo.type = MarineMapColumnType.heading;
+                    }
+                    if (column.roles["Link"] === true)
+                    {
+                        columnInfo.type = MarineMapColumnType.link;
+                    }
+                    model.columns.push(columnInfo);
                 }
             }
             if (catagoryIndex == -1)
