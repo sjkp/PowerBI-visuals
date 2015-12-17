@@ -98,11 +98,12 @@ module powerbi.visuals {
             marker.events.register("mousedown", marker, markerClick);
 
             layer.addMarker(marker);
-            //popup = feature.createPopup(feature.closeBox);
-            //popup.hide();
-            //map.addPopup(popup);
 
             return marker;
+        }
+        
+        public resize() {
+            this.map.updateSize();
         }
 
         private getTileURL = function(bounds) {
@@ -131,7 +132,7 @@ module powerbi.visuals {
             if (longIndex == -1 || latIndex == -1)
             {
                 return;
-            }
+            }           
             $.each(model.data, (i, ship: MarineMapCategoryData) => {
                     var locations = ship.rows.map((data, i) => {
                         return this.NewLatLong(data.values[latIndex], data.values[longIndex]);
@@ -383,16 +384,22 @@ module powerbi.visuals {
                 },
             },
             dataViewMappings: [{
+                //   conditions: [
+                //     { 'Category': { max: 1 }, 'Series': { max: 0 } },
+                //     { 'Category': { max: 1 }, 'Series': { min: 1, max: 1 }, 'Y': { max: 1 } }
+                // ],
                 table: {
                     rows: {
                         for: { in: 'Values' },
-                        dataReductionAlgorithm: { window: { count: 500 } }
+                        dataReductionAlgorithm: { bottom: {} }
                     },
                     rowCount: { preferred: { min: 1 } }
-                },
+                }
+                ,
                 categorical: {
                     categories: {
-                        for: { in: "Category" }
+                        for: { in: "Category" },
+                        dataReductionAlgorithm: { bottom: {} }
                     },
                     values: {
                         group: {
@@ -475,7 +482,7 @@ module powerbi.visuals {
                 };
                 var category = table.rows[i][catagoryIndex];
                 var categoryModel: MarineMapCategoryData = null;
-                for (var j: number = 0; j < model.data.length; i++) {
+                for (var j: number = 0; j < model.data.length; j++) {
                     if (model.data[j].id == category) {
                         categoryModel = model.data[j];
                         break;
@@ -513,7 +520,7 @@ module powerbi.visuals {
             this.colors = options.style.colorPalette.dataColors;            
             this.legend = powerbi.visuals.createLegend(options.element, options.interactivity && options.interactivity.isInteractiveLegend, null);
             this.hostServices = options.host;
-            this.intialize(this.element[0]);
+            this.initialize(this.element[0]);
         }
         
              
@@ -522,13 +529,12 @@ module powerbi.visuals {
         public update(options: VisualUpdateOptions) {
             this.dataView = options.dataViews[0];
             this.currentViewport = options.viewport;
-            this.onColumnHeaderClick('MW100.UTClogTime', SortDirection.Descending);
+            // this.onColumnHeaderClick('MW100.UTClogTime', SortDirection.Descending);
             this.redrawCanvas();           
         }
 
         public redrawCanvas = () => {
             //this.updateCanvasSize();
-            this.updateInternal(false);
 
             var data = MarineMap.converter(this.dataView, this.colors);
             if (this.openlayerMap != null)
@@ -544,7 +550,7 @@ module powerbi.visuals {
         public onResizing(viewport: IViewport): void {
             if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
                 this.currentViewport = viewport;
-                this.updateInternal(false /* dataChanged */);
+                this.openlayerMap.resize();
             }
         }
 
@@ -602,7 +608,7 @@ module powerbi.visuals {
             this.hostServices.onCustomSort(args);
         }
 
-        private intialize = (container: HTMLElement): void => {
+        private initialize = (container: HTMLElement): void => {
             this.map = $('<div style="width:100%; height:100%;position: absolute;" id="openlayermap"></div>');
             $(container).append(this.map);
             $.ajax({
@@ -620,15 +626,11 @@ module powerbi.visuals {
                 }).done(() => {
                     var omap = new OpenlayerMap('openlayermap');
                     this.openlayerMap = omap;
+                    this.redrawCanvas();
                 });
             });
-
-            this.updateInternal(false);
         }
 
-        private updateInternal(redraw: boolean): void {
-            var mapViewport = this.getViewPort();
-        }
 
         private static getFieldText(dataView: DataView, field: string, property: string = 'text', defaultValue: string = ''): string {
             if (dataView) {
