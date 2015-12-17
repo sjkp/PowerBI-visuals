@@ -99,6 +99,7 @@ module powerbi.visuals.samples {
             var dataView = this.dataView = options.dataViews[0];
             var viewport = options.viewport;
             var viewModel: IDummyViewModel = DummyIVisual.converter(dataView);
+            
         }
     }
 }

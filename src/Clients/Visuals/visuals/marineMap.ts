@@ -30,7 +30,10 @@ module powerbi.visuals {
         latitude,
         longitude,
         heading,
-        link
+        link,
+        time,
+        category,
+        status
     }
 
     export interface MarineMapColumnInfo {
@@ -47,21 +50,34 @@ module powerbi.visuals {
     };
 
     export class PopupBuilder {
-        constructor(private id : string, private columnInfos: MarineMapColumnInfo[], private data: MarineMapCategoryData) {
+        constructor(private formatter, private id : string, private columnInfos: MarineMapColumnInfo[], private data: MarineMapCategoryData) {
         }
 
         public buildHtml(): string {
             var html = this.buildHeader(this.data.id);
             var lastDataPoint = this.data.rows[this.data.rows.length - 1];
             html += '<ul>';
+            var footerHtml = "";
+            var link = "";
             $.each(this.columnInfos, (i, column) => {
                 if (column.type == MarineMapColumnType.data) {
                     html += this.buildRow(column.displayName, lastDataPoint.values[column.colIndex]);
                 }
+                if (column.type == MarineMapColumnType.time)
+                {
+                    var date = new Date(lastDataPoint.values[column.colIndex]);
+                    var dateFormat = valueFormatter.create({format: "dd/MM/yyyy HH:mm:ss", value: date});
+                    footerHtml += dateFormat.format(date);
+                }
+                if (column.type == MarineMapColumnType.link)
+                {
+                    link = lastDataPoint.values[column.colIndex];
+                }
             });
             html += '</ul>';
-            html += this.buildMoreInfo();
-            html += this.buildFooter();
+            if (link != "")
+                html += this.buildMoreInfo(link);
+            html += this.buildFooter(footerHtml);
             return html;
         }
 
@@ -70,15 +86,15 @@ module powerbi.visuals {
         }
 
         private buildRow(label: string, value: any) {
-            return '<li><span>' + label + '</span><span>' + value + '</span ></li>';
+            return '<li><span>' + label + '</span><span>' + this.formatter.format(value) + '</span ></li>';
         }
 
-        private buildFooter() {
-            return '<div class="popup-footer" > footer < /div>'
+        private buildFooter(value: string) {
+            return '<div class="popup-footer">'+value+'</div>'
         }
 
-        private buildMoreInfo() {
-            return '<div class="popup-moreinfo">More info</div>';
+        private buildMoreInfo(link : string) {
+            return '<div class="popup-moreinfo"><a href="'+link+'">More info</a></div>';
         }
     }
 
@@ -86,7 +102,7 @@ module powerbi.visuals {
   export class OpenlayerMap {
         constructor(elementId: string) {
             this.drawmap(elementId);
-            this.baseUrl = 'http://localhost:1620';
+            this.baseUrl = 'https://localhost:44300';
         }
 
         private baseUrl;
@@ -154,7 +170,7 @@ module powerbi.visuals {
                 var feature = this.feature;
                 var marker = this;
         
-                feature.data.popupContentHTML = new PopupBuilder(feature.id, marker.columns, marker.shipdata).buildHtml();
+                feature.data.popupContentHTML = new PopupBuilder(valueFormatter.create({ value: 0 }), feature.id, marker.columns, marker.shipdata).buildHtml();
 
                 if (feature.popup == null) {
                     feature.popup = feature.createPopup(feature.closeBox);
@@ -172,11 +188,44 @@ module powerbi.visuals {
                 OpenLayers.Event.stop(evt);
             };
             marker.events.register("mousedown", marker, markerClick);
-
-            layer.addMarker(marker);
-            marker.setUrl(this.baseUrl + '/resources/redpointer.png');
+            
+            layer.addMarker(marker);                   
 
             return marker;
+        }
+        
+        private setMarkerUrl(marker: any)
+        {
+            var statusColumn  : MarineMapColumnInfo = null;
+            $.each(marker.columns, (i, column: MarineMapColumnInfo) => {
+                if (column.type == MarineMapColumnType.status)
+                {
+                    statusColumn = column;
+                    return;
+                }
+            });
+            if (statusColumn != null)
+            {                
+                var data : MarineMapCategoryData = marker.shipdata;
+                var status : number = data.rows[data.rows.length-1][statusColumn.colIndex];
+                    
+                if (status == 1)
+                {
+                    marker.setUrl(this.baseUrl + '/resources/redpointer.png');
+                    return;
+                }
+                if (status == 2)
+                {
+                    marker.setUrl(this.baseUrl + '/resources/yellowpointer.png');
+                    return;
+                }
+                if (status == 3)
+                {
+                    marker.setUrl(this.baseUrl + '/resources/greenpointer.png');
+                    return;
+                }
+            } 
+            marker.setUrl(this.baseUrl + '/resources/graypointer.png');         
         }
 
         private getTileURL = function (bounds) {
@@ -223,7 +272,7 @@ module powerbi.visuals {
             }
             $.each(model.data, (i, ship: MarineMapCategoryData) => {
                 var dataFiltered = ship.rows.filter((row) => {
-                    if (row.values[latIndex] > 0.0 && row.values[longIndex] > 0.0)
+                    if (row.values[latIndex] != 0.0 && row.values[longIndex] != 0.0)
                     {
                         return true;
                     }
@@ -243,8 +292,8 @@ module powerbi.visuals {
                     marker.shipdata = ship;
                     marker.columns = model.columns;
 
-                    $(marker.icon.imageDiv).css('transform-origin', '13px bottom');
-                    $(marker.icon.imageDiv).css('transform', 'rotate(' + ship.rows[ship.rows.length - 1].values[headingIndex] + 'deg)');
+                   this.rotateMarker(marker, ship.rows[ship.rows.length - 1].values[headingIndex]);
+                   this.setMarkerUrl(marker);     
                 }
                 else {
                     var marker = this.ships[ship.id];
@@ -253,10 +302,9 @@ module powerbi.visuals {
                     //marker.KPI = ship.KPI;
                     marker.moveTo(this.map.getLayerPxFromLonLat(locations[locations.length - 1]));
 
-
-                    $(marker.icon.imageDiv).css('transform-origin', '13px bottom');
-                    $(marker.icon.imageDiv).css('transform', 'rotate(' + ship.rows[ship.rows.length - 1].values[headingIndex] + 'deg)');
-
+                    this.setMarkerUrl(marker);     
+                   this.rotateMarker(marker, ship.rows[ship.rows.length - 1].values[headingIndex]);
+                    
                     if (typeof (this.polylines[ship.id]) == 'undefined') {
                         var feature = new OpenLayers.Feature.Vector(
                             new OpenLayers.Geometry.LineString(points), null, this.lineStyle
@@ -281,6 +329,12 @@ module powerbi.visuals {
                 }
 
             });
+        }
+        
+        private rotateMarker(marker: any, rotation: number)
+        {
+            $(marker.icon.imageDiv).css('transform-origin', '10px bottom');
+            $(marker.icon.imageDiv).css('transform', 'rotate(' + rotation + 'deg)');
         }
 
         private drawmap(mapElementId: string) {
@@ -341,7 +395,7 @@ module powerbi.visuals {
                 name: "Bing Aerial With Labels"
             });
             // Seamark
-            this.layer_seamark = new OpenLayers.Layer.TMS("Seezeichen", "https://sjkpreverse.azurewebsites.net/seamark/", { numZoomLevels: 18, type: 'png', getURL: this.getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true });
+            this.layer_seamark = new OpenLayers.Layer.TMS("Seamark", "https://sjkpreverse.azurewebsites.net/seamark/", { numZoomLevels: 18, type: 'png', getURL: this.getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true });
 
             this.markerLayer = new OpenLayers.Layer.Markers("Markers");
             this.vectorLayer = new OpenLayers.Layer.Vector("Trails");
@@ -363,7 +417,7 @@ module powerbi.visuals {
                     dataType: "script",
                     cache: true
                 }).done(() => {
-                    $.connection.hub.url = this.baseUrl;
+                    $.connection.hub.url = this.baseUrl + '/signalr';
                     var locationHub = $.connection.locationHub;
 
                     locationHub.client.updateLocation = (data) => {
@@ -388,8 +442,7 @@ module powerbi.visuals {
                                 var lastLoc = locations[locations.length - 1];
                                 marker.moveTo(this.map.getLayerPxFromLonLat(lastLoc));
 
-                                $(marker.icon.imageDiv).css('transform-origin', '13px bottom');
-                                $(marker.icon.imageDiv).css('transform', 'rotate(' + ship.Locations[locations.length - 1].Heading + 'deg)');
+                                this.rotateMarker(marker, ship.Locations[locations.length - 1].Heading);
 
                                 if (typeof (this.polylines[ship.Id]) == 'undefined') {
                                     var feature = new OpenLayers.Feature.Vector(
@@ -435,96 +488,93 @@ module powerbi.visuals {
 		  * Fields, Formatting options, data reduction & QnA hints
 		  */
         public static capabilities: VisualCapabilities = {
-            dataRoles: [
-                {
-                    name: "Category",
-                    kind: VisualDataRoleKind.Grouping
-                },
-                {
-                    name: 'Values',
-                    kind: VisualDataRoleKind.GroupingOrMeasure,
-                },
-                {
-                    name: 'Latitude',
-                    kind: VisualDataRoleKind.GroupingOrMeasure,
-                },
-                {
-                    name: 'Longitude',
-                    kind: VisualDataRoleKind.GroupingOrMeasure,
-                },
-                {
-                    name: 'Heading',
-                    kind: VisualDataRoleKind.GroupingOrMeasure,
-                },
-                {
-                    name: 'Link',
-                    kind: VisualDataRoleKind.GroupingOrMeasure,
-                }
+            dataRoles: [{
+                name: 'Category',
+                kind: powerbi.VisualDataRoleKind.Grouping,
+                displayName: data.createDisplayNameGetter("Role_DisplayName_Category")
+            },
+            {
+                name: 'Time',
+                kind: powerbi.VisualDataRoleKind.Grouping,
+                displayName: "Time"
+            },
+            {
+                name: 'Values',
+                kind: powerbi.VisualDataRoleKind.Measure,
+                displayName: 'Values'
+            },
+            {
+                name: 'Latitude',
+                kind: powerbi.VisualDataRoleKind.Measure,
+                displayName: 'Latitude'
+            },           
+            {
+                name: 'Longitude',
+                kind: powerbi.VisualDataRoleKind.Measure,
+                displayName: 'Longitude'
+            },
+            {
+                name: 'Heading',
+                kind: powerbi.VisualDataRoleKind.Measure,
+                displayName: 'Heading'
+            },
+            {
+                name: 'Link',
+                kind: powerbi.VisualDataRoleKind.Measure,
+                displayName: 'Link'
+            },
+            {
+                name: 'Status',
+                kind: powerbi.VisualDataRoleKind.Measure,
+                displayName: 'Status'
+            }
             ],
+            dataViewMappings: [{
+                conditions: [
+                    { 'Category': { max: 1 }, 
+                      'Time': { max: 1 }, 
+                      'Latitude': { max: 1 },
+                      'Longitude': { max: 1 },
+                      'Heading': { max: 1 },
+                      'Values': {max: 5},
+                      'Link': {max: 1},
+                      'Status': {max: 1}
+                     },
+                ],
+                categorical: {
+                    categories: {
+                        for: { in: 'Category' },
+                        dataReductionAlgorithm: { bottom: { count: 500} }
+                    },
+                    values: {
+                        select: [
+                            { bind: { to: 'Time' } },
+                            { bind: { to: 'Values' } },
+                            { bind: { to: 'Latitude' } },
+                            { bind: { to: 'Longitude' } },
+                            { bind: { to: 'Heading' } },
+                            { bind: { to: 'Link' } },
+                            { bind: { to: 'Status' } }
+                            ]
+                    },
+                }
+            }],
             objects: {
                 general: {
                     displayName: data.createDisplayNameGetter('Visual_General'),
                     properties: {
-                        formatString: {
-                            type: { formatting: { formatString: true } },
+                        formatString: { type: { formatting: { formatString: true } } },
+                        fill: {
+                            type: { fill: { solid: { color: true } } },
+                            displayName: 'Fill'
                         },
-                        columnWidth: {
-                            type: { numeric: true }
-                        },
-                        totals: {
-                            type: { bool: true },
-                            displayName: data.createDisplayNameGetter('Visual_Totals')
-                        },
-                        autoSizeColumnWidth: {
-                            type: { bool: true },
-                            displayName: data.createDisplayNameGetter('Visual_Adjust_Column_Width')
-                        },
-                        textSize: {
-                            displayName: data.createDisplayNameGetter('Visual_TextSize'),
-                            type: { numeric: true }
-                        },
-                    },
-                },
-            },
-            dataViewMappings: [{
-                //   conditions: [
-                //     { 'Category': { max: 1 }, 'Series': { max: 0 } },
-                //     { 'Category': { max: 1 }, 'Series': { min: 1, max: 1 }, 'Y': { max: 1 } }
-                // ],
-                table: {
-                    rows: {
-                        for: { in: 'Values' },
-                        dataReductionAlgorithm: { bottom: {} }
-                    },
-                    rowCount: { preferred: { min: 1 } }
-                }
-                ,
-                categorical: {
-                    categories: {
-                        for: { in: "Category" },
-                        dataReductionAlgorithm: { bottom: {} }
-                    },
-                    values: {
-                        group: {
-                            by: "Series",
-                            select: [
-                                { bind: { to: 'Values' } },
-                                { bind: { to: 'Latitude' } },
-                                { bind: { to: 'Longitude' } },
-                                { bind: { to: 'Heading' } },
-                                { bind: { to: 'Link' } }
-                            ]
+                        size: {
+                            type: { numeric: true },
+                            displayName: 'Size'
                         }
                     },
                 }
-            }],
-            sorting: {
-                custom: {
-                    
-                },
-            },            
-            suppressDefaultTitle: true,
-            supportsSelection: false,
+            },
         };
 
         public currentViewport: IViewport;
@@ -566,11 +616,17 @@ module powerbi.visuals {
                      
                     if (column.roles["Category"] === true) {
                         catagoryIndex = i;
+                        columnInfo.type = MarineMapColumnType.category;
                     }    
                   
+                    if (column.roles["Time"] === true)
+                    {
+                        columnInfo.type = MarineMapColumnType.time;
+                    }
+                    
                     if (column.roles["Longitude"] === true)
                     {
-                        columnInfo.type = MarineMapColumnType.longitude;
+                        columnInfo.type = MarineMapColumnType.longitude;                        
                     }
                     
                     if (column.roles["Latitude"] === true)
@@ -584,6 +640,10 @@ module powerbi.visuals {
                     if (column.roles["Link"] === true)
                     {
                         columnInfo.type = MarineMapColumnType.link;
+                    }
+                    if (column.roles["Status"] === true)
+                    {
+                        columnInfo.type = MarineMapColumnType.status;
                     }
                     model.columns.push(columnInfo);
                 }
@@ -604,6 +664,7 @@ module powerbi.visuals {
                     }
                 }
                 if (categoryModel == null) {
+                    console.log(category);
                     categoryModel = { rows: [], id: category };
                     model.data.push(categoryModel);
                 }
@@ -612,21 +673,7 @@ module powerbi.visuals {
             console.log(model);
             return model;
 
-        }
-        
-         public static customizeQuery(options: CustomizeQueryOptions): void {
-            var dataViewMapping = options.dataViewMappings[0];
-            console.log(options);
-            if (!dataViewMapping || !dataViewMapping.table || !dataViewMapping.metadata)
-                return;
-
-            var dataViewTableRows: data.CompiledDataViewRoleForMapping = <data.CompiledDataViewRoleForMapping>dataViewMapping.table.rows;
-        }
-        
-        public static getSortableRoles(): string[] {
-            return ['Values'];
-        }
-        
+        }               
 
         /* One time setup*/
         public init(options: VisualInitOptions): void {
@@ -709,19 +756,7 @@ module powerbi.visuals {
             };
 
             return mapViewport;
-        }
-        
-        private onColumnHeaderClick(queryName: string, sortDirection: SortDirection) {
-            var sortDescriptors: SortableFieldDescriptor[] = [{
-                queryName: queryName,
-                sortDirection: sortDirection
-            }];
-            var args: CustomSortEventArgs = {
-                sortDescriptors: sortDescriptors
-            };
-            
-            this.hostServices.onCustomSort(args);
-        }
+        }        
 
         private initialize = (container: HTMLElement): void => {
             this.map = $('<div style="width:100%; height:100%;position: absolute;" id="openlayermap"></div>');
