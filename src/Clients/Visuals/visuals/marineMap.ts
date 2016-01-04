@@ -100,12 +100,9 @@ module powerbi.visuals {
 
 
   export class OpenlayerMap {
-        constructor(elementId: string) {
-            this.drawmap(elementId);
-            this.baseUrl = 'https://localhost:44300';
+        constructor(elementId: string, private baseUrl: string, private useSignalR: boolean) {
+            this.drawmap(elementId);            
         }
-
-        private baseUrl;
 
         private map;
         private layer_mapnik;
@@ -127,8 +124,7 @@ module powerbi.visuals {
         private zoom = 2;
 
         private language = 'en';
-
-        private polylines = {};
+        
         private ships = {};
 
         private lineStyle = {
@@ -252,6 +248,8 @@ module powerbi.visuals {
         }
 
         public plotdata(model: MarineMapDataModel) {
+            if (model == null)
+                return;
             var latIndex = -1;
             var longIndex = -1;
             var headingIndex = -1;
@@ -270,6 +268,7 @@ module powerbi.visuals {
             if (longIndex == -1 || latIndex == -1) {
                 return;
             }
+            //Insert new ships and update ship position
             $.each(model.data, (i, ship: MarineMapCategoryData) => {
                 var dataFiltered = ship.rows.filter((row) => {
                     if (row.values[latIndex] != 0.0 && row.values[longIndex] != 0.0)
@@ -285,50 +284,63 @@ module powerbi.visuals {
                     return this.NewGeoPoint(data.values[latIndex], data.values[longIndex]);
                 });
 
-
+                var marker = null;
                 if (typeof (this.ships[ship.id]) == 'undefined') {
-                    var marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.id);
-                    this.ships[ship.id] = marker;
-                    marker.shipdata = ship;
-                    marker.columns = model.columns;
-
-                   this.rotateMarker(marker, ship.rows[ship.rows.length - 1].values[headingIndex]);
-                   this.setMarkerUrl(marker);     
+                    marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.id);
+                    this.ships[ship.id] = marker;                     
                 }
                 else {
-                    var marker = this.ships[ship.id];
-                    marker.shipdata = ship;
-                    marker.columns = model.columns;
-                    //marker.KPI = ship.KPI;
+                    marker = this.ships[ship.id];
                     marker.moveTo(this.map.getLayerPxFromLonLat(locations[locations.length - 1]));
+                }
+                marker.shipdata = ship;
+                marker.columns = model.columns;                
 
-                    this.setMarkerUrl(marker);     
-                   this.rotateMarker(marker, ship.rows[ship.rows.length - 1].values[headingIndex]);
-                    
-                    if (typeof (this.polylines[ship.id]) == 'undefined') {
-                        var feature = new OpenLayers.Feature.Vector(
-                            new OpenLayers.Geometry.LineString(points), null, this.lineStyle
-                        );
-
-                        this.polylines[ship.id] = feature;
-
-                        this.vectorLayer.addFeatures(feature);
-                    }
-                    else {
-                        feature = this.polylines[ship.id];
-                        this.vectorLayer.destroyFeatures(feature);
-
-                        var feature = new OpenLayers.Feature.Vector(
-                            new OpenLayers.Geometry.LineString(points), null, this.lineStyle
-                        );
-
-                        this.polylines[ship.id] = feature;
-
-                        this.vectorLayer.addFeatures(feature);
+                this.setMarkerUrl(marker);
+                this.rotateMarker(marker, ship.rows[ship.rows.length - 1].values[headingIndex]);
+                               
+                this.plotTrail(ship.id, points);
+            });
+            
+           this.removeUnselectedShips(model);
+        }
+        
+        private removeUnselectedShips(model : MarineMapDataModel)
+        {
+            //remove ships no longer in input data
+           for (var shipId in this.ships) {
+                if (this.ships.hasOwnProperty(shipId)) {
+                    var found = false; 
+                    $.each(model.data, function(i, ship) {                    
+                        if (shipId == ship.id)
+                        {
+                            found = true;
+                        }
+                    });
+                    if (found == false)
+                    {
+                        var marker = this.ships[shipId];
+                        this.markerLayer.removeMarker(marker);
+                        this.vectorLayer.destroyFeatures(marker.polylines);
+                        delete this.ships[shipId];
                     }
                 }
+            }
+        }
+        
+        //Plot trail after ship
+        private plotTrail(shipId: string, points: any){
+                if (typeof (this.ships[shipId].polylines) != 'undefined') {
+                    var feature = this.ships[shipId].polylines;
+                    this.vectorLayer.destroyFeatures(feature);
+                }
 
-            });
+                var feature = new OpenLayers.Feature.Vector(
+                    new OpenLayers.Geometry.LineString(points), null, this.lineStyle
+                );
+
+                this.ships[shipId].polylines = feature;
+                this.vectorLayer.addFeatures(feature); 
         }
         
         private rotateMarker(marker: any, rotation: number)
@@ -404,7 +416,14 @@ module powerbi.visuals {
             this.map.addControl(new OpenLayers.Control.LayerSwitcher());
             this.jumpTo(this.lon, this.lat, this.zoom);
 
-
+            if (this.useSignalR == true)
+            {
+                this.initSignalR();
+            }
+        }
+        
+        private initSignalR()
+        {
             $.ajax({
                 type: "GET",
                 url: 'https://ajax.aspnetcdn.com/ajax/signalr/jquery.signalr-2.2.0.min.js',
@@ -429,58 +448,39 @@ module powerbi.visuals {
                                 return this.NewGeoPoint(data.Latitude, data.Longitude);
                             });
 
-
+                            var marker = null;
                             if (typeof (this.ships[ship.Id]) == 'undefined') {
-                                var marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.Id);
+                                marker = this.addMarker(this.markerLayer, locations[locations.length - 1], ship.Id);
                                 this.ships[ship.Id] = marker;
-
-
                             }
                             else {
-                                var marker = this.ships[ship.Id];
-                                //marker.KPI = ship.KPI;
-                                var lastLoc = locations[locations.length - 1];
-                                marker.moveTo(this.map.getLayerPxFromLonLat(lastLoc));
-
+                                marker = this.ships[ship.Id];
                                 this.rotateMarker(marker, ship.Locations[locations.length - 1].Heading);
-
-                                if (typeof (this.polylines[ship.Id]) == 'undefined') {
-                                    var feature = new OpenLayers.Feature.Vector(
-                                        new OpenLayers.Geometry.LineString(points)
-                                    );
-
-                                    this.polylines[ship.Id] = feature;
-
-                                    this.vectorLayer.addFeatures(feature);
-                                }
-                                else {
-
-
-                                    feature = this.polylines[ship.Id];
-                                    this.vectorLayer.destroyFeatures(feature);
-
-                                    var feature = new OpenLayers.Feature.Vector(
-                                        new OpenLayers.Geometry.LineString(points), null, this.lineStyle);
-
-                                    this.polylines[ship.Id] = feature;
-
-                                    this.vectorLayer.addFeatures(feature);
-
-                                }
                             }
+                            
+                            var lastLoc = locations[locations.length - 1];
+                            marker.moveTo(this.map.getLayerPxFromLonLat(lastLoc));
 
-                        });
+
+                            this.plotTrail(ship.Id, points);
+
+                        });                       
                     };
-
 
                     $.connection.hub.start().done(function () {
                         console.log('started');
                     });
                 });
             });
-
         }
     }
+    // Place this outsite the class for the powerbi framework to pickup the custom properties.
+    export var marineMapProps = {
+            settings: {
+                baseUri: <DataViewObjectPropertyIdentifier>{ objectName: 'settings', propertyName: 'baseUri' },
+                useLiveData: <DataViewObjectPropertyIdentifier>{ objectName: 'settings', propertyName: 'useLiveData' }
+            }
+        };
 
     export class MarineMap implements IVisual {
 		/**
@@ -571,17 +571,33 @@ module powerbi.visuals {
                         size: {
                             type: { numeric: true },
                             displayName: 'Size'
-                        }
+                        },                         
                     },
+                },
+                settings: {
+                    displayName: 'Settings',
+                    properties: {
+                        baseUri: {
+                            displayName: 'Server Url',
+                            type: { text: true }
+                        },
+                        useLiveData: {
+                            displayName: 'Use Live Data',
+                            type: { bool: true}
+                        }
+                    }
                 }
             },
-        };
-
+        };               
+        
         public currentViewport: IViewport;
         private legend: ILegend;
         private element: JQuery;
-        private map: JQuery;
+        private map: JQuery;        
         private openlayerMap: OpenlayerMap;
+        private static defaultBaseUri = 'https://dgshipdata.azurewebsites.net/';
+        private baseUri: string = MarineMap.defaultBaseUri;
+        private useLiveData: boolean = false;
         private colors: IDataColorPalette;
         private dataView: DataView;
         private maxValue = 1;
@@ -700,7 +716,27 @@ module powerbi.visuals {
 
             var data = MarineMap.converter(this.dataView, this.colors);
             if (this.openlayerMap != null)
+            {
                 this.openlayerMap.plotdata(data);
+                var newBaseUri = MarineMap.getFieldText(this.dataView, 'settings', 'baseUri', this.baseUri);
+                var redrawNeeded = false;
+                if (newBaseUri != this.baseUri)
+                {
+                    this.baseUri = newBaseUri;
+                    redrawNeeded = true;                                        
+                }
+                var newUseLiveData = MarineMap.getFieldBoolean(this.dataView, 'settings', 'useLiveData', this.useLiveData);
+                if (newUseLiveData != this.useLiveData)
+                {
+                    this.useLiveData = newUseLiveData;
+                    redrawNeeded = true;
+                }
+                if (redrawNeeded)
+                {
+                    this.openlayerMap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData);
+                }
+            }
+            
         }    
 
         /*About to remove your visual, do clean up here */
@@ -721,13 +757,14 @@ module powerbi.visuals {
             var instances: VisualObjectInstance[] = [];
             var dataView = this.dataView;
             switch (options.objectName) {
-                case 'general':
-                    var general: VisualObjectInstance = {
-                        objectName: 'general',
-                        displayName: 'General',
+                case 'settings':
+                    var settings: VisualObjectInstance = {
+                        objectName: 'settings',
+                        displayName: 'Settings',
                         selector: null,
                         properties: {
-                            // backgroundUrl: HeatMapChart.getFieldText(dataView, 'general', 'backgroundUrl', ''),
+                            baseUri: MarineMap.getFieldText(dataView, 'settings', 'baseUri', MarineMap.defaultBaseUri),
+                            useLiveData: MarineMap.getFieldBoolean(dataView, 'settings', 'useLiveData', false),
                             // radius: HeatMapChart.getFieldNumber(dataView, 'general', 'radius',5),
                             // blur: HeatMapChart.getFieldNumber(dataView, 'general', 'blur',15),
                             // maxWidth: HeatMapChart.getFieldNumber(dataView, 'general', 'maxWidth', this.canvasWidth),
@@ -735,7 +772,7 @@ module powerbi.visuals {
                             // maxValue: HeatMapChart.getFieldNumber(dataView, 'general', 'maxValue', 1)
                         }
                     };
-                    instances.push(general);
+                    instances.push(settings);
                     break;
             }
 
@@ -774,7 +811,7 @@ module powerbi.visuals {
                     dataType: "script",
                     cache: true
                 }).done(() => {
-                    var omap = new OpenlayerMap('openlayermap');
+                    var omap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData);
                     this.openlayerMap = omap;
                     this.redrawCanvas();
                 });
@@ -806,6 +843,21 @@ module powerbi.visuals {
                         var num = <number>f[property];
                         if (num)
                             return num;
+                    }
+                }
+            }
+            return defaultValue;
+        }
+        
+        private static getFieldBoolean(dataView: DataView, field: string, property: string = 'text', defaultValue: boolean = false): boolean {
+            if (dataView) {
+                var objects = dataView.metadata.objects;
+                if (objects) {
+                    var f = objects[field];
+                    if (f) {
+                        var bool = <boolean>f[property];
+                        if (bool)
+                            return bool;
                     }
                 }
             }
