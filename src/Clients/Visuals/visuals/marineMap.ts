@@ -75,7 +75,7 @@
                     }
                 });
                 html += '</ul>';
-                if (link != "")
+                if (link != null && link != "")
                     html += this.buildMoreInfo(link);
                 html += this.buildFooter(footerHtml);
                 return html;
@@ -203,7 +203,7 @@
                 if (statusColumn != null)
                 {                
                     var data : MarineMapCategoryData = marker.shipdata;
-                    var status : number = data.rows[data.rows.length-1][statusColumn.colIndex];
+                    var status : number = data.rows[data.rows.length-1].values[statusColumn.colIndex];
                         
                     if (status == 1)
                     {
@@ -378,9 +378,9 @@
                 // Mapnik
                 this.layer_mapnik = new OpenLayers.Layer.OSM("Mapnik", // Official OSM tileset as protocol-independent URLs
                     [
-                        '//a.tile.openstreetmap.org/${z}/${x}/${y}.png',
-                        '//b.tile.openstreetmap.org/${z}/${x}/${y}.png',
-                        '//c.tile.openstreetmap.org/${z}/${x}/${y}.png'
+                        'https://a.tile.openstreetmap.org/${z}/${x}/${y}.png',
+                        'https://b.tile.openstreetmap.org/${z}/${x}/${y}.png',
+                        'https://c.tile.openstreetmap.org/${z}/${x}/${y}.png'
                     ]);
                 this.layer_transport = new OpenLayers.Layer.OSM("Transport", [
                     'http://a.tile2.opencyclemap.org/transport/${z}/${x}/${y}.png',
@@ -617,6 +617,8 @@
     
             // Convert a DataView into a view model
             public static converter(dataView: DataView, colors: IDataColorPalette): MarineMapDataModel {
+                if (typeof(dataView) == 'undefined' || dataView == null)
+                    return;
                 console.log('converter', dataView);
                 var table = dataView.table;
                 debug.assertValue(table, 'table');
