@@ -174,11 +174,17 @@
                         self.map.addPopup(feature.popup);
                         feature.popup.show();
                         $('#' + feature.id + 'close').click(function () {
-                            feature.popup.toggle();
+                            feature.popup.hide();
                         });
-                    } else {
-                        feature.popup.toggle();
+                    } else {                                               
+                        feature.popup.show();
                     }
+                     $.each(self.ships, (i, shipMarker) => {
+                            if (shipMarker.feature != null && shipMarker.feature.id != feature.id && shipMarker.feature.popup != null)
+                            {
+                                shipMarker.feature.popup.hide();
+                            }  
+                        });
     
                     feature.popup.moveTo(self.map.getLayerPxFromLonLat(marker.lonlat));
                     OpenLayers.Event.stop(evt);
@@ -244,7 +250,7 @@
             }
     
             public resize() {
-                this.map.updateSize();
+                setTimeout(() => { this.map.updateSize();}, 200);                
             }
             
             public destroy(){
@@ -712,6 +718,7 @@
                 this.colors = options.style.colorPalette.dataColors;            
                 this.legend = powerbi.visuals.createLegend(options.element, options.interactivity && options.interactivity.isInteractiveLegend, null);
                 this.hostServices = options.host;
+                this.currentViewport = options.viewport;
                 this.initialize(this.element[0]);
             }
             
@@ -720,8 +727,13 @@
             /* Called for data, size, formatting changes*/
             public update(options: VisualUpdateOptions) {
                 this.dataView = options.dataViews[0];
-                this.currentViewport = options.viewport;
-                // this.onColumnHeaderClick('MW100.UTClogTime', SortDirection.Descending);
+                var viewport = options.viewport;
+                //Handle resizing of the visual. 
+                if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
+                    this.currentViewport = viewport;
+                    this.openlayerMap.resize();
+                }              
+                
                 this.redrawCanvas();           
             }
     
@@ -769,8 +781,9 @@
     
             }
     
-            /* Called when the view port resizes */
+            /* Called when the view port resizes (apparently not called anymore, see update method) */
             public onResizing(viewport: IViewport): void {
+                console.log(viewport.height + " " + viewport.width);
                 if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
                     this.currentViewport = viewport;
                     this.openlayerMap.resize();
