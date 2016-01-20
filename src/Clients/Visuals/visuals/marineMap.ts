@@ -19,6 +19,7 @@
         export interface MarineMapCategoryData {
             id: string;
             rows: MarineMapDataRow[];
+            link: string;
         }
     
         export interface MarineMapDataRow {
@@ -58,7 +59,7 @@
                 var lastDataPoint = this.data.rows[this.data.rows.length - 1];
                 html += '<ul>';
                 var footerHtml = "";
-                var link = "";
+                var link = this.data.link;
                 $.each(this.columnInfos, (i, column) => {
                     if (column.type == MarineMapColumnType.data) {
                         html += this.buildRow(column.displayName, lastDataPoint.values[column.colIndex]);
@@ -68,11 +69,13 @@
                         var date = new Date(lastDataPoint.values[column.colIndex]);
                         var dateFormat = valueFormatter.create({format: "dd/MM/yyyy HH:mm:ss", value: date});
                         footerHtml += dateFormat.format(date);
+                        footerHtml += " " + (new Date()).toISOString();
                     }
                     if (column.type == MarineMapColumnType.link)
                     {
                         link = lastDataPoint.values[column.colIndex];
                     }
+                    
                 });
                 html += '</ul>';
                 if (link != null && link != "")
@@ -100,7 +103,7 @@
     
     
     export class OpenlayerMap {
-            constructor(elementId: string, private baseUrl: string, private useSignalR: boolean) {
+            constructor(elementId: string, private baseUrl: string, private useSignalR: boolean, private zoomOnClickLevel : number) {
                 this.drawmap(elementId);            
             }
     
@@ -153,9 +156,7 @@
                 var self = this;
                 var feature = new OpenLayers.Feature(layer, ll);
                 feature.closeBox = false;
-                feature.popupClass = OpenLayers.Class(OpenLayers.Popup.Anchored, { minSize: new OpenLayers.Size(200, 100) });
-                feature.data.popupContentHTML = 
-    
+                feature.popupClass = OpenLayers.Class(OpenLayers.Popup.Anchored, { minSize: new OpenLayers.Size(200, 100) });   
     
                 feature.data.overflow = "hidden";
     
@@ -165,26 +166,31 @@
                 var markerClick = function (evt) {
                     var feature = this.feature;
                     var marker = this;
-            
-                    feature.data.popupContentHTML = new PopupBuilder(valueFormatter.create({ value: 0 }), feature.id, marker.columns, marker.shipdata).buildHtml();
-    
+                    if (self.zoomOnClickLevel > 0)
+                    {
+                        self.map.setCenter(marker.lonlat, self.zoomOnClickLevel);
+                    }
+                    var html = new PopupBuilder(valueFormatter.create({ value: 0 }), feature.id, marker.columns, marker.shipdata).buildHtml();
+
                     if (feature.popup == null) {
+                        feature.data.popupContentHTML = html;
                         feature.popup = feature.createPopup(feature.closeBox);
                         feature.popup.setSize(new OpenLayers.Size(300, 200));
                         self.map.addPopup(feature.popup);
                         feature.popup.show();
-                        $('#' + feature.id + 'close').click(function () {
-                            feature.popup.hide();
-                        });
-                    } else {                                               
+                    } else {
+                        feature.popup.setContentHTML(html);
                         feature.popup.show();
                     }
-                     $.each(self.ships, (i, shipMarker) => {
-                            if (shipMarker.feature != null && shipMarker.feature.id != feature.id && shipMarker.feature.popup != null)
-                            {
-                                shipMarker.feature.popup.hide();
-                            }  
-                        });
+                    //We need to reattch this event as the setContentHTML destroys the click event.
+                    $('#' + feature.id + 'close').click(function() {
+                        feature.popup.hide();
+                    });
+                    $.each(self.ships, (i, shipMarker) => {
+                        if (shipMarker.feature != null && shipMarker.feature.id != feature.id && shipMarker.feature.popup != null) {
+                            shipMarker.feature.popup.hide();
+                        }
+                    });
     
                     feature.popup.moveTo(self.map.getLayerPxFromLonLat(marker.lonlat));
                     OpenLayers.Event.stop(evt);
@@ -424,8 +430,8 @@
                     name: "Bing Aerial With Labels"
                 });
                 // Seamark
-                this.layer_seamark = new OpenLayers.Layer.TMS("Seamark", "https://sjkpreverse.azurewebsites.net/seamark/", { numZoomLevels: 18, type: 'png', getURL: this.getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true });
-    
+                this.layer_seamark = new OpenLayers.Layer.TMS("Seamark", "http://t1.openseamap.org/seamark/", { numZoomLevels: 18, type: 'png', getURL: this.getTileURL, isBaseLayer: false, displayOutsideMaxExtent: true });
+               
                 this.markerLayer = new OpenLayers.Layer.Markers("Markers");
                 this.vectorLayer = new OpenLayers.Layer.Vector("Trails");
     
@@ -595,6 +601,10 @@
                     settings: {
                         displayName: 'Settings',
                         properties: {
+                            zoomOnClick: {
+                                displayName: 'Zoom on click',
+                                type: { numeric: true}
+                            },
                             baseUri: {
                                 displayName: 'Server Url',
                                 type: { text: true }
@@ -602,6 +612,10 @@
                             useLiveData: {
                                 displayName: 'Use Live Data',
                                 type: { bool: true}
+                            },
+                            links:{
+                                displayName: 'Links',
+                                type: {text: true}
                             }
                         }
                     }
@@ -613,9 +627,10 @@
             private element: JQuery;
             private map: JQuery;        
             private openlayerMap: OpenlayerMap;
-            private static defaultBaseUri = 'https://dgshipdata.azurewebsites.net/';
+            private static defaultBaseUri = 'https://jlvesselmon.azurewebsites.net/';
             private baseUri: string = MarineMap.defaultBaseUri;
             private useLiveData: boolean = false;
+            private zoomOnClickLevel: number = 0;
             private colors: IDataColorPalette;
             private dataView: DataView;
             private maxValue = 1;
@@ -636,6 +651,7 @@
                 };
                 var catagoryIndex = -1;
                 if (dataView && dataView.metadata) {
+                    var linkAdded = false;
                     for (var i: number = 0; i < dataView.metadata.columns.length; i++) {
                         var column = dataView.metadata.columns[i];
                         
@@ -649,6 +665,8 @@
                             queryName: column.queryName,
                             type: MarineMapColumnType.data
                         };
+                        
+                        
                         
                         if (column.roles["Category"] === true) {
                             catagoryIndex = i;
@@ -681,6 +699,8 @@
                         {
                             columnInfo.type = MarineMapColumnType.status;
                         }
+                        
+                        
                         model.columns.push(columnInfo);
                     }
                 }
@@ -701,7 +721,7 @@
                     }
                     if (categoryModel == null) {
                         console.log(category);
-                        categoryModel = { rows: [], id: category };
+                        categoryModel = { rows: [], id: category, link: MarineMap.getLink(dataView, category) };
                         model.data.push(categoryModel);
                     }
                     categoryModel.rows.push(row);
@@ -757,11 +777,17 @@
                         this.useLiveData = newUseLiveData;
                         redrawNeeded = true;
                     }
+                    var newZoomOnClick = this.getZoomOnClick();
+                    if (newZoomOnClick != this.zoomOnClickLevel)
+                    {
+                        this.zoomOnClickLevel = newZoomOnClick;
+                        redrawNeeded = true;
+                    }
                     if (redrawNeeded)
                     {
                         console.log('redraw needed');
                         this.openlayerMap.destroy();
-                        this.openlayerMap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData);
+                        this.openlayerMap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData, this.zoomOnClickLevel);
                     }
                 }
                 
@@ -774,6 +800,11 @@
             private getUseLiveData() : boolean
             {
                 return MarineMap.getFieldBoolean(this.dataView, 'settings', 'useLiveData', this.useLiveData);
+            }
+            
+            private getZoomOnClick() : number 
+            {
+               return MarineMap.getFieldNumber(this.dataView, 'settings', 'zoomOnClick', 0); 
             }
     
             /*About to remove your visual, do clean up here */
@@ -803,6 +834,8 @@
                             properties: {
                                 baseUri: MarineMap.getFieldText(dataView, 'settings', 'baseUri', MarineMap.defaultBaseUri),
                                 useLiveData: MarineMap.getFieldBoolean(dataView, 'settings', 'useLiveData', false),
+                                links: MarineMap.getFieldText(dataView, 'settings', 'links',''),
+                                zoomOnClick: MarineMap.getFieldNumber(dataView, 'settings', 'zoomOnClick', 0),
                                 // radius: HeatMapChart.getFieldNumber(dataView, 'general', 'radius',5),
                                 // blur: HeatMapChart.getFieldNumber(dataView, 'general', 'blur',15),
                                 // maxWidth: HeatMapChart.getFieldNumber(dataView, 'general', 'maxWidth', this.canvasWidth),
@@ -849,11 +882,31 @@
                         dataType: "script",
                         cache: true
                     }).done(() => {
-                        var omap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData);
+                        var omap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData, this.zoomOnClickLevel);
                         this.openlayerMap = omap;
                         this.redrawCanvas();
                     });
                 });
+            }
+            
+            private static getLink = (dataView : DataView, id : string) : string => 
+            {
+                var links = MarineMap.getFieldText(dataView, 'settings', 'links');
+                var ret = null;
+                if (links != null)
+                {
+                   var linksArr = links.split(';');
+                   $.each(linksArr,(i,keyValue) => {
+                        var pair = keyValue.split(',');                       
+                        if (pair.length  == 2 && pair[0] == id)
+                        {
+                            ret = pair[1];
+                            return; 
+                        } 
+                   });
+                }
+                
+                return ret;
             }
     
     
