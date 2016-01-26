@@ -50,7 +50,7 @@ module powerbi.visuals.sampleData {
             new sampleDataViews.SimpleTreeData(),
             new sampleDataViews.ProductSalesByDate(),
             new sampleDataViews.SimpleDotPlotData(),
-            new sampleDataViews.MapByYearData()
+            new sampleDataViews.MapByYearData(),
             new sampleDataViews.SimpleTimelineData(),
             new sampleDataViews.SimpleHistogramData(),
         ];

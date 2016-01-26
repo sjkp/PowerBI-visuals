@@ -97,7 +97,7 @@
             }
     
             private buildMoreInfo(link : string) {
-                return '<div class="popup-moreinfo"><a href="'+link+'">More info</a></div>';
+                return '<div class="popup-moreinfo"><a href="'+link+'" target="_blank">More info</a></div>';
             }
         }
     
@@ -625,8 +625,9 @@
             public currentViewport: IViewport;
             private legend: ILegend;
             private element: JQuery;
-            private map: JQuery;        
-            private openlayerMap: OpenlayerMap;
+            private map: JQuery; 
+            private mapId: string;       
+            private  openlayerMap: OpenlayerMap;
             private static defaultBaseUri = 'https://jlvesselmon.azurewebsites.net/';
             private baseUri: string = MarineMap.defaultBaseUri;
             private useLiveData: boolean = false;
@@ -746,15 +747,20 @@
     
             /* Called for data, size, formatting changes*/
             public update(options: VisualUpdateOptions) {
+                
                 this.dataView = options.dataViews[0];
                 var viewport = options.viewport;
-                //Handle resizing of the visual. 
-                if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
-                    this.currentViewport = viewport;
-                    this.openlayerMap.resize();
-                }              
-                
-                this.redrawCanvas();           
+                if (this.openlayerMap != null) //Don't try to draw map until load is complete.
+                {
+                    console.log('update');
+                    //Handle resizing of the visual. 
+                    if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
+                        this.currentViewport = viewport;
+                        this.openlayerMap.resize();
+                    }              
+                    
+                    this.redrawCanvas();        
+                }   
             }
     
             public redrawCanvas = () => {
@@ -787,7 +793,7 @@
                     {
                         console.log('redraw needed');
                         this.openlayerMap.destroy();
-                        this.openlayerMap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData, this.zoomOnClickLevel);
+                        this.openlayerMap = new OpenlayerMap(this.mapId, this.baseUri, this.useLiveData, this.zoomOnClickLevel);
                     }
                 }
                 
@@ -809,7 +815,8 @@
     
             /*About to remove your visual, do clean up here */
             public destroy() {
-    
+                this.openlayerMap.destroy();
+                this.map.remove();
             }
     
             /* Called when the view port resizes (apparently not called anymore, see update method) */
@@ -867,26 +874,33 @@
             }        
     
             private initialize = (container: HTMLElement): void => {
-                this.map = $('<div style="width:100%; height:100%;position: absolute;" id="openlayermap"></div>');
-                $(container).append(this.map);
-                $.ajax({
-                    type: "GET",
-                    url: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
-                    dataType: "script",
-                    cache: true
-                }).done(() => {
-                    console.log('openlayers loaded');
+                
+        
+                    console.log('initialize');
+                    this.mapId = "openlayermap" + Math.random().toString(36).substr(2, 9);
+                    this.map = $('<div style="width:100%; height:100%;position: absolute;" class="marinemap-openlayer" id="'+this.mapId+'"></div>');
+                    $(container).append(this.map);
                     $.ajax({
                         type: "GET",
-                        url: "https://www.openstreetmap.org/openlayers/OpenStreetMap.js",
+                        url: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
                         dataType: "script",
                         cache: true
                     }).done(() => {
-                        var omap = new OpenlayerMap('openlayermap', this.baseUri, this.useLiveData, this.zoomOnClickLevel);
-                        this.openlayerMap = omap;
-                        this.redrawCanvas();
+                        console.log('openlayers loaded');
+                        $.ajax({
+                            type: "GET",
+                            url: "https://www.openstreetmap.org/openlayers/OpenStreetMap.js",
+                            dataType: "script",
+                            cache: true
+                        }).done(() => {
+                 
+                            var omap = new OpenlayerMap(this.mapId, this.baseUri, this.useLiveData, this.zoomOnClickLevel);
+                            this.openlayerMap = omap;
+                            console.log('load complete', this.mapId);
+                            this.redrawCanvas();                                                  
+                        });
                     });
-                });
+                
             }
             
             private static getLink = (dataView : DataView, id : string) : string => 
