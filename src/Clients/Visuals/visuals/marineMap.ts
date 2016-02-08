@@ -753,12 +753,9 @@
                 if (this.openlayerMap != null) //Don't try to draw map until load is complete.
                 {
                     console.log('update');
-                    //Handle resizing of the visual. 
-                    if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
-                        this.currentViewport = viewport;
-                        this.openlayerMap.resize();
-                    }              
-                    
+                    //Handle resizing of the visual.                    
+                    this.onResizing(viewport);
+                                                     
                     this.redrawCanvas();        
                 }   
             }
@@ -824,6 +821,10 @@
                 console.log(viewport.height + " " + viewport.width);
                 if (this.currentViewport.width !== viewport.width || this.currentViewport.height !== viewport.height) {
                     this.currentViewport = viewport;
+                    console.log('resize');
+                    var map = $('#'+this.mapId);
+                    map.height(this.currentViewport.height);
+                    map.width(this.currentViewport.width);
                     this.openlayerMap.resize();
                 }
             }
@@ -878,7 +879,10 @@
         
                     console.log('initialize');
                     this.mapId = "openlayermap" + Math.random().toString(36).substr(2, 9);
-                    this.map = $('<div style="width:100%; height:100%;position: absolute;" class="marinemap-openlayer" id="'+this.mapId+'"></div>');
+                    this.map = $('<div style="position: absolute;" class="marinemap-openlayer" id="'+this.mapId+'"></div>');
+                    
+                    this.map.width(this.currentViewport.width);
+                    this.map.height(this.currentViewport.height);
                     $(container).append(this.map);
                     $.ajax({
                         type: "GET",
