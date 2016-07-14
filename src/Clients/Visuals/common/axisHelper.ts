@@ -157,6 +157,11 @@ module powerbi.visuals {
          * align y1 and y2 grid lines.
          */
         forcedTickCount?: number;
+        /**
+         * (optional) For scalar axis with scalar keys, the number of ticks should never exceed the number of scalar keys, 
+         * or labeling will look wierd (i.e. level of detail is Year, but month labels are shown between years)
+         */
+        maxTickCount?: number;
         /** 
          * (optional) Callback for looking up actual values from indices, 
          * used when formatting tick labels. 
@@ -822,10 +827,16 @@ module powerbi.visuals {
                 isVertical = !!options.isVertical,
                 forcedTickCount = options.forcedTickCount,
                 categoryThickness = options.categoryThickness,
-                shouldClamp = !!options.shouldClamp;
+                shouldClamp = !!options.shouldClamp,
+                maxTickCount = options.maxTickCount;
 
             let dataType: ValueType = AxisHelper.getCategoryValueType(metaDataColumn, isScalar);
+
             let maxTicks = isVertical ? getRecommendedNumberOfTicksForYAxis(pixelSpan) : getRecommendedNumberOfTicksForXAxis(pixelSpan);
+            if (maxTickCount &&
+                maxTicks > maxTickCount)
+                maxTicks = maxTickCount;
+
             let scalarDomain = dataDomain ? dataDomain.slice() : null;
             let bestTickCount = maxTicks;
             let scale: D3.Scale.GenericScale<any>;

@@ -3451,7 +3451,48 @@ module powerbitests {
                 }
             };
 
-            let actualData = DonutChart.converter(dataView, donutColors, undefined, undefined, undefined, undefined, false);
+            let actualData = DonutChart.converter(dataView, donutColors, /*defaultDataPointColor*/undefined, /*viewport*/undefined, /*disableGeometricCulling*/undefined, /*interactivityService*/undefined, /*tooltipsEnabled*/false);
+
+            expect(actualData.dataPoints[0].data.tooltipInfo).toBeUndefined();
+            expect(actualData.dataPoints[1].data.tooltipInfo).toBeUndefined();
+            expect(actualData.dataPoints[2].data.tooltipInfo).toBeUndefined();
+        });
+
+        it('validate tooltip info not being created when tooltips are disabled and tooltipBuckets are enabled', () => {
+            let dataViewMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'a', queryName: 'a', isMeasure: true, roles: { Y: true } },
+                    { displayName: 'b', queryName: 'b', isMeasure: true, roles: { Y: true } },
+                    { displayName: 'c', queryName: 'c', isMeasure: true, roles: { Y: true } },
+                    { displayName: 'd', queryName: 'd', isMeasure: true, roles: { Tooltips: true } },
+                ]
+            };
+
+            let dataView: powerbi.DataView = {
+                metadata: dataViewMetadata,
+                categorical: {
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: dataViewMetadata.columns[0],
+                            values: [1],
+                        },
+                        {
+                            source: dataViewMetadata.columns[1],
+                            values: [2],
+                        },
+                        {
+                            source: dataViewMetadata.columns[2],
+                            values: [3],
+                        },
+                        {
+                            source: dataViewMetadata.columns[3],
+                            values: [4],
+                        }
+                    ])
+                }
+            };
+             
+            let actualData = DonutChart.converter(dataView, donutColors, /*defaultDataPointColor*/undefined, /*viewport*/undefined, /*disableGeometricCulling*/undefined, /*interactivityService*/undefined, /*tooltipsEnabled*/false, /*tooltipBucketEnabled*/true);
 
             expect(actualData.dataPoints[0].data.tooltipInfo).toBeUndefined();
             expect(actualData.dataPoints[1].data.tooltipInfo).toBeUndefined();

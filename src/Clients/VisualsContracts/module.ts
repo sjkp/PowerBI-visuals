@@ -5,8 +5,8 @@ window.powerbi = window.powerbi || {};
 window.debug = window.debug || {};
 window.InJs = window.InJs || {};
 
-require("./typedefs/typedefs.ts");
-require("./common/enums.ts");
+// Require all files from the `_references.ts`
+require("ReferencesLoader!./_references.ts");
 
 require("./common/DragDrop.d.ts");
 require("./common/IStringResourceProvider.d.ts");

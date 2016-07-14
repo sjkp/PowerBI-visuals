@@ -158,6 +158,11 @@
   cursor: pointer;
   width: 100%;
 }
+.chicletSlicer .slicerBody ul {
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
 .chicletSlicer .slicerBody li.slicerItemContainer {
   height: 100%;
   width: 100%;
@@ -951,48 +956,45 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-.Timeline .label {
-  text-anchor: middle;
-}
-.Timeline .upperTextCell {
-  text-anchor: middle;
-}
+.Timeline .label,
+.Timeline .mainArea .label,
+.Timeline .upperTextCell,
 .Timeline .lowerTextCell {
   text-anchor: middle;
 }
 .Timeline .cellRect {
   stroke: #333444;
 }
-.selectionRangeContainer {
+.Timeline .selectionCursor {
+  fill: gray;
+}
+.Timeline .selectionRangeContainer {
   float: none;
   position: absolute;
   text-anchor: start;
 }
-.timelineSlicer {
+.Timeline .timelineSlicer {
   position: absolute;
   top: 20px;
   left: 17px;
   fill: #000000;
 }
-.timelineSlicer .periodSlicerRect {
+.Timeline .timelineSlicer .periodSlicerRect {
   stroke: #aaa;
   stroke-width: 2px;
   fill: transparent;
 }
-.timelineSlicer .periodSlicerGranularities {
+.Timeline .timelineSlicer .periodSlicerGranularities {
   font-family: sans-serif;
   font-size: 10px;
 }
-.timelineSlicer .periodSlicerSelection {
+.Timeline .timelineSlicer .periodSlicerSelection {
   font-family: sans-serif;
   font-size: 10px;
   text-anchor: middle;
 }
-.timelineSlicer .periodSlicerSelectionRect {
+.Timeline .timelineSlicer .periodSlicerSelectionRect {
   fill: transparent;
-}
-.selectionCursor {
-  fill: gray;
 }
 /*
  *  Power BI Visualizations
@@ -1056,8 +1058,10 @@
 .wordCloud {
   font-family: 'Segoe UI', 'wf_segoe-ui_normal', helvetica, arial, sans-serif;
 }
-.wordCloud .words text {
+.wordCloud .words g.word text {
   text-anchor: middle;
+}
+.wordCloud .words g.word rect {
   cursor: pointer;
 }
 

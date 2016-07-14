@@ -171,3 +171,4 @@
 /// <reference path="./plugins.ts"/>
 /// <reference path="./common/canvasBackgroundHelper.ts"/>
 /// <reference path="./common/scaleRange.ts"/>
+/// <reference path="./stylePresets/table.stylePresets.ts"/>

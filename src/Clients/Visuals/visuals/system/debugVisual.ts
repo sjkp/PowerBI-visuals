@@ -142,7 +142,8 @@ module powerbi.visuals.system {
                         }
                         //attach json capabilities to plugin
                         powerbi.visuals.plugins[this.visualGuid].capabilities = pbivizJson.capabilities;
-
+                        //translate plugin
+                        powerbi.extensibility.translateVisualPlugin(powerbi.visuals.plugins[this.visualGuid]);
                         //loaded separately for sourcemap support
                         $.get(baseUrl + 'visual.css').done((data) => {
                             $('#css-DEBUG').remove();
@@ -150,9 +151,9 @@ module powerbi.visuals.system {
                                 id: 'css-DEBUG',
                                 html: data,
                             }).appendTo($('head'));
-                            
+
                             this.loadVisual(this.visualGuid);
-                            
+
                             //override debugVisual capabilities with user's
                             this.setCapabilities(powerbi.visuals.plugins[this.visualGuid].capabilities);
                         });
@@ -173,7 +174,7 @@ module powerbi.visuals.system {
                 this.statusLoading = false;
             });
         }
-        
+
         private loadVisual(guid: string) {
             this.visualContainer.attr('class', 'visual-' + guid);
             this.visualContainer.empty();
@@ -186,7 +187,7 @@ module powerbi.visuals.system {
                 let lastUpdateOptions = Prototype.inherit(this.lastUpdateOptions);
                 lastUpdateOptions.type = VisualUpdateType.All;
                 adapter.update(lastUpdateOptions);
-            }                 
+            }
         }
 
         /**

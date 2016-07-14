@@ -109,6 +109,13 @@ module powerbi.visuals {
                     },
                 }
             },
+            scalarKey: {
+                properties: {
+                    min: {
+                        type: { dateTime: true }
+                    },
+                }
+            },
             categoryAxis: {
                 displayName: data.createDisplayNameGetter('Visual_XAxis'),
                 properties: {
@@ -263,6 +270,9 @@ module powerbi.visuals {
         },
         trend: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'trend', propertyName: 'show' },
+        },
+        scalarKey: {
+            scalarKeyMin: <DataViewObjectPropertyIdentifier>{ objectName: 'scalarKey', propertyName: 'min' },
         },
         categoryAxis: {
             axisType: <DataViewObjectPropertyIdentifier>{ objectName: 'categoryAxis', propertyName: 'axisType' },

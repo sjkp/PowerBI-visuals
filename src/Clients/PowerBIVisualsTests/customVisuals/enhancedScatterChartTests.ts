@@ -40,6 +40,9 @@ module powerbitests.customVisuals {
     import IInteractivityService = powerbi.visuals.IInteractivityService;
     import DataViewObject = powerbi.DataViewObject;
     import DataView = powerbi.DataView;
+    import EnhancedScatterChartProperties = powerbi.visuals.samples.EnhancedScatterChartProperties;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import VisualCapabilities = powerbi.VisualCapabilities;
 
     type CheckerCallback = (dataPoint: EnhancedScatterChartDataPoint, index?: number) => any;
 
@@ -53,6 +56,7 @@ module powerbitests.customVisuals {
         beforeEach(() => {
             visualBuilder = new EnhancedScatterChartBuilder(1000, 500);
             defaultDataViewBuilder = new EnhancedScatterChartData();
+
             dataView = defaultDataViewBuilder.getDataView();
         });
 
@@ -69,6 +73,144 @@ module powerbitests.customVisuals {
 
             it("Should not suppressDefaultTitle", () => {
                 expect(VisualClass.capabilities.suppressDefaultTitle).toBeUndefined();
+            });
+        });
+
+        describe("Properties", () => {
+            it("should be defined", () => {
+                let properties: EnhancedScatterChartProperties = VisualClass.Properties;
+
+                expect(properties).toBeDefined();
+                expect(properties).not.toBeNull();
+            });
+
+            it("general.formatString should be defined", () => {
+                let formatString: DataViewObjectPropertyIdentifier = VisualClass.Properties["general"]["formatString"];
+
+                expect(formatString).toBeDefined();
+                expect(formatString).not.toBeNull();
+            });
+        });
+
+        describe("getPropertiesByCapabilities", () => {
+            it("capabilities are null", () => {
+                expect(() => {
+                    VisualClass.getPropertiesByCapabilities(null);
+                }).not.toThrow();
+            });
+
+            it("capabilities are undefined", () => {
+                expect(() => {
+                    VisualClass.getPropertiesByCapabilities(undefined);
+                }).not.toThrow();
+            });
+
+            it("properties shouldn't contain any properties when capabilities are null", () => {
+                let properties: EnhancedScatterChartProperties =
+                    VisualClass.getPropertiesByCapabilities<EnhancedScatterChartProperties>(null);
+
+                expect(Object.keys(properties).length).toBe(0);
+            });
+
+            it("properties shouldn't contain any properties when capabilities are undefined", () => {
+                let properties: EnhancedScatterChartProperties =
+                    VisualClass.getPropertiesByCapabilities<EnhancedScatterChartProperties>(undefined);
+
+                expect(Object.keys(properties).length).toBe(0);
+            });
+
+            it("properties should contain a property", () => {
+                let objectName: string = "general",
+                    propertyName: string = "customProperty",
+                    capabilities: VisualCapabilities,
+                    properties: EnhancedScatterChartProperties;
+
+                capabilities = {
+                    objects: {
+                        [objectName]: {
+                            properties: {
+                                [propertyName]: {
+                                    displayName: propertyName,
+                                    type: {}
+                                }
+                            }
+                        }
+                    }
+                };
+
+                properties = 
+                    VisualClass.getPropertiesByCapabilities<EnhancedScatterChartProperties>(capabilities);
+
+                expect(properties[objectName]).toBeDefined();
+                expect(properties[objectName][propertyName]).toBeDefined();
+            });
+
+            it("properties should contain two properties with the same root", () => {
+                let objectName: string = "general",
+                    propertyNames: string[] = ["customProperty0", "customProperty1"],
+                    capabilities: VisualCapabilities,
+                    properties: EnhancedScatterChartProperties;
+
+                capabilities = {
+                    objects: {
+                        [objectName]: {
+                            properties: {
+                                [propertyNames[0]]: {
+                                    displayName: propertyNames[0],
+                                    type: {}
+                                },
+                                [propertyNames[1]]: {
+                                    displayName: propertyNames[1],
+                                    type: {}
+                                }
+                            }
+                        }
+                    }
+                };
+
+                properties = 
+                    VisualClass.getPropertiesByCapabilities<EnhancedScatterChartProperties>(capabilities);
+
+                expect(properties[objectName]).toBeDefined();
+                expect(properties[objectName][propertyNames[0]]).toBeDefined();
+                expect(properties[objectName][propertyNames[1]]).toBeDefined();
+            });
+
+            it("properties should contain two properties", () => {
+                let objectNames: string[] = ["general0", "general1"],
+                    propertyNames: string[] = ["customProperty0", "customProperty1"],
+                    capabilities: VisualCapabilities,
+                    properties: EnhancedScatterChartProperties;
+
+                capabilities = {
+                    objects: {
+                        [objectNames[0]]: {
+                            properties: {
+                                [propertyNames[0]]: {
+                                    displayName: propertyNames[0],
+                                    type: {}
+                                }
+                            }
+                        },
+                        [objectNames[1]]: {
+                            properties: {
+                                [propertyNames[1]]: {
+                                    displayName: propertyNames[1],
+                                    type: {}
+                                }
+                            }
+                        }
+                    }
+                };
+
+                properties = 
+                    VisualClass.getPropertiesByCapabilities<EnhancedScatterChartProperties>(capabilities);
+
+                expect(properties[objectNames[0]]).toBeDefined();
+                expect(properties[objectNames[0]][propertyNames[0]]).toBeDefined();
+
+                expect(properties[objectNames[1]]).toBeDefined();
+                expect(properties[objectNames[1]][propertyNames[1]]).toBeDefined();
             });
         });
 

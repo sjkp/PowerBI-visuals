@@ -5,7 +5,7 @@
     "package": {
         "name": "WordCloud",
         "displayName": "WordCloud",
-        "version": "1.1.2",
+        "version": "1.2.0",
         "guid": "WordCloud1447959067750",
         "description": "Word Cloud is a visual representation of word frequency and value. Use it to get instant insight into the most important terms in a set.",
         "build": "13.0.1100.210",

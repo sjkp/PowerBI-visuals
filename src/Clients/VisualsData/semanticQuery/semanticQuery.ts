@@ -528,9 +528,16 @@ module powerbi.data {
             return SemanticQuery.createWithTrimmedFrom(from, where, transform, orderBy, select, groupBy);
         }
 
-        public equals(query: SemanticQuery): boolean {
-            // NOTE: Implement deep comparison
-            return this === query;
+        public static equals(x: SemanticQuery, y: SemanticQuery): boolean {
+            debug.assertValue(x, 'x SemanticQuery');
+            debug.assertValue(y, 'y SemanticQuery');
+
+            return x.from().equals(y.from())
+                && ArrayExtensions.sequenceEqual(x.where(), y.where(), SQFilter.equals)
+                && ArrayExtensions.sequenceEqual(x.orderBy(), y.orderBy(), SQUtils.sqSortDefinitionEquals)
+                && ArrayExtensions.sequenceEqual(x.select(), y.select(), SQUtils.namedSQExprEquals)
+                && ArrayExtensions.sequenceEqual(x.groupBy(), y.groupBy(), SQUtils.namedSQExprEquals)
+                && ArrayExtensions.sequenceEqual(x.transforms(), y.transforms(), SQUtils.sqTransformEquals);
         }
     }
 

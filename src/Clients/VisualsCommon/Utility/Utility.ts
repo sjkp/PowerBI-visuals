@@ -485,6 +485,19 @@ module jsCommon {
         }
 
         /**
+         * Checks if the value is defined and returns it, else, returns undefined
+         * @param {T} value Value to check
+         * @param {T} defaultValue Default value to return if value is undefined
+         * @returns value if defined, else defaultValue
+         */
+        public static valueOrDefault<T>(value: T, defaultValue: T): T {
+            if (value != null)
+                return value;
+
+            return defaultValue;
+        }
+
+        /**
          * Combine a base url and a path.
          * @param baseUrl The base url.
          * @param path The path to add on to the base url.

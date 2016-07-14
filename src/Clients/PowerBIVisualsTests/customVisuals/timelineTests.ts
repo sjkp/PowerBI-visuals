@@ -92,18 +92,17 @@ module powerbitests.customVisuals {
 
                     expect(countOfDays).toBe(dataView.categorical.categories[0].values.length);
                     expect(countOfTextItems).toBe(dataView.categorical.categories[0].values.length);
+
                     let cellRects = visualBuilder.mainElement.find(".cellRect");
                     cellRects.last().d3Click(0, 0);
-                    let fill = window.getComputedStyle(cellRects[0]).fill;
-                    let hexFill = fill;
-                    if (_.startsWith(fill, '#')) {
-                        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fill);
-                        hexFill = "rgb(" + parseInt(result[1], 16) + ", " + parseInt(result[2], 16) + ", " + parseInt(result[3], 16) + ")";
-                    }
-                    expect(hexFill).toBe("rgb(255, 255, 255)");
+
+                    let unselectedCellRect = visualBuilder.mainElement.find(".cellRect").first();
+                    colorAssert(unselectedCellRect.attr("fill"), 'transparent');
+
                     let cellHeight = parseInt(cellRects[0].attributes.getNamedItem("height").value.replace("px", ""), 10);
                     expect(cellHeight).toBeLessThan(60.1);
                     expect(cellHeight).toBeGreaterThan(29.9);
+
                     done();
                 });
             });
@@ -178,6 +177,68 @@ module powerbitests.customVisuals {
 
                     visualBuilder.updateRenderTimeout(dataView, () => {
                         colorAssert(visualBuilder.mainElement.children("g.mainArea").children(".cellsArea").children(".cellRect").css('fill'), '#00B8AA');
+                        done();
+                    });
+                });
+            });
+
+            it("change color for granularity scale", (done) => {
+                dataView.metadata.objects = {};
+                visualBuilder.update(dataView);
+                visualBuilder.currentPeriod = GranularityType.day;
+
+                function checkGranularityScaleElements(color): void {
+                    let horizLine = visualBuilder.element.find(".timelineSlicer").children("rect").first();
+                    let vertLine = visualBuilder.element.find(".timelineVertLine").first();
+                    let perLetters = visualBuilder.element.find(".periodSlicerGranularities").first();
+                    let perText = visualBuilder.element.find(".periodSlicerSelection");
+
+                    colorAssert(horizLine.css('fill'), color);
+                    colorAssert(vertLine.css('fill'), color);
+                    colorAssert(perLetters.css('fill'), color);
+                    colorAssert(perText.css('fill'), color);
+                }
+
+                helpers.renderTimeout(() => {
+                    let defaultColor = 'rgb(0, 0, 0)';
+                    let presetColor = 'rgb(255, 0, 0)';
+
+                    checkGranularityScaleElements(defaultColor);
+
+                    dataView.metadata.objects = {
+                        granularity: {
+                            scaleColor: {
+                                solid: { color: presetColor}
+                            }
+                        }
+                    };
+
+                    visualBuilder.updateRenderTimeout(dataView, () => {
+                        checkGranularityScaleElements(presetColor);
+                        done();
+                    });
+                });
+            });
+
+            it("change color for granularity slider", (done) => {
+                dataView.metadata.objects = {};
+                visualBuilder.update(dataView);
+                visualBuilder.currentPeriod = GranularityType.day;
+
+                helpers.renderTimeout(() => {
+
+                    colorAssert(visualBuilder.element.find(".periodSlicerRect").css('stroke'), 'rgb(170, 170, 170)');
+
+                    dataView.metadata.objects = {
+                        granularity: {
+                            sliderColor: {
+                                solid: { color: 'rgb(255, 0, 0)' }
+                            }
+                        }
+                    };
+
+                    visualBuilder.updateRenderTimeout(dataView, () => {
+                        colorAssert(visualBuilder.element.find(".periodSlicerRect").css('stroke'), 'rgb(255, 0, 0)');
                         done();
                     });
                 });

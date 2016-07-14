@@ -967,6 +967,46 @@ module powerbitests {
                 }, DefaultWaitForRender);
             });
 
+            it('scatter chart no category single series legend validation', (done) => {
+                let seriesSourceMain: powerbi.DataViewMetadataColumn = { displayName: 'series', queryName: 'select0', roles: { "Series": true } };
+                let seriesSourcex1: powerbi.DataViewMetadataColumn = { displayName: 'x', queryName: 'select1', groupName: 'series0', roles: { "X": true } };
+                let seriesSourcey1: powerbi.DataViewMetadataColumn = { displayName: 'y', queryName: 'select2', groupName: 'series0', roles: { "Y": true } };
+
+                let metadata: powerbi.DataViewMetadata = {
+                    columns: [
+                        seriesSourcex1,
+                        seriesSourcey1,
+                    ]
+                };
+
+                let colRef = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
+
+                v.onDataChanged({
+                    dataViews: [{
+                        metadata: metadata,
+                        categorical: {
+                            values: DataViewTransform.createValueColumns([
+                                {
+                                    source: seriesSourcex1,
+                                    values: [110],
+                                    identity: mocks.dataViewScopeIdentity('series'),
+                                }, {
+                                    source: seriesSourcey1,
+                                    values: [210],
+                                    identity: mocks.dataViewScopeIdentity('series'),
+                                }
+                            ], [colRef], seriesSourceMain)
+                        }
+                    }]
+                });
+
+                setTimeout(() => {
+                    if (!interactiveChart)
+                        expect($('.legendItem').length).toBe(1);
+                    done();
+                }, DefaultWaitForRender);
+            });
+
             it('empty scatter chart dom validation', (done) => {
                 v.onDataChanged({
                     dataViews: [{
@@ -5117,6 +5157,50 @@ module powerbitests {
             expect(dataPoints[0].tooltipInfo).toBeUndefined();
             expect(dataPoints[1].tooltipInfo).toBeUndefined();
             expect(dataPoints[2].tooltipInfo).toBeUndefined();
+        });
+
+        it('validate tooltip info not being created when tooltips are disabled and tooltipBuckets are enabled', () => {
+            let viewport: powerbi.IViewport = {
+                height: 500,
+                width: 500
+            };
+
+            let categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity(null),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
+            let dataView: powerbi.DataView = {
+                metadata: dataViewMetadataFourColumn,
+                categorical: {
+                    categories: [{
+                        source: dataViewMetadataFourColumn.columns[0],
+                        values: ['a', 'b', 'c', 'd', 'e'],
+                        identity: categoryIdentities,
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: dataViewMetadataFourColumn.columns[1],
+                            values: [110, 120, 130, 140, 150]
+                        }, {
+                            source: dataViewMetadataFourColumn.columns[2],
+                            values: [210, 220, 230, 240, 250]
+                        }, {
+                            source: dataViewMetadataFourColumn.columns[3],
+                            values: [310, 320, 330, 340, 350],
+                        }, {
+                            source: dataViewMetadataFourColumn.columns[4],
+                            values: [10, 20, 30, 40, 50],
+                        }])
+                }
+            };
+
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let scatterChartData = ScatterChart.converter(dataView, createConverterOptions(viewport, colors), /*playFrameInfo*/undefined, /*tooltipsEnabled*/false, /*tooltipBucketEnabled*/true);
+
+            expect(scatterChartData.dataPoints[0].tooltipInfo).toBeUndefined();
         });
 
         it('scatter chart null legend', () => {

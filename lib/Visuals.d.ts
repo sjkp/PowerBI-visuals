@@ -11,6 +11,180 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare module powerbi.visuals {
     class Point implements IPoint {
         x: number;
@@ -995,6 +1169,9 @@ declare module powerbi.visuals {
         trend: {
             show: DataViewObjectPropertyIdentifier;
         };
+        scalarKey: {
+            scalarKeyMin: DataViewObjectPropertyIdentifier;
+        };
         categoryAxis: {
             axisType: DataViewObjectPropertyIdentifier;
         };
@@ -1720,6 +1897,11 @@ declare module powerbi.visuals {
          */
         forcedTickCount?: number;
         /**
+         * (optional) For scalar axis with scalar keys, the number of ticks should never exceed the number of scalar keys,
+         * or labeling will look wierd (i.e. level of detail is Year, but month labels are shown between years)
+         */
+        maxTickCount?: number;
+        /**
          * (optional) Callback for looking up actual values from indices,
          * used when formatting tick labels.
          */
@@ -1844,32 +2026,6 @@ declare module powerbi.visuals {
          * Indicates whether the number is power of 10.
          */
         function powerOfTen(d: any): boolean;
-    }
-}
-
-declare module powerbi.visuals {
-    interface IScaledRange<T> {
-        getValue(): ValueRange<T>;
-        setValue(value: ValueRange<T>): any;
-        setScaledValue(value: ValueRange<number>): any;
-        getScaledValue(): ValueRange<number>;
-    }
-    /**
-     * Implements IRange interface for the Date type.
-     */
-    class DateRange implements IScaledRange<Date> {
-        private value;
-        private scaledValue;
-        private scale;
-        constructor(min: Date, max: Date, start?: Date, end?: Date);
-        getScaledValue(): ValueRange<number>;
-        setValue(original: ValueRange<Date>): void;
-        getValue(): ValueRange<Date>;
-        /**
-         * Updates scaled value.
-         * Value should in range [0 .. 100].
-         */
-        setScaledValue(value: ValueRange<number>): void;
     }
 }
 
@@ -6483,6 +6639,9 @@ declare module powerbi.visuals {
         startIndex: number;
         endIndex: number;
     }
+    interface ScalarKeys {
+        values: PrimitiveValueRange[];
+    }
     /**
      * Renders a data series as a cartestian visual.
      */
@@ -6542,7 +6701,8 @@ declare module powerbi.visuals {
         constructor(options: CartesianConstructorOptions);
         init(options: VisualInitOptions): void;
         private isPlayAxis();
-        static getIsScalar(objects: DataViewObjects, propertyId: DataViewObjectPropertyIdentifier, type: ValueTypeDescriptor): boolean;
+        static getIsScalar(objects: DataViewObjects, propertyId: DataViewObjectPropertyIdentifier, type: ValueTypeDescriptor, scalarKeys?: ScalarKeys): boolean;
+        private static supportsScalar(type, scalarKeys?);
         static getAdditionalTelemetry(dataView: DataView): any;
         static detectScalarMapping(dataViewMapping: data.CompiledDataViewMapping): boolean;
         private populateObjectProperties(dataViews);
@@ -7771,6 +7931,8 @@ declare module powerbi.visuals {
     interface LineChartData extends CartesianData {
         series: LineChartSeries[];
         isScalar?: boolean;
+        scalarMetadata?: DataViewMetadataColumn;
+        scalarKeyCount?: number;
         dataLabelsSettings: LineChartDataLabelsSettings;
         axesLabels: ChartAxesLabels;
         hasDynamicSeries?: boolean;
@@ -7922,6 +8084,7 @@ declare module powerbi.visuals {
         private getAvailableWidth();
         private getAvailableHeight();
         private static sliceSeries(series, newLength, startIndex?);
+        private static getScalarKeys(dataViewCategoryColumn);
         private getXOfFirstCategory();
         private hasDataPoint(series);
         private getXValue(d);
@@ -10148,4 +10311,34 @@ declare module powerbi.visuals {
             color: string;
         };
     }
+}
+
+declare module powerbi.visuals {
+    interface IScaledRange<T> {
+        getValue(): ValueRange<T>;
+        setValue(value: ValueRange<T>): any;
+        setScaledValue(value: ValueRange<number>): any;
+        getScaledValue(): ValueRange<number>;
+    }
+    /**
+     * Implements IRange interface for the Date type.
+     */
+    class DateRange implements IScaledRange<Date> {
+        private value;
+        private scaledValue;
+        private scale;
+        constructor(min: Date, max: Date, start?: Date, end?: Date);
+        getScaledValue(): ValueRange<number>;
+        setValue(original: ValueRange<Date>): void;
+        getValue(): ValueRange<Date>;
+        /**
+         * Updates scaled value.
+         * Value should in range [0 .. 100].
+         */
+        setScaledValue(value: ValueRange<number>): void;
+    }
+}
+
+declare module powerbi.visuals {
+    const tableStylePresets: VisualStylePresets;
 }

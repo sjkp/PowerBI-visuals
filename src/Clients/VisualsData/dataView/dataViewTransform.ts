@@ -787,17 +787,17 @@ module powerbi.data {
                         if (!ruleDesc)
                             continue;
 
-                        let definition = createRuleEvaluationInstance(
+                        let definitions = createRuleEvaluationInstance(
                             dataView,
                             colorAllocatorFactory,
                             ruleDesc,
                             objectName,
                             object[propertyName],
                             propertyDesc.type);
-                        if (!definition)
+                        if (_.isEmpty(definitions))
                             continue;
 
-                        dataObjects.push(definition);
+                        dataObjects.push(...definitions);
                     }
                 }
             }
@@ -809,7 +809,7 @@ module powerbi.data {
             ruleDesc: DataViewObjectPropertyRuleDescriptor,
             objectName: string,
             propertyValue: DataViewPropertyValue,
-            ruleType: StructuralTypeDescriptor): DataViewObjectDefinitionsForSelectorWithRule {
+            ruleType: StructuralTypeDescriptor): DataViewObjectDefinitionsForSelectorWithRule[] {
             debug.assertValue(dataView, 'dataView');
             debug.assertValue(colorAllocatorFactory, 'colorAllocatorFactory');
             debug.assertValue(ruleDesc, 'ruleDesc');
@@ -820,12 +820,12 @@ module powerbi.data {
             if (!ruleOutput)
                 return;
 
-            let selectorToCreate = findSelectorForRuleInput(dataView, ruleOutput.selector);
-            if (!selectorToCreate)
+            let selectorsToCreate = findSelectorsForRuleInput(dataView, ruleOutput.selector);
+            if (_.isEmpty(selectorsToCreate))
                 return;
 
             if (ruleType.fillRule) {
-                return createRuleEvaluationInstanceFillRule(dataView, colorAllocatorFactory, ruleDesc, selectorToCreate, objectName, <FillRule>propertyValue);
+                return createRuleEvaluationInstanceFillRule(dataView, colorAllocatorFactory, ruleDesc, selectorsToCreate, objectName, <FillRule>propertyValue);
             }
         }
 
@@ -833,13 +833,13 @@ module powerbi.data {
             dataView: DataView,
             colorAllocatorFactory: IColorAllocatorFactory,
             ruleDesc: DataViewObjectPropertyRuleDescriptor,
-            selectorToCreate: Selector,
+            selectorsToCreate: Selector[],
             objectName: string,
-            propertyValue: FillRule): DataViewObjectDefinitionsForSelectorWithRule {
+            propertyValue: FillRule): DataViewObjectDefinitionsForSelectorWithRule[] {
             debug.assertValue(dataView, 'dataView');
             debug.assertValue(colorAllocatorFactory, 'colorAllocatorFactory');
             debug.assertValue(ruleDesc, 'ruleDesc');
-            debug.assertValue(selectorToCreate, 'selectorToCreate');
+            debug.assertValue(selectorsToCreate, 'selectorsToCreate');
             debug.assertValue(propertyValue, 'propertyValue');
 
             let colorAllocator = tryCreateColorAllocatorForFillRule(dataView, colorAllocatorFactory, ruleDesc.inputRole, ColumnIdentifierKind.Role, propertyValue);
@@ -853,14 +853,19 @@ module powerbi.data {
                 solid: { color: rule }
             };
 
-            return {
-                selector: selectorToCreate,
-                rules: [rule],
-                objects: [{
-                    name: objectName,
-                    properties: fillRuleProperties,
-                }]
-            };
+            let objectDefinitions: DataViewObjectDefinitionsForSelectorWithRule[] = [];
+
+            for (let selectorIndex = 0, selectorCount = selectorsToCreate.length; selectorIndex < selectorCount; selectorIndex++) {
+                objectDefinitions.push({
+                    selector: selectorsToCreate[selectorIndex],
+                    rules: [rule],
+                        objects: [{
+                            name: objectName,
+                            properties: fillRuleProperties,
+                        }]
+                });
+            }
+            return objectDefinitions;
         }
 
         function tryCreateColorAllocatorForFillRule(
@@ -1019,11 +1024,13 @@ module powerbi.data {
 
             let dataViewCategorical = dataView.categorical;
             if (dataViewCategorical && EnumExtensions.hasFlag(targetDataViewKinds, StandardDataViewKinds.Categorical)) {
+                let rewrittenSelector = rewriteCategoricalRoleSelector(dataViewCategorical, selector);
+
                 // 1) Match against categories
-                evaluateDataRepetitionCategoricalCategory(dataViewCategorical, selectTransforms, objectDescriptors, selector, rules, containsWildcard, objectDefns, colorAllocatorCache);
+                evaluateDataRepetitionCategoricalCategory(dataViewCategorical, selectTransforms, objectDescriptors, rewrittenSelector, rules, containsWildcard, objectDefns, colorAllocatorCache);
 
                 // 2) Match against valueGrouping
-                evaluateDataRepetitionCategoricalValueGrouping(dataViewCategorical, selectTransforms, objectDescriptors, selector, rules, containsWildcard, objectDefns, colorAllocatorCache);
+                evaluateDataRepetitionCategoricalValueGrouping(dataViewCategorical, selectTransforms, objectDescriptors, rewrittenSelector, rules, containsWildcard, objectDefns, colorAllocatorCache);
 
                 // Consider capturing diagnostics for unmatched selectors to help debugging.
             }
@@ -1056,13 +1063,21 @@ module powerbi.data {
 
         function rewriteTableRoleSelector(dataViewTable: DataViewTable, selector: Selector): Selector {
             if (Selector.hasRoleWildcard(selector)) {
-                selector = findSelectorForRoleWildcard(dataViewTable, selector);
+                selector = findSelectorForRoleWildcard(selector, (r) => getIdentityExprsForRolesOnTable(r, dataViewTable));
             }
 
             return selector;
         }
 
-        function findSelectorForRoleWildcard(dataViewTable: DataViewTable, selector: Selector): Selector {
+        function rewriteCategoricalRoleSelector(dataViewCategorical: DataViewCategorical, selector: Selector): Selector {
+            if (Selector.hasRoleWildcard(selector)) {
+                selector = findSelectorForRoleWildcard(selector, (r) => getIdentityExprsForRolesOnCategorical(r, dataViewCategorical));
+            }
+
+            return selector;
+        }
+
+        function findSelectorForRoleWildcard(selector: Selector, getIdentityExprsForRoles: (r: string[]) => ISQExpr[]): Selector {
             let resultingSelector: Selector = {
                 data: [],
                 id: selector.id,
@@ -1071,10 +1086,8 @@ module powerbi.data {
 
             for (let dataSelector of selector.data) {
                 if (Selector.isRoleWildcard(dataSelector)) {
-                    let selectorRoles = dataSelector.roles;
-                    let allColumnsBelongToSelectorRole: boolean = allColumnsBelongToRole(dataViewTable.columns, selectorRoles);
-                    let exprs = dataViewTable.identityFields;
-                    if (allColumnsBelongToSelectorRole && exprs) {
+                    let exprs = getIdentityExprsForRoles(dataSelector.roles);
+                    if (!_.isEmpty(exprs)) {
                         resultingSelector.data.push(DataViewScopeWildcard.fromExprs(<SQExpr[]>exprs));
                         continue;
                     }
@@ -1086,6 +1099,23 @@ module powerbi.data {
             }
 
             return resultingSelector;
+        }
+
+        function getIdentityExprsForRolesOnTable(roles: string[], dataViewTable: DataViewTable): ISQExpr[] {
+            let allColumnsBelongToSelectorRole: boolean = allColumnsBelongToRole(dataViewTable.columns, roles);
+            let exprs = dataViewTable.identityFields;
+            if (allColumnsBelongToSelectorRole && exprs)
+                return exprs;
+        }
+
+        function getIdentityExprsForRolesOnCategorical(roles: string[], dataViewCategorical: DataViewCategorical): ISQExpr[] {
+            // NOTE: Matching role wildcards on categorical value groups is not yet implemented because no scenarios need it at the time of this writing.
+            if (dataViewCategorical.categories) {
+                for (let category of dataViewCategorical.categories) {
+                    if (category.source && allColumnsBelongToRole([category.source], roles))
+                        return category.identityFields;
+                }
+            }
         }
 
         function isUniqueDataSelector(dataSelectors: DataRepetitionSelector[], newSelector: DataRepetitionSelector): boolean {
@@ -1538,28 +1568,32 @@ module powerbi.data {
             };
         }
 
-        function findSelectorForRuleInput(dataView: DataView, selectorRoles: string[]): Selector {
+        function findSelectorsForRuleInput(dataView: DataView, selectorRoles: string[]): Selector[] {
             debug.assertValue(dataView, 'dataView');
             debug.assertValue(selectorRoles, 'selectorRoles');
-
-            if (selectorRoles.length !== 1)
-                return;
 
             let dataViewCategorical = dataView.categorical;
             if (!dataViewCategorical)
                 return;
 
             let categories = dataViewCategorical.categories;
-            if (!categories || categories.length !== 1)
-                return;
 
-            let categoryColumn = categories[0],
-                categoryRoles = categoryColumn.source.roles,
-                categoryIdentityFields = categoryColumn.identityFields;
-            if (!categoryRoles || !categoryIdentityFields || !categoryRoles[selectorRoles[0]])
-                return;
+            let selectorsForRuleInput: Selector[] = [];
+            let categoryRoles: { [name: string]: boolean };
 
-            return { data: [DataViewScopeWildcard.fromExprs(<SQExpr[]>categoryIdentityFields)] };
+            for (let categoryIndex = 0, categoryCount = categories.length; categoryIndex < categoryCount; categoryIndex++) {
+                let categoryColumn = categories[categoryIndex],
+                    categoryIdentityFields = categoryColumn.identityFields;
+                categoryRoles = categoryColumn.source.roles;
+
+                let columnHasSelectorRole = _.any(selectorRoles, (role: string) => categoryRoles[role]);
+                if (!categoryRoles || !categoryIdentityFields || !columnHasSelectorRole)
+                    continue;
+
+                selectorsForRuleInput.push({ data: [DataViewScopeWildcard.fromExprs(<SQExpr[]>categoryIdentityFields)] });
+            }
+
+            return selectorsForRuleInput;
         }
 
         function findFirstQueryNameForExpr(selectTransforms: DataViewSelectTransform[], expr: SQExpr): string {

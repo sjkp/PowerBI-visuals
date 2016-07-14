@@ -246,6 +246,8 @@ module powerbi.visuals.samples {
         private static ChartArea: ClassAndSelector = CreateClassAndSelector('chartArea');
         private static ChartPolygon: ClassAndSelector = CreateClassAndSelector('chartPolygon');
         private static ChartDot: ClassAndSelector = CreateClassAndSelector('chartDot');
+        private static MaxPrecision: number = 17;
+        private static MinPrecision: number = 0;
 
         private svg: D3.Selection;
         private segments: D3.Selection;
@@ -915,6 +917,10 @@ module powerbi.visuals.samples {
             };
         }
 
+        private static getPrecision(value: number): number {
+            return Math.max(RadarChart.MinPrecision, Math.min(RadarChart.MaxPrecision, value));
+        }
+
         private static parseLabelSettings(dataView: DataView): PointDataLabelsSettings {
             var objects: DataViewObjects;
 
@@ -929,7 +935,7 @@ module powerbi.visuals.samples {
                 show: DataViewObjects.getValue(objects, RadarChart.Properties.labels.show, dataLabelsSettings.show),
                 labelColor: DataViewObjects.getFillColor(objects, RadarChart.Properties.labels.color, dataLabelsSettings.labelColor),
                 displayUnits: DataViewObjects.getValue(objects, RadarChart.Properties.labels.displayUnits, dataLabelsSettings.displayUnits),
-                precision: DataViewObjects.getValue(objects, RadarChart.Properties.labels.precision, dataLabelsSettings.precision),
+                precision: RadarChart.getPrecision(DataViewObjects.getValue(objects, RadarChart.Properties.labels.precision, dataLabelsSettings.precision)),
                 fontSize: DataViewObjects.getValue(objects, RadarChart.Properties.labels.fontSize, dataLabelsSettings.fontSize),
                 position: dataLabelsSettings.position
             };

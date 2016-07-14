@@ -27,6 +27,7 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.data {
+    import ArrayExtensions = jsCommon.ArrayExtensions;
 
     export type SQFromSource = SQFromEntitySource | SQFromSubquerySource;
 
@@ -56,7 +57,7 @@ module powerbi.data {
         }
 
         public equals(source: SQFromSubquerySource): boolean {
-            return source && this.subquery.equals(source.subquery);
+            return source && SemanticQuery.equals(this.subquery, source.subquery);
         }
     }
 
@@ -74,6 +75,10 @@ module powerbi.data {
 
         public source(key: string): SQFromSource {
             return this.items[key];
+        }
+
+        public sources(): { [name: string]: SQFromSource } {
+            return this.items;
         }
 
         public ensureSource(source: SQFromSource, desiredVariableName?: string): QueryFromEnsureEntityResult {
@@ -98,9 +103,13 @@ module powerbi.data {
             for (let i in keys) {
                 let key = keys[i],
                     item = this.items[key];
-                if (isSQFromEntitySource(item) && isSQFromEntitySource(source) && item.equals(source))
+                if (isSQFromEntitySource(item) &&
+                    isSQFromEntitySource(source) &&
+                    item.equals(source))
                     return key;
-                else if (isSQFromSubquerySource(item) && isSQFromSubquerySource(source) && item.equals(source))
+                else if (isSQFromSubquerySource(item) &&
+                    isSQFromSubquerySource(source) &&
+                    item.equals(source))
                     return key;
             }
         }
@@ -127,6 +136,32 @@ module powerbi.data {
 
             return cloned;
         }
+
+        public equals(comparand: SQFrom): boolean {
+            if (!comparand)
+                return false;
+
+            let localKeys = this.keys(),
+                comparandKeys = comparand.keys();
+            if (localKeys.length !== comparandKeys.length)
+                return false;
+
+            return ArrayExtensions.sequenceEqual(localKeys, comparandKeys, (localKey: string, comparandKey: string) => equals(this.source(localKey), comparand.source(comparandKey)));
+        }
+    }
+
+    export function equals(left: SQFromSource, right: SQFromSource): boolean {
+        if (left && right) {
+            if (isSQFromEntitySource(left) && isSQFromEntitySource(right))
+                return left.equals(right);
+            else if (isSQFromSubquerySource(left) && isSQFromSubquerySource(right))
+                return left.equals(right);
+        }
+
+        if (left === right)
+            return true;
+
+        return false;
     }
 
     export function isSQFromEntitySource(source: SQFromSource): source is SQFromEntitySource {

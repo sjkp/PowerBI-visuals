@@ -4,7 +4,7 @@
     "package": {
         "name": "RadarChart",
         "displayName": "Radar Chart",
-        "version": "0.4.8",
+        "version": "0.4.9",
         "guid": "RadarChart1446119667547",
         "description": "A simple radar chart supporting multiple measures plotted over a categorical axis. Also known as a web chart, spider chart, or star chart. Use to display performance metrics for quality improvement.",
         "build": "13.0.1100.210",

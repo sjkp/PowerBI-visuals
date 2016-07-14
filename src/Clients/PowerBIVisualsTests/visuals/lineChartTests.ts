@@ -33,8 +33,10 @@ module powerbitests {
     import CartesianChartType = powerbi.visuals.CartesianChartType;
     import DataViewObjects = powerbi.DataViewObjects;
     import DataViewPivotCategorical = powerbi.data.DataViewPivotCategorical;
+    import ScalarKeys = powerbi.visuals.ScalarKeys;
     import DataViewTransform = powerbi.data.DataViewTransform;
     import LineChart = powerbi.visuals.LineChart;
+    import lineChartProps = powerbi.visuals.lineChartProps;
     import lineStyle = powerbi.visuals.lineStyle;
     import SVGUtil = powerbi.visuals.SVGUtil;
     import SelectionId = powerbi.visuals.SelectionId;
@@ -299,6 +301,37 @@ module powerbitests {
             };
             let actualData = LineChart.converter(dataView, blankCategoryValue, colors, false, undefined, undefined, undefined, false);
             expect(actualData.series[0].data[0].tooltipInfo).toBeUndefined();
+        });
+
+        it('validate tooltip info not being created when tooltips are disabled and tooltipBuckets are enabled', () => {
+            let dataView: powerbi.DataView = {
+                metadata: dataViewMetadata,
+                categorical: {
+                    categories: [{
+                        source: dataViewMetadata.columns[0],
+                        values: ['John Domo', 'Delta Force', 'Jean Tablau']
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: dataViewMetadata.columns[1],
+                            values: [100, 200, 700],
+                        }, {
+                            source: dataViewMetadata.columns[2],
+                            values: [700, 100, 200],
+                        }, {
+                            source: dataViewMetadata.columns[3],
+                            values: [200, 700, 100],
+                        },
+                        {
+                            source: tooltipColumn,
+                            values: [200, 700, 100],
+                        }]),
+                },
+            };
+
+            let actualData = LineChart.converter(dataView, blankCategoryValue, colors, /*isScalar*/false, /*interactivityService*/undefined, /*shouldCalculateStacked*/undefined, /*isComboChart*/undefined, /*tooltipsEnabled*/false, /*tooltipBucketEnabled*/true);
+            expect(actualData.series[0].data[0].tooltipInfo).toBeUndefined();
+            expect(actualData.series[0].data[0].extraTooltipInfo).toBeUndefined();
         });
 
         it('Check convert categorical + fill color', () => {
@@ -1288,6 +1321,119 @@ module powerbitests {
             expect(actualData).toEqualDeep(expectedData);
         });
 
+        it('Check convert date time with scalar keys', () => {
+            let categoryIdentities = [
+                mocks.dataViewScopeIdentity('2014/9/25'),
+                mocks.dataViewScopeIdentity('2014/12/12'),
+                mocks.dataViewScopeIdentity('2015/9/25'),
+            ];
+            let dataView: powerbi.DataView = {
+                metadata: dateTimeColumnsMetadata,
+                categorical: {
+                    categories: [{
+                        source: dateTimeColumnsMetadata.columns[0],
+                        values: [new Date('2014/9/25'), new Date('2014/12/12'), new Date('2015/9/25')],
+                        identity: categoryIdentities,
+                        objects: []
+                    }],
+                    values: DataViewTransform.createValueColumns([{
+                        source: dateTimeColumnsMetadata.columns[1],
+                        values: [8000, 20000, 1000000],
+                    }])
+                }
+            };
+
+            let scalarKeys: ScalarKeys = {
+                values: [{
+                    min: new Date('2014/7/1')
+                        }, {
+                    min: new Date('2014/10/1')
+                        }, {
+                    min: new Date('2015/7/1')
+                    }]
+            };
+
+            InjectScalarKeys(dataView.categorical.categories[0].objects, scalarKeys);
+
+            let selectionId = SelectionId.createWithMeasure('PowerBI Customers');
+            let key = selectionId.getKey();
+            let defaultLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLineChartLabelSettings();
+            let actualData = LineChart.converter(dataView, blankCategoryValue, colors, true /*isScalar*/, null /*interactivity*/, false /*isStacked*/, false /*isComboChart*/, true /* toolTipEnabled*/, false /*tooltipBucketEnabled*/);
+            let seriesColor = colors.getColorByIndex(0).value;
+
+            expect(actualData.isScalar).toBe(true);
+            expect(actualData.scalarMetadata).toBeDefined();
+            expect(actualData.scalarKeyCount).toBe(3);
+            let expectedScalarMetadata: powerbi.DataViewMetadataColumn = {
+                displayName: null,
+                type: {
+                    dateTime: true
+                },
+            };
+            expect(actualData.scalarMetadata).toEqualDeep(expectedScalarMetadata);
+            expect(actualData.scalarKeyCount).toBe(3);
+
+            expect(new Date(actualData.categoryData[0].categoryValue)).toEqual(new Date('2014/7/1'));
+            expect(new Date(actualData.categoryData[1].categoryValue)).toEqual(new Date('2014/10/1'));
+            expect(new Date(actualData.categoryData[2].categoryValue)).toEqual(new Date('2015/7/1'));
+
+            let expectedSeriesData: powerbi.visuals.LineChartSeries[] =
+                [{
+                    displayName: dataView.metadata.columns[1].displayName,
+                    key: key,
+                    lineIndex: 0,
+                    color: seriesColor,
+                    xCol: expectedScalarMetadata,
+                    yCol: dataView.metadata.columns[1],
+                    labelSettings: actualData.series[0].labelSettings,
+                    data: [
+                        {
+                            categoryValue: new Date('2014/7/1').getTime(),
+                            value: 8000,
+                            categoryIndex: 0,
+                            seriesIndex: 0,
+                            tooltipInfo: [{ displayName: "Date", value: "9/25/2014 12:00:00 AM" }, { displayName: "PowerBI Customers", value: "8000" }],
+                            identity: selectionId,
+                            selected: false,
+                            key: JSON.stringify({ series: key, category: categoryIdentities[0].key }),
+                            labelFill: labelColor,
+                            labelFormatString: undefined,
+                            labelSettings: defaultLabelSettings,
+                        },
+                        {
+                            categoryValue: new Date('2014/10/1').getTime(),
+                            value: 20000,
+                            categoryIndex: 1,
+                            seriesIndex: 0,
+                            tooltipInfo: [{ displayName: "Date", value: "12/12/2014 12:00:00 AM" }, { displayName: "PowerBI Customers", value: "20000" }],
+                            identity: selectionId,
+                            selected: false,
+                            key: JSON.stringify({ series: key, category: categoryIdentities[1].key }),
+                            labelFill: labelColor,
+                            labelFormatString: undefined,
+                            labelSettings: defaultLabelSettings,
+                        },
+                        {
+                            categoryValue: new Date('2015/7/1').getTime(),
+                            value: 1000000,
+                            categoryIndex: 2,
+                            seriesIndex: 0,
+                            tooltipInfo: [{ displayName: "Date", value: "9/25/2015 12:00:00 AM" }, { displayName: "PowerBI Customers", value: "1000000" }],
+                            identity: selectionId,
+                            selected: false,
+                            key: JSON.stringify({ series: key, category: categoryIdentities[2].key }),
+                            labelFill: labelColor,
+                            labelFormatString: undefined,
+                            labelSettings: defaultLabelSettings,
+                        },
+                    ],
+                    identity: selectionId,
+                    selected: false
+                }];
+
+            expect(actualData.series).toEqualDeep(expectedSeriesData);
+        });
+
         it('variant measure - datetime column with a text category', () => {
             let dataView: powerbi.DataView = {
                 metadata: dateTimeColumnsMetadata,
@@ -1912,14 +2058,14 @@ module powerbitests {
                 let logMetadata = _.cloneDeep(dataViewMetadata);
                 logMetadata.objects = {};
                 logMetadata.objects["valueAxis"] = {
-                        show: true,
-                        start: 1,
-                        showAxisTitle: true,
-                        axisStyle: true,
-                        axisScale: AxisScale.log
+                    show: true,
+                    start: 1,
+                    showAxisTitle: true,
+                    axisStyle: true,
+                    axisScale: AxisScale.log
                 };
                 options.dataViews[0].metadata = logMetadata;
-                
+
                 let warningSpy = jasmine.createSpy('warning');
                 hostServices.setWarnings = warningSpy;
                 v.onDataChanged(options);
@@ -2994,6 +3140,62 @@ module powerbitests {
                 });
                 setTimeout(() => {
                     expect(helpers.getAxisTicks('x').length).toBe(2);
+                    expect(helpers.findElementText(helpers.getAxisTicks('y').find('text').last())).toBe('6');
+                    expect(helpers.findElementTitle(helpers.getAxisTicks('y').find('text').last())).toBe('6');
+                    done();
+                }, DefaultWaitForRender);
+            });
+
+            it('line chart shows less ticks with scalar keys dom validation', (done) => {
+                let dataViewMetadata: powerbi.DataViewMetadata = {
+                    columns: [
+                        {
+                            displayName: 'col1',
+                            queryName: 'col1',
+                            type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
+                            roles: { Category: true }
+                        },
+                        {
+                            displayName: 'col2',
+                            queryName: 'col2',
+                            isMeasure: true,
+                            type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
+                            roles: { Y: true }
+                        }],
+                };
+
+                let dataView = {
+                    metadata: dataViewMetadata,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadata.columns[0],
+                            values: [new Date(2014, 2, 27), new Date(2015, 6, 5)],
+                            objects: []
+                        }],
+                        values: DataViewTransform.createValueColumns([{
+                            source: dataViewMetadata.columns[1],
+                            values: [5, 5]
+                        }])
+                    }
+                };
+
+                let scalarKeys: ScalarKeys = {
+                    values: [{
+                        min: new Date(2014, 0, 1)
+                            }, {
+                        min: new Date(2015, 0, 1)
+                    }]
+                };
+
+                InjectScalarKeys(dataView.categorical.categories[0].objects, scalarKeys);
+
+                v.onDataChanged({
+                    dataViews: [dataView]
+                });
+
+                // number of ticks on the scalar axis should be no greater than number of scalar keys
+                setTimeout(() => {
+                    expect(helpers.getAxisTicks('x').length).toBeLessThan(scalarKeys.values.length + 1);
                     expect(helpers.findElementText(helpers.getAxisTicks('y').find('text').last())).toBe('6');
                     expect(helpers.findElementTitle(helpers.getAxisTicks('y').find('text').last())).toBe('6');
                     done();
@@ -4706,6 +4908,39 @@ module powerbitests {
                 done();
             }, DefaultWaitForRender);
 
+        });
+
+        it('line chart no category single series legend validation', (done) => {
+            let seriesSourceMain: powerbi.DataViewMetadataColumn = { displayName: 'series', queryName: 'select0', roles: { "Series": true } };
+            let seriesSourceY: powerbi.DataViewMetadataColumn = { displayName: 'value', queryName: 'select1', groupName: 'series0', roles: { "Y": true } };
+
+            let metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    seriesSourceY,
+                ]
+            };
+
+            let colRef = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
+
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: seriesSourceY,
+                                values: [100],
+                                identity: mocks.dataViewScopeIdentity('series'),
+                            }
+                        ], [colRef], seriesSourceMain)
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                expect($('.legendItem').length).toBe(1);
+                done();
+            }, DefaultWaitForRender);
         });
     });
 
@@ -6909,6 +7144,20 @@ module powerbitests {
      */
     function getComboOrMobileTooltip(lineChart: LineChart, seriesData: any, pointX: number, context?: HTMLElement): powerbi.visuals.TooltipDataItem[] {
         return lineChart.getTooltipInfoForCombo(createTooltipEvent(seriesData, context), pointX);
+    }
+
+    function InjectScalarKeys(objects: DataViewObjects[], scalarKeys: ScalarKeys) {
+        debug.assert(!!objects, "objects must be defined");
+        debug.assert(!!scalarKeys, "scalarKeys must be defined");
+        debug.assert(!_.isEmpty(scalarKeys.values), "scalarKeys must have values");
+
+        for (let i = 0; i < scalarKeys.values.length; i++) {
+            let objectsForScalarKeys: DataViewObjects = {};
+            let scalarKeyObject: powerbi.DataViewObject = {};
+            scalarKeyObject[lineChartProps.scalarKey.scalarKeyMin.propertyName] = scalarKeys.values[i].min;
+            objectsForScalarKeys[lineChartProps.scalarKey.scalarKeyMin.objectName] = scalarKeyObject;
+            objects[i] = objectsForScalarKeys;
+        }
     }
 
     class LineChartVisualBuilder {

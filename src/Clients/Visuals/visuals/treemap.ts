@@ -472,19 +472,7 @@ module powerbi.visuals {
                             }
 
                             if (tooltipBucketEnabled) {
-                                let tooltipValues = reader.getAllValuesForRole("Tooltips", categoryIndex, seriesIndex);
-                                let tooltipMetadataColumns = reader.getAllValueMetadataColumnsForRole("Tooltips", seriesIndex);
-
-                                if (tooltipValues && tooltipMetadataColumns) {
-                                    for (let j = 0; j < tooltipValues.length; j++) {
-                                        if (tooltipValues[j] != null) {
-                                            tooltipInfo.push({
-                                                displayName: tooltipMetadataColumns[j].displayName,
-                                                value: converterHelper.formatFromMetadataColumn(tooltipValues[j], tooltipMetadataColumns[j], formatStringProp),
-                                            });
-                                        }
-                                    }
-                                }
+                                TooltipBuilder.addTooltipBucketItem(reader, tooltipInfo, categoryIndex, seriesIndex);
                             }
                         }
 
@@ -596,19 +584,7 @@ module powerbi.visuals {
                                     }
 
                                     if (tooltipBucketEnabled) {
-                                        let tooltipValues = reader.getAllValuesForRole("Tooltips", categoryIndex, hasDynamicSeries ? seriesIndex : undefined);
-                                        let tooltipMetadataColumns = reader.getAllValueMetadataColumnsForRole("Tooltips", hasDynamicSeries ? seriesIndex : undefined);
-
-                                        if (tooltipValues && tooltipMetadataColumns) {
-                                            for (let j = 0; j < tooltipValues.length; j++) {
-                                                if (tooltipValues[j] != null) {
-                                                    tooltipInfo.push({
-                                                        displayName: tooltipMetadataColumns[j].displayName,
-                                                        value: converterHelper.formatFromMetadataColumn(tooltipValues[j], tooltipMetadataColumns[j], formatStringProp),
-                                                    });
-                                                }
-                                            }
-                                        }
+                                        TooltipBuilder.addTooltipBucketItem(reader, tooltipInfo, categoryIndex, hasDynamicSeries ? seriesIndex : undefined);
                                     }
                                 }
 

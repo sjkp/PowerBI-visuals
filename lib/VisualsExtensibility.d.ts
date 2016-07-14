@@ -3,6 +3,22 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare module powerbi.visuals.telemetry {
     /**
      * Creates a client-side Guid string.
@@ -121,6 +137,16 @@ declare module powerbi.extensibility {
         private overloadMethods();
         private getCompiledOverloads();
     }
+}
+
+declare module powerbi.extensibility {
+    /**
+     * Translates visual plugin produced by pbiviz cli tools
+     * The function mutates the plugin
+     *
+     * TODO: add separate capabilities interfaces and versioning support
+     */
+    function translateVisualPlugin(plugin: IVisualPlugin): void;
 }
 
 declare module powerbi.extensibility {

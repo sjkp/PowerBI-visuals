@@ -1830,7 +1830,50 @@ module powerbitests {
 
             // We should not summarize the X-axis values with DisplayUnits per-PowerView behavior, so ensure that we are using the 'Verbose' mode for the formatter.
             spyOn(powerbi.visuals.valueFormatter, 'create').and.callThrough();
-            let data = ColumnChart.converter(dataView, colors, null, null, null, null, null, false);
+            let data = ColumnChart.converter(dataView, colors, /*is100PercentStacked*/null, /*isScalar*/null, /*dataViewMetadata*/null, /*chartType*/null, /*interactivityService*/null, /*tooltipsEnabled*/false);
+            
+            //first tooltip is regular because highlighted value is null
+            expect(data.series[0].data[0].tooltipInfo).toBeUndefined();
+            expect(data.series[0].data[1].tooltipInfo).toBeUndefined();
+
+            //tooltips with highlighted value
+            expect(data.series[0].data[2].tooltipInfo).toBeUndefined();
+            expect(data.series[0].data[3].tooltipInfo).toBeUndefined();
+            
+            //tooltips with highlighted value 0
+            expect(data.series[0].data[4].tooltipInfo).toBeUndefined();
+            expect(data.series[0].data[5].tooltipInfo).toBeUndefined();
+        });
+
+        it('validate tooltip info not being created when tooltips are disabled and tooltipBuckets are enabled', () => {
+            let categoryIdentities = [
+                mocks.dataViewScopeIdentity("2011"),
+                mocks.dataViewScopeIdentity("2012"),
+                mocks.dataViewScopeIdentity("2013"),
+            ];
+            let dataView: powerbi.DataView = {
+                metadata: null,
+                categorical: {
+                    categories: [{
+                        source: categoryColumn,
+                        values: [2011, 2012, 2013],
+                        identity: categoryIdentities,
+                    }],
+                    values: DataViewTransform.createValueColumns([{
+                        source: measureColumn,
+                        values: [100, 200, 300],
+                        highlights: [null, 50, 0],
+                    }, {
+                        source: tooltipsWithFormatString,
+                        values: [10, -20, 30],
+                    }])
+                }
+            };
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+
+            // We should not summarize the X-axis values with DisplayUnits per-PowerView behavior, so ensure that we are using the 'Verbose' mode for the formatter.
+            spyOn(powerbi.visuals.valueFormatter, 'create').and.callThrough();
+            let data = ColumnChart.converter(dataView, colors, /*is100PercentStacked*/null, /*isScalar*/null, /*dataViewMetadata*/null, /*chartType*/null, /*interactivityService*/null, /*tooltipsEnabled*/false, /*tooltipBucketEnabled*/true);
             
             //first tooltip is regular because highlighted value is null
             expect(data.series[0].data[0].tooltipInfo).toBeUndefined();

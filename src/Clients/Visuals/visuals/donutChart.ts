@@ -1880,11 +1880,11 @@ module powerbi.visuals {
                                 value: highlightValueAndPct,
                             });
                         }
-                    }
 
-                    if (this.tooltipBucketEnabled) {
-                        // SeriesIndex is not needed for static series.
-                        TooltipBuilder.addTooltipBucketItem(reader, tooltipInfo, this.categoryValues ? point.categoryIndex : 0, this.isDynamicSeries ? point.seriesIndex : undefined);
+                        if (this.tooltipBucketEnabled) {
+                            // SeriesIndex is not needed for static series.
+                            TooltipBuilder.addTooltipBucketItem(reader, tooltipInfo, this.categoryValues ? point.categoryIndex : 0, this.isDynamicSeries ? point.seriesIndex : undefined);
+                        }
                     }
 
                     let strokeWidth = (prevPointColor === point.color && percentage && percentage > 0) ? 1 : 0;

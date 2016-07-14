@@ -31,6 +31,7 @@ module powerbitests {
     import CartesianAxes = powerbi.visuals.CartesianAxes;
     import SvgCartesianAxes = powerbi.visuals.SvgCartesianAxes;
     import CartesianAxesLayout = powerbi.visuals.CartesianAxesLayout;
+    import ScalarKeys = powerbi.visuals.ScalarKeys;
     import DataView = powerbi.DataView;
     import DataViewTransform = powerbi.data.DataViewTransform;
     import mocks = powerbitests.mocks;
@@ -195,6 +196,45 @@ module powerbitests {
                     }
                 })).toBe(false);
             });
+        });
+
+        describe('getIsScalar with category types and scalar keys', () => {
+            it('getIsScalar with scalar category', () => {
+                let dataViewScalar = buildSimpleDataView(true);
+                let dvCategories = dataViewScalar.categorical.categories;
+                let categoryType = <ValueType>dvCategories[0].source.type;
+                expect(CartesianChart.getIsScalar(dataViewScalar.metadata.objects, visuals.lineChartProps.categoryAxis.axisType, categoryType)).toBe(true);
+            });
+
+            it('getIsScalar with text category', () => {
+                let dataViewScalar = buildSimpleDataView(false);
+                let dvCategories = dataViewScalar.categorical.categories;
+                let categoryType = <ValueType>dvCategories[0].source.type;
+                expect(CartesianChart.getIsScalar(dataViewScalar.metadata.objects, visuals.lineChartProps.categoryAxis.axisType, categoryType)).toBe(false);
+            });
+
+            it('getIsScalar with scalar category and scalar keys', () => {
+                let dataViewScalar = buildSimpleDataView(true);
+                let dvCategories = dataViewScalar.categorical.categories;
+                let categoryType = <ValueType>dvCategories[0].source.type;
+                let dates = [{ min: new Date(2014, 4, 2) }, { min: new Date(2015, 2, 4) }];
+                let scalarKeys: ScalarKeys = {
+                    values: dates
+                };
+                expect(CartesianChart.getIsScalar(dataViewScalar.metadata.objects, visuals.lineChartProps.categoryAxis.axisType, categoryType, scalarKeys)).toBe(true);
+            });
+
+            it('getIsScalar with text category and scalar keys', () => {
+                let dataViewScalar = buildSimpleDataView(false);
+                let dvCategories = dataViewScalar.categorical.categories;
+                let categoryType = <ValueType>dvCategories[0].source.type;
+                let dates = [{ min: new Date(2014, 4, 2) }, { min: new Date(2015, 2, 4) }];
+                let scalarKeys: ScalarKeys = {
+                    values: dates
+                };
+                expect(CartesianChart.getIsScalar(dataViewScalar.metadata.objects, visuals.lineChartProps.categoryAxis.axisType, categoryType, scalarKeys)).toBe(true);
+            });
+
         });
 
         it('getAdditionalTelemetry', () => {

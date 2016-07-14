@@ -7,12 +7,6 @@ window.debug = window.debug || {};
 window.InJs = window.InJs || {};
 window.Microsoft = window.Microsoft || {};
 
-// don't re-build Visuals
-//require("../Visuals/module.ts");
-// use compiled version instead
-// require("script!../../../lib/Visuals.js");
-// require("script!../../../lib/CustomVisuals.js");
-
 // Extra libraries used in tests
 require("script!../../../node_modules/jasmine-jquery/lib/jasmine-jquery.js");
 require("script!../../../src/Clients/Externals/ThirdPartyIP/QuillJS/quill.min.js");

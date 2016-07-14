@@ -10,6 +10,7 @@
 /// <reference path="./components/selectionManager.ts"/>
 /// <reference path="./components/selectionIdBuilder.ts"/>
 /// <reference path="./versioning/VisualAdapter.ts"/>
+/// <reference path="./versioning/VisualPluginAdapter.ts"/>
 /// <reference path="./versioning/VisualSafeExecutionWrapper.ts"/>
 /// <reference path="./versioning/versions/v1.0.0.ts"/>
 /// <reference path="./versioning/versions/v1.1.0.ts"/>

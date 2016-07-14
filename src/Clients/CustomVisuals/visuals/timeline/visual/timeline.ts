@@ -96,6 +96,8 @@ module powerbi.visuals.samples {
 		TimelineDefaultTimeRangeShow: boolean;
 		DefaultTimeRangeColor: string;
 		DefaultLabelColor: string;
+		DefaultScaleColor: string;
+		DefaultSliderColor: string;
 		DefaultGranularity: GranularityType;
 		DefaultFirstMonth: number;
 		DefaultFirstDay: number;
@@ -141,6 +143,8 @@ module powerbi.visuals.samples {
 
 	const SelectedCellColorProp: DataViewObjectPropertyIdentifier = { objectName: 'cells', propertyName: 'fillSelected' };
 	const UnselectedCellColorProp: DataViewObjectPropertyIdentifier = { objectName: 'cells', propertyName: 'fillUnselected' };
+	const ScaleColorProp: DataViewObjectPropertyIdentifier = { objectName: 'granularity', propertyName: 'scaleColor' };
+	const SliderColorProp: DataViewObjectPropertyIdentifier = { objectName: 'granularity', propertyName: 'sliderColor' };
 	const TimeRangeColorProp: DataViewObjectPropertyIdentifier = { objectName: 'rangeHeader', propertyName: 'fontColor' };
 	const TimeRangeSizeProp: DataViewObjectPropertyIdentifier = { objectName: 'rangeHeader', propertyName: 'textSize' };
 	const TimeRangeShowProp: DataViewObjectPropertyIdentifier = { objectName: 'rangeHeader', propertyName: 'show' };
@@ -582,14 +586,15 @@ module powerbi.visuals.samples {
 		}
 
 		/**
-		 * Returns the color of a cell, depending on whether its date period is between the selected date periods
+		 * Returns the color of a cell, depending on whether its date period is between the selected date periods.
+		 * CellRects should be transparent filled by default if there isn't any color sets.
 		 * @param d The TimelineDataPoint of the cell
 		 * @param timelineData The TimelineData with the selected date periods
 		 * @param timelineFormat The TimelineFormat with the chosen colors
 		 */
 		public static getCellColor(d: TimelineDatapoint, timelineData: TimelineData, cellFormat: CellFormat): string {
 			let inSelectedPeriods: boolean = d.datePeriod.startDate >= Utils.getStartSelectionDate(timelineData) && d.datePeriod.endDate <= Utils.getEndSelectionDate(timelineData);
-			return inSelectedPeriods ? cellFormat.colorInProperty : cellFormat.colorOutProperty;
+			return inSelectedPeriods ? cellFormat.colorInProperty : (cellFormat.colorOutProperty || 'transparent');
 		}
 
 		/**
@@ -701,6 +706,7 @@ module powerbi.visuals.samples {
 		rangeTextFormat?: LabelFormat;
 		labelFormat?: LabelFormat;
 		calendarFormat?: CalendarFormat;
+		granularityFormat?: GranularityFormat;
 	}
 
 	export interface LabelFormat {
@@ -718,6 +724,11 @@ module powerbi.visuals.samples {
 	export interface CellFormat {
 		colorInProperty: string;
 		colorOutProperty: string;
+	}
+
+	export interface GranularityFormat {
+		scaleColorProperty: string;
+		sliderColorProperty: string;
 	}
 
 	export interface TimelineData {
@@ -822,6 +833,9 @@ module powerbi.visuals.samples {
 		private options: VisualUpdateOptions;
 		private periodSlicerRect: D3.Selection;
 		private selectedText: D3.Selection;
+		private vertLine: D3.Selection;
+		private horizLine: D3.Selection;
+		private textLabels: D3.Selection;
 		private selector = ['Y', 'Q', 'M', 'W', 'D'];
 		private initialized: boolean;
 		private selectionManager: SelectionManager;
@@ -928,6 +942,19 @@ module powerbi.visuals.samples {
 						},
 						fillUnselected: {
 							displayName: 'Unselected cell color',
+							type: { fill: { solid: { color: { nullable: true } } } }
+						}
+					}
+				},
+				granularity: {
+					displayName: 'Granularity',
+					properties: {
+						scaleColor: {
+							displayName: 'Scale color',
+							type: { fill: { solid: { color: true } } }
+						},
+						sliderColor: {
+							displayName: 'Slider color',
 							type: { fill: { solid: { color: true } } }
 						}
 					}
@@ -974,10 +1001,12 @@ module powerbi.visuals.samples {
 			DefaultLabelsShow: true,
 			TimelineDefaultTextSize: 9,
 			TimelineDefaultCellColor: "#ADD8E6",
-			TimelineDefaultCellColorOut: "#FFFFFF",
+			TimelineDefaultCellColorOut: "", // transparent by default
 			TimelineDefaultTimeRangeShow: true,
 			DefaultTimeRangeColor: "#777777",
 			DefaultLabelColor: "#777777",
+			DefaultScaleColor: "#000000",
+			DefaultSliderColor: "#AAAAAA",
 			DefaultGranularity: GranularityType.month,
 			DefaultFirstMonth: 1,
 			DefaultFirstDay: 1,
@@ -1081,6 +1110,7 @@ module powerbi.visuals.samples {
 						this.fillCells(this.timelineFormat.cellFormat);
 						this.renderCursors(this.timelineData, this.timelineFormat, this.timelineProperties.cellHeight, this.timelineProperties.cellsYPosition);
 						this.renderTimeRangeText(this.timelineData, this.timelineFormat.rangeTextFormat);
+						this.fillColorGranularity(this.timelineFormat.granularityFormat);
 					}
 					this.setSelection(this.timelineData);
 				}
@@ -1092,21 +1122,24 @@ module powerbi.visuals.samples {
 			let startXpoint = timelineProperties.startXpoint;
 			let startYpoint = timelineProperties.startYpoint;
 			let elementWidth = timelineProperties.elementWidth;
-			this.selectorContainer = this.svg.append('g').classed(this.timelineSelectors.TimelineSlicer.class, true);
 
+			this.selectorContainer = this.svg.append('g').classed(this.timelineSelectors.TimelineSlicer.class, true);
 			this.selectorContainer.on('mouseleave', d => dragPeriodRectState = false);
-			let fillRect = this.selectorContainer.append('rect');
+
+			// create horiz. line
+			this.horizLine = this.selectorContainer.append('rect');
 			let selectorPeriods = this.selector;
-			fillRect.attr({
+			this.horizLine.attr({
 				height: px(1),
 				x: px(startXpoint),
 				y: px(startYpoint + 2),
 				width: px((selectorPeriods.length - 1) * elementWidth)
 			});
 
-			let fillVertLine = this.selectorContainer.selectAll("vertLines")
+			// create vert. lines
+			this.vertLine = this.selectorContainer.selectAll("vertLines")
 				.data(selectorPeriods).enter().append('rect');
-			fillVertLine
+			this.vertLine
 				.classed(this.timelineSelectors.VertLine.class, true)
 				.attr({
 					x: (d, index) => px(startXpoint + index * elementWidth),
@@ -1116,18 +1149,20 @@ module powerbi.visuals.samples {
 				})
 				.style({ 'cursor': 'pointer' });
 
+			// create text lables
 			let text = this.selectorContainer.selectAll(this.timelineSelectors.PeriodSlicerGranularities.selector)
 				.data(selectorPeriods)
 				.enter()
 				.append("text")
 				.classed(this.timelineSelectors.PeriodSlicerGranularities.class, true);
 
-			let textLabels: any;
-			textLabels = text.text((d) => d)
+			this.textLabels = text.text((d) => d)
 				.attr({
 					x: (d, index) => px(startXpoint - 3 + index * elementWidth),
 					y: px(startYpoint - 3)
 				});
+
+			// create selected period text
 			this.selectedText = this.selectorContainer.append("text").classed(this.timelineSelectors.PeriodSlicerSelection.class, true);
 			this.selectedText.text(Utils.getGranularityName(this.defaultTimelineProperties.DefaultGranularity))
 				.attr({
@@ -1185,6 +1220,14 @@ module powerbi.visuals.samples {
 			this.periodSlicerRect.call(dragPeriodRect);
 		}
 
+		public fillColorGranularity(granularityFormat: GranularityFormat): void {
+			this.periodSlicerRect.style("stroke", granularityFormat.sliderColorProperty);
+			this.selectedText.attr('fill', granularityFormat.scaleColorProperty);
+			this.textLabels.attr('fill', granularityFormat.scaleColorProperty);
+			this.vertLine.attr('fill', granularityFormat.scaleColorProperty);
+			this.horizLine.attr('fill', granularityFormat.scaleColorProperty);
+		} 
+
 		public redrawPeriod(granularity: GranularityType): void {
 			let dx = this.timelineMargins.StartXpoint + granularity * this.timelineMargins.ElementWidth;
 			this.periodSlicerRect.transition().attr("x", px(dx - 7));
@@ -1212,7 +1255,7 @@ module powerbi.visuals.samples {
 				this.options && this.options.dataViews && this.options.dataViews[0] && this.options.dataViews[0].metadata) {
 				let newObjects = options.dataViews[0].metadata.objects;
 				let oldObjects = this.options.dataViews[0].metadata.objects;
-				let properties = ['rangeHeader', 'cells', 'labels'];
+				let properties = ['rangeHeader', 'cells', 'labels', 'granularity'];
 				let metadataChanged = !properties.every((x) => _.isEqual(newObjects ? newObjects[x] : undefined, oldObjects ? oldObjects[x] : undefined));
 				return options.suppressAnimations || metadataChanged;
 			}
@@ -1295,8 +1338,13 @@ module powerbi.visuals.samples {
 				startDate = _.min(dates);
 				endDate = _.max(dates);
 			}
-			if (!this.initialized)
+
+			this.timelineFormat = Timeline.fillTimelineFormat(this.options.dataViews[0].metadata.objects, this.defaultTimelineProperties);
+
+			if (!this.initialized){
 				this.drawGranular(this.timelineProperties);
+				this.fillColorGranularity(this.timelineFormat.granularityFormat);
+			}
 			if (this.initialized) {
 				let actualEndDate = TimelineGranularityData.nextDay(endDate);
 				let daysPeriods = this.timelineGranularityData.getGranularity(GranularityType.day).getDatePeriods();
@@ -1306,7 +1354,6 @@ module powerbi.visuals.samples {
 				this.newGranularity = this.timelineData.currentGranularity.getType();
 				if (changedSelection) {
 					this.changeGranularity(this.newGranularity, startDate, actualEndDate);
-					this.timelineFormat = Timeline.fillTimelineFormat(this.options.dataViews[0].metadata.objects, this.defaultTimelineProperties);
 				}
 				else {
 					if (actualEndDate < prevEndDate)
@@ -1410,6 +1457,7 @@ module powerbi.visuals.samples {
 			let timelineDatapointsCount = this.timelineData.timelineDatapoints.filter((x) => x.index % 1 === 0).length;
 			this.svgWidth = 1 + this.timelineProperties.cellHeight + timelineProperties.cellWidth * timelineDatapointsCount;
 			this.renderTimeRangeText(timelineData, timelineFormat.rangeTextFormat);
+			this.fillColorGranularity(this.timelineFormat.granularityFormat);
 			this.timelineDiv.attr({
 				height: px(options.viewport.height),
 				width: px(options.viewport.width),
@@ -1517,6 +1565,10 @@ module powerbi.visuals.samples {
 						colorInProperty: DataViewObjects.getFillColor(objects, SelectedCellColorProp, timelineProperties.TimelineDefaultCellColor),
 						colorOutProperty: DataViewObjects.getFillColor(objects, UnselectedCellColorProp, timelineProperties.TimelineDefaultCellColorOut)
 					},
+					granularityFormat: {
+						scaleColorProperty: DataViewObjects.getFillColor(objects, ScaleColorProp, timelineProperties.DefaultScaleColor),
+						sliderColorProperty: DataViewObjects.getFillColor(objects, SliderColorProp, timelineProperties.DefaultSliderColor)
+					},
 					labelFormat: {
 						showProperty: DataViewObjects.getValue<boolean>(objects, LabelsShowProp, timelineProperties.DefaultLabelsShow),
 						colorProperty: DataViewObjects.getFillColor(objects, LabelsColorProp, timelineProperties.DefaultLabelColor),
@@ -1578,6 +1630,7 @@ module powerbi.visuals.samples {
 				this.fillCells(timelineFormat.cellFormat);
 				this.renderCursors(timelineData, timelineFormat, timelineProperties.cellHeight, timelineProperties.cellsYPosition);
 				this.renderTimeRangeText(timelineData, timelineFormat.rangeTextFormat);
+				this.fillColorGranularity(this.timelineFormat.granularityFormat);
 				this.setSelection(timelineData);
 			};
 
@@ -1628,6 +1681,7 @@ module powerbi.visuals.samples {
 				this.fillCells(this.timelineFormat.cellFormat);
 				this.renderCursors(this.timelineData, this.timelineFormat, this.timelineProperties.cellHeight, this.timelineProperties.cellsYPosition);
 				this.renderTimeRangeText(this.timelineData, this.timelineFormat.rangeTextFormat);
+				this.fillColorGranularity(this.timelineFormat.granularityFormat);
 			}
 		}
 
@@ -1757,6 +1811,9 @@ module powerbi.visuals.samples {
 				case 'cells':
 					this.enumerateCells(enumeration, this.dataView);
 					break;
+				case 'granularity':
+					this.enumerateGranularity(enumeration, this.dataView);
+					break;
 				case 'labels':
 					this.enumerateLabels(enumeration, this.dataView);
 					break;
@@ -1792,6 +1849,18 @@ module powerbi.visuals.samples {
 				properties: {
 					fillSelected: DataViewObjects.getFillColor(objects, SelectedCellColorProp, this.defaultTimelineProperties.TimelineDefaultCellColor),
 					fillUnselected: DataViewObjects.getFillColor(objects, UnselectedCellColorProp, this.defaultTimelineProperties.TimelineDefaultCellColorOut)
+				}
+			});
+		}
+
+		public enumerateGranularity(enumeration: ObjectEnumerationBuilder, dataview: DataView): void {
+			var objects = dataview && dataview.metadata ? dataview.metadata.objects : undefined;
+			enumeration.pushInstance({
+				objectName: 'granularity',
+				selector: null,
+				properties: {
+					scaleColor: DataViewObjects.getFillColor(objects, ScaleColorProp, this.defaultTimelineProperties.DefaultScaleColor),
+					sliderColor: DataViewObjects.getFillColor(objects, SliderColorProp, this.defaultTimelineProperties.DefaultSliderColor),
 				}
 			});
 		}

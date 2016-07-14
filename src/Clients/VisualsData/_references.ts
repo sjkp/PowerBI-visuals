@@ -78,9 +78,11 @@
 /// <reference path="./semanticQuery/sqFrom.ts"/>
 /// <reference path="./semanticQuery/semanticQuery.ts"/>
 /// <reference path="./semanticQuery/SQFilter.ts"/>
+/// <reference path="./semanticQuery/sqUtils.ts"/>
 /// <reference path="./dataView/dataViewBuilder.ts"/>
 /// <reference path="./dataView/rules/staticEvalContext.ts"/>
 /// <reference path="./dataView/rules/matrixEvalContext.ts"/>
 /// <reference path="./services/formattingService.ts"/>
 /// <reference path="./services/serialization/sqExprShortSerializer.ts"/>
 /// <reference path="./selection/selectionId.ts"/>
+/// <reference path="./stylePresets/visualStylePreset.ts"/>

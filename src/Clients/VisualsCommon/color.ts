@@ -259,6 +259,55 @@ module jsCommon {
             return "#" + componentToHex(color.R) + componentToHex(color.G) + componentToHex(color.B);
         }
 
+        /**
+         * Overlays a color with opacity over a background color
+         * @param {string} foreColor Color to overlay
+         * @param {number} opacity number between 0 (transparent) to 1 (opaque)
+         * @param {string} backColor Background color
+         * @returns Result color
+         */
+        export function hexBlend(foreColor: string, opacity: number, backColor: string): string {
+            return hexString(rgbBlend(
+                parseColorString(foreColor),
+                opacity,
+                parseColorString(backColor)));
+        }
+
+        /**
+         * Overlays a color with opacity over a background color. Any alpha-channel is ignored.
+         * @param {RgbColor} foreColor Color to overlay
+         * @param {number} opacity number between 0 (transparent) to 1 (opaque). Any value out of range will be corrected.
+         * @param {RgbColor} backColor Background color
+         * @returns
+         */
+        export function rgbBlend(foreColor: RgbColor, opacity: number, backColor: RgbColor): RgbColor {
+            // correct opacity
+            opacity = Double.ensureInRange(opacity, 0, 1);
+
+            return {
+                R: channelBlend(foreColor.R, opacity, backColor.R),
+                G: channelBlend(foreColor.G, opacity, backColor.G),
+                B: channelBlend(foreColor.B, opacity, backColor.B)
+            };
+        }
+
+        /**
+         * Blend a single channel for two colors
+         * @param {number} foreChannel Channel of foreground color. Will be enforced to be between 0 and 255.
+         * @param {number} opacity opacity of the foreground color. Will be enforced to be between 0 and 1.
+         * @param {number} backChannel channel of the background color. Will be enforced to be between 0 and 255.
+         * @returns result channel value
+         */
+        export function channelBlend(foreChannel: number, opacity: number, backChannel: number): number {
+            opacity = Double.ensureInRange(opacity, 0, 1);
+            foreChannel = Double.ensureInRange(foreChannel, 0, 255);
+            backChannel = Double.ensureInRange(backChannel, 0, 255);
+
+            return Math.round(
+                (opacity * foreChannel) +
+                ((1 - opacity) * backChannel));
+        }
+
         function componentToHex(hexComponent: number): string {
             let clamped = Double.ensureInRange(hexComponent, 0, 255);
             let hex = clamped.toString(16).toUpperCase();

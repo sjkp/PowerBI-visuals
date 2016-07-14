@@ -3,6 +3,94 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare module powerbi.data {
     /** Allows generic traversal and type discovery for a SQExpr tree. */
     interface ISQExprVisitorWithArg<T, TArg> {
@@ -142,6 +230,7 @@ declare module powerbi {
             color?: SQExpr;
         };
     }
+    function createSolidFillDefinition(color: string): FillDefinition;
     module FillSolidColorTypeDescriptor {
         /** Gets a value indicating whether the descriptor is nullable or not. */
         function nullable(descriptor: FillSolidColorTypeDescriptor): boolean;
@@ -1242,6 +1331,138 @@ declare module powerbi.visuals {
     }
 }
 
+declare module powerbi.data {
+    module DataViewMatrixUtils {
+        const enum DepthFirstTraversalCallbackResult {
+            stop = 0,
+            continueToChildNodes = 1,
+            skipDescendantNodes = 2,
+        }
+        function isLeafNode(node: DataViewMatrixNode): boolean;
+        /**
+         * Invokes the specified callback once per node in the node tree starting from the specified rootNodes in depth-first order.
+         *
+         * If rootNodes is null or undefined or empty, the specified callback will not get invoked.
+         *
+         * The traversalPath parameter in the callback is an ordered set of nodes that form the path from the specified
+         * rootNodes down to the callback node argument itself.  If callback node is one of the specified rootNodes,
+         * then traversalPath will be an array of length 1 containing that very node.
+         *
+         * IMPORTANT: The traversalPath array passed to the callback will be modified after the callback function returns!
+         * If your callback needs to retain a copy of the traversalPath, please clone the array before returning.
+         */
+        function forEachNodeDepthFirst(rootNodes: DataViewMatrixNode | DataViewMatrixNode[], callback: (node: DataViewMatrixNode, traversalPath?: DataViewMatrixNode[]) => DepthFirstTraversalCallbackResult): void;
+        /**
+         * Invokes the specified callback once per leaf node (including root-level leaves and descendent leaves) of the
+         * specified rootNodes, with an optional index parameter in the callback that is the 0-based index of the
+         * particular leaf node in the context of this forEachLeafNode(...) invocation.
+         *
+         * If rootNodes is null or undefined or empty, the specified callback will not get invoked.
+         *
+         * The traversalPath parameter in the callback is an ordered set of nodes that form the path from the specified
+         * rootNodes down to the leafNode argument itself.  If callback leafNode is one of the specified rootNodes,
+         * then traversalPath will be an array of length 1 containing that very node.
+         *
+         * IMPORTANT: The traversalPath array passed to the callback will be modified after the callback function returns!
+         * If your callback needs to retain a copy of the traversalPath, please clone the array before returning.
+         */
+        function forEachLeafNode(rootNodes: DataViewMatrixNode | DataViewMatrixNode[], callback: (leafNode: DataViewMatrixNode, index?: number, traversalPath?: DataViewMatrixNode[]) => void): void;
+        /**
+         * Invokes the specified callback once for each node at the specified targetLevel in the node tree.
+         *
+         * Note: Be aware that in a matrix with multiple column grouping fields and multiple value fields, the DataViewMatrixNode
+         * for the Grand Total column in the column hierarchy can have children nodes where level > (parent.level + 1):
+         *  {
+         *      "level": 0,
+         *      "isSubtotal": true,
+         *      "children": [
+         *          { "level": 2, "isSubtotal": true },
+         *          { "level": 2, "levelSourceIndex": 1, "isSubtotal": true }
+         *      ]
+         *  }
+         */
+        function forEachNodeAtLevel(node: DataViewMatrixNode, targetLevel: number, callback: (node: DataViewMatrixNode) => void): void;
+        /**
+         * Returned an object tree where each node and its children property are inherited from the specified node
+         * hierarchy, from the root down to the nodes at the specified deepestLevelToInherit, inclusively.
+         *
+         * The inherited nodes at level === deepestLevelToInherit will NOT get an inherited version of children array
+         * property, i.e. its children property is the same array object referenced in the input node's object tree.
+         *
+         * @param node The input node with the hierarchy object tree.
+         * @param deepestLevelToInherit The highest level for a node to get inherited. See DataViewMatrixNode.level property.
+         * @param useInheritSingle If true, then a node will get inherited in the returned object tree only if it is
+         * not already an inherited object. Same goes for the node's children property.  This is useful for creating
+         * "visual DataView" objects from "query DataView" objects, as object inheritance is the mechanism for
+         * "visual DataView" to override properties in "query DataView", and that "query DataView" never contains
+         * inherited objects.
+         */
+        function inheritMatrixNodeHierarchy(node: DataViewMatrixNode, deepestLevelToInherit: number, useInheritSingle: boolean): DataViewMatrixNode;
+        /**
+         * Returns true if the specified matrixOrHierarchy contains any composite grouping, i.e. a grouping on multiple columns.
+         * An example of composite grouping is one on [Year, Quarter, Month], where a particular group instance can have
+         * Year === 2016, Quarter === 'Qtr 1', Month === 1.
+         *
+         * Returns false if the specified matrixOrHierarchy does not contain any composite group,
+         * or if matrixOrHierarchy is null or undefined.
+         */
+        function containsCompositeGroup(matrixOrHierarchy: DataViewMatrix | DataViewHierarchy): boolean;
+    }
+}
+
+declare module powerbi.data {
+    module DataViewMetadataColumnUtils {
+        interface MetadataColumnAndProjectionIndex {
+            /**
+            * A metadata column taken from a source collection, e.g. DataViewHierarchyLevel.sources, DataViewMatrix.valueSources...
+            */
+            metadataColumn: DataViewMetadataColumn;
+            /**
+             * The index of this.metadataColumn in its sources collection.
+             *
+             * E.g.1 This can be the value of the property DataViewMatrixGroupValue.levelSourceIndex which is the index of this.metadataColumn in DataViewHierarchyLevel.sources.
+             * E.g.2 This can be the value of the property DataViewMatrixNodeValue.valueSourceIndex which refer to columns in DataViewMatrix.valueSources.
+             */
+            sourceIndex: number;
+            /**
+            * The index of this.metadataColumn in the projection ordering of a given role.
+            * This property is undefined if the column is not projected.
+            */
+            projectionOrderIndex?: number;
+        }
+        /**
+         * Returns true iff the specified metadataColumn is assigned to the specified targetRole.
+         */
+        function isForRole(metadataColumn: DataViewMetadataColumn, targetRole: string): boolean;
+        /**
+         * Returns true iff the specified metadataColumn is assigned to any one of the specified targetRoles.
+         */
+        function isForAnyRole(metadataColumn: DataViewMetadataColumn, targetRoles: string[]): boolean;
+        /**
+         * Left-joins each metadata column of the specified target roles in the specified columnSources
+         * with projection ordering index into a wrapper object.
+         *
+         * If a metadata column is for one of the target roles but its select index is not projected, the projectionOrderIndex property
+         * in that MetadataColumnAndProjectionIndex object will be undefined.
+         *
+         * If a metadata column is for one of the target roles and its select index is projected more than once, that metadata column
+         * will be included in multiple MetadataColumnAndProjectionIndex objects, once per occurrence in projection.
+         *
+         * If the specified projectionOrdering does not contain duplicate values, then the returned objects will be in the same order
+         * as their corresponding metadata column object appears in the specified columnSources.
+         *
+         * Note: In order for this function to reliably calculate the "source index" of a particular column, the
+         * specified columnSources must be a non-filtered array of column sources from the DataView, such as
+         * the DataViewHierarchyLevel.sources and DataViewMatrix.valueSources array properties.
+         *
+         * @param columnSources E.g. DataViewHierarchyLevel.sources, DataViewMatrix.valueSources...
+         * @param projectionOrdering The select indices in projection ordering.  It should be the ordering for the specified target roles.
+         * @param roles The roles for filtering out the irrevalent columns in columnSources.
+         */
+        function leftJoinMetadataColumnsAndProjectionOrder(columnSources: DataViewMetadataColumn[], projectionOrdering: number[], roles: string[]): MetadataColumnAndProjectionIndex[];
+    }
+}
+
 declare module powerbi {
     interface IColorAllocator {
         /** Computes the color corresponding to the provided value. */
@@ -1385,12 +1606,6 @@ declare module powerbi {
         function visitTreeNodes(mapping: DataViewRoleForMappingWithReduction, visitor: IDataViewMappingVisitor): void;
         function visitTreeValues(mapping: DataViewRoleForMapping, visitor: IDataViewMappingVisitor): void;
         function visitGrouped(mapping: DataViewGroupedRoleMapping, visitor: IDataViewMappingVisitor): void;
-    }
-}
-declare module powerbi.data {
-    import DataViewMatrix = powerbi.DataViewMatrix;
-    module DataViewMatrixProjectionOrder {
-        function apply(prototype: DataViewMatrix, matrixMapping: DataViewMatrixMapping, projectionOrdering: DataViewProjectionOrdering, context: MatrixTransformationContext): DataViewMatrix;
     }
 }
 
@@ -1539,6 +1754,12 @@ declare module powerbi.data {
     /** Responsible for evaluating and setting DataViewCategorical's values grouped() function. */
     module DataViewCategoricalEvalGrouped {
         function apply(categorical: DataViewCategorical): void;
+    }
+}
+declare module powerbi.data {
+    import DataViewMatrix = powerbi.DataViewMatrix;
+    module DataViewMatrixProjectionOrder {
+        function apply(prototype: DataViewMatrix, matrixMapping: DataViewMatrixMapping, projectionOrdering: DataViewProjectionOrdering, context: MatrixTransformationContext): DataViewMatrix;
     }
 }
 
@@ -1710,6 +1931,7 @@ declare module powerbi.data {
         queryName: string;
         selector: Selector;
         aggregates?: ProjectionAggregates;
+        joinPredicate?: JoinPredicateBehavior;
     }
     interface ProjectionAggregates {
         min?: boolean;
@@ -2152,138 +2374,6 @@ declare module powerbi.data {
 }
 
 declare module powerbi.data {
-    module DataViewMatrixUtils {
-        const enum DepthFirstTraversalCallbackResult {
-            stop = 0,
-            continueToChildNodes = 1,
-            skipDescendantNodes = 2,
-        }
-        function isLeafNode(node: DataViewMatrixNode): boolean;
-        /**
-         * Invokes the specified callback once per node in the node tree starting from the specified rootNodes in depth-first order.
-         *
-         * If rootNodes is null or undefined or empty, the specified callback will not get invoked.
-         *
-         * The traversalPath parameter in the callback is an ordered set of nodes that form the path from the specified
-         * rootNodes down to the callback node argument itself.  If callback node is one of the specified rootNodes,
-         * then traversalPath will be an array of length 1 containing that very node.
-         *
-         * IMPORTANT: The traversalPath array passed to the callback will be modified after the callback function returns!
-         * If your callback needs to retain a copy of the traversalPath, please clone the array before returning.
-         */
-        function forEachNodeDepthFirst(rootNodes: DataViewMatrixNode | DataViewMatrixNode[], callback: (node: DataViewMatrixNode, traversalPath?: DataViewMatrixNode[]) => DepthFirstTraversalCallbackResult): void;
-        /**
-         * Invokes the specified callback once per leaf node (including root-level leaves and descendent leaves) of the
-         * specified rootNodes, with an optional index parameter in the callback that is the 0-based index of the
-         * particular leaf node in the context of this forEachLeafNode(...) invocation.
-         *
-         * If rootNodes is null or undefined or empty, the specified callback will not get invoked.
-         *
-         * The traversalPath parameter in the callback is an ordered set of nodes that form the path from the specified
-         * rootNodes down to the leafNode argument itself.  If callback leafNode is one of the specified rootNodes,
-         * then traversalPath will be an array of length 1 containing that very node.
-         *
-         * IMPORTANT: The traversalPath array passed to the callback will be modified after the callback function returns!
-         * If your callback needs to retain a copy of the traversalPath, please clone the array before returning.
-         */
-        function forEachLeafNode(rootNodes: DataViewMatrixNode | DataViewMatrixNode[], callback: (leafNode: DataViewMatrixNode, index?: number, traversalPath?: DataViewMatrixNode[]) => void): void;
-        /**
-         * Invokes the specified callback once for each node at the specified targetLevel in the node tree.
-         *
-         * Note: Be aware that in a matrix with multiple column grouping fields and multiple value fields, the DataViewMatrixNode
-         * for the Grand Total column in the column hierarchy can have children nodes where level > (parent.level + 1):
-         *  {
-         *      "level": 0,
-         *      "isSubtotal": true,
-         *      "children": [
-         *          { "level": 2, "isSubtotal": true },
-         *          { "level": 2, "levelSourceIndex": 1, "isSubtotal": true }
-         *      ]
-         *  }
-         */
-        function forEachNodeAtLevel(node: DataViewMatrixNode, targetLevel: number, callback: (node: DataViewMatrixNode) => void): void;
-        /**
-         * Returned an object tree where each node and its children property are inherited from the specified node
-         * hierarchy, from the root down to the nodes at the specified deepestLevelToInherit, inclusively.
-         *
-         * The inherited nodes at level === deepestLevelToInherit will NOT get an inherited version of children array
-         * property, i.e. its children property is the same array object referenced in the input node's object tree.
-         *
-         * @param node The input node with the hierarchy object tree.
-         * @param deepestLevelToInherit The highest level for a node to get inherited. See DataViewMatrixNode.level property.
-         * @param useInheritSingle If true, then a node will get inherited in the returned object tree only if it is
-         * not already an inherited object. Same goes for the node's children property.  This is useful for creating
-         * "visual DataView" objects from "query DataView" objects, as object inheritance is the mechanism for
-         * "visual DataView" to override properties in "query DataView", and that "query DataView" never contains
-         * inherited objects.
-         */
-        function inheritMatrixNodeHierarchy(node: DataViewMatrixNode, deepestLevelToInherit: number, useInheritSingle: boolean): DataViewMatrixNode;
-        /**
-         * Returns true if the specified matrixOrHierarchy contains any composite grouping, i.e. a grouping on multiple columns.
-         * An example of composite grouping is one on [Year, Quarter, Month], where a particular group instance can have
-         * Year === 2016, Quarter === 'Qtr 1', Month === 1.
-         *
-         * Returns false if the specified matrixOrHierarchy does not contain any composite group,
-         * or if matrixOrHierarchy is null or undefined.
-         */
-        function containsCompositeGroup(matrixOrHierarchy: DataViewMatrix | DataViewHierarchy): boolean;
-    }
-}
-
-declare module powerbi.data {
-    module DataViewMetadataColumnUtils {
-        interface MetadataColumnAndProjectionIndex {
-            /**
-            * A metadata column taken from a source collection, e.g. DataViewHierarchyLevel.sources, DataViewMatrix.valueSources...
-            */
-            metadataColumn: DataViewMetadataColumn;
-            /**
-             * The index of this.metadataColumn in its sources collection.
-             *
-             * E.g.1 This can be the value of the property DataViewMatrixGroupValue.levelSourceIndex which is the index of this.metadataColumn in DataViewHierarchyLevel.sources.
-             * E.g.2 This can be the value of the property DataViewMatrixNodeValue.valueSourceIndex which refer to columns in DataViewMatrix.valueSources.
-             */
-            sourceIndex: number;
-            /**
-            * The index of this.metadataColumn in the projection ordering of a given role.
-            * This property is undefined if the column is not projected.
-            */
-            projectionOrderIndex?: number;
-        }
-        /**
-         * Returns true iff the specified metadataColumn is assigned to the specified targetRole.
-         */
-        function isForRole(metadataColumn: DataViewMetadataColumn, targetRole: string): boolean;
-        /**
-         * Returns true iff the specified metadataColumn is assigned to any one of the specified targetRoles.
-         */
-        function isForAnyRole(metadataColumn: DataViewMetadataColumn, targetRoles: string[]): boolean;
-        /**
-         * Left-joins each metadata column of the specified target roles in the specified columnSources
-         * with projection ordering index into a wrapper object.
-         *
-         * If a metadata column is for one of the target roles but its select index is not projected, the projectionOrderIndex property
-         * in that MetadataColumnAndProjectionIndex object will be undefined.
-         *
-         * If a metadata column is for one of the target roles and its select index is projected more than once, that metadata column
-         * will be included in multiple MetadataColumnAndProjectionIndex objects, once per occurrence in projection.
-         *
-         * If the specified projectionOrdering does not contain duplicate values, then the returned objects will be in the same order
-         * as their corresponding metadata column object appears in the specified columnSources.
-         *
-         * Note: In order for this function to reliably calculate the "source index" of a particular column, the
-         * specified columnSources must be a non-filtered array of column sources from the DataView, such as
-         * the DataViewHierarchyLevel.sources and DataViewMatrix.valueSources array properties.
-         *
-         * @param columnSources E.g. DataViewHierarchyLevel.sources, DataViewMatrix.valueSources...
-         * @param projectionOrdering The select indices in projection ordering.  It should be the ordering for the specified target roles.
-         * @param roles The roles for filtering out the irrevalent columns in columnSources.
-         */
-        function leftJoinMetadataColumnsAndProjectionOrder(columnSources: DataViewMetadataColumn[], projectionOrdering: number[], roles: string[]): MetadataColumnAndProjectionIndex[];
-    }
-}
-
-declare module powerbi.data {
     import ArrayNamedItems = jsCommon.ArrayNamedItems;
     class ConceptualSchema {
         entities: ArrayNamedItems<ConceptualEntity>;
@@ -2656,6 +2746,7 @@ declare module powerbi.data {
         static isHierarchyLevel(expr: SQExpr): expr is SQHierarchyLevelExpr;
         static isAggregation(expr: SQExpr): expr is SQAggregationExpr;
         static isMeasure(expr: SQExpr): expr is SQMeasureRefExpr;
+        static isPercentile(expr: SQExpr): expr is SQPercentileExpr;
         static isSelectRef(expr: SQExpr): expr is SQSelectRefExpr;
         static isScopedEval(expr: SQExpr): expr is SQScopedEvalExpr;
         static isWithRef(expr: SQExpr): expr is SQWithRefExpr;
@@ -3096,12 +3187,17 @@ declare module powerbi.data {
         });
         keys(): string[];
         source(key: string): SQFromSource;
+        sources(): {
+            [name: string]: SQFromSource;
+        };
         ensureSource(source: SQFromSource, desiredVariableName?: string): QueryFromEnsureEntityResult;
         remove(key: string): void;
         private getSourceKeyFromItems(source);
         private addSource(source, desiredVariableName);
         clone(): SQFrom;
+        equals(comparand: SQFrom): boolean;
     }
+    function equals(left: SQFromSource, right: SQFromSource): boolean;
     function isSQFromEntitySource(source: SQFromSource): source is SQFromEntitySource;
     function isSQFromSubquerySource(source: SQFromSource): source is SQFromSubquerySource;
     interface ISQFromSourceVisitor<T, Targ> {
@@ -3225,7 +3321,7 @@ declare module powerbi.data {
         private getTransforms();
         private setTransforms(transforms);
         rewrite(exprRewriter: ISQExprVisitor<SQExpr>): SemanticQuery;
-        equals(query: SemanticQuery): boolean;
+        static equals(x: SemanticQuery, y: SemanticQuery): boolean;
     }
     /** Represents a semantic filter condition.  Round-trippable with a JSON FilterDefinition.  Instances of this class are immutable. */
     class SemanticFilter implements ISemanticFilter {
@@ -3269,6 +3365,18 @@ declare module powerbi.data {
          */
         function targetsEqual(leftFilter: SQFilter, rightFilter: SQFilter): boolean;
         function contains(filters: SQFilter[], searchTarget: SQFilter): boolean;
+    }
+}
+
+declare module powerbi.data {
+    module SQUtils {
+        function sqSortDefinitionEquals(left: SQSortDefinition, right: SQSortDefinition): boolean;
+        function namedSQExprEquals(left: NamedSQExpr, right: NamedSQExpr): boolean;
+        function sqTransformTableColumnsEquals(left: SQTransformTableColumn, right: SQTransformTableColumn): boolean;
+        function sqTransformTableEquals(left: SQTransformTable, right: SQTransformTable): boolean;
+        function sqTransformInputEquals(left: SQTransformInput, right: SQTransformInput): boolean;
+        function sqTransformOutputEquals(left: SQTransformOutput, right: SQTransformOutput): boolean;
+        function sqTransformEquals(left: SQTransform, right: SQTransform): boolean;
     }
 }
 
@@ -3452,5 +3560,32 @@ declare module powerbi.visuals {
         withMeasure(measureId: string): this;
         createSelectionId(): SelectionId;
         private ensureDataMap();
+    }
+}
+
+declare module powerbi {
+    import DataViewObjectDefinitions = data.DataViewObjectDefinitions;
+    import DisplayNameGetter = data.DisplayNameGetter;
+    /** Defines a list of style presets for a particular IVisual */
+    interface VisualStylePresets {
+        /** Title of PropertyPane section for selecting the style */
+        displayName: DisplayNameGetter;
+        /** List of style presets for the IVisual indexed by preset name */
+        presets: VisualStylePresetCollection;
+    }
+    interface VisualStylePresetCollection {
+        [stylePresetName: string]: VisualStylePreset;
+    }
+    /** Defines some rules to derive IVisual formatting elements from a Report Theme */
+    interface VisualStylePreset {
+        /** Display name for the style preset */
+        displayName: DisplayNameGetter;
+        /** Discription text for the style preset, can be used for a tooltip */
+        description?: DisplayNameGetter;
+        /**
+         * Evaluate the style preset against a report theme and produce DataViewObjectDefinitions for affected objects
+         * @param IVisualStyle Report theme
+         */
+        evaluate: (theme: IVisualStyle) => DataViewObjectDefinitions;
     }
 }

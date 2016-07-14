@@ -348,7 +348,7 @@ module powerbi.visuals {
                 yCol: scatterMetadata.cols.y,
                 dataPoints: dataPoints,
                 dataPointSeries: dataPointSeries,
-                legendData: { title: legendTitle, dataPoints: legendItems },
+                legendData: { title: legendTitle, dataPoints: legendItems, grouped: hasDynamicSeries},
                 axesLabels: scatterMetadata.axesLabels,
                 size: scatterMetadata.cols.size,
                 sizeRange: sizeRange,

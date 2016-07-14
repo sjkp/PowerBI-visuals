@@ -932,13 +932,17 @@ module powerbitests.helpers {
 
         export function buildAxisPropertiesTime(
             dataDomain: any[],
-            isScalar: boolean = true): powerbi.visuals.IAxisProperties {
+            isScalar: boolean = true,
+            maxTicks?: number): powerbi.visuals.IAxisProperties {
             var axisOptions = createAxisOptions(
                 metaDataColumnTime,
                 dataDomain,
                 getValueFnTime);
 
             axisOptions.isScalar = isScalar;
+
+            if (maxTicks)
+                axisOptions.maxTickCount = maxTicks;
 
             return AxisHelper.createAxis(axisOptions);
         }

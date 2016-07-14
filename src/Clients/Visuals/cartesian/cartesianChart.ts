@@ -246,6 +246,10 @@ module powerbi.visuals {
         endIndex: number;
     }
 
+    export interface ScalarKeys {
+        values: PrimitiveValueRange[];
+    }
+
     type RenderPlotAreaDelegate = (
         layers: ICartesianVisual[],
         axesLayout: CartesianAxesLayout,
@@ -419,17 +423,24 @@ module powerbi.visuals {
                 && (!dataView.categorical || categoryRoleIsPlay);
         }
 
-        public static getIsScalar(objects: DataViewObjects, propertyId: DataViewObjectPropertyIdentifier, type: ValueTypeDescriptor): boolean {
+        public static getIsScalar(objects: DataViewObjects, propertyId: DataViewObjectPropertyIdentifier, type: ValueTypeDescriptor, scalarKeys?: ScalarKeys): boolean {
+            if (!CartesianChart.supportsScalar(type, scalarKeys))
+                return false;
+
             let axisTypeValue = DataViewObjects.getValue(objects, propertyId);
+            if (!objects || axisTypeValue == null)
+                return true;
 
-            if (!objects || axisTypeValue == null) {
-                // If we don't have anything set (Auto), show charts as Scalar if the category type is numeric or time. 
-                // If we have the property, it will override the type.
-                return !AxisHelper.isOrdinal(type);
-            }
+            return (axisTypeValue === axisType.scalar);
+        }
 
-            // also checking type here to be in sync with AxisHelper, which ignores scalar if the type is non-numeric.
-            return (axisTypeValue === axisType.scalar) && !AxisHelper.isOrdinal(type);
+        private static supportsScalar(type: ValueTypeDescriptor, scalarKeys?: ScalarKeys): boolean {
+            // if scalar key is present, it supports scalar
+            if (scalarKeys && !_.isEmpty(scalarKeys.values))
+                return true;
+
+            // otherwise does not support scalar if the type is non-numeric.
+            return !AxisHelper.isOrdinal(type);
         }
 
         public static getAdditionalTelemetry(dataView: DataView): any {

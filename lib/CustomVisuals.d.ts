@@ -1,6 +1,33 @@
 
 declare function requireAll(requireContext: any): any;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare module powerbi.visuals.samples {
     import ArcDescriptor = D3.Layout.ArcDescriptor;
     interface AsterPlotData {
@@ -1088,6 +1115,7 @@ declare module powerbi.visuals.samples {
     }
     interface WordCloudText {
         text: string;
+        textGroup: string;
         count: number;
         index: number;
         selectionId: SelectionId;
@@ -1098,7 +1126,7 @@ declare module powerbi.visuals.samples {
         xOff: number;
         yOff: number;
         rotate?: number;
-        size: number;
+        size?: number;
         padding: number;
         width: number;
         height: number;
@@ -1108,12 +1136,16 @@ declare module powerbi.visuals.samples {
         x1: number;
         y1: number;
         color: string;
-        selectionId: SelectionId;
+        selectionIds: SelectionId[];
         wordIndex: number;
+        widthOfWord?: number;
+        count: number;
     }
     interface WordCloudData {
+        dataView: DataView;
         settings: WordCloudSettings;
         texts: WordCloudText[];
+        dataPoints: WordCloudDataPoint[];
     }
     interface WordCloudDataView {
         data: WordCloudDataPoint[];
@@ -1125,26 +1157,60 @@ declare module powerbi.visuals.samples {
         animator?: IGenericAnimator;
         margin?: IMargin;
     }
-    interface WordCloudSettings {
-        minFontSize: number;
-        maxFontSize: number;
-        minAngle?: number;
-        maxAngle?: number;
-        maxNumberOfOrientations?: number;
-        valueFormatter?: IValueFormatter;
-        isRotateText: boolean;
-        isBrokenText: boolean;
-        isRemoveStopWords: boolean;
-        stopWords: string;
-        isDefaultStopWords: boolean;
-        stopWordsArray: string[];
-        maxNumberOfWords: number;
+    class WordCloudSettings {
+        static Default: WordCloudSettings;
+        static parse(dataView: DataView, capabilities: VisualCapabilities): WordCloudSettings;
+        static getProperties(capabilities: VisualCapabilities): {
+            [i: string]: {
+                [i: string]: DataViewObjectPropertyIdentifier;
+            };
+        } & {
+            general: {
+                formatString: DataViewObjectPropertyIdentifier;
+            };
+            dataPoint: {
+                fill: DataViewObjectPropertyIdentifier;
+            };
+        };
+        static createEnumTypeFromEnum(type: any): IEnumType;
+        private static getValueFnByType(type);
+        static enumerateObjectInstances(settings: WordCloudSettings, options: EnumerateVisualObjectInstancesOptions, capabilities: VisualCapabilities): ObjectEnumerationBuilder;
+        originalSettings: WordCloudSettings;
+        createOriginalSettings(): void;
+        general: {
+            maxNumberOfWords: number;
+            minFontSize: number;
+            maxFontSize: number;
+            isBrokenText: boolean;
+        };
+        stopWords: {
+            show: boolean;
+            isDefaultStopWords: boolean;
+            words: any;
+        };
+        rotateText: {
+            show: boolean;
+            minAngle: number;
+            maxAngle: number;
+            maxNumberOfOrientations: number;
+        };
+    }
+    class WordCloudColumns<T> {
+        static Roles: WordCloudColumns<string>;
+        static getColumnSources(dataView: DataView): WordCloudColumns<DataViewMetadataColumn>;
+        static getTableValues(dataView: DataView): WordCloudColumns<any[]>;
+        static getTableRows(dataView: DataView): WordCloudColumns<any[]>[];
+        static getCategoricalValues(dataView: DataView): WordCloudColumns<any[]>;
+        static getSeriesValues(dataView: DataView): string[];
+        static getCategoricalColumns(dataView: DataView): WordCloudColumns<DataViewCategoryColumn & DataViewValueColumn[] & DataViewValueColumns>;
+        private static getColumnSourcesT<T>(dataView);
+        Category: T;
+        Values: T;
     }
     class WordCloud implements IVisual {
         private static ClassName;
-        private static Properties;
         private static Words;
-        private static Word;
+        private static WordGroup;
         private static Size;
         private static StopWordsDelemiter;
         private static Radians;
@@ -1153,28 +1219,31 @@ declare module powerbi.visuals.samples {
         private static MaxNumberOfWords;
         private static MinOpacity;
         private static MaxOpacity;
+        static FontSizePercentageCoefficent: number;
         static capabilities: VisualCapabilities;
         private static Punctuation;
         private static StopWords;
-        private static DefaultSettings;
-        private static RenderDelay;
-        private static MinDelay;
         private static DefaultMargin;
+        static converter(dataView: DataView, colors: IDataColorPalette, previousData: WordCloudData): WordCloudData;
+        private static parseSettings(dataView, previousSettings);
+        private static getReducedText(texts, stopWords, settings);
+        private static getBrokenWords(words, stopWords, settings);
+        private static getDataPoints(textGroups, settings, wordValueFormatter);
+        private static getWordFontSize(texts, settings, value, minValue, maxValue, scaleType?);
+        private static getAngle(settings);
         private settings;
-        private wordCloudTexts;
-        private wordCloudDataView;
         private data;
-        private dataBeforeRender;
         private durationAnimations;
         private specialViewport;
         private fakeViewport;
         private canvasViewport;
-        static colors: IDataColorPalette;
+        private colors;
         private root;
         private svg;
         private main;
         private wordsContainerSelection;
-        private wordsSelection;
+        private wordsGroupUpdateSelection;
+        private wordsTextUpdateSelection;
         private canvas;
         private fontFamily;
         private animator;
@@ -1183,37 +1252,28 @@ declare module powerbi.visuals.samples {
         private selectionManager;
         private visualUpdateOptions;
         private isUpdating;
-        private isSingleSentence;
         private incomingUpdateOptions;
         constructor(options?: WordCloudConstructorOptions);
         init(options: VisualInitOptions): void;
-        converter(dataView: DataView): WordCloudData;
-        private getColor(properties, defaultColor, objects);
-        private static parseSettings(dataView, value);
-        private static getNumberFromObjects(objects, properties, defaultValue);
-        private parseNumber(value, defaultValue?, minValue?, maxValue?);
-        private computePositions(words, onPositionsComputed);
+        update(visualUpdateOptions: VisualUpdateOptions): void;
+        private computePositions(onPositionsComputed);
         private computeCycle(words, context, surface, borders, onPositionsComputed, wordsForDraw?, index?);
         private updateBorders(word, borders);
-        private generateSprites(context, currentWord, words, index);
+        private generateSprites(context, words, startIndex);
+        private setSprites(context, words);
         private findPosition(surface, word, borders);
         private archimedeanSpiral(value);
         private checkIntersect(word, surface);
         private checkIntersectOfRectangles(word, leftBorder, rightBorder);
         private getCanvasContext();
-        private getReducedText(texts);
-        private getBrokenWords(words);
-        private getWords(values);
-        private getFontSize(value, minValue, maxValue, scaleType?);
-        private getAngle();
-        update(visualUpdateOptions: VisualUpdateOptions): void;
         private UpdateSize();
         private render(wordCloudDataView);
-        private setSelection(selection);
-        private setOpacity(element, opacityValue, disableAnimation?);
-        private scaleMainView(wordCloudDataView, durationAnimation?);
-        enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
-        private animation(element, duration?, delay?, callback?);
+        private setSelection(dataPoint);
+        private scaleMainView(wordCloudDataView);
+        private renderSelection();
+        private setOpacity(element, opacityValue);
+        enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumerationObject;
+        private animation<T>(element, duration?, delay?, callback?);
         destroy(): void;
     }
 }
@@ -1592,8 +1652,34 @@ declare module powerbi.visuals.samples {
 
 declare module powerbi.visuals.samples {
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import IInteractiveBehavior = powerbi.visuals.IInteractiveBehavior;
     import Lazy = jsCommon.Lazy;
-    import ISize = shapes.ISize;
+    import ISize = powerbi.visuals.shapes.ISize;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import DataViewValueColumn = powerbi.DataViewValueColumn;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipEnabledDataPoint = powerbi.visuals.TooltipEnabledDataPoint;
+    import ContentPositions = powerbi.ContentPositions;
+    import LegendData = powerbi.visuals.LegendData;
+    import NumberRange = powerbi.NumberRange;
+    import PointDataLabelsSettings = powerbi.visuals.PointDataLabelsSettings;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import IVisual = powerbi.IVisual;
+    import TextProperties = powerbi.TextProperties;
+    import IAxisProperties = powerbi.visuals.IAxisProperties;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import DataViewObject = powerbi.DataViewObject;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import IValueFormatter = powerbi.visuals.IValueFormatter;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import CalculateScaleAndDomainOptions = powerbi.visuals.CalculateScaleAndDomainOptions;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
+    import DataView = powerbi.DataView;
     interface ElementProperty {
         [propertyName: string]: any;
     }
@@ -1605,11 +1691,15 @@ declare module powerbi.visuals.samples {
         styles?: ElementProperty;
         attributes?: ElementProperty;
     }
+    interface EnhancedScatterChartRadiusData {
+        sizeMeasure: DataViewValueColumn;
+        index: number;
+    }
     interface EnhancedScatterChartDataPoint extends SelectableDataPoint, TooltipEnabledDataPoint {
         x: any;
         y: any;
         size: number | ISize;
-        radius: RadiusData;
+        radius: EnhancedScatterChartRadiusData;
         fill: string;
         labelFill?: string;
         labelFontSize: any;
@@ -1625,20 +1715,26 @@ declare module powerbi.visuals.samples {
         yStart?: number;
         yEnd?: number;
     }
-    interface EnhancedScatterChartData extends ScatterBehaviorChartData {
+    interface EnhancedScatterChartBackdrop {
+        show: boolean;
+        url: string;
+    }
+    interface EnhancedScatterChartAxesLabels {
+        x: string;
+        y: string;
+        y2?: string;
+    }
+    interface EnhancedScatterChartData {
         useShape: boolean;
         useCustomColor: boolean;
-        backdrop?: {
-            show: boolean;
-            url: string;
-        };
+        backdrop?: EnhancedScatterChartBackdrop;
         outline?: boolean;
         crosshair?: boolean;
         xCol: DataViewMetadataColumn;
         yCol: DataViewMetadataColumn;
         dataPoints: EnhancedScatterChartDataPoint[];
         legendData: LegendData;
-        axesLabels: ChartAxesLabels;
+        axesLabels: EnhancedScatterChartAxesLabels;
         size?: DataViewMetadataColumn;
         sizeRange: NumberRange;
         dataLabelsSettings: PointDataLabelsSettings;
@@ -1650,6 +1746,17 @@ declare module powerbi.visuals.samples {
         colorByCategory?: boolean;
         selectedIds: SelectionId[];
     }
+    interface EnhancedScatterDataRange {
+        minRange: number;
+        maxRange: number;
+        delta: number;
+    }
+    interface EnhancedScatterChartProperty {
+        [properyName: string]: DataViewObjectPropertyIdentifier;
+    }
+    interface EnhancedScatterChartProperties {
+        [properyName: string]: EnhancedScatterChartProperty;
+    }
     class EnhancedScatterChart implements IVisual {
         private static AxisGraphicsContextClassName;
         private static ClassName;
@@ -1658,10 +1765,15 @@ declare module powerbi.visuals.samples {
         private static LabelDisplayUnitsDefault;
         private static AxisFontSize;
         private static CrosshairTextMargin;
+        private static BubbleRadius;
+        private static MinSizeRange;
+        private static MaxSizeRange;
+        private static AreaOf300By300Chart;
         private static DataLabelXOffset;
         private static DataLabelYOffset;
         private static DotClasses;
         private static ImageClasses;
+        private static TextProperties;
         static CrosshairCanvasSelector: ClassAndSelector;
         static CrosshairLineSelector: ClassAndSelector;
         static CrosshairVerticalLineSelector: ClassAndSelector;
@@ -1707,7 +1819,6 @@ declare module powerbi.visuals.samples {
         private hostServices;
         private layerLegendData;
         private legendLabelFontSize;
-        private cartesianSmallViewPortProperties;
         private hasCategoryAxis;
         private yAxisIsCategorical;
         private bottomMarginLimit;
@@ -1719,7 +1830,6 @@ declare module powerbi.visuals.samples {
         private valueAxisHasUnitType;
         private svgDefaultImage;
         private oldBackdrop;
-        private textProperties;
         private behavior;
         private animator;
         private keyArray;
@@ -1746,6 +1856,14 @@ declare module powerbi.visuals.samples {
         static ColumnYStart: string;
         static ColumnYEnd: string;
         static capabilities: VisualCapabilities;
+        /**
+         * Public for testability.
+         */
+        static getPropertiesByCapabilities<T>(capabilities: VisualCapabilities): T;
+        /**
+         * Public for testability.
+         */
+        static Properties: EnhancedScatterChartProperties;
         private static substractMargin(viewport, margin);
         private static getCustomSymbolType(shape);
         init(options: VisualInitOptions): void;
@@ -1758,6 +1876,7 @@ declare module powerbi.visuals.samples {
         private static getMetadata(categories, grouped, source);
         static createLazyFormattedCategory(formatter: IValueFormatter, value: string): Lazy<string>;
         private static createDataPoints(dataValues, metadata, categories, categoryValues, categoryFormatter, categoryIdentities, categoryObjects, colorPalette, hasDynamicSeries, labelSettings, defaultDataPointColor?, categoryQueryName?);
+        private static getMeasureValue(measureIndex, seriesValues);
         private static getNumberFromDataViewValueColumnById(dataViewValueColumn, index);
         private static getValueFromDataViewValueColumnById(dataViewValueColumn, index);
         private static getDefaultData();
@@ -1765,7 +1884,6 @@ declare module powerbi.visuals.samples {
         update(options: VisualUpdateOptions): void;
         private populateObjectProperties(dataViews);
         private renderLegend();
-        private hideLegends();
         private shouldRenderAxis(axisProperties, propertyName?);
         private getMaxMarginFactor();
         private adjustViewportbyBackdrop();
@@ -1774,6 +1892,11 @@ declare module powerbi.visuals.samples {
         private darkenZeroLine(g);
         private getCategoryAxisFill();
         private getEnhanchedScatterChartLabelLayout(labelSettings, viewport, sizeRange);
+        private static getBubbleRadius(radiusData, sizeRange, viewport);
+        private static getBubblePixelAreaSizeRange(viewPort, minSizeRange, maxSizeRange);
+        static projectSizeToPixels(size: number, actualSizeDataRange: EnhancedScatterDataRange, bubblePixelAreaSizeRange: EnhancedScatterDataRange): number;
+        static project(value: number, actualSizeDataRange: EnhancedScatterDataRange, bubblePixelAreaSizeRange: EnhancedScatterDataRange): number;
+        static rangeContains(range: EnhancedScatterDataRange, value: number): boolean;
         private getValueAxisFill();
         /**
          * Public for testability.
@@ -1809,8 +1932,8 @@ declare module powerbi.visuals.samples {
         private updateAxis();
         private getUnitType(xAxis);
         private addUnitTypeToAxisLabel(xAxis, yAxis);
-        private hideAxisLabels();
         private drawScatterMarkers(scatterData, hasSelection, sizeRange, duration);
+        static getBubbleOpacity(d: EnhancedScatterChartDataPoint, hasSelection: boolean): number;
         calculateAxes(categoryAxisProperties: DataViewObject, valueAxisProperties: DataViewObject, textProperties: TextProperties, scrollbarVisible: boolean): IAxisProperties[];
         calculateAxesProperties(options: CalculateScaleAndDomainOptions): IAxisProperties[];
         /**
@@ -1828,6 +1951,33 @@ declare module powerbi.visuals.samples {
         private getCategoryAxisValues(enumeration);
         private getValueAxisValues(enumeration);
         onClearSelection(): void;
+    }
+    interface CustomVisualBehaviorOptions {
+        layerOptions: any[];
+        clearCatcher: D3.Selection;
+    }
+    class CustomVisualBehavior implements IInteractiveBehavior {
+        private behaviors;
+        constructor(behaviors: IInteractiveBehavior[]);
+        bindEvents(options: CustomVisualBehaviorOptions, selectionHandler: ISelectionHandler): void;
+        renderSelection(hasSelection: boolean): void;
+    }
+    interface EnhancedScatterBehaviorOptions {
+        dataPointsSelection: D3.Selection;
+        data: EnhancedScatterChartData;
+        plotContext: D3.Selection;
+    }
+    class EnhancedScatterChartWebBehavior implements IInteractiveBehavior {
+        private dimmedBubbleOpacity;
+        private defaultBubbleOpacity;
+        private bubbles;
+        private shouldEnableFill;
+        private colorBorder;
+        constructor(dimmedBubbleOpacity: number, defaultBubbleOpacity: number);
+        bindEvents(options: EnhancedScatterBehaviorOptions, selectionHandler: ISelectionHandler): void;
+        renderSelection(hasSelection: boolean): void;
+        private getMarkerFillOpacity(hasSize, shouldEnableFill, hasSelection, isSelected);
+        getMarkerStrokeOpacity(hasSize: boolean, colorBorder: boolean, hasSelection: boolean, isSelected: boolean): number;
     }
 }
 
@@ -1968,6 +2118,8 @@ declare module powerbi.visuals.samples {
         private static ChartArea;
         private static ChartPolygon;
         private static ChartDot;
+        private static MaxPrecision;
+        private static MinPrecision;
         private svg;
         private segments;
         private zeroSegment;
@@ -2016,6 +2168,7 @@ declare module powerbi.visuals.samples {
         private isPercentChart(dataPointsList);
         private parseLegendProperties(dataView);
         private static parseSettings(dataView);
+        private static getPrecision(value);
         private static parseLabelSettings(dataView);
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
         private getLabelSettingsOptions(enumeration, labelSettings);
@@ -2207,10 +2360,16 @@ declare module powerbi.visuals.samples {
         private calculateYAxesProperties(options, metaDataColumn);
     }
 }
-
 declare module powerbi.visuals.samples {
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
-    const DotPlotProperties: any;
+    module DotPlotLabelsOrientation {
+        enum Orientation {
+            Horizontal = 0,
+            Vertical = 1,
+        }
+        var type: IEnumType;
+    }
+    var DotPlotProperties: any;
     interface DotPlotSelectors {
         svgPlotSelector: ClassAndSelector;
         plotSelector: ClassAndSelector;
@@ -2242,6 +2401,8 @@ declare module powerbi.visuals.samples {
         categorySettings?: DotPlotCategorySettings;
         defaultDataPointColor?: string;
         categoryAxisSettings?: DotPlotCategoryAxisSettings;
+        labelOrientation?: DotPlotLabelsOrientation.Orientation;
+        labelTextMaxSize: number;
     }
     interface DotPlotCategoryAxisSettings {
         show?: boolean;
@@ -2761,6 +2922,8 @@ declare module powerbi.visuals.samples {
         TimelineDefaultTimeRangeShow: boolean;
         DefaultTimeRangeColor: string;
         DefaultLabelColor: string;
+        DefaultScaleColor: string;
+        DefaultSliderColor: string;
         DefaultGranularity: GranularityType;
         DefaultFirstMonth: number;
         DefaultFirstDay: number;
@@ -2948,7 +3111,8 @@ declare module powerbi.visuals.samples {
          */
         static getEndSelectionPeriod(timelineData: TimelineData): DatePeriod;
         /**
-         * Returns the color of a cell, depending on whether its date period is between the selected date periods
+         * Returns the color of a cell, depending on whether its date period is between the selected date periods.
+         * CellRects should be transparent filled by default if there isn't any color sets.
          * @param d The TimelineDataPoint of the cell
          * @param timelineData The TimelineData with the selected date periods
          * @param timelineFormat The TimelineFormat with the chosen colors
@@ -3014,6 +3178,7 @@ declare module powerbi.visuals.samples {
         rangeTextFormat?: LabelFormat;
         labelFormat?: LabelFormat;
         calendarFormat?: CalendarFormat;
+        granularityFormat?: GranularityFormat;
     }
     interface LabelFormat {
         showProperty: boolean;
@@ -3028,6 +3193,10 @@ declare module powerbi.visuals.samples {
     interface CellFormat {
         colorInProperty: string;
         colorOutProperty: string;
+    }
+    interface GranularityFormat {
+        scaleColorProperty: string;
+        sliderColorProperty: string;
     }
     interface TimelineData {
         dragging?: boolean;
@@ -3091,6 +3260,9 @@ declare module powerbi.visuals.samples {
         private options;
         private periodSlicerRect;
         private selectedText;
+        private vertLine;
+        private horizLine;
+        private textLabels;
         private selector;
         private initialized;
         private selectionManager;
@@ -3116,6 +3288,7 @@ declare module powerbi.visuals.samples {
         private addWrappElements();
         private clear();
         private drawGranular(timelineProperties);
+        fillColorGranularity(granularityFormat: GranularityFormat): void;
         redrawPeriod(granularity: GranularityType): void;
         private static setMeasures(labelFormat, granularityType, datePeriodsCount, viewport, timelineProperties, timelineMargins);
         private visualChangeOnly(options);
@@ -3153,6 +3326,7 @@ declare module powerbi.visuals.samples {
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
         enumerateRangeHeader(enumeration: ObjectEnumerationBuilder, dataview: DataView): void;
         enumerateCells(enumeration: ObjectEnumerationBuilder, dataview: DataView): void;
+        enumerateGranularity(enumeration: ObjectEnumerationBuilder, dataview: DataView): void;
         enumerateLabels(enumeration: ObjectEnumerationBuilder, dataview: DataView): void;
         enumerateCalendar(enumeration: ObjectEnumerationBuilder, dataview: DataView): void;
         enumerateWeekDay(enumeration: ObjectEnumerationBuilder, dataview: DataView): void;
@@ -3272,8 +3446,17 @@ declare module powerbi.visuals.samples {
         marginTop: number;
         timeHeight: number;
     }
-    interface PulseChartSeries extends LineChartSeries {
+    interface PulseChartChartDataLabelsSettings extends PointDataLabelsSettings {
+        labelDensity: string;
+    }
+    interface PulseChartSeries extends SelectableDataPoint {
         name?: string;
+        displayName: string;
+        key: string;
+        lineIndex: number;
+        xCol: DataViewMetadataColumn;
+        yCol: DataViewMetadataColumn;
+        labelSettings: PulseChartChartDataLabelsSettings;
         data: PulseChartDataPoint[];
         color: string;
         identity: SelectionId;
@@ -3295,7 +3478,17 @@ declare module powerbi.visuals.samples {
         x: number;
         y: number;
     }
-    interface PulseChartDataPoint extends LineChartDataPoint, PulseChartPointXY {
+    interface PulseChartPrimitiveDataPoint extends TooltipEnabledDataPoint, SelectableDataPoint, LabelEnabledDataPoint {
+        categoryValue: any;
+        value: number;
+        categoryIndex: number;
+        seriesIndex: number;
+        highlight?: boolean;
+        key: string;
+        labelSettings: PulseChartChartDataLabelsSettings;
+        pointColor?: string;
+    }
+    interface PulseChartDataPoint extends PulseChartPrimitiveDataPoint, PulseChartPointXY {
         groupIndex: number;
         popupInfo?: PulseChartTooltipData;
         eventSize: number;
@@ -3393,6 +3586,11 @@ declare module powerbi.visuals.samples {
         runnerCounter: PulseChartRunnerCounterSettings;
         playback: PulseChartPlaybackSettings;
     }
+    interface PulseChartAxesLabels {
+        x: string;
+        y: string;
+        y2?: string;
+    }
     interface PulseChartData {
         settings: PulseChartSettings;
         columns: PulseChartDataRoles<DataViewCategoricalColumn>;
@@ -3401,10 +3599,10 @@ declare module powerbi.visuals.samples {
         series: PulseChartSeries[];
         isScalar?: boolean;
         dataLabelsSettings: PointDataLabelsSettings;
-        axesLabels: ChartAxesLabels;
+        axesLabels: PulseChartAxesLabels;
         hasDynamicSeries?: boolean;
         defaultSeriesColor?: string;
-        categoryData?: LineChartCategoriesData[];
+        categoryData?: PulseChartPrimitiveDataPoint[];
         categories: any[];
         legendData?: LegendData;
         grouped: DataViewValueColumnGroup[];
@@ -3544,7 +3742,7 @@ declare module powerbi.visuals.samples {
         private getYAxisScales(height);
         autoplayPauseDuration: number;
         isAutoPlay: boolean;
-        render(suppressAnimations: boolean): CartesianVisualRenderResult;
+        render(suppressAnimations: boolean): void;
         private renderAxes(data, duration);
         private renderXAxis(data, duration);
         private renderYAxis(data, duration);
@@ -3662,6 +3860,13 @@ declare module powerbi.visuals.samples {
         savedPosition: PulseChartAnimationPosition;
         clear(): void;
         clearTimeouts(): void;
+    }
+    module PulseChartDataLabelUtils {
+        function getDefaultPulseChartLabelSettings(): PulseChartChartDataLabelsSettings;
+    }
+    module PulseChartAxisPropertiesHelper {
+        function getCategoryAxisProperties(dataViewMetadata: DataViewMetadata, axisTitleOnByDefault?: boolean): DataViewObject;
+        function getValueAxisProperties(dataViewMetadata: DataViewMetadata, axisTitleOnByDefault?: boolean): DataViewObject;
     }
 }
 

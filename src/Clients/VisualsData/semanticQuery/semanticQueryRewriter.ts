@@ -42,6 +42,7 @@ module powerbi.data {
             for (let i = 0, len = originalFromKeys.length; i < len; i++) {
                 let keyName = originalFromKeys[i],
                     originalSource = originalFrom.source(keyName);
+                // Note: Add a visitor when adding the rewrites for subqueries
                 if (isSQFromEntitySource(originalSource)) {
                     let originalEntityExpr = SQExprBuilder.entity(originalSource.schema, originalSource.entity, keyName),
                         updatedEntityExpr = <SQEntityExpr>originalEntityExpr.accept(this.exprRewriter);

@@ -106,6 +106,12 @@ module powerbi.data {
             return expr.kind === SQExprKind.MeasureRef;
         }
 
+        public static isPercentile(expr: SQExpr): expr is SQPercentileExpr {
+            debug.assertValue(expr, 'expr');
+
+            return expr.kind === SQExprKind.Percentile;
+        }
+
         public static isSelectRef(expr: SQExpr): expr is SQSelectRefExpr {
             debug.assertValue(expr, 'expr');
 

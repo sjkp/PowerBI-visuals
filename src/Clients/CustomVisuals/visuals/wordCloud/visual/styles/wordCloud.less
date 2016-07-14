@@ -29,8 +29,13 @@
 .wordCloud {
     font-family: @regularFontFamily;
 
-    .words text {
-        text-anchor: middle;
-        cursor: pointer;
+    .words g.word {
+        text {
+            text-anchor: middle;
+        }
+
+        rect {
+            cursor: pointer;
+        }
     }
 }

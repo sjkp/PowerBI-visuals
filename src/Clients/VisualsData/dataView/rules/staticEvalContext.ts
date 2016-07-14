@@ -68,7 +68,7 @@ module powerbi.data {
             if (!dataView || !selectTransforms)
                 return;
 
-            if (SQExpr.isAggregation(expr)) {
+            if (SQExpr.isAggregation(expr) || SQExpr.isPercentile(expr)) {
                 let columnAggregate = findAggregateValue(expr, selectTransforms, dataView.metadata.columns);
                 if (columnAggregate !== undefined) {
                     return columnAggregate;
@@ -108,7 +108,7 @@ module powerbi.data {
         }
     }
 
-    function findAggregateValue(expr: SQAggregationExpr, selectTransforms: DataViewSelectTransform[], columns: DataViewMetadataColumn[]): PrimitiveValue {
+    function findAggregateValue(expr: SQAggregationExpr | SQPercentileExpr, selectTransforms: DataViewSelectTransform[], columns: DataViewMetadataColumn[]): PrimitiveValue {
         debug.assertValue(expr, 'expr');
         debug.assertValue(selectTransforms, 'selectTransforms');
         debug.assertValue(columns, 'columns');
@@ -124,7 +124,7 @@ module powerbi.data {
             if (selectIdx !== column.index || !columnAggr)
                 continue;
 
-            let aggregateValue = findAggregates(columnAggr, expr.func);
+            let aggregateValue = findAggregates(columnAggr, expr);
             if (aggregateValue !== undefined)
                 return aggregateValue;
         }
@@ -157,15 +157,26 @@ module powerbi.data {
         return -1;
     }
 
-    function findAggregates(aggregates: DataViewColumnAggregates, func: QueryAggregateFunction): PrimitiveValue {
+    function findAggregates(aggregates: DataViewColumnAggregates, expr: SQAggregationExpr | SQPercentileExpr): PrimitiveValue {
         debug.assertValue(aggregates, 'aggregates');
-        debug.assertValue(func, 'func');
+        debug.assertValue(expr, 'expr');
 
-        switch (func) {
-            case QueryAggregateFunction.Min:
-                return getOptional(aggregates.min, aggregates.minLocal);
-            case QueryAggregateFunction.Max:
-                return getOptional(aggregates.max, aggregates.maxLocal);
+        if (SQExpr.isPercentile(expr)) {
+            let percentile = _.find(aggregates.percentiles, (percentile) => {
+                if (percentile.exclusive === expr.exclusive && percentile.k === expr.k) {
+                    return true;
+                }
+            });
+            if (percentile)
+                return percentile.value;
+        } else if (SQExpr.isAggregation(expr)) {
+            debug.assertValue(expr.func, 'func');
+            switch (expr.func) {
+                case QueryAggregateFunction.Min:
+                    return getOptional(aggregates.min, aggregates.minLocal);
+                case QueryAggregateFunction.Max:
+                    return getOptional(aggregates.max, aggregates.maxLocal);
+            }
         }
     }
 

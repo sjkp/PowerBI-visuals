@@ -4006,6 +4006,53 @@ module powerbitests {
             expect(node3.tooltipInfo).toBeUndefined();
         });
 
+        it('validate tooltip info not being created when tooltips are disabled and tooltipBuckets are enabled', () => {
+            let dataViewMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'a', queryName: 'a', isMeasure: true, roles: { 'Values': true } },
+                    { displayName: 'b', queryName: 'b', isMeasure: true, roles: { 'Values': true } },
+                    { displayName: 'c', queryName: 'c', isMeasure: true, roles: { 'Values': true } },
+                    { displayName: 'd', queryName: 'd', isMeasure: true, roles: { 'Tooltips': true } }
+                ]
+            };
+
+            let dataView: powerbi.DataView = {
+                metadata: dataViewMetadata,
+                categorical: {
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: dataViewMetadata.columns[0],
+                            values: [1],
+                        },
+                        {
+                            source: dataViewMetadata.columns[1],
+                            values: [2],
+                        },
+                        {
+                            source: dataViewMetadata.columns[2],
+                            values: [3],
+                        },
+                        {
+                            source: dataViewMetadata.columns[3],
+                            values: [4],
+                        }
+                    ])
+                }
+            };
+
+            let dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
+            let colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            let rootNode = Treemap.converter(dataView, colors, dataLabelSettings, /*interactivityService*/null, viewport, /*legendObjectProperties*/undefined, /*tooltipsEnabled*/false, /*tooltipBucketEnabled*/true).root;
+
+            let node1: TreemapNode = <TreemapNode>rootNode.children[0];
+            let node2: TreemapNode = <TreemapNode>rootNode.children[1];
+            let node3: TreemapNode = <TreemapNode>rootNode.children[2];
+
+            expect(node1.tooltipInfo).toBeUndefined();
+            expect(node2.tooltipInfo).toBeUndefined();
+            expect(node3.tooltipInfo).toBeUndefined();
+        });
+
         it('treemap dataView multi measure',() => {
             let metadata: powerbi.DataViewMetadata = {
                 columns: [

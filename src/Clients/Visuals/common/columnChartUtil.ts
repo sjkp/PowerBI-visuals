@@ -48,12 +48,18 @@ module powerbi.visuals {
 
         export function transformDomain(dataView: DataViewCategorical, min: DataViewPropertyValue, max: DataViewPropertyValue): DataViewCategorical {
             if (!dataView.categories || !dataView.values || dataView.categories.length === 0 || dataView.values.length === 0)
-                return dataView;// no need to do something when there are no categories  
+                return dataView;// no need to do something when there are no categories
             
             if (typeof min !== "number" && typeof max !== "number")
-                return dataView;//user did not set min max, nothing to do here        
-            
+                return dataView;//user did not set min max, nothing to do here
+
             let category = dataView.categories[0];//at the moment we only support one category
+            let categoryType = category ? category.source.type : null;
+
+            // Min/Max comparison won't work if category source is Ordinal
+            if (AxisHelper.isOrdinal(categoryType))
+                return;
+
             let categoryValues = category.values;
             let categoryObjects = category.objects;
 

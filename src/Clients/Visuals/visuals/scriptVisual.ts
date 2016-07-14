@@ -64,11 +64,11 @@ module powerbi.visuals {
         public update(options: VisualUpdateOptions): void {
             debug.assertValue(options, 'options');
 
-            let dataViews = options.dataViews;
+            let dataViews: DataView[] = options.dataViews;
             if (!dataViews || dataViews.length === 0)
                 return;
 
-            let dataView = dataViews[0];
+            let dataView: DataView = dataViews[0];
             if (!dataView || !dataView.metadata)
                 return;
 

@@ -169,6 +169,9 @@ module powerbi.visuals.controls.internal {
         }
 
         private updateRowHiearchyEstimatedWidth(items: any, firstVisibleIndex: number, levels: RowWidths) {
+            if (firstVisibleIndex < 0)
+                return;
+
             let hierarchyNavigator: ITablixHierarchyNavigator = this._owner.owner.owner.hierarchyNavigator;
             let binder: ITablixBinder = this.binder;
             let length = hierarchyNavigator.getCount(items);

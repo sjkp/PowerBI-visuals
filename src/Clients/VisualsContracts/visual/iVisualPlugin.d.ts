@@ -28,6 +28,12 @@
 
 declare module powerbi {
 
+    export interface IVisualPluginContent {
+        js: string;
+        css: string;
+        iconBase64: string;
+    }        
+
     export interface IVisualPlugin {
         /** The name of the plugin.  Must match the property name in powerbi.visuals. */
         name: string;
@@ -67,6 +73,12 @@ declare module powerbi {
         
         /** Human readable plugin name displayed to users */
         displayName?: string;
+
+        /** The version of the visual */
+        version?: string;
+
+        /** Stores visual implementation */
+        content?: IVisualPluginContent;
     }
 
     /** Method for gathering addition information from the visual for telemetry. */

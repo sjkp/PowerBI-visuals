@@ -1,6 +1,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare module powerbi {
     enum VisualDataRoleKind {
         /** Indicates that the role should be bound to something that evaluates to a grouping of values. */
@@ -1311,7 +1360,10 @@ declare module powerbi {
     }
 
     /** Defines the acceptable values of a number. */
-    export interface NumberRange extends ValueRange<number> {
+    export type NumberRange = ValueRange<number>;
+
+    /** Defines the PrimitiveValue range. */
+    export interface PrimitiveValueRange extends ValueRange<PrimitiveValue> {
     }
 
     export interface DataViewMappingScriptDefinition {
@@ -2409,6 +2461,9 @@ declare module powerbi {
         separator?: IColorInfo;
         selection?: IColorInfo;
 
+        /** Color of outlines for Table/Matrix that surround Headers, Values, or Totals */
+        tableAccent?: IColorInfo;
+
         dataColors: IDataColorPalette;
     }
 
@@ -3121,6 +3176,12 @@ declare module powerbi {
 
 declare module powerbi {
 
+    export interface IVisualPluginContent {
+        js: string;
+        css: string;
+        iconBase64: string;
+    }        
+
     export interface IVisualPlugin {
         /** The name of the plugin.  Must match the property name in powerbi.visuals. */
         name: string;
@@ -3160,6 +3221,12 @@ declare module powerbi {
         
         /** Human readable plugin name displayed to users */
         displayName?: string;
+
+        /** The version of the visual */
+        version?: string;
+
+        /** Stores visual implementation */
+        content?: IVisualPluginContent;
     }
 
     /** Method for gathering addition information from the visual for telemetry. */

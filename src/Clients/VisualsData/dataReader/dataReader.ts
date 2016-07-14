@@ -93,6 +93,7 @@ module powerbi.data {
         queryName: string;
         selector: Selector;
         aggregates?: ProjectionAggregates;
+        joinPredicate?: JoinPredicateBehavior;
     }
 
     export interface ProjectionAggregates {

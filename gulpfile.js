@@ -190,15 +190,20 @@ gulp.task("build", buildTaskInfo, ["build:copy-externals"], function () {
     });
 }, commonArgs);
 
-function runBuild(withoutTests) {
+function runBuild(withoutTests, entry) {
 
-    var deferred = Q.defer();
+    var deferred = Q.defer(),
+        webPackConfig = getWebPackConfig();
+
+    if (entry) {
+        webPackConfig.entry = entry;
+    }
 
     // disable building tests during gulp build task.
     // TODO: consider using other way to disable build of tests
     options.buildWithoutTests = withoutTests !== undefined ? !!withoutTests : options.buildWithoutTests;
 
-    webpack(getWebPackConfig(), function (err, stats) {
+    webpack(webPackConfig, function (err, stats) {
         if (err) throw new gutil.PluginError("webpack", err);
 
         traceBuildStats(stats, false /* isWatch*/);

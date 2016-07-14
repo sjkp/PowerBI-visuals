@@ -1,6 +1,6 @@
 {
   "name": "powerbi-visuals",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Microsoft PowerBI Visuals",
   "devDependencies": {
     "awesome-typescript-loader": "^0.15.10",

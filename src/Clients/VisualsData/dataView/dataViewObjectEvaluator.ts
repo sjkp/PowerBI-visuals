@@ -283,6 +283,10 @@ module powerbi.data {
                 }
             }
 
+            public visitPercentile(expr: SQPercentileExpr, evalContext: IEvalContext): PrimitiveValue {
+                return evalContext.getExprValue(expr);
+            }
+
             public visitSelectRef(expr: SQSelectRefExpr, evalContext: IEvalContext): PrimitiveValue {
                 return evalContext.getExprValue(expr);
             }

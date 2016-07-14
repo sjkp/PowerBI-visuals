@@ -54,6 +54,9 @@ declare module powerbi {
         separator?: IColorInfo;
         selection?: IColorInfo;
 
+        /** Color of outlines for Table/Matrix that surround Headers, Values, or Totals */
+        tableAccent?: IColorInfo;
+
         dataColors: IDataColorPalette;
     }
 

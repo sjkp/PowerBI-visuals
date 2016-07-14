@@ -113,7 +113,7 @@ module powerbitests.customVisuals.sampleDataViews {
                 {
                     source: {
                         displayName: CountriesData.ColumnCategory,
-                        roles: { "Values": true },
+                        roles: { "Category": true },
                         type: ValueType.fromDescriptor({ text: true })
                     },
                     values: this.valuesCategory

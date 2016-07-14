@@ -31,8 +31,11 @@ module powerbi.visuals.samples {
     import ValueFormatter = powerbi.visuals.valueFormatter;
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
-    //import AxisScale = powerbi.visuals.axisScale;
     import TextMeasurementService = powerbi.TextMeasurementService;
+    import defaultLabelPrecision = dataLabelUtils.defaultLabelPrecision;
+    import defaultLabelColor = dataLabelUtils.defaultLabelColor;
+    import DefaultFontSizeInPt = dataLabelUtils.DefaultFontSizeInPt;
+    import defaultLabelDensity = dataLabelUtils.defaultLabelDensity;
 
     export interface PulseChartConstructorOptions {
         animator?: IGenericAnimator;
@@ -50,8 +53,18 @@ module powerbi.visuals.samples {
         timeHeight: number;
     }
 
-    export interface PulseChartSeries extends LineChartSeries {
+    export interface PulseChartChartDataLabelsSettings extends PointDataLabelsSettings {
+        labelDensity: string;
+    }
+
+    export interface PulseChartSeries extends SelectableDataPoint {
         name?: string;
+        displayName: string;
+        key: string;
+        lineIndex: number;
+        xCol: DataViewMetadataColumn;
+        yCol: DataViewMetadataColumn;
+        labelSettings: PulseChartChartDataLabelsSettings;
         data: PulseChartDataPoint[];
         color: string;
         identity: SelectionId;
@@ -71,12 +84,26 @@ module powerbi.visuals.samples {
         series: number;
         index: number;
     }
+
     export interface PulseChartPointXY {
         x: number;
         y: number;
     }
 
-    export interface PulseChartDataPoint extends LineChartDataPoint, PulseChartPointXY {
+    export interface PulseChartPrimitiveDataPoint
+        extends TooltipEnabledDataPoint, SelectableDataPoint, LabelEnabledDataPoint {
+
+        categoryValue: any;
+        value: number;
+        categoryIndex: number;
+        seriesIndex: number;
+        highlight?: boolean;
+        key: string;
+        labelSettings: PulseChartChartDataLabelsSettings;
+        pointColor?: string;
+    }
+
+    export interface PulseChartDataPoint extends PulseChartPrimitiveDataPoint, PulseChartPointXY {
         groupIndex: number;
         popupInfo?: PulseChartTooltipData;
         eventSize: number;
@@ -176,8 +203,7 @@ module powerbi.visuals.samples {
         backgroundColor: string;
     }
 
-    export interface PulseChartYAxisSettings extends PulseChartAxisSettings {
-    }
+    export interface PulseChartYAxisSettings extends PulseChartAxisSettings {}
 
     export interface PulseChartSettings {
         formatStringProperty: DataViewObjectPropertyIdentifier;
@@ -196,6 +222,12 @@ module powerbi.visuals.samples {
         playback: PulseChartPlaybackSettings;
     }
 
+    export interface PulseChartAxesLabels {
+        x: string;
+        y: string;
+        y2?: string;
+    }
+
     export interface PulseChartData {
         settings: PulseChartSettings;
         columns: PulseChartDataRoles<DataViewCategoricalColumn>;
@@ -205,10 +237,10 @@ module powerbi.visuals.samples {
         series: PulseChartSeries[];
         isScalar?: boolean;
         dataLabelsSettings: PointDataLabelsSettings;
-        axesLabels: ChartAxesLabels;
+        axesLabels: PulseChartAxesLabels;
         hasDynamicSeries?: boolean;
         defaultSeriesColor?: string;
-        categoryData?: LineChartCategoriesData[];
+        categoryData?: PulseChartPrimitiveDataPoint[];
 
         categories: any[];
         legendData?: LegendData;
@@ -848,11 +880,11 @@ module powerbi.visuals.samples {
                 minSize,
                 maxSize);
 
-            var xAxisCardProperties: DataViewObject = CartesianHelper.getCategoryAxisProperties(dataView.metadata);
-            var categorical = ColumnUtil.applyUserMinMax(isScalar, dataView.categorical, xAxisCardProperties);
+            var xAxisCardProperties: DataViewObject = PulseChartAxisPropertiesHelper.getCategoryAxisProperties(dataView.metadata);
+
             var hasDynamicSeries: boolean = !!(timeStampColumn.values && timeStampColumn.source);
 
-            var dataPointLabelSettings = dataLabelUtils.getDefaultLineChartLabelSettings();
+            var dataPointLabelSettings = PulseChartDataLabelUtils.getDefaultPulseChartLabelSettings();
             var gapWidths = PulseChart.getGapWidths(categoryValues);
             var maxGapWidth = Math.max.apply(null, gapWidths);
 
@@ -904,8 +936,6 @@ module powerbi.visuals.samples {
                 if (isScalar && (categoryValue === null || value === null)) {
                     continue;
                 }
-
-                var categorical: DataViewCategorical = dataView.categorical;
 
                 var popupInfo: PulseChartTooltipData = null;
                 var eventSize = (columns.EventSize && columns.EventSize.values && columns.EventSize.values[categoryIndex]) || 0;
@@ -970,8 +1000,8 @@ module powerbi.visuals.samples {
                 });
             }
 
-            xAxisCardProperties = CartesianHelper.getCategoryAxisProperties(dataView.metadata);
-            var valueAxisProperties = CartesianHelper.getValueAxisProperties(dataView.metadata);
+            xAxisCardProperties = PulseChartAxisPropertiesHelper.getCategoryAxisProperties(dataView.metadata);
+            var valueAxisProperties = PulseChartAxisPropertiesHelper.getValueAxisProperties(dataView.metadata);
 
             var values = dataView.categorical.categories;
 
@@ -1438,46 +1468,6 @@ module powerbi.visuals.samples {
             });
         }
 
-        /*
-        private createAxisYWithCategories(show: boolean = true): D3.Svg.Axis {
-            var formatter: IValueFormatter,
-                data: PulseChartData = this.data,
-                scale: D3.Scale.GenericScale<D3.Scale.LinearScale | D3.Scale.OrdinalScale> = this.data.commonYScale,
-                categoryDomain: string[] = [];
-
-            data.grouped.forEach((group: DataViewValueColumnGroup) => {
-                if (!group.name) {
-                    return;
-                }
-
-                if (!categoryDomain.some((categoryDomainValue: string) => categoryDomainValue === group.name)) {
-                    categoryDomain.push(group.name);
-                }
-            });
-
-            if (categoryDomain.length > 0) {
-                scale = d3.scale.ordinal()
-                    .rangePoints([0, this.size.height])
-                    .domain(categoryDomain);
-            }
-
-            formatter = valueFormatter.create({
-                value: scale.domain()[0],
-                value2: scale.domain()[1]
-            });
-
-            var yAxis = d3.svg.axis().scale(scale);
-
-            return yAxis
-                .tickFormat((value: any) => {
-                    return TextMeasurementService.getTailoredTextOrDefault(
-                        PulseChart.GetAxisTextProperties(formatter.format(value)),
-                        PulseChart.MaxWidthOfYAxis);
-                })
-                .ticks(PulseChart.MaxCountOfTicksOnYAxis);
-        }
-        */
-
         public get autoplayPauseDuration(): number {
             return 1000 * ((this.data && this.data.settings && this.data.settings.playback)
                 ? this.data.settings.playback.autoplayPauseDuration
@@ -1491,9 +1481,8 @@ module powerbi.visuals.samples {
                 this.data.settings.playback.autoplay;
         }
 
-        public render(suppressAnimations: boolean): CartesianVisualRenderResult {
+        public render(suppressAnimations: boolean) {
             var duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
-            var result: CartesianVisualRenderResult;
             var data = this.data;
             this.lastSelectedPoint = null;
 
@@ -1519,8 +1508,6 @@ module powerbi.visuals.samples {
 
             this.renderAxes(data, duration);
             this.renderGaps(data, duration);
-
-            return result;
         }
 
         private renderAxes(data: PulseChartData, duration: number): void {
@@ -3531,6 +3518,94 @@ module powerbi.visuals.samples {
 
         public clearTimeouts(): void {
             clearTimeout(this.chart.handleSelectionTimeout);
+        }
+    }
+
+    export module PulseChartDataLabelUtils {
+        export function getDefaultPulseChartLabelSettings(): PulseChartChartDataLabelsSettings {
+            return {
+                show: false,
+                position: PointLabelPosition.Above,
+                displayUnits: 0,
+                precision: defaultLabelPrecision,
+                labelColor: defaultLabelColor,
+                fontSize: DefaultFontSizeInPt,
+                labelDensity: defaultLabelDensity,
+            };
+        }
+    }
+
+    export module PulseChartAxisPropertiesHelper {
+        export function getCategoryAxisProperties(dataViewMetadata: DataViewMetadata, axisTitleOnByDefault?: boolean): DataViewObject {
+            let toReturn: DataViewObject = {};
+
+            if (!dataViewMetadata) {
+                return toReturn;
+            }
+
+            let objects = dataViewMetadata.objects;
+
+            if (objects) {
+                let categoryAxisObject = objects['categoryAxis'];
+
+                if (categoryAxisObject) {
+                    toReturn = {
+                        show: categoryAxisObject['show'],
+                        axisType: categoryAxisObject['axisType'],
+                        axisScale: categoryAxisObject['axisScale'],
+                        start: categoryAxisObject['start'],
+                        end: categoryAxisObject['end'],
+                        showAxisTitle: categoryAxisObject['showAxisTitle'] == null ? axisTitleOnByDefault : categoryAxisObject['showAxisTitle'],
+                        axisStyle: categoryAxisObject['axisStyle'],
+                        labelColor: categoryAxisObject['labelColor'],
+                        labelDisplayUnits: categoryAxisObject['labelDisplayUnits'],
+                        labelPrecision: categoryAxisObject['labelPrecision'],
+                        duration: categoryAxisObject['duration'],
+                    };
+                }
+            }
+
+            return toReturn;
+        }
+
+        export function getValueAxisProperties(dataViewMetadata: DataViewMetadata, axisTitleOnByDefault?: boolean): DataViewObject {
+            let toReturn: DataViewObject = {};
+
+            if (!dataViewMetadata) {
+                return toReturn;
+            }
+
+            let objects = dataViewMetadata.objects;
+
+            if (objects) {
+                let valueAxisObject = objects['valueAxis'];
+                if (valueAxisObject) {
+                    toReturn = {
+                        show: valueAxisObject['show'],
+                        position: valueAxisObject['position'],
+                        axisScale: valueAxisObject['axisScale'],
+                        start: valueAxisObject['start'],
+                        end: valueAxisObject['end'],
+                        showAxisTitle: valueAxisObject['showAxisTitle'] == null ? axisTitleOnByDefault : valueAxisObject['showAxisTitle'],
+                        axisStyle: valueAxisObject['axisStyle'],
+                        labelColor: valueAxisObject['labelColor'],
+                        labelDisplayUnits: valueAxisObject['labelDisplayUnits'],
+                        labelPrecision: valueAxisObject['labelPrecision'],
+                        secShow: valueAxisObject['secShow'],
+                        secPosition: valueAxisObject['secPosition'],
+                        secAxisScale: valueAxisObject['secAxisScale'],
+                        secStart: valueAxisObject['secStart'],
+                        secEnd: valueAxisObject['secEnd'],
+                        secShowAxisTitle: valueAxisObject['secShowAxisTitle'],
+                        secAxisStyle: valueAxisObject['secAxisStyle'],
+                        secLabelColor: valueAxisObject['secLabelColor'],
+                        secLabelDisplayUnits: valueAxisObject['secLabelDisplayUnits'],
+                        secLabelPrecision: valueAxisObject['secLabelPrecision'],
+                    };
+                }
+            }
+
+            return toReturn;
         }
     }
 }

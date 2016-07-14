@@ -27,57 +27,49 @@
 @import (reference) "../../../../styles/styles.less";
 
 .Timeline {
-	.label {
-		text-anchor: middle;
-	}
-
-    .upperTextCell {
-        text-anchor: middle;
-    }
-
+    .label,
+    .mainArea .label,
+    .upperTextCell,
     .lowerTextCell {
         text-anchor: middle;
     }
-
     .cellRect {
         stroke: #333444;
     }
-}
-
-.selectionRangeContainer {
-    float: none;
-    position: absolute;
-    text-anchor: start;
-}
-
-.timelineSlicer {
-	position: absolute;
-	top: 20px;
-	right: 17px;
-	fill: #000000;
-	
-	.periodSlicerRect {
-		stroke: #aaa;
-		stroke-width: 2px;
-		fill: transparent;
-	}
-
-	.periodSlicerGranularities {
-		font-family: sans-serif;
-		font-size: 10px;
-	}
-	
-	.periodSlicerSelection {
-		font-family: sans-serif;
-		font-size: 10px;
-		text-anchor: middle;
-	}
-
-	.periodSlicerSelectionRect {
-		fill: transparent;
+    .selection{
+        &Cursor {
+            fill: gray;
+        }
+        &RangeContainer {
+            float: none;
+            position: absolute;
+            text-anchor: start;
+        }
     }
-}
+    .timelineSlicer {
+        position: absolute;
+        top: 20px;
+        right: 17px;
+        fill: #000000;
 
-.selectionCursor {
-    fill: gray;
+        .periodSlicer{
+            &Rect {
+                stroke: #aaa;
+                stroke-width: 2px;
+                fill: transparent;
+            }
+            &Granularities {
+                font-family: sans-serif;
+                font-size: 10px;
+            }
+            &Selection {
+                font-family: sans-serif;
+                font-size: 10px;
+                text-anchor: middle;
+            }
+            &SelectionRect {
+                fill: transparent;
+            }
+        }
+    }
 }

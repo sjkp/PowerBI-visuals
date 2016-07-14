@@ -113,7 +113,7 @@ module powerbi.visuals {
                             inputRole: 'Gradient',
                             output: {
                                 property: 'fill',
-                                selector: ['Category'],
+                                selector: ['Category', 'X', 'Y'],
                             },
                         },
                     }

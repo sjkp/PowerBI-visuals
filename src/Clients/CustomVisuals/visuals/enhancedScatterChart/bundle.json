@@ -4,7 +4,7 @@
     "package": {
         "name": "EnhancedScatterChart",
         "displayName": "EnhancedScatter",
-        "version": "0.2.11",
+        "version": "0.2.12",
         "guid": "EnhancedScatterChart1443994985041",
         "description": "A few more properties were added to the existing scatter chart visual, including shapes as markers, background image support, and developer crosshairs for positioning elements onto an image background.",
         "build": "13.0.1100.210",

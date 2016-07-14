@@ -48,10 +48,10 @@ module powerbitests {
             expect(animatedText.getSeedFontHeight(100, 90)).toBeLessThan(100);
         });
 
-        it("AnimatedText TextColor is rgba(51,51,51,1) by default", () => {
+        it("AnimatedText TextColor is #333 by default", () => {
             animatedText.style = powerbi.visuals.visualStyles.create();
 
-            helpers.assertColorsMatch(animatedText.style.titleText.color.value, 'rgba(51,51,51,1)');
+            helpers.assertColorsMatch(animatedText.style.titleText.color.value, '#333');
         });
 
         it("AnimatedText_setTextColor correctly sets style", () => {

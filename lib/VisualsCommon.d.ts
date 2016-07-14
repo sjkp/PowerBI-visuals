@@ -3,6 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare module jsCommon {
     /**
      * DOM constants.
@@ -590,6 +631,30 @@ declare module jsCommon {
         function darken(color: RgbColor, diff: number): RgbColor;
         function rgbString(color: RgbColor): string;
         function hexString(color: RgbColor): string;
+        /**
+         * Overlays a color with opacity over a background color
+         * @param {string} foreColor Color to overlay
+         * @param {number} opacity number between 0 (transparent) to 1 (opaque)
+         * @param {string} backColor Background color
+         * @returns Result color
+         */
+        function hexBlend(foreColor: string, opacity: number, backColor: string): string;
+        /**
+         * Overlays a color with opacity over a background color. Any alpha-channel is ignored.
+         * @param {RgbColor} foreColor Color to overlay
+         * @param {number} opacity number between 0 (transparent) to 1 (opaque). Any value out of range will be corrected.
+         * @param {RgbColor} backColor Background color
+         * @returns
+         */
+        function rgbBlend(foreColor: RgbColor, opacity: number, backColor: RgbColor): RgbColor;
+        /**
+         * Blend a single channel for two colors
+         * @param {number} foreChannel Channel of foreground color. Will be enforced to be between 0 and 255.
+         * @param {number} opacity opacity of the foreground color. Will be enforced to be between 0 and 1.
+         * @param {number} backChannel channel of the background color. Will be enforced to be between 0 and 255.
+         * @returns result channel value
+         */
+        function channelBlend(foreChannel: number, opacity: number, backChannel: number): number;
         interface RgbColor {
             R: number;
             G: number;
@@ -1329,6 +1394,13 @@ declare module jsCommon {
          * @param value The value to test.
          */
         static isNullOrUndefined(value: any): boolean;
+        /**
+         * Checks if the value is defined and returns it, else, returns undefined
+         * @param {T} value Value to check
+         * @param {T} defaultValue Default value to return if value is undefined
+         * @returns value if defined, else defaultValue
+         */
+        static valueOrDefault<T>(value: T, defaultValue: T): T;
         /**
          * Combine a base url and a path.
          * @param baseUrl The base url.

@@ -726,7 +726,7 @@ module powerbi.visuals {
          * Measurement Helper.
          */
         public getHeaderLabel(item: DataViewMetadataColumn): string {
-            return item.displayName;
+            return item ? item.displayName : "";
         }
 
         public getCellContent(item: any): string {

@@ -1130,7 +1130,9 @@ module powerbi.visuals.samples {
 
             var rowEnter = (rowSelection: D3.Selection) => {
                 var settings: ChicletSlicerSettings = this.settings;
-                var listItemElement = rowSelection.append('li')
+                var listItemElement = rowSelection
+                    .append('ul')
+                    .append('li')
                     .classed(ChicletSlicer.ItemContainer.class, true)
                     .style({
                         'margin-left': PixelConverter.toString(settings.slicerItemContainer.marginLeft),

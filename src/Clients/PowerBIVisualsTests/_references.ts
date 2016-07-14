@@ -109,6 +109,7 @@
 /// <reference path="./extensibility/extensibilityMocks.ts"/>
 /// <reference path="./extensibility/extensibilityHelpers.ts"/>
 /// <reference path="./extensibility/VisualAdapterTests.ts"/>
+/// <reference path="./extensibility/VisualPluginAdapterTests.ts"/>
 /// <reference path="./extensibility/VisualSafeExecutionWrapperTests.ts"/>
 /// <reference path="./extensibility/VisualVersionsTests.ts"/>
 /// <reference path="./extensibility/versions/v1.0.0Tests.ts"/>

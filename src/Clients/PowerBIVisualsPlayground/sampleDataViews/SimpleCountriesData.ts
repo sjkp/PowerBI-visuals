@@ -145,7 +145,7 @@ module powerbi.visuals.sampleDataViews {
                         displayName: "Country",
                         queryName: "Country",
                         type: powerbi.ValueType.fromDescriptor({ text: true }),
-                        roles: { "Values": true }
+                        roles: { "Category": true }
                     }],
                     objects: {
                         rotateText: {
