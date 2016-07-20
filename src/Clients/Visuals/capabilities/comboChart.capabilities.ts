@@ -241,7 +241,7 @@ module powerbi.visuals {
                 categorical: {
                     categories: {
                         for: { in: 'Category' },
-                        dataReductionAlgorithm: { top: {} }
+                        dataReductionAlgorithm: { window: { count: 100 } }
                     },
                     values: {
                         group: {
@@ -249,7 +249,7 @@ module powerbi.visuals {
                             select: [
                                 { for: { in: 'Y' } }
                             ],
-                            dataReductionAlgorithm: { top: {} }
+                            dataReductionAlgorithm: { top: { count: 60 } }
                         }
                     },
                     rowCount: { preferred: { min: 2 }, supported: { min: 0 } }
@@ -262,7 +262,7 @@ module powerbi.visuals {
                 categorical: {
                     categories: {
                         for: { in: 'Category' },
-                        dataReductionAlgorithm: { top: {} }
+                        dataReductionAlgorithm: { window: { count: 100 } }
                     },
                     values: {
                         select: [

@@ -75,6 +75,9 @@ module powerbitests.slicerHelper {
     export function createHostServices(): powerbi.IVisualHostServices {
         let hostServices = new powerbi.visuals.DefaultVisualHostServices();
         hostServices.canSelect = () => true;
+        hostServices.onSelecting = <any>((args: powerbi.SelectingEventArgs) => {
+            args.action = powerbi.VisualInteractivityAction.Selection;
+        });
         hostServices.analyzeFilter = (options: powerbi.FilterAnalyzerOptions) => {
             return new mocks.FilterAnalyzerMock(<SemanticFilter>options.filter, <SQExpr[]>options.fieldSQExprs);
         };
@@ -107,7 +110,7 @@ module powerbitests.slicerHelper {
     }
 
     export function buildDataViewWithSelfFilter(orientation: SlicerOrientation, field: SQExpr): powerbi.DataView {
-        let dataViewMetadata: powerbi.DataViewMetadata = buildDefaultDataViewMetadata();
+        let dataViewMetadata: powerbi.DataViewMetadata = buildDefaultDataViewMetadata(field);
         let dataViewCategorical: powerbi.DataViewCategorical = buildDefaultDataViewCategorical(field);
         let dataView: powerbi.DataView = {
             metadata: dataViewMetadata,
@@ -181,11 +184,14 @@ module powerbitests.slicerHelper {
         };
     }
 
-    export function buildDefaultDataViewMetadata(): powerbi.DataViewMetadata {
-        return {
+    export function buildDefaultDataViewMetadata(field?: SQExpr): powerbi.DataViewMetadata {
+        let result: powerbi.DataViewMetadata = {
             columns: [
                 { displayName: "Fruit", roles: { "Values": true }, queryName: 'queryName', type: ValueType.fromDescriptor({ text: true }) }]
         };
+        if (field)
+            result.columns[0].expr = field;
+        return result;
     }
 
     export function buildBooleanValueDataViewMetadata(): powerbi.DataViewMetadata {

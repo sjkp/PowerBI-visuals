@@ -34,6 +34,7 @@ module powerbi.visuals.samples {
     import SemanticFilter = powerbi.data.SemanticFilter;
     import SQExprConverter = powerbi.data.SQExprConverter;
     import SelectionIdBuilder = powerbi.visuals.SelectionIdBuilder;
+    import Selector = data.Selector;
 
     export interface ITableView {
         data(data: any[], dataIdFunction: (d) => {}, dataAppended: boolean): ITableView;
@@ -675,6 +676,9 @@ module powerbi.visuals.samples {
         private static cellTotalInnerBorders = 2;
         private static chicletTotalInnerRightLeftPaddings = 14;
 
+        public static MinImageSplit: number = 0;
+        public static MaxImageSplit: number = 100;
+
         private static ItemContainer: ClassAndSelector = createClassAndSelector('slicerItemContainer');
         private static HeaderText: ClassAndSelector = createClassAndSelector('headerText');
         private static Container: ClassAndSelector = createClassAndSelector('chicletSlicer');
@@ -755,6 +759,19 @@ module powerbi.visuals.samples {
             }
             if (!this.behavior) {
                 this.behavior = new ChicletSlicerWebBehavior();
+            }
+        }
+
+        /**
+         * Public to testability.
+         */
+        public static getValidImageSplit(imageSplit): number {
+            if (imageSplit < ChicletSlicer.MinImageSplit) {
+                return ChicletSlicer.MinImageSplit;
+            } else if (imageSplit > ChicletSlicer.MaxImageSplit) {
+                return ChicletSlicer.MaxImageSplit;
+            } else {
+                return imageSplit;
             }
         }
 
@@ -843,7 +860,8 @@ module powerbi.visuals.samples {
         }
 
         private static canSelect(args: SelectEventArgs): boolean {
-            var selectors = args.data;
+           var selectors = _.map(args.visualObjects, (visualObject) => Selector.convertSelectorsByColumnToSelector(visualObject.selectorsByColumn));
+
             // We can't have multiple selections if any include more than one identity
             if (selectors && (selectors.length > 1)) {
                 if (selectors.some((value: data.Selector) => value && value.data && value.data.length > 1)) {
@@ -995,7 +1013,7 @@ module powerbi.visuals.samples {
             data.slicerSettings.slicerText.outlineWeight = data.slicerSettings.slicerText.outlineWeight < 0 ? 0 : data.slicerSettings.slicerText.outlineWeight;
             data.slicerSettings.slicerText.height = data.slicerSettings.slicerText.height < 0 ? 0 : data.slicerSettings.slicerText.height;
             data.slicerSettings.slicerText.width = data.slicerSettings.slicerText.width < 0 ? 0 : data.slicerSettings.slicerText.width;
-            data.slicerSettings.images.imageSplit = data.slicerSettings.images.imageSplit < 0 ? 0 : data.slicerSettings.images.imageSplit;
+            data.slicerSettings.images.imageSplit = ChicletSlicer.getValidImageSplit(data.slicerSettings.images.imageSplit);
 
             data.slicerSettings.general.columns = data.slicerSettings.general.columns < 0 ? 0 : data.slicerSettings.general.columns;
             data.slicerSettings.general.rows = data.slicerSettings.general.rows < 0 ? 0 : data.slicerSettings.general.rows;
@@ -1069,23 +1087,6 @@ module powerbi.visuals.samples {
                 .viewport(this.getSlicerBodyViewport(this.currentViewport))
                 .render();
 
-            // if(!selectedItems.length  &&  String(savedSelection).length && this.slicerData && this.slicerData.hasSelectionOverride){
-            //     var arrSelection = String(savedSelection).split('&');
-            //     var arrSelected = jQuery.map(data.slicerDataPoints, function (d, index) {
-            //         if (arrSelection.indexOf(d.category) > -1) return d;
-            //     });
-            //     data.slicerDataPoints.forEach(function (d, index) {
-            //         if (arrSelection.indexOf(d.category) > -1){
-            //             d.selected = true;
-            //             // console.error('>>>>@@@', d, index);
-            //         }
-            //     });
-            //     if(!arrSelection.length){
-            //         this.slicerData.hasSelectionOverride = false
-            //     }
-            //     // console.error('>>> 2', 'RESTORE',   savedSelection,     arrSelected,     data.slicerDataPoints )
-            // }
-
             this.updateSearchHeader();
         }
 
@@ -1138,7 +1139,7 @@ module powerbi.visuals.samples {
                         'margin-left': PixelConverter.toString(settings.slicerItemContainer.marginLeft),
                     });
 
-                listItemElement.append('div')
+                listItemElement.append('img')
                     .classed('slicer-img-wrapper', true);
 
                 listItemElement.append('div')
@@ -1185,7 +1186,7 @@ module powerbi.visuals.samples {
 
                     var slicerImg = rowSelection.selectAll('.slicer-img-wrapper');
                     slicerImg
-                        .style('height', settings.images.imageSplit + '%')
+                        .style('max-height', settings.images.imageSplit + '%')
                         .classed('hidden', (d: ChicletSlicerDataPoint) => {
                             if (!(d.imageURL)) {
                                 return true;
@@ -1197,8 +1198,8 @@ module powerbi.visuals.samples {
                         .style('display', (d: ChicletSlicerDataPoint) => (d.imageURL) ? 'flex' : 'none')
                         .classed('stretchImage', settings.images.stretchImage)
                         .classed('bottomImage', settings.images.bottomImage)
-                        .style('background-image', (d: ChicletSlicerDataPoint) => {
-                            return d.imageURL ? `url(${d.imageURL})` : '';
+                        .attr('src', (d: ChicletSlicerDataPoint) => {
+                            return d.imageURL ? d.imageURL : '';
                         });
 
                     rowSelection.selectAll('.slicer-text-wrapper')

@@ -44,6 +44,7 @@ module powerbi.visuals {
         interactivityService: IInteractivityService;
         settings: SlicerSettings;
         slicerValueHandler: SlicerValueHandler;
+        searchInput: D3.Selection;
     }
 
     export class SlicerWebBehavior implements IInteractiveBehavior {
@@ -60,20 +61,18 @@ module powerbi.visuals {
         }
 
         public static bindSlicerEvents(
-            slicerContainer: D3.Selection,
+            behaviorOptions: SlicerBehaviorOptions,
             slicers: D3.Selection,
-            slicerClear: D3.Selection,
             selectionHandler: ISelectionHandler,
             slicerSettings: SlicerSettings,
-            interactivityService: IInteractivityService,
-            slicerValueHandler: SlicerValueHandler,
-            slicerSearch?: D3.Selection): void {
-            SlicerWebBehavior.bindSlicerItemSelectionEvent(slicers, selectionHandler, slicerSettings, interactivityService);
-            SlicerWebBehavior.bindSlicerClearEvent(slicerClear, selectionHandler);
-            if (slicerSearch)
-                SlicerWebBehavior.bindSlicerSearchEvent(slicerSearch, selectionHandler, slicerValueHandler);
+            interactivityService: IInteractivityService): void {
 
-            SlicerWebBehavior.styleSlicerContainer(slicerContainer, interactivityService);
+            SlicerWebBehavior.bindSlicerItemSelectionEvent(slicers, selectionHandler, slicerSettings, interactivityService);
+            SlicerWebBehavior.bindSlicerClearEvent(behaviorOptions.clear, selectionHandler);
+            if (behaviorOptions.searchInput)
+                SlicerWebBehavior.bindSlicerSearchEvent(behaviorOptions.searchInput, selectionHandler, behaviorOptions.slicerValueHandler);
+
+            SlicerWebBehavior.styleSlicerContainer(behaviorOptions.slicerContainer, interactivityService);
         }
 
         public static setSelectionOnSlicerItems(selectableItems: D3.Selection, itemLabel: D3.Selection, hasSelection: boolean, interactivityService: IInteractivityService, slicerSettings: SlicerSettings): void {

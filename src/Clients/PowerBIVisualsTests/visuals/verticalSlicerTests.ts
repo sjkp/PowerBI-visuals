@@ -429,11 +429,13 @@ module powerbitests {
 
                 let selectionId = new powerbi.visuals.SelectionIdBuilder().withCategory(builder.interactiveDataViewOptions.dataViews[0].categorical.categories[0], 0).createSelectionId();
                 expect(builder.hostServices.onSelect).toHaveBeenCalledWith({
-                    data: [
-                        selectionId.getSelector()
-                    ],
-                    data2: [
-                        selectionId.getSelectorsByColumn()
+                    visualObjects:
+                    [
+                        {
+                            objectName: 'dataPoint',
+                            selectorsByColumn: selectionId.getSelectorsByColumn(),
+                            
+                        }
                     ]
                 });
             });

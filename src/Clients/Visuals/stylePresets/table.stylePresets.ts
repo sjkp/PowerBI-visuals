@@ -34,6 +34,7 @@ module powerbi.visuals {
     import SQExprBuilder = data.SQExprBuilder;
 
     let valueOrDefault = jsCommon.Utility.valueOrDefault;
+    let createSolidFillDefinition = FillDefinitionHelpers.createSolidFillDefinition;
 
     // Default for values common to most presets to avoid repeating declaring them
     const defaultOutlineWeight = TablixObjects.PropGridOutlineWeight.defaultValue;
@@ -42,7 +43,9 @@ module powerbi.visuals {
     const defaultColumnsOutline = TablixObjects.PropColumnsOutline.defaultValue;
     const defaultValuesOutline = TablixObjects.PropValuesOutline.defaultValue;
     const defaultTotalOutline = TablixObjects.PropTotalOutline.defaultValue;
+    const rowPaddingCondensed = 0;
     const rowPaddingNormal = 3;
+    const rowPaddingSparse = 6;
 
     function wrapFormattingElements(elements: TableFormattingProperties): DataViewObjectDefinitions {
         return {
@@ -88,89 +91,404 @@ module powerbi.visuals {
         };
     }
 
-    export const tableStylePresets: VisualStylePresets = {
-        displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_SectionTitle'),
-        presets: {
-            None: {
-                displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_None'),
+    export function tableStylePresets(): VisualStylePresets {
+        return {
+            sectionTitle: data.createDisplayNameGetter('Visual_Table_StylePreset_SectionTitle'),
+            sliceTitle: data.createDisplayNameGetter('Visual_Table_StylePreset_SliceTitle'),
+            defaultPresetName: "None",
+            presets: {
+                None: {
+                    name: "None",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_None'),
+                    evaluate: (theme: IVisualStyle) => {
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: TablixObjects.PropGridOutlineColor.defaultValue,
+                                gridVertical: TablixObjects.PropGridVertical.defaultValue,
+                                gridVerticalColor: TablixObjects.PropGridVerticalColor.defaultValue,
+                                gridHorizontal: TablixObjects.PropGridHorizontalTable.defaultValue,
+                                gridHorizontalColor: TablixObjects.PropGridHorizontalColor.defaultValue,
+                                rowPadding: TablixObjects.PropGridRowPadding.defaultValue,
+                            },
 
-                evaluate: (theme: IVisualStyle) => {
-                    return wrapFormattingElements({
-                        grid: {
-                            outlineColor: TablixObjects.PropGridOutlineColor.defaultValue,
-                            gridVertical: TablixObjects.PropGridVertical.defaultValue,
-                            gridVerticalColor: TablixObjects.PropGridVerticalColor.defaultValue,
-                            gridHorizontal: TablixObjects.PropGridHorizontalTable.defaultValue,
-                            gridHorizontalColor: TablixObjects.PropGridHorizontalColor.defaultValue,
-                            rowPadding: TablixObjects.PropGridRowPadding.defaultValue,
-                        },
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: TablixObjects.PropColumnsFontColor.defaultValue,
+                                backColor: TablixObjects.PropColumnsBackColor.defaultValue,
+                            },
 
-                        columnHeaders: {
-                            outline: defaultColumnsOutline,
-                            fontColor: TablixObjects.PropColumnsFontColor.defaultValue,
-                            backColor: TablixObjects.PropColumnsBackColor.defaultValue,
-                        },
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: TablixObjects.PropValuesFontColorPrimary.defaultValue,
+                                backColorPrimary: TablixObjects.PropValuesBackColorPrimary.defaultValue,
+                                fontColorSecondary: TablixObjects.PropValuesFontColorSecondary.defaultValue,
+                                backColorSecondary: TablixObjects.PropValuesBackColorSecondary.defaultValue,
+                            },
 
-                        values: {
-                            outline: defaultValuesOutline,
-                            fontColorPrimary: TablixObjects.PropValuesOutline.defaultValue,
-                            backColorPrimary: TablixObjects.PropValuesOutline.defaultValue,
-                            fontColorSecondary: TablixObjects.PropValuesOutline.defaultValue,
-                            backColorSecondary: TablixObjects.PropValuesOutline.defaultValue,
-                        },
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: TablixObjects.PropTotalFontColor.defaultValue,
+                                backColor: TablixObjects.PropTotalBackColor.defaultValue,
+                            },
+                        });
+                    }
+                },
 
-                        total: {
-                            outline: defaultTotalOutline,
-                            fontColor: TablixObjects.PropTotalFontColor.defaultValue,
-                            backColor: TablixObjects.PropTotalBackColor.defaultValue,
-                        },
-                    });
+                Minimal: {
+                    name: "Minimal",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_Minimal'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let outlineColor = theme.colorPalette.tableAccent.value;
+                        let gridColor = Color.hexBlend(foreColor, 0.12, backColor);
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: outlineColor,
+                                gridVertical: false,
+                                gridVerticalColor: gridColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: true,
+                                gridHorizontalColor: gridColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingNormal,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: foreColor,
+                                backColor: backColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: foreColor,
+                                backColorPrimary: backColor,
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: backColor,
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: foreColor,
+                                backColor: backColor,
+                            },
+                        });
+                    },
+                },
+
+                BoldHeader: {
+                    name: "BoldHeader",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_BoldHeader'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let accent = theme.colorPalette.tableAccent.value;
+
+                        let gridColor = Color.hexBlend(foreColor, 0.12, backColor);
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: accent,
+                                gridVertical: false,
+                                gridVerticalColor: gridColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: true,
+                                gridHorizontalColor: gridColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingNormal,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: foreColor,
+                                backColorPrimary: backColor,
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: backColor,
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: foreColor,
+                                backColor: backColor,
+                            },
+                        });
+                    },
+                },
+
+                AlternatingRows: {
+                    name: "AlternatingRows",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_AlternatingRows'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let accent = theme.colorPalette.tableAccent.value;
+
+                        let gridColor = Color.hexBlend(foreColor, 0.12, backColor);
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: accent,
+                                gridVertical: false,
+                                gridVerticalColor: gridColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: true,
+                                gridHorizontalColor: gridColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingNormal,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: foreColor,
+                                backColorPrimary: backColor,
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: Color.hexBlend(foreColor, 0.08, backColor),
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+                        });
+                    },
+                },
+
+                ContrastAlternatingRows: {
+                    name: "ContrastAlternatingRows",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_ContrastAlternatingRows'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let accent = theme.colorPalette.tableAccent.value;
+
+                        let gridColor = Color.hexBlend(foreColor, 0.12, backColor);
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: accent,
+                                gridVertical: false,
+                                gridVerticalColor: gridColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: true,
+                                gridHorizontalColor: gridColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingNormal,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: backColor,
+                                backColorPrimary: Color.hexBlend(foreColor, 0.75, backColor),
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: Color.hexBlend(foreColor, 0.25, backColor),
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+                        });
+                    },
+                },
+
+                FlashyRows: {
+                    name: "FlashyRows",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_FlashyRows'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let accent = theme.colorPalette.tableAccent.value;
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: foreColor,
+                                gridVertical: false,
+                                gridVerticalColor: backColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: false,
+                                gridHorizontalColor: backColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingNormal,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: foreColor,
+                                backColor: backColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: foreColor,
+                                backColorPrimary: Color.hexBlend(accent, 0.40, backColor),
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: Color.hexBlend(accent, 0.80, backColor),
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: foreColor,
+                                backColor: backColor,
+                            },
+                        });
+                    },
+                },
+
+                BoldHeaderFlashyRows: {
+                    name: "BoldHeaderFlashyRows",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_BoldHeaderFlashyRows'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let accent = theme.colorPalette.tableAccent.value;
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: backColor,
+                                gridVertical: false,
+                                gridVerticalColor: foreColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: false,
+                                gridHorizontalColor: foreColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingNormal,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: foreColor,
+                                backColorPrimary: Color.hexBlend(accent, 0.40, backColor),
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: Color.hexBlend(accent, 0.80, backColor),
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+                        });
+                    },
+                },
+
+                Sparse: {
+                    name: "Sparse",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_Sparse'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let accent = theme.colorPalette.tableAccent.value;
+
+                        let gridColor = Color.hexBlend(foreColor, 0.20, backColor);
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: accent,
+                                gridVertical: false,
+                                gridVerticalColor: gridColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: false,
+                                gridHorizontalColor: gridColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingSparse,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: foreColor,
+                                backColorPrimary: backColor,
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: backColor,
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+                        });
+                    },
+                },
+
+                Condensed: {
+                    name: "Condensed",
+                    displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_Condensed'),
+                    evaluate: (theme: IVisualStyle) => {
+                        let backColor = theme.colorPalette.background.value;
+                        let foreColor = theme.colorPalette.foreground.value;
+                        let accent = theme.colorPalette.tableAccent.value;
+
+                        let gridColor = Color.hexBlend(foreColor, 0.20, backColor);
+
+                        return wrapFormattingElements({
+                            grid: {
+                                outlineColor: accent,
+                                gridVertical: true,
+                                gridVerticalColor: gridColor,
+                                gridVerticalWeight: defaultGridlineVerticalWeight,
+                                gridHorizontal: true,
+                                gridHorizontalColor: gridColor,
+                                gridHorizontalWeight: defaultGridlineHorizontalWeight,
+                                rowPadding: rowPaddingCondensed,
+                            },
+
+                            columnHeaders: {
+                                outline: defaultColumnsOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+
+                            values: {
+                                outline: defaultValuesOutline,
+                                fontColorPrimary: foreColor,
+                                backColorPrimary: backColor,
+                                fontColorSecondary: foreColor,
+                                backColorSecondary: backColor,
+                            },
+
+                            total: {
+                                outline: defaultTotalOutline,
+                                fontColor: backColor,
+                                backColor: foreColor,
+                            },
+                        });
+                    },
                 },
             },
-
-            Minimal: {
-                displayName: data.createDisplayNameGetter('Visual_Table_StylePreset_Minimal'),
-
-                evaluate: (theme: IVisualStyle) => {
-                    let backColor = theme.colorPalette.background.value;
-                    let foreColor = theme.colorPalette.foreground.value;
-                    let outlineColor = theme.colorPalette.tableAccent.value;
-                    let gridColor = Color.hexBlend(foreColor, 0.12, backColor);
-
-                    return wrapFormattingElements({
-                        grid: {
-                            outlineColor: outlineColor,
-                            gridVertical: false,
-                            gridVerticalColor: gridColor,
-                            gridVerticalWeight: defaultGridlineVerticalWeight,
-                            gridHorizontal: true,
-                            gridHorizontalColor: gridColor,
-                            gridHorizontalWeight: defaultGridlineHorizontalWeight,
-                            rowPadding: rowPaddingNormal,
-                        },
-
-                        columnHeaders: {
-                            outline: defaultColumnsOutline,
-                            fontColor: foreColor,
-                            backColor: backColor,
-                        },
-
-                        values: {
-                            outline: defaultValuesOutline,
-                            fontColorPrimary: foreColor,
-                            backColorPrimary: backColor,
-                            fontColorSecondary: foreColor,
-                            backColorSecondary: backColor,
-                        },
-
-                        total: {
-                            outline: defaultTotalOutline,
-                            fontColor: foreColor,
-                            backColor: backColor,
-                        },
-                    });
-                },
-            },
-        },
-    };
+        };
+    }
 }

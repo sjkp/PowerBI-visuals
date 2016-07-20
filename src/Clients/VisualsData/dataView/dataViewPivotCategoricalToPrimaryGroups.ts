@@ -30,7 +30,6 @@ module powerbi.data {
     import ArrayExtensions = jsCommon.ArrayExtensions;
     import DataShapeBindingDataReduction = powerbi.data.DataShapeBindingDataReduction;
     import inheritSingle = powerbi.Prototype.inheritSingle;
-    import RoleKindByQueryRef = DataViewAnalysis.RoleKindByQueryRef;
 
     export module DataViewPivotCategoricalToPrimaryGroups {
 
@@ -90,8 +89,14 @@ module powerbi.data {
             return true;
         }
 
-        export function unpivotResult(oldDataView: DataView, selects: DataViewSelectTransform[], dataViewMappings: DataViewMapping[], projectionActiveItems: DataViewProjectionActiveItems): DataView {
-            if (!inferUnpivotTransform(selects, dataViewMappings, oldDataView, projectionActiveItems))
+        export function unpivotResult(
+            oldDataView: DataView,
+            selects: DataViewSelectTransform[],
+            roleKindByQueryRef: DataViewAnalysis.RoleKindByQueryRef,
+            queryProjectionsByRole: QueryProjectionsByRole,
+            applicableRoleMappings: DataViewMapping[]): DataView {
+
+            if (!inferUnpivotTransform(oldDataView, selects, roleKindByQueryRef, queryProjectionsByRole, applicableRoleMappings))
                 return oldDataView;
 
             // This returns a subsetted version of the DataView rather than using prototypal inheritance because
@@ -133,20 +138,23 @@ module powerbi.data {
          * Infer from the query result and the visual mappings whether the query was pivoted.
          * Narrowly targets scatter chart scenario for now to keep code simple
          */
-        function inferUnpivotTransform(selects: DataViewSelectTransform[], dataViewMappings: DataViewMapping[], dataView: DataView, projectionActiveItems: DataViewProjectionActiveItems): boolean {
-            if (_.isEmpty(selects) || _.isEmpty(dataViewMappings) || !dataView)
+        function inferUnpivotTransform(
+            dataView: DataView,
+            selects: DataViewSelectTransform[],
+            roleKindByQueryRef: DataViewAnalysis.RoleKindByQueryRef,
+            queryProjectionsByRole: QueryProjectionsByRole,
+            applicableRoleMappings: DataViewMapping[]): boolean {
+
+            if (_.isEmpty(selects) || !dataView || _.isEmpty(applicableRoleMappings))
                 return false;
 
-            // select applicable mappings based on select roles
-            let roleKinds: RoleKindByQueryRef = DataViewSelectTransform.createRoleKindFromMetadata(selects, dataView.metadata);
-            let projections: QueryProjectionsByRole = DataViewSelectTransform.projectionsFromSelects(selects, projectionActiveItems);
-            let supportedDataViewMappings = DataViewAnalysis.chooseDataViewMappings(projections, dataViewMappings, roleKinds).supportedMappings;
+            let applicableRoleMappingWithoutRegression = _.filter(applicableRoleMappings, (mapping) => !DataViewMapping.getRegressionUsage(mapping));
 
             // NOTE: limiting to simple situation that handles scatter for now - see the other side in canPivotCategorical
-            if (!supportedDataViewMappings || supportedDataViewMappings.length !== 1)
+            if (applicableRoleMappingWithoutRegression.length !== 1)
                 return false;
 
-            let categoricalMapping = supportedDataViewMappings[0].categorical;
+            let categoricalMapping = applicableRoleMappingWithoutRegression[0].categorical;
             if (!categoricalMapping)
                 return false;
 
@@ -164,12 +172,12 @@ module powerbi.data {
             let valueGroups: string[] = [];
 
             let addGroupingRole = (roleName: string, groups: string[]) => {
-                let roleProjections: QueryProjectionCollection = projections[roleName];
+                let roleProjections: QueryProjectionCollection = queryProjectionsByRole[roleName];
                 if (!roleProjections)
                     return;
 
                 for (let roleProjection of roleProjections.all()) {
-                    if (roleKinds[roleProjection.queryRef] === VisualDataRoleKind.Grouping)
+                    if (roleKindByQueryRef[roleProjection.queryRef] === VisualDataRoleKind.Grouping)
                         groups.push(roleProjection.queryRef);
                 }
             };

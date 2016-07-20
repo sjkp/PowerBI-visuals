@@ -23,13 +23,57 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
- 
+ /// <reference path="../../../_references.ts"/>
 module powerbi.visuals.samples {
-    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
-    import getAnimationDuration = AnimatorCommon.GetAnimationDuration;
+import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import getAnimationDuration = powerbi.visuals.AnimatorCommon.GetAnimationDuration;
     import CreateClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
     import AxisScale = powerbi.visuals.axisScale;
     import PixelConverter = jsCommon.PixelConverter;
+    import IEnumType = powerbi.IEnumType;
+    import createEnumType = powerbi.createEnumType;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import IGenericAnimator = powerbi.visuals.IGenericAnimator;
+    import IMargin = powerbi.visuals.IMargin;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import VisualDataLabelsSettings = powerbi.visuals.VisualDataLabelsSettings;
+    import IValueFormatter = powerbi.visuals.IValueFormatter;
+    import Fill = powerbi.Fill;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import IVisual = powerbi.IVisual;
+    import IViewport = powerbi.IViewport;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
+    import IInteractiveBehavior = powerbi.visuals.IInteractiveBehavior;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import TextProperties = powerbi.TextProperties;
+    import dataLabelUtils = powerbi.visuals.dataLabelUtils;
+    import LegendData = powerbi.visuals.LegendData;
+    import DataView = powerbi.DataView;
+    import DataViewObjects = powerbi.DataViewObjects;
+    import DataViewValueColumns = powerbi.DataViewValueColumns;
+    import SelectionIdBuilder = powerbi.visuals.SelectionIdBuilder;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import createInteractivityService = powerbi.visuals.createInteractivityService;
+    import appendClearCatcher = powerbi.visuals.appendClearCatcher;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import SVGUtil = powerbi.visuals.SVGUtil;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
+    import ObjectEnumerationBuilder = powerbi.visuals.ObjectEnumerationBuilder;
+    import DataViewObject = powerbi.DataViewObject;
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import ILabelLayout = powerbi.visuals.ILabelLayout;
+    import TooltipManager = powerbi.visuals.TooltipManager;
+    import TooltipEvent = powerbi.visuals.TooltipEvent;
+    import IAxisProperties = powerbi.visuals.IAxisProperties;
+    import NumberRange = powerbi.NumberRange;
+    import AxisHelper = powerbi.visuals.AxisHelper;
+    import TextMeasurementService = powerbi.TextMeasurementService;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
 
     var MaxXAxisHeight: number = 40;
     var LabelMargin: number = 15;
@@ -117,6 +161,26 @@ module powerbi.visuals.samples {
         }
     };
 
+    export interface DotPlotCalculateScaleAndDomainOptions {
+        viewport: IViewport;
+        margin: IMargin;
+        showCategoryAxisLabel: boolean;
+        showValueAxisLabel: boolean;
+        forceMerge: boolean;
+        categoryAxisScaleType: string;
+        valueAxisScaleType: string;
+        trimOrdinalDataOnOverflow: boolean;
+        forcedTickCount?: number;
+        forcedYDomain?: any[];
+        forcedXDomain?: any[];
+        ensureXDomain?: NumberRange;
+        ensureYDomain?: NumberRange;
+        categoryAxisDisplayUnits?: number;
+        categoryAxisPrecision?: number;
+        valueAxisDisplayUnits?: number;
+        valueAxisPrecision?: number;
+    }
+
     export interface DotPlotSelectors {
         svgPlotSelector: ClassAndSelector;
         plotSelector: ClassAndSelector;
@@ -129,6 +193,7 @@ module powerbi.visuals.samples {
     export interface DotPlotChartCategory {
         value: string;
         selectionId: SelectionId;
+        textWidth:number;
     }
 
     export interface DotPlotConstructorOptions {
@@ -154,6 +219,7 @@ module powerbi.visuals.samples {
         categoryAxisSettings?: DotPlotCategoryAxisSettings;
         labelOrientation?:DotPlotLabelsOrientation.Orientation;
         labelTextMaxSize:number;
+        xAxisLabelTexMaxSize:number;
     }
 
     export interface DotPlotCategoryAxisSettings {
@@ -190,16 +256,18 @@ module powerbi.visuals.samples {
         private viewportIn: IViewport;
 
         public static capabilities: VisualCapabilities = {
-            dataRoles: [{
+            dataRoles: [
+            {
                 name: 'Category',
                 kind: powerbi.VisualDataRoleKind.Grouping,
                 displayName: 'Category'
             },
-                {
+            {
                     name: "Values",
                     kind: VisualDataRoleKind.Measure,
                     displayName: 'Values'
-                }],
+            }
+            ],
             dataViewMappings: [{
                 conditions: [
                     { 'Category': { max: 1 }, 'Values': { max: 1 } },
@@ -358,7 +426,8 @@ module powerbi.visuals.samples {
                 labelColor: { solid: { color: dataLabelUtils.defaultLabelColor } }
             },
             labelOrientation: DotPlotLabelsOrientation.Orientation.Horizontal,
-            labelTextMaxSize:0
+            labelTextMaxSize:0,
+            xAxisLabelTexMaxSize:0
         };
 
         private static getTooltipData(value: number): TooltipDataItem[] {
@@ -379,6 +448,22 @@ module powerbi.visuals.samples {
                 value: x,
                 selectionId: SelectionId.createWithId(dataView.categorical.categories[0].identity[i])
             });
+             settings = {
+                categorySettings: this.getCategorySettings(objects, defaultSetting),
+                defaultDataPointColor: defaultColor,
+                labelSettings: this.parseSettings(objects, defaultSetting),
+                categoryAxisSettings: this.parseCategoryAxisSettings(objects, defaultSetting),
+                labelOrientation: ((DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation , DotPlotLabelsOrientation.Orientation.Horizontal)+'') === 'Vertical' ?DotPlotLabelsOrientation.Orientation.Vertical:DotPlotLabelsOrientation.Orientation.Horizontal),
+                labelTextMaxSize: 0,
+				xAxisLabelTexMaxSize:0
+				
+                 };
+                 
+            var textPropertiesCat: powerbi.TextProperties = {
+                text: "W",
+                fontFamily: "Segoe UI" ,
+                fontSize: settings.labelSettings.fontSize + "px"
+            };
             
             var maxValue = 0;                
             for (var valueId in values) {
@@ -386,22 +471,19 @@ module powerbi.visuals.samples {
                 var max = _.max(value.values);
                 maxValue = max > maxValue? max: maxValue;
             }
-            
-            settings = {
-                categorySettings: this.getCategorySettings(objects, defaultSetting),
-                defaultDataPointColor: defaultColor,
-                labelSettings: this.parseSettings(objects, defaultSetting),
-                categoryAxisSettings: this.parseCategoryAxisSettings(objects, defaultSetting),
-                labelOrientation: ((DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation , DotPlotLabelsOrientation.Orientation.Horizontal)+'') === 'Vertical' ?DotPlotLabelsOrientation.Orientation.Vertical:DotPlotLabelsOrientation.Orientation.Horizontal),
-                labelTextMaxSize:   0      
-                 };
-            var textPropertiesCat: powerbi.TextProperties = {
-                text: "W",
-                fontFamily: "Segoe UI" ,
-                fontSize: settings.labelSettings.fontSize + "px"
-            };
-            
+			
+			var maxXAxisLabelValue = 0;
+            if(settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) 
+            for (var catId in categories) {
+                var category = categories[catId];
+                category.textWidth = powerbi.TextMeasurementService.measureSvgTextWidth(textPropertiesCat) *  category.value.length;
+                maxXAxisLabelValue = category.value.length > maxXAxisLabelValue? category.value.length: maxXAxisLabelValue;
+            }
+                             
             settings.labelTextMaxSize = powerbi.TextMeasurementService.measureSvgTextWidth(textPropertiesCat) *  (maxValue + ' ').length;
+            settings.xAxisLabelTexMaxSize = powerbi.TextMeasurementService.measureSvgTextWidth(textPropertiesCat) *  maxXAxisLabelValue;
+            if(settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) 
+            MaxXAxisHeight = settings.xAxisLabelTexMaxSize;
             
             var categoryColumn = dataView.categorical.categories[0];
             var diameter: number = 2 * radius + 1;
@@ -811,11 +893,16 @@ module powerbi.visuals.samples {
                 TextMeasurementService.measureSvgTextWidth,
                 textProperties);
 
+             var orientation =   ((DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation , DotPlotLabelsOrientation.Orientation.Horizontal)+'') === 'Vertical' ?DotPlotLabelsOrientation.Orientation.Vertical:DotPlotLabelsOrientation.Orientation.Horizontal);
+
             // If labels do not fit and we are not scrolling, try word breaking
+            if(orientation !== DotPlotLabelsOrientation.Orientation.Vertical)
             axes.willLabelsWordBreak = (!axes.willLabelsFit && !scrollbarVisible) && AxisHelper.LabelLayoutStrategy.willLabelsWordBreak(
                 axes, this.DefaultMargin, width, TextMeasurementService.measureSvgTextWidth,
                 TextMeasurementService.estimateSvgTextHeight, TextMeasurementService.getTailoredTextOrDefault,
                 textProperties);
+                else
+                 axes.willLabelsWordBreak = false;
 
             return axes;
         }
@@ -857,13 +944,21 @@ module powerbi.visuals.samples {
                 .duration(duration)
                 .call(xAxis)
                 .call(DotPlot.setAxisLabelColor, categoryAxisSettings.labelColor);
-
+                         
             var xAxisTicks: D3.Selection = this.xAxis.selectAll('.tick text');
             xAxisTicks.data(xAxisProperties.values);
+            if(data.settings.labelOrientation !== DotPlotLabelsOrientation.Orientation.Vertical) 
             xAxisTicks.call(AxisHelper.LabelLayoutStrategy.clip,
                 xAxisProperties.xLabelMaxWidth,
                 TextMeasurementService.svgEllipsis);
+                if(data.settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) 
+                xAxisTicks.attr('transform', (d) => {
+                    var textHeight = 12;
+                    var textWidth = powerbi.TextMeasurementService.measureSvgTextWidth(d);
 
+                        return SVGUtil.translateAndRotate(textHeight/2-2*textHeight, textWidth+20, 0, 0, -90);
+                    });
+                
             xAxisTicks.append('title').text((d) => d);
 
             this.xAxis.selectAll('line').style('opacity', data.settings.categoryAxisSettings.show ? 1 : 0);
@@ -875,7 +970,7 @@ module powerbi.visuals.samples {
                     .style("text-anchor", "middle")
                     .attr('class', 'xAxisLabel')
                     .style('fill', categoryAxisSettings.labelColor.solid.color)
-                    .attr('transform', 'translate(' + (viewportIn.width / 2) + ',40)');
+                    .attr('transform', 'translate(' + (viewportIn.width / 2) + ','+ (data.settings.xAxisLabelTexMaxSize>0?data.settings.xAxisLabelTexMaxSize: 40) +')');
             }
         }
 
@@ -909,9 +1004,25 @@ module powerbi.visuals.samples {
             });
         }
 
-        public renderSelection(hasSelection: boolean) {
+      public renderSelection(hasSelection: boolean) {
             var hasHighlights = this.interactivityService.hasSelection();
-            this.columns.style("fill-opacity", (d: DotPlotDataGroup) => ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights));
+
+            this.columns.style("fill-opacity", (d: DotPlotDataGroup) => {
+                return dotPlotUtils.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights);
+            });
+        }
+    }
+
+    export module dotPlotUtils {
+        export var DimmedOpacity: number = 0.4;
+        export var DefaultOpacity: number = 1.0;
+
+        export function getFillOpacity(selected: boolean, highlight: boolean, hasSelection: boolean, hasPartialHighlights: boolean): number {
+            if ((hasPartialHighlights && !highlight) || (hasSelection && !selected)) {
+                return DimmedOpacity;
+            }
+
+            return DefaultOpacity;
         }
     }
 }

@@ -38,6 +38,8 @@ module powerbi.extensibility {
         private hostServices: IVisualHostServices;
         private promiseFactory: IPromiseFactory;
 
+        private dataPointObjectName = 'dataPoint';
+
         public constructor(options: SelectionManagerOptions) {
             this.hostServices = options.hostServices;
             this.selectedIds = [];
@@ -85,16 +87,26 @@ module powerbi.extensibility {
         }
 
         private sendSelectionToHost(ids: ISelectionId[]) {
+            let dataPointObjectName = this.dataPointObjectName;
             let selectArgs: SelectEventArgs = {
-                data: ids
+                visualObjects: _.chain(ids)
                     .filter((value: ISelectionId) => (<visuals.SelectionId>value).hasIdentity())
-                    .map((value: ISelectionId) => (<visuals.SelectionId>value).getSelector())
+                    .map((value: ISelectionId) => {
+                        return { objectName: dataPointObjectName, selectorsByColumn: (<visuals.SelectionId>value).getSelectorsByColumn() };
+                    })
+                    .value(),
+                selectors: undefined,
             };
-
-            let data2 = this.getSelectorsByColumn(ids);
-
-            if (!_.isEmpty(data2))
-                selectArgs.data2 = data2;
+            let shouldInsertSelectors = false;
+            if (!_.isEmpty(ids)) {
+                shouldInsertSelectors = (<visuals.SelectionId>ids[0]).getSelector() && !(<visuals.SelectionId>ids[0]).getSelectorsByColumn();
+            }
+            if (shouldInsertSelectors) {
+                selectArgs.selectors = _.chain((<visuals.SelectionId[]>ids))
+                    .filter((value: visuals.SelectionId) => value.hasIdentity())
+                    .map((value: visuals.SelectionId) => value.getSelector())
+                    .value();
+            }
 
             this.hostServices.onSelect(selectArgs);
         }

@@ -4,7 +4,7 @@
     "package": {
         "name": "DotPlot",
         "displayName": "Dot Plot",
-        "version": "0.6.7",
+        "version": "0.6.8",
         "guid": "DotPlot1442374105856",
         "description": "A dot plot is used to show a representation of the distribution of frequencies. It is most often used to show counts of an occurrence.",
         "build": "13.0.1100.210",

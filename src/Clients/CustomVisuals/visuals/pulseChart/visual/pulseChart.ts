@@ -974,6 +974,7 @@ module powerbi.visuals.samples {
                     eventSize: columns.EventSize ? eventSizeScale(eventSize) : 0,
                     runnerCounterValue: runnerCounterValue,
                     runnerCounterFormatString: runnerCounterFormatString,
+                    specificIdentity: undefined,
                 };
 
                 dataPoints.push(dataPoint);

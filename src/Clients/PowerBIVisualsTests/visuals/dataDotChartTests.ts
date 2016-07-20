@@ -34,6 +34,8 @@ module powerbitests {
     import ColumnUtil = powerbi.visuals.ColumnUtil;
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
+    import buildSelectorForColumn = powerbitests.helpers.buildSelectorForColumn;
+    import SelectionId = powerbi.visuals.SelectionId;
 
     powerbitests.mocks.setLocale();
 
@@ -357,18 +359,21 @@ module powerbitests {
         columns: [
             {
                 displayName: "stringColumn",
-                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text)
+                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text),
+                queryName: "stringColumn",
             },
             {
                 displayName: "numberColumn",
                 isMeasure: true,
                 type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
-                format: "0.000"
+                format: "0.000",
+                queryName: "numberColumn",
             },
             {
                 displayName: "dateTimeColumn",
                 isMeasure: true,
-                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime)
+                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
+                queryName: "dateTimeColumn",
             }
         ]
     };
@@ -688,9 +693,10 @@ module powerbitests {
 
                 expect(dataViewBuilder.hostServices.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [categoryIdentities[0]]
+                                objectName: 'dataPoint',
+                                selectorsByColumn: SelectionId.createWithSelectorForColumnAndMeasure(buildSelectorForColumn("stringColumn", categoryIdentities[0]), "numberColumn").getSelectorsByColumn(),
                             }
                         ]
                     });
@@ -719,9 +725,10 @@ module powerbitests {
 
                 expect(dataViewBuilder.hostServices.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [categoryIdentities[0]]
+                                objectName: 'dataPoint',
+                                selectorsByColumn: SelectionId.createWithSelectorForColumnAndMeasure(buildSelectorForColumn("stringColumn", categoryIdentities[0]), "numberColumn").getSelectorsByColumn(),
                             }
                         ]
                     });
@@ -780,7 +787,7 @@ module powerbitests {
 
                 expect(dataViewBuilder.hostServices.onSelect).toHaveBeenCalledWith(
                     {
-                        data: []
+                        visualObjects: []
                     });
 
                 done();
@@ -869,7 +876,9 @@ module powerbitests {
                 {
                     source: this.getValuesSource(0),
                     values: this.categoryValues,
-                    identity: this.categoryIdentities
+                    identity: this.categoryIdentities,
+                    displayName: 'categories',
+                    queryName: 'categories',
                 }
             ];
         }

@@ -74,18 +74,11 @@ module powerbi.visuals {
         }
 
         public getUpdatedSelfFilter(searchKey: string): SemanticFilter {
-            if (_.isEmpty(searchKey) || this.data.searchKey === searchKey)
-                return;
-            
             let metadata = this.dataView && this.dataView.metadata;
-            if (!metadata)
+            if (this.data.searchKey === searchKey)
                 return;
 
-            debug.assert(_.size(metadata.columns) === 1, 'slicer should not have more than one column based on the capability');
-
-            let column = _.first(metadata.columns);
-            if (column && column.expr)
-                return SlicerUtil.getContainsFilter(<SQExpr>column.expr, searchKey);
+            return SlicerUtil.getUpdatedSelfFilter(searchKey, metadata);
         }
 
         public init(slicerInitOptions: SlicerInitOptions): IInteractivityService {

@@ -32,11 +32,20 @@ var GlobeMapCanvasLayers: JQuery[];
 
 module powerbi.visuals.samples {
     import TouchRect = controls.TouchUtils.Rectangle;
-    import DataRoleHelper = powerbi.data.DataRoleHelper;
+    import ILocation = powerbi.visuals.services.ILocation;
 
     interface GlobeMapData {
-        lat: number;
-        lng: number;
+        dataView: DataView;
+        settings: GlobeMapSettings;
+        dataPoints: GlobeMapDataPoint[];
+        seriesDataPoints: GlobeMapSeriesDataPoint[];
+    }
+
+    interface GlobeMapDataPoint {
+        location: ILocation;
+        place: string;
+        locationType: string;
+        placeKey: string;
         height: number;
         heightBySeries: number[];
         seriesToolTipData: any[];
@@ -44,15 +53,315 @@ module powerbi.visuals.samples {
         toolTipData: any;
     }
 
-    interface GlobeMapDataPoint extends SelectableDataPoint {
+    interface GlobeMapSeriesDataPoint extends SelectableDataPoint {
         label: string;
         color: string;
         category?: string;
     }
 
+    class VisualLayout {
+        private marginValue: IMargin;
+        private viewportValue: IViewport;
+        private viewportInValue: IViewport;
+        private minViewportValue: IViewport;
+        private originalViewportValue: IViewport;
+        private previousOriginalViewportValue: IViewport;
+
+        public defaultMargin: IMargin;
+        public defaultViewport: IViewport;
+
+        constructor(defaultViewport?: IViewport, defaultMargin?: IMargin) {
+            this.defaultViewport = defaultViewport || { width: 0, height: 0 };
+            this.defaultMargin = defaultMargin || { top: 0, bottom: 0, right: 0, left: 0 };
+        }
+
+        public get viewport(): IViewport {
+            return this.viewportValue || (this.viewportValue = this.defaultViewport);
+        }
+
+        public get viewportCopy(): IViewport {
+            return _.clone(this.viewport);
+        }
+
+        //Returns viewport minus margin
+        public get viewportIn(): IViewport {
+            return this.viewportInValue || this.viewport;
+        }
+
+        public get minViewport(): IViewport {
+            return this.minViewportValue || { width: 0, height: 0 };
+        }
+
+        public get margin(): IMargin {
+            return this.marginValue || (this.marginValue = this.defaultMargin);
+        }
+
+        public set minViewport(value: IViewport) {
+            this.setUpdateObject(value, v => this.minViewportValue = v, VisualLayout.restrictToMinMax);
+        }
+
+        public set viewport(value: IViewport) {
+            this.previousOriginalViewportValue = _.clone(this.originalViewportValue);
+            this.originalViewportValue = _.clone(value);
+            this.setUpdateObject(value,
+                v => this.viewportValue = v,
+                o => VisualLayout.restrictToMinMax(o, this.minViewport));
+        }
+
+        public set margin(value: IMargin) {
+            this.setUpdateObject(value, v => this.marginValue = v, VisualLayout.restrictToMinMax);
+        }
+
+        //Returns true if viewport has updated after last change.
+        public get viewportChanged(): boolean {
+            return !!this.originalViewportValue && (!this.previousOriginalViewportValue
+                || this.previousOriginalViewportValue.height !== this.originalViewportValue.height
+                || this.previousOriginalViewportValue.width !== this.originalViewportValue.width);
+        }
+
+        public get viewportInIsZero(): boolean {
+            return this.viewportIn.width === 0 || this.viewportIn.height === 0;
+        }
+
+        public resetMargin(): void {
+            this.margin = this.defaultMargin;
+        }
+
+        private update(): void {
+            this.viewportInValue = VisualLayout.restrictToMinMax({
+                width: this.viewport.width - (this.margin.left + this.margin.right),
+                height: this.viewport.height - (this.margin.top + this.margin.bottom)
+            }, this.minViewportValue);
+        }
+
+        private setUpdateObject<T>(object: T, setObjectFn: (T) => void, beforeUpdateFn?: (T) => void): void {
+            object = _.clone(object);
+            setObjectFn(VisualLayout.createNotifyChangedObject(object, o => {
+                if(beforeUpdateFn) beforeUpdateFn(object);
+                this.update();
+            }));
+
+            if(beforeUpdateFn) beforeUpdateFn(object);
+            this.update();
+        }
+
+        private static createNotifyChangedObject<T>(object: T, objectChanged: (o?: T, key?: string) => void): T {
+            var result: T = <any>{};
+            _.keys(object).forEach(key => Object.defineProperty(result, key, {
+                    get: () => object[key],
+                    set: (value) => { object[key] = value; objectChanged(object, key); },
+                    enumerable: true,
+                    configurable: true
+                }));
+            return result;
+        }
+
+        private static restrictToMinMax<T>(value: T, minValue?: T): T {
+            _.keys(value).forEach(x => value[x] = Math.max(minValue && minValue[x] || 0, value[x]));
+            return value;
+        }
+    }
+
+    export class GlobeMapSettings {
+        public static get Default() { 
+            return new this();
+        }
+
+        public static parse(dataView: DataView, capabilities: VisualCapabilities) {
+            var settings = new this();
+            if(!dataView || !dataView.metadata || !dataView.metadata.objects) {
+                return settings;
+            }
+
+            var properties = this.getProperties(capabilities);
+            for(var objectKey in capabilities.objects) {
+                for(var propKey in capabilities.objects[objectKey].properties) {
+                    if(!settings[objectKey] || !_.has(settings[objectKey], propKey)) {
+                        continue;
+                    }
+
+                    var type = capabilities.objects[objectKey].properties[propKey].type;
+                    var getValueFn = this.getValueFnByType(type);
+                    settings[objectKey][propKey] = getValueFn(
+                        dataView.metadata.objects,
+                        properties[objectKey][propKey],
+                        settings[objectKey][propKey]);
+                }
+            }
+
+            return settings;
+        }
+
+        public static getProperties(capabilities: VisualCapabilities)
+            : { [i: string]: { [i: string]: DataViewObjectPropertyIdentifier } } & { 
+                general: { formatString: DataViewObjectPropertyIdentifier },
+                dataPoint: { fill: DataViewObjectPropertyIdentifier } } {
+            var objects  = _.merge({ 
+                general: { properties: { formatString: {} } } 
+            }, capabilities.objects);
+            var properties = <any>{};
+            for(var objectKey in objects) {
+                properties[objectKey] = {};
+                for(var propKey in objects[objectKey].properties) {
+                    properties[objectKey][propKey] = <DataViewObjectPropertyIdentifier> {
+                        objectName: objectKey,
+                        propertyName: propKey
+                    };
+                }
+            }
+
+            return properties;
+        }
+
+        public static createEnumTypeFromEnum(type: any): IEnumType {
+            var even: any = false;
+            return createEnumType(Object.keys(type)
+                .filter((key,i) => ((!!(i % 2)) === even && type[key] === key
+                    && !void(even = !even)) || (!!(i % 2)) !== even)
+                .map(x => <IEnumMember>{ value: x, displayName: x }));
+        }
+
+        private static getValueFnByType(type: powerbi.data.DataViewObjectPropertyTypeDescriptor) {
+            switch(_.keys(type)[0]) {
+                case "fill": 
+                    return DataViewObjects.getFillColor;
+                default:
+                    return DataViewObjects.getValue;
+            }
+        }
+
+        public static enumerateObjectInstances(
+            settings = new this(),
+            options: EnumerateVisualObjectInstancesOptions,
+            capabilities: VisualCapabilities): ObjectEnumerationBuilder {
+
+            var enumeration = new ObjectEnumerationBuilder();
+            var object = settings && settings[options.objectName];
+            if(!object) {
+                return enumeration;
+            }
+
+            var instance = <VisualObjectInstance>{
+                objectName: options.objectName,
+                selector: null,
+                properties: {}
+            };
+
+            for(var key in object) {
+                if(_.has(object,key)) {
+                    instance.properties[key] = object[key];
+                }
+            }
+
+            enumeration.pushInstance(instance);
+            return enumeration;
+        }
+
+        public originalSettings: GlobeMapSettings;
+        public createOriginalSettings(): void {
+            this.originalSettings = _.cloneDeep(this);
+        }
+
+        //Default Settings
+        public dataPoint = {
+
+        };
+    }
+
+    export class GlobeMapColumns<T> {
+        public static Roles = Object.freeze(
+            _.mapValues(new GlobeMapColumns<string>(), (x, i) => i));
+
+        public static getColumnSources(dataView: DataView) {
+            return this.getColumnSourcesT<DataViewMetadataColumn>(dataView);
+        }
+
+        public static getTableValues(dataView: DataView) {
+            var table = dataView && dataView.table;
+            var columns = this.getColumnSourcesT<any[]>(dataView);
+            return columns && table && _.mapValues(
+                columns, (n: DataViewMetadataColumn, i) => n && table.rows.map(row => row[n.index]));
+        }
+
+        public static getTableRows(dataView: DataView) {
+            var table = dataView && dataView.table;
+            var columns = this.getColumnSourcesT<any[]>(dataView);
+            return columns && table && table.rows.map(row =>
+                _.mapValues(columns, (n: DataViewMetadataColumn, i) => n && row[n.index]));
+        }
+
+        public static getCategoricalValues(dataView: DataView) {
+            var categorical = dataView && dataView.categorical;
+            var categories = categorical && categorical.categories || [];
+            var values = categorical && categorical.values || <DataViewValueColumns>[];
+            var series: string[] = categorical && values.source && this.getSeriesValues(dataView);
+            return categorical && _.mapValues(new this<any[]>(), (n, i) =>
+                (<DataViewCategoricalColumn[]>_.toArray(categories)).concat(_.toArray(values))
+                    .filter(x => x.source.roles && x.source.roles[i]).map(x => x.values)[0]
+                || values.source && values.source.roles && values.source.roles[i] && series);
+        }
+
+        public static getSeriesValues(dataView: DataView) {
+            return dataView && dataView.categorical && dataView.categorical.values
+                && dataView.categorical.values.map(x => converterHelper.getSeriesName(x.source));
+        }
+
+        public static getCategoricalColumns(dataView: DataView) {
+            var categorical = dataView && dataView.categorical;
+            var categories = categorical && categorical.categories || [];
+            var values = categorical && categorical.values || <DataViewValueColumns>[];
+            return categorical && _.mapValues(
+                new this<DataViewCategoryColumn & DataViewValueColumn[] & DataViewValueColumns>(),
+                (n, i) => categories.filter(x => x.source.roles && x.source.roles[i])[0]
+                    || values.source && values.source.roles && values.source.roles[i] && values
+                    || values.filter(x => x.source.roles && x.source.roles[i]));
+        }
+
+        public static getGroupedValueColumns(dataView: DataView) {
+            var categorical = dataView && dataView.categorical;
+            var values = categorical && categorical.values;
+            var grouped = values && values.grouped();
+            return grouped && grouped.map(g => _.mapValues(
+                new this<DataViewValueColumn>(),
+                (n,i) => g.values.filter(v => v.source.roles[i])[0]));
+        }
+
+        private static getColumnSourcesT<T>(dataView: DataView) {
+            var columns = dataView && dataView.metadata && dataView.metadata.columns;
+            return columns && _.mapValues(
+                new this<T>(), (n, i) => columns.filter(x => x.roles && x.roles[i])[0]);
+        }
+
+        //Data Roles
+        public Category: T = null;
+        public Series: T = null;
+        public X: T = null;
+        public Y: T = null;
+        public Height: T = null;
+        public Heat: T = null;
+
+    }
+
     export class GlobeMap implements IVisual {
         public static MercartorSphere: any;
-        private viewport: IViewport;
+        private static GlobeSettings = {
+            autoRotate: false,
+            earthRadius: 30,
+            cameraRadius: 100,
+            earthSegments: 100,
+            heatmapSize: 1000,
+            heatPointSize: 7,
+            heatIntensity: 10,
+            heatmapScaleOnZoom: 0.95,
+            barWidth: 0.3,
+            barHeight: 5,
+            rotateSpeed: 0.5,
+            zoomSpeed: 0.8,
+            cameraAnimDuration: 1000, //ms
+            clickInterval: 200 //ms
+        };
+
+        private layout: VisualLayout;
         private container: JQuery;
         private domElement: HTMLElement;
         private camera: any;
@@ -60,17 +369,17 @@ module powerbi.visuals.samples {
         private scene: any;
         private orbitControls: any;
         private earth: any;
-        private settings: any;
-        private data: GlobeMapData[] = [];
-        private dataPointsToEnumerate: GlobeMapDataPoint[];
+        private data: GlobeMapData;
+        private get settings(): GlobeMapSettings {
+            return this.data && this.data.settings;
+        }
         private heatmap: any;
         private heatTexture: any;
         private mapTextures: any[];
         private barsGroup: any;
         private readyToRender: boolean;
-        private categoricalView: any;
         private deferredRenderTimerId: any;
-        private globeMapLocationCache: any;
+        private globeMapLocationCache: { [i: string]: ILocation };
         private locationsToLoad: number = 0;
         private locationsLoaded: number = 0;
         private renderLoopEnabled = true;
@@ -82,7 +391,6 @@ module powerbi.visuals.samples {
         private hoveredBar: any;
         private averageBarVector: any;
         private zoomControl: any;
-        private colorHelper: ColorHelper;
         private colors: IDataColorPalette;
         private style: IVisualStyle;
 
@@ -143,27 +451,6 @@ module powerbi.visuals.samples {
                         },
                     },
                 },
-                legend: {
-                    displayName: data.createDisplayNameGetter('Visual_Legend'),
-                    properties: {
-                        show: {
-                            displayName: data.createDisplayNameGetter('Visual_Show'),
-                            type: { bool: true }
-                        },
-                        position: {
-                            displayName: data.createDisplayNameGetter('Visual_LegendPosition'),
-                            type: { formatting: { legendPosition: true } }
-                        },
-                        showTitle: {
-                            displayName: data.createDisplayNameGetter('Visual_LegendShowTitle'),
-                            type: { bool: true }
-                        },
-                        titleText: {
-                            displayName: data.createDisplayNameGetter('Visual_LegendTitleText'),
-                            type: { text: true }
-                        }
-                    }
-                },
                 dataPoint: {
                     displayName: data.createDisplayNameGetter('Visual_DataPoint'),
                     properties: {
@@ -191,19 +478,6 @@ module powerbi.visuals.samples {
                             },
                         }
                     }
-                },
-                categoryLabels: {
-                    displayName: data.createDisplayNameGetter('Visual_CategoryLabels'),
-                    properties: {
-                        show: {
-                            displayName: data.createDisplayNameGetter('Visual_Show'),
-                            type: { bool: true }
-                        },
-                        color: {
-                            displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
-                            type: { fill: { solid: { color: true } } }
-                        },
-                    },
                 },
             },
             dataViewMappings: [{
@@ -235,66 +509,216 @@ module powerbi.visuals.samples {
             }
         };
 
-        private static Properties: any = {
-            general: {
-                formatString: <DataViewObjectPropertyIdentifier>{
-                    objectName: "general",
-                    propertyName: "formatString"
-                }
-            },
-            dataPoint: {
-                fill: <DataViewObjectPropertyIdentifier>{
-                    objectName: "dataPoint",
-                    propertyName: "fill"
-                }
-            },
-        };
+        private static converter(dataView: DataView, globeMapLocationCache: { [i: string]: ILocation }, colors: IDataColorPalette): GlobeMapData {
+            var categorical = GlobeMapColumns.getCategoricalColumns(dataView);
+            if(!categorical || !categorical.Category || _.isEmpty(categorical.Category.values)
+                || (_.isEmpty(categorical.Height) && _.isEmpty(categorical.Heat))) {
+                return null;
+            }
 
-        public static converter(dataView: DataView): any {
-            return {};
+            var properties = GlobeMapSettings.getProperties(GlobeMap.capabilities);
+            var settings = GlobeMap.parseSettings(dataView);
+            var groupedColumns = GlobeMapColumns.getGroupedValueColumns(dataView);
+
+            var dataPoints = [];
+            var seriesDataPoints = [];
+            var locations = [];
+
+            var colorHelper = new ColorHelper(colors, properties.dataPoint.fill);
+
+            var locationType, heights, heightsBySeries, toolTipDataBySeries, heats;
+
+            if (categorical.Category && categorical.Category.values) {
+                locations = categorical.Category.values;
+                var type = <any>categorical.Category.source.type;
+                locationType = type.category ? (<string>type.category).toLowerCase() : "";
+            } else {
+                locations = [];
+            }
+
+            if (!_.isEmpty(categorical.Height)) {
+                if (groupedColumns.length > 1) {
+                    heights = new Array(locations.length);
+                    heightsBySeries = new Array(locations.length);
+                    toolTipDataBySeries = new Array(locations.length);
+                    seriesDataPoints = new Array(groupedColumns.length);
+                    //creating a matrix for drawing values by series later.
+                    for (var i = 0; i < groupedColumns.length; i++) {
+                        var values = groupedColumns[i].Height.values;
+                        seriesDataPoints[i] = GlobeMap.createDataPointForEnumeration(
+                            dataView, groupedColumns[i].Height.source, i, null, colorHelper, colors);
+                        for (var j = 0; j < values.length; j++) {
+                            if (!heights[j]) heights[j] = 0;
+                            heights[j] += values[j] ? values[j] : 0;
+                            if (!heightsBySeries[j]) heightsBySeries[j] = [];
+                            heightsBySeries[j][i] = values[j];
+                            if (!toolTipDataBySeries[j]) toolTipDataBySeries[j] = [];
+                            toolTipDataBySeries[j][i] = { 
+                                displayName: categorical.Series && categorical.Series.source.displayName,
+                                value: dataView.categorical.values.grouped()[i].name,
+                                dataPointValue: values[j]
+                            };
+                        }
+                    }
+                    for (var i = 0; i < groupedColumns.length; i++) {
+                        var values = groupedColumns[i].Height.values;
+                        for (var j = 0; j < values.length; j++) { 
+                            //calculating relative size of series
+                            heightsBySeries[j][i] = values[j] / heights[j];
+                        }
+                    }
+                } else {
+                    heights = categorical.Height[0].values;
+                    heightsBySeries = new Array(groupedColumns.length);
+                    seriesDataPoints[0] = GlobeMap.createDataPointForEnumeration(
+                        dataView, groupedColumns[0].Height.source, 0, dataView.metadata, colorHelper, colors);
+                }
+
+            } else {
+                heightsBySeries = new Array(locations.length);
+                heights = new Array(locations.length);
+            }
+
+            if (!_.isEmpty(categorical.Heat)) {
+                if (groupedColumns.length > 1) {
+                    heats = new Array(locations.length);
+                    for (var i = 0; i < groupedColumns.length; i++) {
+                        var values = groupedColumns[i].Heat.values;
+                        for (var j = 0; j < values.length; j++) {
+                            if (!heats[j]) heats[j] = 0;
+                            heats[j] += values[j] ? values[j] : 0;
+                        }
+                    }
+                } else {
+                    heats = categorical.Heat[0].values;
+                }
+
+            } else {
+                heats = new Array(locations.length);
+            }
+
+            var maxHeight = Math.max.apply(null, heights) || 1;
+            var maxHeat = Math.max.apply(null, heats) || 1;
+            var heatFormatter = valueFormatter.create({ 
+                format: !_.isEmpty(categorical.Heat) && categorical.Heat[0].source.format,
+                value: heats[0],
+                value2: heats[1]
+            });
+            var heightFormatter = valueFormatter.create({ 
+                format: !_.isEmpty(categorical.Height) && categorical.Height[0].source.format,
+                value: heights[0],
+                value2: heights[1]
+            });
+
+            for (var i = 0, len = locations.length; i < len; ++i) {
+                if (typeof (locations[i]) === "string") {
+                    var place = locations[i].toLowerCase();
+                    var placeKey = place + "/" + locationType;
+                    var location: ILocation = (_.isEmpty(categorical.X) || _.isEmpty(categorical.Y))
+                        ? globeMapLocationCache[placeKey]
+                        : { longitude: categorical.X[0].values[i] || 0, latitude: categorical.Y[0].values[i] || 0 };
+
+                    var height = heights[i] / maxHeight;
+                    var heat = heats[i] / maxHeat;
+
+                    var renderDatum = <GlobeMapDataPoint>{
+                        location: location,
+                        placeKey: placeKey,
+                        place: place,
+                        locationType: locationType,
+                        height: height ? height || 0.01 : undefined,
+                        heightBySeries: heightsBySeries[i],
+                        seriesToolTipData: toolTipDataBySeries ? toolTipDataBySeries[i] : undefined,
+                        heat: heat || 0,
+                        toolTipData: {
+                            location: { displayName: categorical.Category && categorical.Category.source.displayName, value: locations[i] },
+                            height: { displayName: !_.isEmpty(categorical.Height) && categorical.Height[0].source.displayName, value: heightFormatter.format(heights[i]) },
+                            heat: { displayName: !_.isEmpty(categorical.Heat) && categorical.Heat[0].source.displayName, value: heatFormatter.format(heats[i]) }
+                        } 
+                    };
+
+                    dataPoints.push(renderDatum);
+                }
+            }
+
+            return {
+                dataView: dataView,
+                dataPoints: dataPoints,
+                seriesDataPoints: seriesDataPoints,
+                settings: settings
+            };
+        }
+
+        private static parseSettings(dataView: DataView): GlobeMapSettings {
+            var settings = GlobeMapSettings.parse(dataView, GlobeMap.capabilities);
+            settings.createOriginalSettings();
+            return settings;
+        }
+
+        private static createDataPointForEnumeration(
+            dataView: DataView,
+            source: DataViewMetadataColumn,
+            seriesIndex,
+            metaData,
+            colorHelper: ColorHelper,
+            colors: IDataColorPalette): GlobeMapSeriesDataPoint {
+
+            let columns = dataView.categorical.values.grouped()[seriesIndex];
+            let label = converterHelper.getFormattedLegendLabel(source, <DataViewValueColumns>columns.values, null);
+            let identity = SelectionId.createWithId(columns.identity);
+            let category = converterHelper.getSeriesName(source);
+            let objects = <any>columns.objects;
+            let color = objects && objects.dataPoint ? objects.dataPoint.fill.solid.color : metaData && metaData.objects
+                ? colorHelper.getColorForMeasure(metaData.objects,"")
+                : colors.getColorByIndex(seriesIndex).value;
+
+            return {
+                label: label,
+                identity: identity,
+                category: category,
+                color: color,
+                selected: null
+            };
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
-            var enumeration = new ObjectEnumerationBuilder();
+            var instances = GlobeMapSettings.enumerateObjectInstances(
+                this.settings && this.settings.originalSettings,
+                options,
+                GlobeMap.capabilities);
 
             switch (options.objectName) {
-                case 'dataPoint':
-                    this.enumerateDataPoints(enumeration);
+                case 'dataPoint': if(this.data && this.data.seriesDataPoints) {
+                        for (var i = 0; i < this.data.seriesDataPoints.length; i++) {
+                            var dataPoint = this.data.seriesDataPoints[i];
+                            instances.pushInstance({
+                                objectName: 'dataPoint',
+                                displayName: dataPoint.label,
+                                selector: ColorHelper.normalizeSelector(dataPoint.identity.getSelector()),
+                                properties: {
+                                    fill: { solid: { color: dataPoint.color } }
+                                }
+                            });
+                        }
+                    }
+
                     break;
             }
-            return enumeration.complete();
-        }
 
-        private enumerateDataPoints(enumeration: ObjectEnumerationBuilder): void {
-            var data = this.data;
-            if (!data)
-                return;
-
-            var dataPoints = this.dataPointsToEnumerate;
-            var dataPointsLength = dataPoints.length;
-
-            for (var i = 0; i < dataPointsLength; i++) {
-                var dataPoint = dataPoints[i];
-                enumeration.pushInstance({
-                    objectName: 'dataPoint',
-                    displayName: dataPoint.label,
-                    selector: ColorHelper.normalizeSelector(dataPoint.identity.getSelector()),
-                    properties: {
-                        fill: { solid: { color: dataPoint.color } }
-                    },
-                });
-            }
+            return instances.complete();
         }
 
         public init(options: VisualInitOptions): void {
             this.container = options.element;
-            this.viewport = options.viewport;
+            this.layout = new VisualLayout(options.viewport);
             this.readyToRender = false;
-            if (!this.globeMapLocationCache) this.globeMapLocationCache = {};
+
+            if (!this.globeMapLocationCache) {
+                this.globeMapLocationCache = {};
+            }
 
             this.style = options.style;
             this.colors = this.style.colorPalette.dataColors;
-            this.colorHelper = new ColorHelper(this.colors, GlobeMap.Properties.dataPoint.fill);
 
             if (!THREE) {
                 loadGlobeMapLibs();
@@ -306,72 +730,50 @@ module powerbi.visuals.samples {
         }
 
         private setup() {
-            this.initSettings();
             this.initTextures();
             this.initMercartorSphere();
             this.initZoomControl();
             this.initScene();
             this.initHeatmap();
             this.readyToRender = true;
-            this.composeRenderData();
             this.initRayCaster();
         }
 
-        private initSettings() {
-            var settings = this.settings = <any>{};
-            settings.autoRotate = false;
-            settings.earthRadius = 30;
-            settings.cameraRadius = 100;
-            settings.earthSegments = 100;
-            settings.heatmapSize = 1000;
-            settings.heatPointSize = 7;
-            settings.heatIntensity = 10;
-            settings.heatmapScaleOnZoom = 0.95;
-            settings.barWidth = 0.3;
-            settings.barHeight = 5;
-            settings.rotateSpeed = 0.5;
-            settings.zoomSpeed = 0.8;
-            settings.cameraAnimDuration = 1000; //ms
-            settings.clickInterval = 200; //ms
-        }
-
         private initScene() {
-            var viewport = this.viewport;
-            var settings = this.settings;
             var clock = new THREE.Clock();
             var renderer = this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
             this.container.append(renderer.domElement);
             this.domElement = renderer.domElement;
-            var camera = this.camera = new THREE.PerspectiveCamera(35, viewport.width / viewport.height, 0.1, 10000);
-            var orbitControls = this.orbitControls = new THREE.OrbitControls(camera, this.domElement);
-            var scene = this.scene = new THREE.Scene();
+            this.camera = new THREE.PerspectiveCamera(35, this.layout.viewportIn.width / this.layout.viewportIn.height, 0.1, 10000);
+            var orbitControls = this.orbitControls = new THREE.OrbitControls(this.camera, this.domElement);
+            this.scene = new THREE.Scene();
 
-            renderer.setSize(viewport.width, viewport.height);
+            renderer.setSize(this.layout.viewportIn.width, this.layout.viewportIn.height);
             renderer.setClearColor(0xbac4d2, 1);
-            camera.position.z = settings.cameraRadius;
+            this.camera.position.z = GlobeMap.GlobeSettings.cameraRadius;
 
-            orbitControls.maxDistance = settings.cameraRadius;
-            orbitControls.minDistance = settings.earthRadius + 1;
-            orbitControls.rotateSpeed = settings.rotateSpeed;
-            orbitControls.zoomSpeed = settings.zoomSpeed;
-            orbitControls.autoRotate = settings.autoRotate;
+            orbitControls.maxDistance = GlobeMap.GlobeSettings.cameraRadius;
+            orbitControls.minDistance = GlobeMap.GlobeSettings.earthRadius + 1;
+            orbitControls.rotateSpeed = GlobeMap.GlobeSettings.rotateSpeed;
+            orbitControls.zoomSpeed = GlobeMap.GlobeSettings.zoomSpeed;
+            orbitControls.autoRotate = GlobeMap.GlobeSettings.autoRotate;
 
             var ambientLight = new THREE.AmbientLight(0x000000);
             var light1 = new THREE.DirectionalLight(0xffffff, 0.4);
             var light2 = new THREE.DirectionalLight(0xffffff, 0.4);
             var earth = this.earth = this.createEarth();
 
-            scene.add(ambientLight);
-            scene.add(light1);
-            scene.add(light2);
-            scene.add(earth);
+            this.scene.add(ambientLight);
+            this.scene.add(light1);
+            this.scene.add(light2);
+            this.scene.add(earth);
 
             light1.position.set(20, 20, 20);
             light2.position.set(0, 0, -20);
 
             var _zis = this;
 
-            requestAnimationFrame(function render() {
+            var render = () => {
                 try {
                     if (_zis.renderLoopEnabled) requestAnimationFrame(render);
                     if (!_zis.shouldRender()) return;
@@ -381,13 +783,15 @@ module powerbi.visuals.samples {
                     if (_zis.heatmap &&_zis.heatmap.display) {
                         _zis.heatmap.display(); // Needed for IE/Edge to behave nicely
                     }
-                    renderer.render(scene, camera);
-                    _zis.needsRender = false;	
-                    //console.log("render");			
+                    renderer.render(this.scene, this.camera);
+                    _zis.needsRender = false;
+                    //console.log("render");
                 } catch (e) {
                     console.error(e);
                 }
-            });
+            };
+
+            requestAnimationFrame(render);
         }
 
         private shouldRender(): boolean {
@@ -395,7 +799,10 @@ module powerbi.visuals.samples {
         }
 
         private createEarth() {
-            var geometry = new GlobeMap.MercartorSphere(this.settings.earthRadius, this.settings.earthSegments, this.settings.earthSegments);
+            var geometry = new GlobeMap.MercartorSphere(
+                GlobeMap.GlobeSettings.earthRadius,
+                GlobeMap.GlobeSettings.earthSegments,
+                GlobeMap.GlobeSettings.earthSegments);
             var material = new THREE.MeshPhongMaterial({
                 map: this.mapTextures[0],
                 side: THREE.DoubleSide,
@@ -411,9 +818,9 @@ module powerbi.visuals.samples {
                 return;
 
             if (zoomDirection === -1)
-                this.orbitControls.constraint.dollyOut(Math.pow(0.95, this.settings.zoomSpeed));
+                this.orbitControls.constraint.dollyOut(Math.pow(0.95, GlobeMap.GlobeSettings.zoomSpeed));
             else if (zoomDirection === 1)
-                this.orbitControls.constraint.dollyIn(Math.pow(0.95, this.settings.zoomSpeed));
+                this.orbitControls.constraint.dollyIn(Math.pow(0.95, GlobeMap.GlobeSettings.zoomSpeed));
 
             this.orbitControls.update();
             this.animateCamera(this.camera.position);
@@ -423,8 +830,8 @@ module powerbi.visuals.samples {
             if (this.orbitControls.enabled === false || this.orbitControls.enableRotate === false)
                 return;
 
-            this.orbitControls.constraint.rotateLeft(2 * Math.PI * deltaX / this.domElement.offsetHeight * this.settings.rotateSpeed);
-            this.orbitControls.constraint.rotateUp(2 * Math.PI * deltaY / this.domElement.offsetHeight * this.settings.rotateSpeed);
+            this.orbitControls.constraint.rotateLeft(2 * Math.PI * deltaX / this.domElement.offsetHeight * GlobeMap.GlobeSettings.rotateSpeed);
+            this.orbitControls.constraint.rotateUp(2 * Math.PI * deltaY / this.domElement.offsetHeight * GlobeMap.GlobeSettings.rotateSpeed);
             this.orbitControls.update();
             this.animateCamera(this.camera.position);
         }
@@ -460,11 +867,9 @@ module powerbi.visuals.samples {
         }
 
         private initHeatmap() {
-            var settings = this.settings;
-
             //console.log("initHeatmap");
             try {
-                var heatmap = this.heatmap = new WebGLHeatmap({ width: settings.heatmapSize, height: settings.heatmapSize, intensityToAlpha: true });
+                var heatmap = this.heatmap = new WebGLHeatmap({ width: GlobeMap.GlobeSettings.heatmapSize, height: GlobeMap.GlobeSettings.heatmapSize, intensityToAlpha: true });
             } catch (e) {
                 // IE & Edge will throw an error about texImage2D, we need to ignore it
                 console.error(e);
@@ -475,7 +880,7 @@ module powerbi.visuals.samples {
             texture.needsUpdate = true;
 
             var material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-            var geometry = new THREE.SphereGeometry(settings.earthRadius + 0.01, settings.earthSegments, settings.earthSegments);
+            var geometry = new THREE.SphereGeometry(GlobeMap.GlobeSettings.earthRadius + 0.01, GlobeMap.GlobeSettings.earthSegments, GlobeMap.GlobeSettings.earthSegments);
             var mesh = new THREE.Mesh(geometry, material);
 
             window["heatmap"] = heatmap;
@@ -487,8 +892,8 @@ module powerbi.visuals.samples {
         private setEarthTexture() {
             //get distance as arbitrary value from 0-1
             if (!this.camera) return;
-            var maxDistance = this.settings.cameraRadius - this.settings.earthRadius;
-            var distance = (this.camera.position.length() - this.settings.earthRadius) / maxDistance;
+            var maxDistance = GlobeMap.GlobeSettings.cameraRadius - GlobeMap.GlobeSettings.earthRadius;
+            var distance = (this.camera.position.length() - GlobeMap.GlobeSettings.earthRadius) / maxDistance;
 
             var texture;
             if (distance <= 1 / 5) {
@@ -506,9 +911,9 @@ module powerbi.visuals.samples {
             }
 
             if (this.selectedBar) {
-                this.orbitControls.rotateSpeed = this.settings.rotateSpeed;
+                this.orbitControls.rotateSpeed = GlobeMap.GlobeSettings.rotateSpeed;
             } else {
-                this.orbitControls.rotateSpeed = this.settings.rotateSpeed * distance;
+                this.orbitControls.rotateSpeed = GlobeMap.GlobeSettings.rotateSpeed * distance;
             }
 
             //console.log(distance, this.orbitControls.rotateSpeed);
@@ -516,20 +921,23 @@ module powerbi.visuals.samples {
 
         public update(options: VisualUpdateOptions) {
             this.needsRender = true;
-            if (options.viewport.height !== this.viewport.height || options.viewport.width !== this.viewport.width) {
-                var viewport = this.viewport = options.viewport;
-                if (this.camera && this.renderer) {
-                    this.camera.aspect = viewport.width / viewport.height;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(viewport.width, viewport.height);
-                }
-                return;
-            }
-            this.cleanHeatAndBar();
+            this.layout.viewport = options.viewport;
 
-            // PowerBI fires two update calls, one for size, one for data
-            if (options.dataViews[0] && (options.dataViews[0].categorical || options.dataViews[0].metadata)) {
-                this.composeRenderData(options.dataViews[0].categorical, options.dataViews[0].metadata);
+            if(this.layout.viewportChanged) {
+                if (this.camera && this.renderer) {
+                    this.camera.aspect = this.layout.viewportIn.width / this.layout.viewportIn.height;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(this.layout.viewportIn.width, this.layout.viewportIn.height);
+                }
+            }
+
+            if(options.type === VisualUpdateType.Data) {
+                this.cleanHeatAndBar();
+                var data = GlobeMap.converter(options.dataViews[0], this.globeMapLocationCache, this.colors);
+                if(data) {
+                    this.data = data;
+                    this.renderMagic();
+                }
             }
         }
 
@@ -542,17 +950,19 @@ module powerbi.visuals.samples {
         }
 
         private renderMagic() {
+            if(!this.data) {
+                return;
+            }
+
+            this.data.dataPoints.forEach(d => this.geocodeRenderDatum(d));
+
             if (!this.readyToRender) {
                 //console.log("not ready to render");
                 this.defferedRender();
                 return;
             }
 
-            var renderData = this.data;
-            var heatmap = this.heatmap;
-            var settings = this.settings;
-
-            heatmap.clear();
+            this.heatmap.clear();
 
             if (this.barsGroup) {
                 this.scene.remove(this.barsGroup);
@@ -563,22 +973,24 @@ module powerbi.visuals.samples {
 
             this.averageBarVector = new THREE.Vector3();
 
-            for (var i = 0, len = renderData.length; i < len; ++i) {
-                var renderDatum = renderData[i];
+            for (var i = 0, len = this.data.dataPoints.length; i < len; ++i) {
+                var renderDatum = this.data.dataPoints[i];
 
-                if (!renderDatum.lat || !renderDatum.lng) continue;
+                if (!renderDatum.location || renderDatum.location.longitude === undefined || renderDatum.location.latitude === undefined) {
+                    continue;
+                }
 
                 if (renderDatum.heat > 0.001) {
                     if (renderDatum.heat < 0.1) renderDatum.heat = 0.1;
-                    var x = (180 + renderDatum.lng) / 360 * settings.heatmapSize;
-                    var y = (1 - ((90 + renderDatum.lat) / 180)) * settings.heatmapSize;
-                    heatmap.addPoint(x, y, settings.heatPointSize, renderDatum.heat * settings.heatIntensity);
+                    var x = (180 + renderDatum.location.longitude) / 360 * GlobeMap.GlobeSettings.heatmapSize;
+                    var y = (1 - ((90 + renderDatum.location.latitude) / 180)) * GlobeMap.GlobeSettings.heatmapSize;
+                    this.heatmap.addPoint(x, y, GlobeMap.GlobeSettings.heatPointSize, renderDatum.heat * GlobeMap.GlobeSettings.heatIntensity);
                 }
 
                 if (renderDatum.height >= 0) {
                     if (renderDatum.height < 0.01) renderDatum.height = 0.01;
-                    var latRadians = renderDatum.lat / 180 * Math.PI; //radians
-                    var lngRadians = renderDatum.lng / 180 * Math.PI;
+                    var latRadians = renderDatum.location.latitude / 180 * Math.PI; //radians
+                    var lngRadians = renderDatum.location.longitude / 180 * Math.PI;
 
                     var x = Math.cos(lngRadians) * Math.cos(latRadians);
                     var z = -Math.sin(lngRadians) * Math.cos(latRadians);
@@ -587,7 +999,7 @@ module powerbi.visuals.samples {
 
                     this.averageBarVector.add(v);
 
-                    var barHeight = settings.barHeight * renderDatum.height;
+                    var barHeight = GlobeMap.GlobeSettings.barHeight * renderDatum.height;
                     //this array holds the relative series values to the actual measure for example [0.2,0.3,0.5]
                     //this is how we draw the vectors relativly to the complete value one on top of another. 
                     var measuresBySeries = [];
@@ -608,9 +1020,9 @@ module powerbi.visuals.samples {
                     var previousMeasureValue = 0;
                     for (var j = 0; j < measuresBySeries.length; j++) {
                         previousMeasureValue += measuresBySeries[j];
-                        var geometry = new THREE.CubeGeometry(settings.barWidth, settings.barWidth, barHeight * measuresBySeries[j]);
+                        var geometry = new THREE.CubeGeometry(GlobeMap.GlobeSettings.barWidth, GlobeMap.GlobeSettings.barWidth, barHeight * measuresBySeries[j]);
                         var bar = new THREE.Mesh(geometry, this.getBarMaterialByIndex(j));
-                        bar.position = v.clone().multiplyScalar(settings.earthRadius + ((barHeight / 2) * previousMeasureValue));
+                        bar.position = v.clone().multiplyScalar(GlobeMap.GlobeSettings.earthRadius + ((barHeight / 2) * previousMeasureValue));
                         bar.lookAt(v);
                         bar.toolTipData = dataPointToolTip.length === 0 ? renderDatum.toolTipData : this.getToolTipDataForSeries(renderDatum.toolTipData, dataPointToolTip[j]);
                         this.barsGroup.add(bar);
@@ -626,16 +1038,16 @@ module powerbi.visuals.samples {
                 }
             }
 
-            heatmap.update();
-            heatmap.blur();
+            this.heatmap.update();
+            this.heatmap.blur();
             this.heatTexture.needsUpdate = true;
-            this.needsRender = true;			
+            this.needsRender = true;
 
             //console.log("renderMagic done! locations:", this.barsGroup.children.length, "toload/loaded", this.locationsToLoad, this.locationsLoaded)
         }
 
         private getBarMaterialByIndex(index): any {
-            return new THREE.MeshPhongMaterial({ color: this.dataPointsToEnumerate[index].color });
+            return new THREE.MeshPhongMaterial({ color: this.data.seriesDataPoints[index].color });
         }
 
         private getToolTipDataForSeries(toolTipData, dataPointToolTip): any {
@@ -646,201 +1058,12 @@ module powerbi.visuals.samples {
             return result;
         }
 
-        private createDataPointForEnumeration(seriesData, valueIndex, seriesIndex, metaData?): GlobeMapDataPoint {
-            let source = seriesData.values[valueIndex].source;
-            let label = converterHelper.getFormattedLegendLabel(source, seriesData.values, null);
-            let identity = SelectionId.createWithId(seriesData.identity);
-            let category = converterHelper.getSeriesName(source);
-            let color = seriesData.objects && seriesData.objects.dataPoint ? seriesData.objects.dataPoint.fill.solid.color :
-                metaData && metaData.objects ? this.colorHelper.getColorForMeasure(metaData.objects,"") : this.colors.getColorByIndex(seriesIndex).value;
-
-            return {
-                label: label,
-                identity: identity,
-                category: category,
-                color: color,
-                selected: null
-            };
-        }
-
-        private composeRenderData(categoricalView?, metadataView?) {
-            // memoize last value
-            if (categoricalView) {
-                this.categoricalView = categoricalView;
-            } else {
-                categoricalView = this.categoricalView;
+        private geocodeRenderDatum(renderDatum: GlobeMapDataPoint) {
+            if(renderDatum.location) {
+                return;
             }
 
-            this.data = [];
-            this.dataPointsToEnumerate = [];
-            var locations = [];
-            var globeMapLocationCache = this.globeMapLocationCache;
-
-            //console.log("categoricalView", categoricalView)
-            if (!categoricalView) return;
-
-            var heightIndex = 0,
-                intensityIndex = 0,
-                categories = [];
-            try {
-                if (categoricalView.categories) {
-                    categories = categoricalView.categories;
-                }
-                var grouped = categoricalView.values.grouped();
-                heightIndex = DataRoleHelper.getMeasureIndexOfRole(grouped, "Height");
-                intensityIndex = DataRoleHelper.getMeasureIndexOfRole(grouped, "Heat");
-                var longitudeIndex = DataRoleHelper.getMeasureIndexOfRole(grouped, "X");
-                var latitudeIndex = DataRoleHelper.getMeasureIndexOfRole(grouped, "Y");
-            } catch (e) { }
-
-            var locationType, heights, heightsBySeries, toolTipDataBySeries, heats, latitudes, longitudes, locationDispName, heightDispName, heatDispName, heightFormat, heatFormat;
-
-            if (categories && categories.length > 0 && categories[0].values) {
-                var locationCategory = categories[0];
-                locations = locationCategory.values;
-                locationDispName = locationCategory.source.displayName;
-                if (locationCategory.source.type.category) {
-                    locationType = locationCategory.source.type.category.toLowerCase();
-                } else {
-                    locationType = "";
-                }
-            } else {
-                locations = [];
-            }
-
-            // For debugging since devTools - salesByCountry isn't really sales by country
-            //var places = ["kenya", "india", "united states", "london", "australia", "canada"]
-            //heightIndex = 0;
-
-            if (heightIndex !== undefined && categoricalView.values[heightIndex] && categoricalView.values !== undefined) {
-                // heights = categoricalView.values[heightIndex].values;
-                heightDispName = categoricalView.values[heightIndex].source.displayName;
-                heightFormat = categoricalView.values[heightIndex].source.format;
-                if (grouped.length > 1) {
-                    heights = new Array(locations.length);
-                    heightsBySeries = new Array(locations.length);
-                    toolTipDataBySeries = new Array(locations.length);
-                    this.dataPointsToEnumerate = new Array(grouped.length);
-                    //creating a matrix for drawing values by series later.
-                    for (var i = 0; i < grouped.length; i++) {
-                        var values = grouped[i].values[heightIndex].values;
-                        this.dataPointsToEnumerate[i] = this.createDataPointForEnumeration(grouped[i], heightIndex, i);
-                        for (var j = 0; j < values.length; j++) {
-                            if (!heights[j]) heights[j] = 0;
-                            heights[j] += values[j] ? values[j] : 0;
-                            if (!heightsBySeries[j]) heightsBySeries[j] = [];
-                            heightsBySeries[j][i] = values[j];
-                            if (!toolTipDataBySeries[j]) toolTipDataBySeries[j] = [];
-                            toolTipDataBySeries[j][i] = { displayName: categoricalView.values.source.displayName, value: grouped[i].name, dataPointValue: values[j] };
-                        }
-                    }
-                    for (var i = 0; i < grouped.length; i++) {
-                        var values = grouped[i].values[heightIndex].values;
-                        for (var j = 0; j < values.length; j++) { 
-                            //calculating relative size of series
-                            heightsBySeries[j][i] = values[j] / heights[j];
-                        }
-                    }
-                } else {
-                    heights = categoricalView.values[heightIndex].values;
-                    heightsBySeries = new Array(grouped.length);
-                    this.dataPointsToEnumerate[0] = this.createDataPointForEnumeration(grouped[0], heightIndex, 0, metadataView);
-                }
-
-            } else {
-                heightsBySeries = new Array(locations.length);
-                heights = new Array(locations.length);
-            }
-
-            if (intensityIndex !== undefined && categoricalView.values[intensityIndex]) {
-                if (grouped.length > 1) {
-                    heats = new Array(locations.length);
-                    for (var i = 0; i < grouped.length; i++) {
-                        var values = grouped[i].values[intensityIndex].values;
-                        for (var j = 0; j < values.length; j++) {
-                            if (!heats[j]) heats[j] = 0;
-                            heats[j] += values[j] ? values[j] : 0;
-                        }
-                    }
-                } else {
-                    heats = categoricalView.values[intensityIndex].values;
-                }
-                heatDispName = categoricalView.values[intensityIndex].source.displayName;
-                heatFormat = categoricalView.values[intensityIndex].source.format;
-            } else {
-                heats = new Array(locations.length);
-            }
-
-            if (longitudeIndex !== undefined && categoricalView.values[longitudeIndex]
-                && latitudeIndex !== undefined && categoricalView.values[latitudeIndex]) {
-                longitudes = categoricalView.values[longitudeIndex].values;
-                latitudes = categoricalView.values[latitudeIndex].values;
-            }
-            else {
-                longitudes = null;
-                latitudes = null;
-            }
-
-            var maxHeight = Math.max.apply(null, heights) || 1;
-            var maxHeat = Math.max.apply(null, heats) || 1;
-            var heatFormatter = valueFormatter.create({ format: heatFormat, value: heats[0], value2: heats[1] });
-            var heightFormatter = valueFormatter.create({ format: heightFormat, value: heights[0], value2: heights[1] });
-
-            for (var i = 0, len = locations.length; i < len; ++i) {
-                var place = locations[i];
-                var lat, lng, latlng, height, heat;
-
-                //place = places[i];
-
-                if (place && typeof (place) === "string") {
-                    place = place.toLowerCase();
-                    var placeKey = place + "/" + locationType;
-
-                    if (!longitudes && globeMapLocationCache[placeKey]) {
-                        latlng = globeMapLocationCache[placeKey];
-                        lat = latlng.latitude;
-                        lng = latlng.longitude;
-                    }
-                    else if (longitudes) {
-                        lat = latitudes[i];
-                        lng = longitudes[i];
-                    }
-
-                    height = heights[i] / maxHeight;
-                    heat = heats[i] / maxHeat;
-
-                    var renderDatum = {
-                        lat: lat,
-                        lng: lng,
-                        height: height ? height || 0.01 : undefined,
-                        heightBySeries: heightsBySeries[i],
-                        seriesToolTipData: toolTipDataBySeries ? toolTipDataBySeries[i] : undefined,
-                        heat: heat || 0,
-                        toolTipData: {
-                            location: { displayName: locationDispName, value: locations[i] },
-                            height: { displayName: heightDispName, value: heightFormatter.format(heights[i]) },
-                            heat: { displayName: heatDispName, value: heatFormatter.format(heats[i]) }
-                        }
-                    };
-
-                    this.data.push(renderDatum);
-
-                    if (!longitudes && !latlng) {
-                        this.geocodeRenderDatum(renderDatum, place, locationType);
-                    }
-                }
-            }
-
-            try {
-                this.renderMagic();
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        private geocodeRenderDatum(renderDatum, place, locationType) {
-            var placeKey = place + "/" + locationType;
-            this.globeMapLocationCache[placeKey] = {}; //store empty object so we don't send AJAX request again
+            this.globeMapLocationCache[renderDatum.placeKey] = <any>{}; //store empty object so we don't send AJAX request again
             this.locationsToLoad++;
 
             try {
@@ -850,19 +1073,15 @@ module powerbi.visuals.samples {
             }
 
             if (geocoder) {
-                geocoder(place, locationType).always((latlng: any) => {
+                geocoder(renderDatum.place, renderDatum.locationType).always((location: ILocation) => {
                     // we use always because we want to cache unknown values. 
                     // No point asking bing again and again when it tells us it doesn't know about a location
-                    this.globeMapLocationCache[placeKey] = latlng;
+                    this.globeMapLocationCache[renderDatum.placeKey] = location;
                     this.locationsLoaded++;
                     //console.log(place, latlng);
 
-                    if (latlng.latitude && latlng.longitude) {
-                        renderDatum.lat = latlng.latitude;
-                        renderDatum.lng = latlng.longitude;
-
-                        this.defferedRender();
-                    }
+                    renderDatum.location = location;
+                    this.defferedRender();
                 });
             }
         }
@@ -871,14 +1090,13 @@ module powerbi.visuals.samples {
             if (!this.deferredRenderTimerId) {
                 this.deferredRenderTimerId = setTimeout(() => {
                     this.deferredRenderTimerId = null;
-                    this.composeRenderData();
+                    this.renderMagic();
                 }, 500);
             }
         }
 
         private initRayCaster() {
             this.rayCaster = new THREE.Raycaster();
-            var settings = this.settings;
             var mousePosNormalized = this.mousePosNormalized = new THREE.Vector2();
             var mousePos = this.mousePos = new THREE.Vector2();
             var element = this.container.get(0);
@@ -896,19 +1114,19 @@ module powerbi.visuals.samples {
                 mouseDownTime = Date.now();
             }).on("mouseup", (event) => {
                 // Debounce slow clicks
-                if ((Date.now() - mouseDownTime) > settings.clickInterval) return;
+                if ((Date.now() - mouseDownTime) > GlobeMap.GlobeSettings.clickInterval) return;
                 if (this.hoveredBar && event.shiftKey) {
                     this.selectedBar = this.hoveredBar;
                     this.animateCamera(this.selectedBar.position, () => {
                         if (!this.selectedBar) return;
-                        this.orbitControls.center.copy(this.selectedBar.position.clone().normalize().multiplyScalar(settings.earthRadius));
+                        this.orbitControls.center.copy(this.selectedBar.position.clone().normalize().multiplyScalar(GlobeMap.GlobeSettings.earthRadius));
                         this.orbitControls.minDistance = 1;
                     });
                 } else {
                     if (this.selectedBar) {
                         this.animateCamera(this.selectedBar.position, () => {
                             this.orbitControls.center.set(0, 0, 0);
-                            this.orbitControls.minDistance = settings.earthRadius + 1;
+                            this.orbitControls.minDistance = GlobeMap.GlobeSettings.earthRadius + 1;
                         });
                         this.selectedBar = null;
                     }
@@ -919,7 +1137,7 @@ module powerbi.visuals.samples {
                     this.heatTexture.needsUpdate = true;
                     e = e.originalEvent;
                     var delta = e.wheelDelta > 0 || e.detail < 0 ? 1 : -1;
-                    var scale = delta > 0 ? this.settings.heatmapScaleOnZoom : (1 / this.settings.heatmapScaleOnZoom);
+                    var scale = delta > 0 ? GlobeMap.GlobeSettings.heatmapScaleOnZoom : (1 / GlobeMap.GlobeSettings.heatmapScaleOnZoom);
                     this.heatmap.multiply(scale);
                     this.heatmap.update();
                 }
@@ -953,13 +1171,13 @@ module powerbi.visuals.samples {
         private animateCamera(to: any, done?: Function) {
             if (!this.camera) return;
             var startTime = Date.now();
-            var duration = this.settings.cameraAnimDuration;
+            var duration = GlobeMap.GlobeSettings.cameraAnimDuration;
             var endTime = startTime + duration;
             var startPos = this.camera.position.clone().normalize();
             var endPos = to.clone().normalize();
             var length = this.camera.position.length();
 
-            var easeInOut = function (t) {
+            var easeInOut = (t) => {
                 t *= 2;
                 if (t < 1) return (t * t * t) / 2;
                 t -= 2;

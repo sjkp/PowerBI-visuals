@@ -1267,8 +1267,12 @@ module powerbi.visuals {
                 validPositions = FunnelChart.LabelOutsidePosition;
             }
             
+            let maxAbsoluteValue: number = null;
             // Formatter
-            let maxAbsoluteValue = data.dataPoints.reduce((memo, value) => Math.abs(memo.value) > Math.abs(value.value) ? memo : value).value;
+            if(visualSettings.displayUnits === 0 /* Auto */) {
+                // if display unit is auto let formatter decide what scale to use based on maximum value.
+                maxAbsoluteValue = data.dataPoints.reduce((memo, value) => Math.abs(memo.value) > Math.abs(value.value) ? memo : value).value;
+            }
             let formatString = valueFormatter.getFormatString(data.valuesMetadata[0], funnelChartProps.general.formatString);
             let formattersCache = LabelUtils.createColumnFormatterCacheManager();
             

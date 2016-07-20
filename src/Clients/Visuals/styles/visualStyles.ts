@@ -42,6 +42,7 @@ module powerbi.visuals {
                 colorPalette: {
                     foreground: { value: '#333' },
                     background: { value: '#fff' },
+                    tableAccent: { value: dataColors.getColorByIndex(0).value },
                     dataColors: dataColors,
                 },
                 labelText: {

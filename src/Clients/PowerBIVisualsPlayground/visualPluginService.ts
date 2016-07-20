@@ -66,11 +66,6 @@ module powerbi.visuals {
         mapCurrentLocationEnabled?: boolean;
         
         tooltipBucketEnabled?: boolean;
-        
-        /**
-         * Load more data for Cartesian charts (column, bar, line, and combo). 
-         */
-        cartesianLoadMoreEnabled?: boolean;
 
         /**
          * Advanced logic for line chart labels
@@ -466,9 +461,13 @@ module powerbi.visuals {
                     smallViewPortProperties: this.smallViewPortProperties.DonutSmallViewPortProperties
                 }));
             createPlugin(this.visualPlugins, powerbi.visuals.plugins.matrix,
-                () => new Matrix());
+                () => new Matrix({
+                    isTouchEnabled: true
+                }));
             createPlugin(this.visualPlugins, powerbi.visuals.plugins.table,
-                () => new Table());
+                () => new Table({
+                    isTouchEnabled: true
+                }));
             createPlugin(this.visualPlugins, powerbi.visuals.plugins.map,
                 () => new Map({
                     viewChangeThrottleInterval: mapThrottleInterval,

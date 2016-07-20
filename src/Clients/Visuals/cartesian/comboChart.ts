@@ -87,9 +87,11 @@ module powerbi.visuals {
                 if (isScalar) {
                     let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>columnMapping.categorical.categories;
                     dataViewCategories.dataReductionAlgorithm = { sample: {} };
-                }
-                else {
-                    CartesianChart.applyLoadMoreEnabledToMapping(options.cartesianLoadMoreEnabled, columnMapping);    
+                    let values = <data.CompiledDataViewGroupedRoleMapping>columnMapping.categorical.values;
+
+                    if(values && values.group){
+                        values.group.dataReductionAlgorithm = { top: {} };
+                    }
                 }
             }
 
@@ -99,10 +101,16 @@ module powerbi.visuals {
                 if (isScalar) {
                     let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>lineMapping.categorical.categories;
                     dataViewCategories.dataReductionAlgorithm = { sample: {} };
+                    let values = <data.CompiledDataViewGroupedRoleMapping>lineMapping.categorical.values;
+
+                    if(values && values.group){
+                        values.group.dataReductionAlgorithm = { top: {} };
+                    }
                 }
-                else {
-                    CartesianChart.applyLoadMoreEnabledToMapping(options.cartesianLoadMoreEnabled, lineMapping);
-                }
+            }
+
+            if(!isScalar){
+                CartesianChart.expandCategoryWindow(options.dataViewMappings);
             }
         }
 

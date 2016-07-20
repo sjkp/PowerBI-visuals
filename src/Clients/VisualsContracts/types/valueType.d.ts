@@ -56,6 +56,7 @@ declare module powerbi {
     export interface TemporalTypeDescriptor {
         year?: boolean;
         month?: boolean;
+        paddedDateTableDate?: boolean;
     }
 
     export interface GeographyTypeDescriptor {

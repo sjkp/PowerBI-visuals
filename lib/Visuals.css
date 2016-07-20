@@ -2546,6 +2546,19 @@ body {
   background-position: center;
   background-repeat: no-repeat;
 }
+.visual .autoScaleImageContainer {
+  position: relative;
+}
+.visual .autoScaleImageContainer .autoScaleImage {
+  max-width: 100%;
+  max-height: 100%;
+  position: absolute;
+  top: 50%;
+  /* @noflip */
+  left: 50%;
+  transform: translateY(-50%) translateX(-50%);
+  -webkit-transform: translateY(-50%) translateX(-50%);
+}
 .visual .mapCurrentLocation {
   background-image: url('../images/locationButton.svg');
   position: absolute;
@@ -2789,6 +2802,9 @@ body {
   100% {
     transform: rotate(2deg);
   }
+}
+.visual .gauge .labelText {
+  font-family: 'wf_standard-font', helvetica, arial, sans-serif;
 }
 .visual .kpiVisual .goalText {
   margin-top: -6px;

@@ -312,6 +312,48 @@ module powerbitests {
             });
         });
 
+        it("DOM Validation - SearchHeader visible", () => {
+            expect($('.searchHeader').length).toBe(1);
+            expect($(".searchHeader").css('display')).toBe('none');
+            let dataView: powerbi.DataView = slicerHelper.buildDataViewWithSelfFilter(SlicerOrientation.Vertical, field);
+            helpers.fireOnDataChanged(visual, { dataViews: [dataView] });
+            expect($('.searchHeader').length).toBe(1);
+            expect($(".searchHeader").css('display')).not.toBe('none');
+
+            let searchKey = '  search key ';
+            $('.searchInput').val(searchKey);
+            helpers.fireOnDataChanged(visual, { dataViews: [dataView] });
+
+            let searchInput = $('.searchInput');
+            // Since the data view don't have search key specified, this input value should reflect the search value. 
+            // This is for the case when search is turned off when there is a search key. After search is turned on again, we should clear the value.
+            expect(searchInput.val()).toBe('');
+        });
+
+        it("Search input keyup event", () => {
+            let dataView: powerbi.DataView = slicerHelper.buildDataViewWithSelfFilter(SlicerOrientation.Vertical, field);
+            helpers.fireOnDataChanged(visual, { dataViews: [dataView] });
+            let searchHeader = $('.searchHeader');
+            let searchBox = searchHeader.find('input');
+            searchBox.d3Click(0, 0);
+            let searchSpy = spyOn(powerbi.visuals.SlicerWebBehavior, 'startSearch');
+
+            searchBox.d3KeyEvent('keyup', 'a', 65);
+            jasmine.clock().tick(200);
+            expect(searchSpy).not.toHaveBeenCalled();
+        });
+
+        it("Search input keydown with enter key event", () => {
+            let dataView: powerbi.DataView = slicerHelper.buildDataViewWithSelfFilter(SlicerOrientation.Vertical, field);
+            helpers.fireOnDataChanged(visual, { dataViews: [dataView] });
+            let searchHeader = $('.searchHeader');
+            let searchBox = searchHeader.find('input');
+            searchBox.d3Click(0, 0);
+            let searchSpy = spyOn(powerbi.visuals.SlicerWebBehavior, 'startSearch');
+            searchBox.d3KeyEvent('keydown', 'a', 65);
+            expect(searchSpy).not.toHaveBeenCalled();
+        });
+
     });
 
     function getSlicerTextContainer(): JQuery {

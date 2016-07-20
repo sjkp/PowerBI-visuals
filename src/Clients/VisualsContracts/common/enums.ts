@@ -93,4 +93,17 @@ module powerbi {
         Success,
         Failure,
     }
+
+    /**
+     * Defines actions to be taken by the visual in response to a selection.
+     *
+     * An undefined/null VisualInteractivityAction should be treated as Selection,
+     * as that is the default action.
+     */
+    export const enum VisualInteractivityAction {
+        /** Normal selection behavior which should call onSelect */
+        Selection,
+        /** No additional action or feedback from the visual is needed */
+        None,
+    }
 }

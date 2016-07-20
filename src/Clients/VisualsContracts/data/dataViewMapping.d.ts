@@ -188,8 +188,7 @@ declare module powerbi {
     export type NumberRange = ValueRange<number>;
 
     /** Defines the PrimitiveValue range. */
-    export interface PrimitiveValueRange extends ValueRange<PrimitiveValue> {
-    }
+    export type PrimitiveValueRange = ValueRange<PrimitiveValue>;
 
     export interface DataViewMappingScriptDefinition {
         source: DataViewObjectPropertyIdentifier;

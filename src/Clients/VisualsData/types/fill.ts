@@ -28,7 +28,6 @@
 
 module powerbi {
     import SQExpr = powerbi.data.SQExpr;
-    import SQExprBuilder = powerbi.data.SQExprBuilder;
 
     export interface FillDefinition {
         solid?: {
@@ -44,8 +43,15 @@ module powerbi {
         };
     }
 
-    export function createSolidFillDefinition(color: string): FillDefinition {
-        return { solid: { color: SQExprBuilder.text(color) } };
+    export module FillDefinitionHelpers {
+        export function createSolidFillDefinition(color: string): FillDefinition {
+            if (color)
+                return { solid: { color: data.SQExprBuilder.text(color) } };
+        }
+
+        export function createSolidFillSQExpr(color: string): SQExpr | StructuralObjectDefinition {
+            return createSolidFillDefinition(color) || data.SQExprBuilder.nullConstant();
+        }
     }
 
     export module FillSolidColorTypeDescriptor {

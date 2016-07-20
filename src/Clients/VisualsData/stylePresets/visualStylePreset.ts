@@ -33,18 +33,25 @@ module powerbi {
     /** Defines a list of style presets for a particular IVisual */
     export interface VisualStylePresets {
         /** Title of PropertyPane section for selecting the style */
-        displayName: DisplayNameGetter;
+        sectionTitle: DisplayNameGetter;
+
+        /** Title of PropertyPane slice for selecting the style */
+        sliceTitle: DisplayNameGetter;
+
+        /** Default style preset name for the Visual. Usually looked up with when searching by name fails.
+         * Must be one of the presets */
+        defaultPresetName: string;
 
         /** List of style presets for the IVisual indexed by preset name */
-        presets: VisualStylePresetCollection;
-    }
-
-    export interface VisualStylePresetCollection { 
-        [stylePresetName: string]: VisualStylePreset;
+        presets: _.Dictionary<VisualStylePreset>;
     }
 
     /** Defines some rules to derive IVisual formatting elements from a Report Theme */
     export interface VisualStylePreset {
+
+        /** Serialized name. Changing it would break saved reports */
+        name: string;
+
         /** Display name for the style preset */
         displayName: DisplayNameGetter;
 
@@ -56,5 +63,48 @@ module powerbi {
          * @param IVisualStyle Report theme
          */
         evaluate: (theme: IVisualStyle) => DataViewObjectDefinitions;
+    }
+
+    export module VisualStylePresetHelpers {
+        /**
+         * Get a visual style preset by name.
+         * If stylePresets is undefined, returns undefined
+         * If the name doesn't match one or name is undefined, the default preset should be returned, can be undefined
+         * @param {string} name name of the Style Preset
+         */
+        export function getStylePreset(stylePresets: VisualStylePresets, name: string): VisualStylePreset {
+            debug.assertValue(stylePresets, "getStylePreset called with undefined stylePresets");
+            if (!stylePresets)
+                return;
+
+            if (_.isEmpty(name))
+                name = stylePresets.defaultPresetName;
+
+            let preset = stylePresets.presets[name];
+
+            // If no preset matches name, return default one
+            // This can happen when format painting between different visuals
+            if (!preset)
+                preset = stylePresets.presets[stylePresets.defaultPresetName];
+
+            debug.assertValue(preset, "VisualStylePreset not found and no valid default exists");
+            return preset;
+        }
+
+        export function getStylePresetsEnum(stylePresets: VisualStylePresets): IEnumType {
+            let members: IEnumMember[] = [];
+
+            if (stylePresets) {
+                let presets = stylePresets.presets;
+                if (presets) {
+                    for (let name in presets) {
+                        let stylePreset = presets[name];
+                        members.push({ value: stylePreset.name, displayName: stylePreset.displayName });
+                    }
+                }
+            }
+
+            return createEnumType(members);
+        }
     }
 }

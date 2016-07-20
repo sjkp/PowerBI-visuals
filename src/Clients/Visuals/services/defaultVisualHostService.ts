@@ -146,6 +146,7 @@ module powerbi.visuals {
         // NO-OP IHostServices methods
         public onDragStart(): void { }
         public canSelect(): boolean { return false; }
+        public onSelecting(args: SelectingEventArgs): void { args.action = powerbi.VisualInteractivityAction.Selection; }
         public onSelect(): void { }
         public onContextMenu(): void { }
         public loadMoreData(): void { }

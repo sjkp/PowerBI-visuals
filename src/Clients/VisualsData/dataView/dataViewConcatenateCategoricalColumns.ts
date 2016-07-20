@@ -29,7 +29,6 @@
 module powerbi.data {
     import inherit = Prototype.inherit;
     import inheritSingle = Prototype.inheritSingle;
-    import RoleKindByQueryRef = DataViewAnalysis.RoleKindByQueryRef;
     import valueFormatter = powerbi.visuals.valueFormatter;
 
     export module DataViewConcatenateCategoricalColumns {
@@ -49,26 +48,27 @@ module powerbi.data {
         export function detectAndApply(
             dataView: DataView,
             objectDescriptors: DataViewObjectDescriptors,
-            roleMappings: DataViewMapping[],
+            applicableRoleMappings: DataViewMapping[],
             projectionOrdering: DataViewProjectionOrdering,
-            selects: DataViewSelectTransform[],
             projectionActiveItems: DataViewProjectionActiveItems): DataView {
             debug.assertValue(dataView, 'dataView');
-            debug.assertAnyValue(roleMappings, 'roleMappings');
+            debug.assertAnyValue(objectDescriptors, 'objectDescriptors');
+            debug.assertAnyValue(applicableRoleMappings, 'applicableRoleMappings');
             debug.assertAnyValue(projectionOrdering, 'projectionOrdering');
+            debug.assertAnyValue(projectionActiveItems, 'projectionActiveItems');
 
             let result = dataView;
             let dataViewCategorical: DataViewCategorical = dataView.categorical;
 
             if (dataViewCategorical) {
-                let concatenationSource: CategoryColumnsByRole = detectCategoricalRoleForHierarchicalGroup(dataViewCategorical, dataView.metadata, roleMappings, selects, projectionActiveItems);
+                let concatenationSource: CategoryColumnsByRole = detectCategoricalRoleForHierarchicalGroup(dataViewCategorical, applicableRoleMappings);
 
                 if (concatenationSource) {
                     // Consider: Perhaps the re-ordering of categorical columns should happen in the function transformSelects(...) of dataViewTransform?
                     let columnsSortedByProjectionOrdering = sortColumnsByProjectionOrdering(projectionOrdering, concatenationSource.roleName, concatenationSource.categories);
                     if (columnsSortedByProjectionOrdering.length >= 2) {
                         let activeItemsToIgnoreInConcatenation =
-                            _.chain(projectionActiveItems[concatenationSource.roleName])
+                            _.chain(projectionActiveItems && projectionActiveItems[concatenationSource.roleName])
                                 .filter((activeItemInfo: DataViewProjectionActiveItemInfo) => activeItemInfo.suppressConcat)
                                 .map((activeItemInfo: DataViewProjectionActiveItemInfo) => activeItemInfo.queryRef)
                                 .value();
@@ -117,33 +117,30 @@ module powerbi.data {
          * Note: In the future if we support sibling hierarchical groups in categorical,
          * change the return type to CategoryColumnsByRole[] and update detection logic.
          */
-        function detectCategoricalRoleForHierarchicalGroup(dataViewCategorical: DataViewCategorical, metadata: DataViewMetadata, dataViewMappings: DataViewMapping[], selects: DataViewSelectTransform[], projectionActiveItems: DataViewProjectionActiveItems): CategoryColumnsByRole {
+        function detectCategoricalRoleForHierarchicalGroup(dataViewCategorical: DataViewCategorical, applicableRoleMappings: DataViewMapping[]): CategoryColumnsByRole {
             debug.assertValue(dataViewCategorical, 'dataViewCategorical');
-            debug.assertAnyValue(dataViewMappings, 'dataViewMappings');
+            debug.assertAnyValue(applicableRoleMappings, 'applicableRoleMappings');
 
             let result: CategoryColumnsByRole;
 
-            let roleKinds: RoleKindByQueryRef = DataViewSelectTransform.createRoleKindFromMetadata(selects, metadata);
-            let projections = DataViewSelectTransform.projectionsFromSelects(selects, projectionActiveItems);
-            let supportedRoleMappings = DataViewAnalysis.chooseDataViewMappings(projections, dataViewMappings, roleKinds).supportedMappings;
-
-            // The following code will choose a role name only if all supportedRoleMappings share the same role for Categorical Category.
-            // Handling multiple supportedRoleMappings is necessary for TransformActions with splits, which can happen in scenarios such as:
+            // The following code will choose a role name only if all applicableRoleMappings share the same role for Categorical Category and
+            // that role has a { max: 1 } restriction in visual capabilities role mapping conditions.
+            // Handling multiple applicableRoleMappings is necessary for TransformActions with splits, which can happen in scenarios such as:
             // 1. combo chart with a field for both Line and Column values, and
             // 2. chart with regression line enabled.
-            // In case 1, you can pretty much get exactly the one from supportedRoleMappings for which this code is currently processing for,
+            // In case 1, you can pretty much get exactly the one from applicableRoleMappings for which this code is currently processing for,
             // by looking at the index of the current split in DataViewTransformActions.splits.
-            // In case 2, however, supportedRoleMappings.length will be different than DataViewTransformActions.splits.length, hence it is
-            // not straight forward to figure out for which one in supportedRoleMappings is this code currently processing.
-            // SO... This code will just choose the category role name if it is consistent across all supportedRoleMappings.
+            // In case 2, however, applicableRoleMappings.length will be different than DataViewTransformActions.splits.length, hence it is
+            // not straight forward to figure out for which one in applicableRoleMappings is this code currently processing.
+            // SO... This code will just choose the category role name if it is consistent across all applicableRoleMappings.
 
-            let isEveryRoleMappingForCategorical = !_.isEmpty(supportedRoleMappings) &&
-                _.every(supportedRoleMappings, (roleMapping) => !!roleMapping.categorical);
+            let isEveryRoleMappingForCategorical = !_.isEmpty(applicableRoleMappings) &&
+                _.every(applicableRoleMappings, (roleMapping) => !!roleMapping.categorical);
 
             if (isEveryRoleMappingForCategorical) {
-                let targetRoleName = getSingleCategoryRoleNameInEveryRoleMapping(supportedRoleMappings);
+                let targetRoleName = getSingleCategoryRoleNameInEveryRoleMapping(applicableRoleMappings);
                 if (targetRoleName &&
-                    isVisualExpectingMaxOneCategoryColumn(targetRoleName, supportedRoleMappings)) {
+                    isVisualExpectingMaxOneCategoryColumn(targetRoleName, applicableRoleMappings)) { // the { max: 1 } check on category role
 
                     let categoryColumnsForTargetRole: DataViewCategoryColumn[] = _.filter(
                         dataViewCategorical.categories,
@@ -195,6 +192,10 @@ module powerbi.data {
             return result;
         }
 
+        /**
+         * Returns true if every one of specified roleMappings has non-empty 'conditions', and that every one of their conditions
+         * has a { max: 1 } restriction for the specified categoricalRoleName.
+        */
         function isVisualExpectingMaxOneCategoryColumn(categoricalRoleName: string, roleMappings: DataViewMapping[]): boolean {
             debug.assertValue(categoricalRoleName, 'categoricalRoleName');
             debug.assertNonEmpty(roleMappings, 'roleMappings');
@@ -229,7 +230,7 @@ module powerbi.data {
         }
 
         function applyConcatenation(dataView: DataView, objectDescriptors: DataViewObjectDescriptors, roleName: string, columnsSortedByProjectionOrdering: DataViewCategoryColumn[], queryRefsToIgnore: string[]): DataView {
-            debug.assertValue(dataView, 'dataView');
+            debug.assert(dataView && dataView.categorical && _.size(dataView.categorical.categories) >= 1, 'dataView && dataView.categorical && _.size(dataView.categorical.categories) >= 1');
             debug.assertAnyValue(objectDescriptors, 'objectDescriptors');
             debug.assertValue(roleName, 'roleName');
             debug.assert(columnsSortedByProjectionOrdering && columnsSortedByProjectionOrdering.length >= 2, 'columnsSortedByProjectionOrdering && columnsSortedByProjectionOrdering.length >= 2');

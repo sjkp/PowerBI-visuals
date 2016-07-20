@@ -35,6 +35,8 @@ module powerbi.visuals.utility {
         private selectedIds: SelectionId[];
         private hostServices: IVisualHostServices;
 
+        private dataPointObjectName = 'dataPoint';
+
         public constructor(options: SelectionManagerOptions) {
             this.hostServices = options.hostServices;
             this.selectedIds = [];
@@ -82,16 +84,26 @@ module powerbi.visuals.utility {
         }
 
         private sendSelectionToHost(ids: SelectionId[]) {
+            let dataPointObjectName = this.dataPointObjectName;
             let selectArgs: SelectEventArgs = {
-                data: ids
-                    .filter((value: SelectionId) => value.hasIdentity())
-                    .map((value: SelectionId) => value.getSelector())
+                visualObjects: _.chain(ids)
+                    .filter((value: ISelectionId) => (<visuals.SelectionId>value).hasIdentity())
+                    .map((value: ISelectionId) => {
+                        return { objectName: dataPointObjectName, selectorsByColumn: (<visuals.SelectionId>value).getSelectorsByColumn() };
+                    })
+                    .value(),
+                selectors: undefined,
             };
-
-            let data2 = this.getSelectorsByColumn(ids);
-
-            if (!_.isEmpty(data2))
-                selectArgs.data2 = data2;
+            let shouldInsertSelectors = false;
+            if (!_.isEmpty(ids)) {
+                shouldInsertSelectors = (<visuals.SelectionId>ids[0]).getSelector() && !(<visuals.SelectionId>ids[0]).getSelectorsByColumn();
+            }
+            if (shouldInsertSelectors) {
+                selectArgs.selectors = _.chain((<visuals.SelectionId[]>ids))
+                    .filter((value: visuals.SelectionId) => value.hasIdentity())
+                    .map((value: visuals.SelectionId) => value.getSelector())
+                    .value();
+            }
 
             this.hostServices.onSelect(selectArgs);
         }

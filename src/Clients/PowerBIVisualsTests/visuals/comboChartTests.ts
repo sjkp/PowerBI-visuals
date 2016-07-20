@@ -74,100 +74,185 @@ module powerbitests {
             expect(ComboChart.capabilities.sorting.default).toBeDefined();
         });
 
-        it('CustomizeQuery removes series when there are no column values', () => {
-            let dataViewMappings = createCompiledDataViewMapping(false);
+        describe('CustomizeQuery', () => {
+            const WindowCountWithoutSeries: number = 1000;
+            const WindowCountWithSeries: number = 100;
+            const SeriesTopCount: number = 60;
 
-            ComboChart.customizeQuery({
-                dataViewMappings: dataViewMappings
+            let objects: DataViewObjects;
+            let dataViewMappings: CompiledDataViewMapping[];
+
+            beforeEach(() => {
+                objects = {
+                    categoryAxis: {}
+                };
             });
 
-            expect((<powerbi.data.CompiledDataViewGroupedRoleMapping>dataViewMappings[0].categorical.values).group.by.items).toBeUndefined();
-        });
-        
-        it('CustomizeQuery does not remove series when there are column values', () => {
-            let dataViewMappings = createCompiledDataViewMapping(true);
+            it('removes series when there are no column values', () => {
+                dataViewMappings = createCompiledDataViewMappings(false);
+                customizeQuery();
 
-            ComboChart.customizeQuery({
-                dataViewMappings: dataViewMappings
+                expect((<powerbi.data.CompiledDataViewGroupedRoleMapping>dataViewMappings[0].categorical.values).group.by.items).toBeUndefined();
             });
 
-            expect((<powerbi.data.CompiledDataViewGroupedRoleMapping>dataViewMappings[0].categorical.values).group.by.items).toBeDefined();
-        });
-        
-        it('CustomizeQuery scalar type, no scalar axis flag', () => {
-            let objects: DataViewObjects = {
-                categoryAxis: {
-                    axisType: null
+            it('does not remove series when there are column values', () => {
+                dataViewMappings = createCompiledDataViewMappings(true);
+                customizeQuery();
+
+                expect((<powerbi.data.CompiledDataViewGroupedRoleMapping>dataViewMappings[0].categorical.values).group.by.items).toBeDefined();
+            });
+
+            describe('with no scalar axis flag', () => {
+                beforeEach(() => {
+                    objects['categoryAxis'] = {
+                        categoryAxis: {
+                            axisType: null
+                        }
+                    };
+                });
+
+                describe('with scalar type', () => {
+                    beforeEach(() => {
+                        dataViewMappings = createCompiledDataViewMappings(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime), objects);
+                    });
+
+                    it('with series sets the correct dataReductionAlgorithms', () => {
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ sample: {} });
+                        verifyValuesDataReductionAlgorithm({ top: {} });
+                    });
+
+                    it('without series sets the correct dataReductionAlgorithms', () => {
+                        removeSeries();
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ sample: {} });
+                        verifyValuesDataReductionAlgorithm({ top: {} });
+                    });
+                });
+
+                describe('with non-scalar type', () => {
+                    beforeEach(() => {
+                        dataViewMappings = createCompiledDataViewMappings(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text), objects);
+                    });
+
+                    it('with series sets the correct dataReductionAlgorithms', () => {
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ window: { count: WindowCountWithSeries } });
+                        verifyValuesDataReductionAlgorithm({ top: { count: SeriesTopCount } });
+                    });
+
+                    it('without series sets the correct dataReductionAlgorithms', () => {
+                        removeSeries();
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ window: { count: WindowCountWithoutSeries } });
+                        verifyValuesDataReductionAlgorithm({ top: { count: SeriesTopCount } });
+                    });
+                });
+            });
+
+            describe('with scalar axis flag', () => {
+                beforeEach(() => {
+                    objects['categoryAxis'] = {
+                        categoryAxis: {
+                            axisType: 'Scalar',
+                        }
+                    };
+                });
+
+                describe('with scalar type', () => {
+                    beforeEach(() => {
+                        dataViewMappings = createCompiledDataViewMappings(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime), objects);
+                    });
+
+                    it('with series sets the correct dataReductionAlgorithms', () => {
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ sample: {} });
+                        verifyValuesDataReductionAlgorithm({ top: {} });
+                    });
+
+                    it('without series sets the correct dataReductionAlgorithms', () => {
+                        removeSeries();
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ sample: {} });
+                        verifyValuesDataReductionAlgorithm({ top: {} });
+                    });
+                });
+
+                describe('with non-scalar type', () => {
+                    beforeEach(() => {
+                        dataViewMappings = createCompiledDataViewMappings(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text), objects);
+                    });
+
+                    it('with series sets the correct dataReductionAlgorithms', () => {
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ window: { count: WindowCountWithSeries } });
+                        verifyValuesDataReductionAlgorithm({ top: { count: SeriesTopCount } });
+                    });
+
+                    it('without series sets the correct dataReductionAlgorithms', () => {
+                        removeSeries();
+                        customizeQuery();
+                        verifyCategoriesDataReductionAlgorithm({ window: { count: WindowCountWithoutSeries } });
+                        verifyValuesDataReductionAlgorithm({ top: { count: SeriesTopCount } });
+                    });
+                });
+            });
+
+            it('sets the correct DataVolume', () => {
+                dataViewMappings = createCompiledDataViewMappings(true);
+                customizeQuery();
+                for (let dataViewMapping of dataViewMappings) {
+                    expect(dataViewMapping.categorical.dataVolume).toEqual(4);
+                };
+            });
+
+            function customizeQuery(): void {
+                ComboChart.customizeQuery({
+                    dataViewMappings: dataViewMappings
+                });
+            }
+
+            function removeSeries(): void {
+                if (_.isEmpty(dataViewMappings)) {
+                    return;
                 }
-            };
-            let dataViewMappings = createCompiledDataViewMapping(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime), objects);
 
-            ComboChart.customizeQuery({
-                dataViewMappings: dataViewMappings
-            });
+                for (let dataViewMapping of dataViewMappings) {
+                    let categorical = dataViewMapping.categorical;
 
-            expect(dataViewMappings[0].categorical.categories.dataReductionAlgorithm).toEqual({ sample: {} });
-            expect(dataViewMappings[1].categorical.categories.dataReductionAlgorithm).toEqual({ sample: {} });
-        });
+                    if (!categorical) {
+                        return;
+                    }
 
-        it('CustomizeQuery non-scalar type, scalar axis flag', () => {
-            let objects: DataViewObjects = {
-                categoryAxis: {
-                    axisType: 'Scalar',
+                    let values = <powerbi.data.CompiledDataViewGroupedRoleMapping>dataViewMapping.categorical.values;
+
+                    if (values && values.group && values.group.by) {
+                        values.group.by.items = undefined;
+                    }
                 }
-            };
-            let dataViewMappings = createCompiledDataViewMapping(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text), objects);
+            }
 
-            ComboChart.customizeQuery({
-                dataViewMappings: dataViewMappings
-            });
+            function verifyCategoriesDataReductionAlgorithm(dataReductionAlgorithm: powerbi.ReductionAlgorithm): void {
+                expect(dataViewMappings).not.toBeEmpty();
+                for (let dataViewMapping of dataViewMappings) {
+                    let actualDataReductionAlgorithm = dataViewMapping.categorical.categories.dataReductionAlgorithm;
+                    expect(actualDataReductionAlgorithm).toEqual(dataReductionAlgorithm);
+                };
+            }
 
-            expect(dataViewMappings[0].categorical.categories.dataReductionAlgorithm).toEqual({ top: {} });
-            // TODO: why isn't the top sampling set on the lineMapping?
-            //expect(dataViewMappings[1].categorical.categories.dataReductionAlgorithm).toEqual({ top: {} });
-        });
+            function verifyValuesDataReductionAlgorithm(groupDataReductionAlgorithm: powerbi.ReductionAlgorithm): void {
+                expect(dataViewMappings).not.toBeEmpty();
+                for (let dataViewMapping of dataViewMappings) {
+                    let actualValues = <powerbi.data.CompiledDataViewGroupedRoleMapping>dataViewMapping.categorical.values;
 
-        it('CustomizeQuery scalar type, scalar axis flag', () => {
-            let objects: DataViewObjects = {
-                categoryAxis: {
-                    axisType: 'Scalar',
-                }
-            };
-            let dataViewMappings = createCompiledDataViewMapping(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime), objects);
+                    if (!actualValues.group) {
+                        return;
+                    }
 
-            ComboChart.customizeQuery({
-                dataViewMappings: dataViewMappings
-            });
-
-            expect(dataViewMappings[0].categorical.categories.dataReductionAlgorithm).toEqual({ sample: {} });
-            expect(dataViewMappings[1].categorical.categories.dataReductionAlgorithm).toEqual({ sample: {} });
-        });
-
-        it('CustomizeQuery non-scalar type, no scalar axis flag', () => {
-            let objects: DataViewObjects = {
-                categoryAxis: {
-                    axisType: null,
-                }
-            };
-            let dataViewMappings = createCompiledDataViewMapping(true, ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text), objects);
-
-            ComboChart.customizeQuery({
-                dataViewMappings: dataViewMappings
-            });
-
-            expect(dataViewMappings[0].categorical.categories.dataReductionAlgorithm).toEqual({ top: {} });
-            //expect(dataViewMappings[1].categorical.categories.dataReductionAlgorithm).toEqual({ top: {} });
-        });
-        
-        it('CustomizeQuery DataVolume', () => {
-            let dataViewMappings = createCompiledDataViewMapping(true);
-
-            ComboChart.customizeQuery({
-                dataViewMappings: dataViewMappings
-            });
-
-            expect(dataViewMappings[0].categorical.dataVolume).toEqual(4);
-            expect(dataViewMappings[1].categorical.dataVolume).toEqual(4);
+                    let actualDataReductionAlgorithm = actualValues.group.dataReductionAlgorithm;
+                    expect(actualDataReductionAlgorithm).toEqual(groupDataReductionAlgorithm);
+                };
+            }
         });
 
         it('Sortable roles with categorical axis', () => {
@@ -176,7 +261,7 @@ module powerbitests {
                     axisType: 'Categorical',
                 }
             };
-            let dataViewMappings = createCompiledDataViewMapping(true);
+            let dataViewMappings = createCompiledDataViewMappings(true);
             expect(dataViewMappings.length).toBe(2);
             dataViewMappings[0].metadata.objects = objects;
 
@@ -191,7 +276,7 @@ module powerbitests {
                     axisType: 'Scalar',
                 }
             };
-            let dataViewMappings = createCompiledDataViewMapping(true, ValueType.fromDescriptor({dateTime: true}), objects);
+            let dataViewMappings = createCompiledDataViewMappings(true, ValueType.fromDescriptor({dateTime: true}), objects);
             expect(dataViewMappings.length).toBe(2);
 
             expect(ComboChart.getSortableRoles({
@@ -199,7 +284,7 @@ module powerbitests {
             })).toBeNull();
         });
 
-        function createCompiledDataViewMapping(includeColumnValues: boolean, categoryType?: ValueType, objects?: DataViewObjects): CompiledDataViewMapping[] {
+        function createCompiledDataViewMappings(includeColumnValues: boolean, categoryType?: ValueType, objects?: DataViewObjects): CompiledDataViewMapping[] {
             let categoryItems: powerbi.data.CompiledDataViewRoleItem[] = [{ queryName: 'c1', type: ValueType.fromDescriptor({text: true}) }];
             if (categoryType)
                 categoryItems[0].type = categoryType;
@@ -212,7 +297,7 @@ module powerbitests {
                         for: {
                             in: { role: 'Category', items: categoryItems }
                         },
-                        dataReductionAlgorithm: { top: {} },
+                        dataReductionAlgorithm: { window: { count: 100 } },
                     },
                     values: {
                         group: {
@@ -220,6 +305,7 @@ module powerbitests {
                             select: [
                                 { for: { in: { role: 'Y', items: [{ queryName: 'y1' }] } } },
                             ],
+                            dataReductionAlgorithm: { top: { count: 60 } }
                         }
                     }
                 }
@@ -231,6 +317,7 @@ module powerbitests {
                         for: {
                             in: { role: 'Category', items: categoryItems }
                         },
+                        dataReductionAlgorithm: { window: { count: 100 } },
                     },
                     values: {
                         select: [
@@ -571,7 +658,7 @@ module powerbitests {
             visualBuilder.onDataChanged({
                 dataViews: [
                     dataViewFactory.buildDataViewDefault(true),
-                    dataViewFactory.buildDataViewInAnotherDomain(true, true)
+                    dataViewFactory.buildDataViewInAnotherDomain(true, true, true)
                 ]
             });
 
@@ -622,7 +709,7 @@ module powerbitests {
             visualBuilder.onDataChanged({
                 dataViews: [
                     dataViewFactory.buildDataViewDefault(true),
-                    dataViewFactory.buildDataViewInAnotherDomain(true, true)
+                    dataViewFactory.buildDataViewInAnotherDomain(true, true, true)
                 ]
             });
 
@@ -730,7 +817,7 @@ module powerbitests {
 
         it("Ensure all data points has the default color", (done) => {
             let dataView1 = dataViewFactory.buildDataViewDefault(true);
-            let dataView2 = dataViewFactory.buildDataViewInAnotherDomain(true, true);
+            let dataView2 = dataViewFactory.buildDataViewInAnotherDomain(true, true, true);
 
             dataView1.metadata.objects = {
                 dataPoint: {
@@ -2132,7 +2219,8 @@ module powerbitests {
             else {
                 dataViewBuilder.columns = columns;
             }
-            dataViewBuilder.categoriesColumns = [columns[0], columns[1], columns[3]];
+            let columnsToUse = useY2 ? columnsY2 : columns;
+            dataViewBuilder.categoriesColumns = [columnsToUse[0], columnsToUse[1], columnsToUse[3]];
 
             dataViewBuilder.values = values;
 

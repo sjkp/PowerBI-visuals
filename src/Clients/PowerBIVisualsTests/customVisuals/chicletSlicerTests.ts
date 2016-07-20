@@ -49,6 +49,22 @@ module powerbitests.customVisuals {
             it("registered capabilities", () => expect(VisualClass.capabilities).toBeDefined());
         });
 
+        describe("getValidImageSplit", () => {
+            it("should return a min value when argument less than the min value", () => {
+                expect(VisualClass.getValidImageSplit(-9999)).toBe(VisualClass.MinImageSplit);
+            });
+
+            it("should return a max value when argument more than the max value", () => {
+                expect(VisualClass.getValidImageSplit(9999)).toBe(VisualClass.MaxImageSplit);
+            });
+
+            it("should return a input value when a input value between the min value and the max value", () => {
+                let inputValue: number = 50;
+
+                expect(VisualClass.getValidImageSplit(inputValue)).toBe(inputValue);
+            });
+        });
+
         describe("DOM tests", () => {
             it("main element created", () => expect(visualBuilder.mainElement[0]).toBeInDOM());
 

@@ -1050,15 +1050,14 @@ module powerbitests {
 
                 expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: {
-                                    "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                objectName: 'dataPoint',
+                                selectorsByColumn:
+                                {
+                                    dataMap: {
+                                        "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                    }
                                 }
                             }
                         ]
@@ -1110,15 +1109,14 @@ module powerbitests {
 
                 expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: {
-                                    "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                objectName: 'dataPoint',
+                                selectorsByColumn:
+                                {
+                                    dataMap: {
+                                        "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                    }
                                 }
                             }
                         ]
@@ -1140,15 +1138,14 @@ module powerbitests {
                 expect(bars[1].style.fillOpacity).toBe(DimmedOpacity);
                 expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]],
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: {
-                                    "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                objectName: 'dataPoint',
+                                selectorsByColumn:
+                                {
+                                    dataMap: {
+                                        "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                    }
                                 }
                             }
                         ]
@@ -1160,15 +1157,14 @@ module powerbitests {
                 expect(bars[1].style.fillOpacity).toBe(DefaultOpacity);
                 expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]],
-                            },
-                        ],
-                        data2: [
-                            {
-                                dataMap: {
-                                    "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                objectName: 'dataPoint',
+                                selectorsByColumn:
+                                {
+                                    dataMap: {
+                                        "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                    }
                                 }
                             }
                         ]
@@ -1193,15 +1189,14 @@ module powerbitests {
 
                 expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: {
-                                    "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                objectName: 'dataPoint',
+                                selectorsByColumn:
+                                {
+                                    dataMap: {
+                                        "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                    }
                                 }
                             }
                         ]
@@ -1230,15 +1225,14 @@ module powerbitests {
                 expect(bars[1].style.fillOpacity).toBe(DimmedOpacity);
                 expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]]
-                            }
-                        ],
-                        data2: [
-                            {
-                                dataMap: {
-                                    "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                objectName: 'dataPoint',
+                                selectorsByColumn:
+                                {
+                                    dataMap: {
+                                        "select0": interactiveDataViewOptions.dataViews[0].categorical.categories[0].identity[0]
+                                    }
                                 }
                             }
                         ]
@@ -1251,7 +1245,7 @@ module powerbitests {
                 expect(bars[1].style.fillOpacity).toBe(DefaultOpacity);
                 expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                     {
-                        data: []
+                        visualObjects: []
                     });
 
                 done();

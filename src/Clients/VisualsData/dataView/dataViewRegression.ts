@@ -27,18 +27,19 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.data {
+    import DataViewMapping = powerbi.DataViewMapping;
     import RoleKindByQueryRef = DataViewAnalysis.RoleKindByQueryRef;
 
     export interface DataViewRegressionRunOptions {
-        dataViewMappings: DataViewMapping[];
         visualDataViews: DataView[];
         dataRoles: VisualDataRole[];
         objectDescriptors: DataViewObjectDescriptors;
         objectDefinitions: DataViewObjectDefinitions;
         colorAllocatorFactory: IColorAllocatorFactory;
         transformSelects: DataViewSelectTransform[];
-        metadata: DataViewMetadata;
-        projectionActiveItems: DataViewProjectionActiveItems;
+        applicableDataViewMappings: DataViewMapping[];
+        roleKindByQueryRef: RoleKindByQueryRef;
+        queryProjectionsByRole: QueryProjectionsByRole;
     }
 
     export module DataViewRegression {
@@ -51,42 +52,36 @@ module powerbi.data {
         export function run(options: DataViewRegressionRunOptions): DataView[] {
             debug.assertValue(options, 'options');
 
-            let dataViewMappings: DataViewMapping[] = options.dataViewMappings;
             let visualDataViews: DataView[] = options.visualDataViews;
             let dataRoles: VisualDataRole[] = options.dataRoles;
             let objectDescriptors: DataViewObjectDescriptors = options.objectDescriptors;
             let objectDefinitions: DataViewObjectDefinitions = options.objectDefinitions;
             let colorAllocatorFactory: IColorAllocatorFactory = options.colorAllocatorFactory;
             let transformSelects: DataViewSelectTransform[] = options.transformSelects;
-            let projectionActiveItems = options.projectionActiveItems;
-            let metadata: DataViewMetadata = options.metadata;
+            let applicableDataViewMappings = options.applicableDataViewMappings;
+            let roleKindByQueryRef = options.roleKindByQueryRef;
+            let queryProjectionsByRole = options.queryProjectionsByRole;
 
-            if (!_.isEmpty(visualDataViews) && transformSelects && metadata) {
+            if (!_.isEmpty(visualDataViews) && transformSelects) {
                 // compute linear regression line if applicable
-                let roleKindByQueryRef: RoleKindByQueryRef = DataViewSelectTransform.createRoleKindFromMetadata(transformSelects, metadata);
-                let projections: QueryProjectionsByRole = DataViewSelectTransform.projectionsFromSelects(transformSelects, projectionActiveItems);
-                if (!roleKindByQueryRef || !projections || _.isEmpty(dataViewMappings) || !objectDescriptors || !objectDefinitions)
+                if (!roleKindByQueryRef || !queryProjectionsByRole || _.isEmpty(applicableDataViewMappings) || !objectDescriptors || !objectDefinitions)
                     return visualDataViews;
 
-                let applicableDataViewMappings: DataViewMapping[] = DataViewAnalysis.chooseDataViewMappings(projections, dataViewMappings, roleKindByQueryRef, objectDescriptors, objectDefinitions).supportedMappings;
+                let regressionDataViewMapping: DataViewMapping = _.find(applicableDataViewMappings, (dataViewMapping) => {
+                    return !!DataViewMapping.getRegressionUsage(dataViewMapping);
+                });
 
-                if (applicableDataViewMappings) {
-                    let regressionDataViewMapping: DataViewMapping = _.find(applicableDataViewMappings, (dataViewMapping) => {
-                        return dataViewMapping.usage && dataViewMapping.usage.regression;
-                    });
+                if (regressionDataViewMapping) {
+                    let regressionDataViews: DataView[] = [];
+                    for (let visualDataView of visualDataViews) {
+                        let regressionDataView: DataView = this.linearRegressionTransform(visualDataView, dataRoles, regressionDataViewMapping, objectDescriptors, objectDefinitions, colorAllocatorFactory);
 
-                    if (regressionDataViewMapping) {
-                        let regressionDataViews: DataView[] = [];
-                        for (let visualDataView of visualDataViews) {
-                            let regressionDataView: DataView = this.linearRegressionTransform(visualDataView, dataRoles, regressionDataViewMapping, objectDescriptors, objectDefinitions, colorAllocatorFactory);
-
-                            if (regressionDataView)
-                                regressionDataViews.push(regressionDataView);
-                        }
-
-                        if (!_.isEmpty(regressionDataViews))
-                            visualDataViews.push(...regressionDataViews);
+                        if (regressionDataView)
+                            regressionDataViews.push(regressionDataView);
                     }
+
+                    if (!_.isEmpty(regressionDataViews))
+                        visualDataViews.push(...regressionDataViews);
                 }
             }
 
@@ -132,9 +127,8 @@ module powerbi.data {
             let yColumnSource = yColumns[0].source;
 
             let combineSeries = true;
-            if (regressionDataViewMapping.usage && regressionDataViewMapping.usage.regression && sourceDataView.metadata.objects) {
-                let regressionUsage = regressionDataViewMapping.usage.regression;
-
+            let regressionUsage = DataViewMapping.getRegressionUsage(regressionDataViewMapping);
+            if (regressionUsage && sourceDataView.metadata.objects) {
                 let combineSeriesPropertyId = regressionUsage['combineSeries'];
                 if (combineSeriesPropertyId) {
                     combineSeries = DataViewObjects.getValue<boolean>(sourceDataView.metadata.objects, combineSeriesPropertyId, true);

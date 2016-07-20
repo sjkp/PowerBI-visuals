@@ -222,13 +222,13 @@ module powerbi.visuals {
             categorical: {
                 categories: {
                     for: { in: 'Category' },
-                    dataReductionAlgorithm: { top: {} }
+                    dataReductionAlgorithm: { window: { count: 100 } }
                 },
                 values: {
                     group: {
                         by: 'Series',
                         select: [{ for: { in: 'Y' } }],
-                        dataReductionAlgorithm: { top: {} }
+                        dataReductionAlgorithm: { top: { count: 60 } }
                     }
                 },
             },

@@ -1726,7 +1726,7 @@ module powerbi.data {
 
             let columnRefExpr = SQExprColumnRefInfoVisitor.getColumnRefSQExpr(this.schema, aggregateExpr.arg);
             if (columnRefExpr) {
-                if (!this.aggrUtils.isSupportedAggregate(expr, this.schema, expr.func, /*targetTypes*/null))
+                if (!this.aggrUtils.isSupportedAggregate(expr, this.schema, expr.func, /*targetTypes*/null, /*forConsumption*/true))
                     this.register(SQExprValidationError.invalidAggregateFunction);
             }
 

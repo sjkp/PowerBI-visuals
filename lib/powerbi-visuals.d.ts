@@ -1507,6 +1507,8 @@ declare module powerbi.visuals {
         areas: D3.Selection;
         isPartOfCombo?: boolean;
         tooltipOverlay: D3.Selection;
+        getCategoryIndex(seriesData: LineChartSeries, pointX: number): number;
+        categoryIdentities?: SelectionId[];
     }
     class LineChartWebBehavior implements IInteractiveBehavior {
         private lines;
@@ -1515,6 +1517,7 @@ declare module powerbi.visuals {
         private tooltipOverlay;
         bindEvents(options: LineChartBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
+        private getPointX(rootNode);
     }
 }
 
@@ -1643,7 +1646,6 @@ declare module powerbi.visuals {
     interface VerticalSlicerBehaviorOptions extends SlicerBehaviorOptions {
         itemContainers: D3.Selection;
         itemInputs: D3.Selection;
-        searchInput: D3.Selection;
     }
     class VerticalSlicerWebBehavior implements IInteractiveBehavior {
         private itemLabels;
@@ -1669,13 +1671,14 @@ declare module powerbi.visuals {
         interactivityService: IInteractivityService;
         settings: SlicerSettings;
         slicerValueHandler: SlicerValueHandler;
+        searchInput: D3.Selection;
     }
     class SlicerWebBehavior implements IInteractiveBehavior {
         private behavior;
         private static searchInputTimeoutDuration;
         bindEvents(options: SlicerOrientationBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
-        static bindSlicerEvents(slicerContainer: D3.Selection, slicers: D3.Selection, slicerClear: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService, slicerValueHandler: SlicerValueHandler, slicerSearch?: D3.Selection): void;
+        static bindSlicerEvents(behaviorOptions: SlicerBehaviorOptions, slicers: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService): void;
         static setSelectionOnSlicerItems(selectableItems: D3.Selection, itemLabel: D3.Selection, hasSelection: boolean, interactivityService: IInteractivityService, slicerSettings: SlicerSettings): void;
         static styleSlicerItems(slicerItems: D3.Selection, hasSelection: boolean, isSelectionInverted: boolean): void;
         private static bindSlicerItemSelectionEvent(slicers, selectionHandler, slicerSettings, interactivityService);
@@ -2562,6 +2565,7 @@ declare module powerbi.visuals.utility {
     class SelectionManager {
         private selectedIds;
         private hostServices;
+        private dataPointObjectName;
         constructor(options: SelectionManagerOptions);
         select(selectionId: SelectionId, multiSelect?: boolean): JQueryDeferred<SelectionId[]>;
         showContextMenu(selectionId: SelectionId, position?: Point): JQueryDeferred<{}>;
@@ -2776,6 +2780,7 @@ declare module powerbi.visuals {
         }
         function getContainsFilter(expr: SQExpr, containsText: string): SemanticFilter;
         function tryRemoveValueFromRetainedList(value: DataViewScopeIdentity, selectedScopeIds: DataViewScopeIdentity[], caseInsensitive?: boolean): boolean;
+        function getUpdatedSelfFilter(searchKey: string, metaData: DataViewMetadata): data.SemanticFilter;
         /** Helper class for creating and measuring slicer DOM elements  */
         class DOMHelper {
             private static SearchInputHeight;
@@ -3757,6 +3762,7 @@ declare module powerbi.visuals {
         getLocalizedString(stringId: string): string;
         onDragStart(): void;
         canSelect(): boolean;
+        onSelecting(args: SelectingEventArgs): void;
         onSelect(): void;
         onContextMenu(): void;
         loadMoreData(): void;
@@ -3783,7 +3789,14 @@ declare module powerbi.visuals {
     import SemanticFilter = powerbi.data.SemanticFilter;
     interface SelectableDataPoint {
         selected: boolean;
+        /** Identity for identifying the selectable data point for selection purposes */
         identity: SelectionId;
+        /**
+         * A specific identity for when data points exist at a finer granularity than
+         * selection is performed.  For example, if your data points should select based
+         * only on series even if they exist as category/series intersections.
+         */
+        specificIdentity?: SelectionId;
     }
     /**
      * Factory method to create an IInteractivityService instance.
@@ -3831,7 +3844,11 @@ declare module powerbi.visuals {
         isDefaultValueEnabled(): boolean;
     }
     interface ISelectionHandler {
-        /** Handles a selection event by selecting the given data point */
+        /**
+         * Handles a selection event by selecting the given data point.  If the data point's
+         * identity is undefined, the selection state is cleared. In this case, if specificIdentity
+         * exists, it will still be sent to the host.
+         */
         handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void;
         /** Handles a request for a context menu. */
         handleContextMenu(dataPoint: SelectableDataPoint, position: IPoint): void;
@@ -3858,6 +3875,7 @@ declare module powerbi.visuals {
         selectableDataPoints: SelectableDataPoint[];
         selectableLegendDataPoints: SelectableDataPoint[];
         selectableLabelsDataPoints: SelectableDataPoint[];
+        private dataPointObjectName;
         constructor(hostServices: IVisualHostServices);
         /** Binds the vsiual to the interactivityService */
         bind(dataPoints: SelectableDataPoint[], behavior: IInteractiveBehavior, behaviorOptions: any, options?: InteractivityServiceOptions): void;
@@ -3891,6 +3909,7 @@ declare module powerbi.visuals {
         private static createChangeForFilterProperty(filterPropertyIdentifier, filter);
         private sendContextMenuToHost(dataPoint, position);
         private sendSelectionToHost();
+        private createSelectEventArgs(selectedIds);
         private getSelectorsByColumn(selectionIds);
         private takeSelectionStateFromDataPoints(dataPoints);
         /**
@@ -6524,7 +6543,6 @@ declare module powerbi.visuals {
         isLabelInteractivityEnabled?: boolean;
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
-        cartesianLoadMoreEnabled?: boolean;
         trimOrdinalDataOnOverflow?: boolean;
         advancedLineLabelsEnabled?: boolean;
     }
@@ -6552,7 +6570,6 @@ declare module powerbi.visuals {
         isLabelInteractivityEnabled?: boolean;
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
-        cartesianLoadMoreEnabled?: boolean;
         advancedLineLabelsEnabled?: boolean;
     }
     interface CartesianVisualRenderResult {
@@ -6680,7 +6697,6 @@ declare module powerbi.visuals {
         private isLabelInteractivityEnabled;
         private tooltipsEnabled;
         private tooltipBucketEnabled;
-        private cartesianLoadMoreEnabled;
         private trimOrdinalDataOnOverflow;
         private isMobileChart;
         private advancedLineLabelsEnabled;
@@ -6762,9 +6778,9 @@ declare module powerbi.visuals {
         static getCategoryThickness(seriesList: CartesianSeries[], numCategories: number, plotLength: number, domain: number[], isScalar: boolean, trimOrdinalDataOnOverflow: boolean): number;
         private static getMinInterval(seriesList);
         /**
-         * Makes the necessary changes to the mapping if load more data is enabled for cartesian charts. Usually called during `customizeQuery`.
+         * Expands the category data reduction algorithm window if there are no series in any of the data view mappings.
          */
-        static applyLoadMoreEnabledToMapping(cartesianLoadMoreEnabled: boolean, mapping: powerbi.data.CompiledDataViewMapping): void;
+        static expandCategoryWindow(mappings: powerbi.data.CompiledDataViewMapping[]): void;
     }
     const enum AxisLocation {
         X = 0,
@@ -7701,7 +7717,6 @@ declare module powerbi.visuals {
         private static MinDistanceFromBottom;
         private static MinWidthForTargetLabel;
         private static DefaultTopBottomMargin;
-        private static DefaultLeftRightMargin;
         private static ReducedLeftRightMargin;
         private static DEFAULT_MAX;
         private static DEFAULT_MIN;
@@ -7746,6 +7761,7 @@ declare module powerbi.visuals {
         private tooltipsEnabled;
         private tooltipBucketEnabled;
         private hostService;
+        private labels;
         private dataView;
         animator: IGenericAnimator;
         constructor(options?: GaugeConstructorOptions);
@@ -7783,7 +7799,7 @@ declare module powerbi.visuals {
         /** Note: public for testability */
         drawViewPort(drawOptions: GaugeVisualProperties): void;
         getValueAngle(): number;
-        private createTicks();
+        private createLabels();
         private updateInternal(suppressAnimations);
         private updateVisualStyles();
         private updateVisualConfigurations();
@@ -7792,7 +7808,7 @@ declare module powerbi.visuals {
         private getFormatter(dataLabelSettings, metadataColumn, maxValue?);
         private renderTarget(radius, height, width, margin);
         private arcTween(transition, arr);
-        private showMinMaxLabelsOnBottom();
+        private getLabelsPosition();
         private setMargins();
         private showSideNumbersLabelText();
     }
@@ -7940,6 +7956,7 @@ declare module powerbi.visuals {
         categoryData?: LineChartCategoriesData[];
         seriesDisplayName?: string;
         hasValues?: boolean;
+        categoryIdentities?: SelectionId[];
     }
     interface LineChartSeries extends CartesianSeries, SelectableDataPoint {
         displayName: string;
@@ -7961,6 +7978,7 @@ declare module powerbi.visuals {
         pointColor?: string;
         stackedValue?: number;
         extraTooltipInfo?: TooltipDataItem[];
+        specificIdentity: SelectionId;
     }
     interface HoverLineDataPoint {
         color: string;
@@ -8077,6 +8095,7 @@ declare module powerbi.visuals {
          * Note: Public for tests.
          */
         getCategoryIndexFromTooltipEvent(tooltipEvent: TooltipEvent, pointX: number): number;
+        getCategoryIndexFromSeriesAndPointX(seriesData: LineChartSeries, pointX: number): number;
         getVisualCategoryAxisIsScalar(): boolean;
         getSupportedCategoryAxisType(): string;
         getPreferredPlotArea(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport;
@@ -8960,6 +8979,7 @@ declare module powerbi.visuals {
 }
 
 declare module powerbi.visuals {
+    import SQExpr = powerbi.data.SQExpr;
     class HorizontalSlicerRenderer implements ISlicerRenderer, SlicerValueHandler {
         private element;
         private currentViewport;
@@ -8984,7 +9004,7 @@ declare module powerbi.visuals {
         private domHelper;
         constructor(options?: SlicerConstructorOptions);
         getDefaultValue(): data.SQConstantExpr;
-        getIdentityFields(): data.SQExpr[];
+        getIdentityFields(): SQExpr[];
         getUpdatedSelfFilter(searchKey: string): data.SemanticFilter;
         init(slicerInitOptions: SlicerInitOptions): IInteractivityService;
         render(options: SlicerRenderOptions): void;
@@ -9270,6 +9290,9 @@ declare module powerbi.visuals {
         hasRowGroups(): boolean;
         private sortIconsEnabled();
     }
+    interface TableConstructorOptions {
+        isTouchEnabled?: boolean;
+    }
     class Table implements IVisual {
         private static preferredLoadMoreThreshold;
         private element;
@@ -9277,6 +9300,7 @@ declare module powerbi.visuals {
         private style;
         private formatter;
         private isInteractive;
+        private isTouchEnabled;
         private getLocalizedString;
         private hostServices;
         private tablixControl;
@@ -9290,7 +9314,7 @@ declare module powerbi.visuals {
         * Flag indicating that we are persisting objects, so that next onDataChanged can be safely ignored.
         */
         persistingObjects: boolean;
-        constructor();
+        constructor(options?: TableConstructorOptions);
         static customizeQuery(options: CustomizeQueryOptions): void;
         static getSortableRoles(): string[];
         init(options: VisualInitOptions): void;
@@ -9481,6 +9505,9 @@ declare module powerbi.visuals {
          */
         private getSortableHeaderColumnMetadata(item);
     }
+    interface MatrixConstructorOptions {
+        isTouchEnabled?: boolean;
+    }
     class Matrix implements IVisual {
         private static preferredLoadMoreThreshold;
         /**
@@ -9493,6 +9520,7 @@ declare module powerbi.visuals {
         private dataView;
         private formatter;
         private isInteractive;
+        private isTouchEnabled;
         private hostServices;
         private hierarchyNavigator;
         private waitingForData;
@@ -9504,7 +9532,7 @@ declare module powerbi.visuals {
         * Flag indicating that we are persisting objects, so that next onDataChanged can be safely ignored.
         */
         persistingObjects: boolean;
-        constructor();
+        constructor(options?: MatrixConstructorOptions);
         static customizeQuery(options: CustomizeQueryOptions): void;
         static getSortableRoles(): string[];
         init(options: VisualInitOptions): void;
@@ -10204,19 +10232,21 @@ declare module powerbi.visuals {
     class ScriptVisual implements IVisual {
         private element;
         private imageBackgroundElement;
+        private imageElement;
         private hostServices;
         private canRefresh;
         constructor(options: ScriptVisualOptions);
         init(options: VisualInitOptions): void;
         update(options: VisualUpdateOptions): void;
-        onResizing(finalViewport: IViewport): void;
-        private getImageUrl(dataView);
+        onResizing(finalViewport: IViewport, resizeMode?: ResizeMode): void;
         private ensureHtmlElement();
+        private ensureImageElement();
     }
 }
 
 declare module powerbi.visuals.system {
     class DebugVisual implements IVisual {
+        static defaultCapabilities: VisualCapabilities;
         static capabilities: VisualCapabilities;
         private static autoReloadPollTime;
         private static errorMessageTemplate;
@@ -10253,7 +10283,7 @@ declare module powerbi.visuals.system {
         private createSmilyBtn();
         private buildControls();
         private buildErrorMessage(options);
-        private setCapabilities(capabilities);
+        private setCapabilities(capabilities?);
         init(options: VisualInitOptions): void;
         update(options: VisualUpdateOptions): void;
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
@@ -10340,7 +10370,7 @@ declare module powerbi.visuals {
 }
 
 declare module powerbi.visuals {
-    const tableStylePresets: VisualStylePresets;
+    function tableStylePresets(): VisualStylePresets;
 }
 
 
@@ -12255,6 +12285,18 @@ declare module powerbi {
         Success = 0,
         Failure = 1,
     }
+    /**
+     * Defines actions to be taken by the visual in response to a selection.
+     *
+     * An undefined/null VisualInteractivityAction should be treated as Selection,
+     * as that is the default action.
+     */
+    const enum VisualInteractivityAction {
+        /** Normal selection behavior which should call onSelect */
+        Selection = 0,
+        /** No additional action or feedback from the visual is needed */
+        None = 1,
+    }
 }
 /*
  *  Power BI Visualizations
@@ -13512,8 +13554,7 @@ declare module powerbi {
     export type NumberRange = ValueRange<number>;
 
     /** Defines the PrimitiveValue range. */
-    export interface PrimitiveValueRange extends ValueRange<PrimitiveValue> {
-    }
+    export type PrimitiveValueRange = ValueRange<PrimitiveValue>;
 
     export interface DataViewMappingScriptDefinition {
         source: DataViewObjectPropertyIdentifier;
@@ -14516,6 +14557,7 @@ declare module powerbi {
     export interface TemporalTypeDescriptor {
         year?: boolean;
         month?: boolean;
+        paddedDateTableDate?: boolean;
     }
 
     export interface GeographyTypeDescriptor {
@@ -14762,11 +14804,6 @@ declare module powerbi {
          * Visual should prefer to request a higher volume of data.
          */
         preferHigherDataVolume?: boolean;
-        
-        /**
-         * Whether the load more data feature (paging of data) for Cartesian charts should be enabled.
-         */
-        cartesianLoadMoreEnabled?: boolean;
     }
 
     /** Parameters available to a sortable visual candidate */
@@ -15028,11 +15065,23 @@ declare module powerbi {
         /** User-defined repetition selection. */
         id?: string;
     }
-
-    // TODO: Consolidate these two into one object and add a method to transform SelectorsByColumn[] into Selector[] for components that need that structure
+    
+    export interface SelectingEventArgs {
+        visualObjects: VisualObject[];
+        action?: VisualInteractivityAction;
+    }
+    
     export interface SelectEventArgs {
-        data: Selector[];
-        data2?: SelectorsByColumn[];
+        visualObjects: VisualObject[];
+        selectors?: Selector[]; // An array of selectors used in place of visualObjects for certain backwards compatibility cases
+    }
+
+    export interface VisualObject {
+        /** The name of the object (as defined in object descriptors). */
+        objectName: string;
+
+        /** Data-bound repitition selection */
+        selectorsByColumn: SelectorsByColumn;
     }
 
     export interface ContextMenuArgs {
@@ -15090,17 +15139,17 @@ declare module powerbi {
         /** Gets a value indicating whether the given selection is valid. */
         canSelect(args: SelectEventArgs): boolean;
 
-        /** Notifies of a data point being selected. */
-        onSelect(args: SelectEventArgs): void;  // TODO: Revisit onSelect vs. onSelectObject.
+        /** Notifies of the execution of a select event. */
+        onSelecting(args: SelectingEventArgs): void;
+
+        /** Notifies of the selection state changing. */
+        onSelect(args: SelectEventArgs): void;
 
         /** Notifies of a request for a context menu. */
         onContextMenu(args: ContextMenuArgs): void;
 
         /** Check if selection is sticky or otherwise. */
         shouldRetainSelection(): boolean;
-
-        /** Notifies of a visual object being selected. */
-        onSelectObject?(args: SelectObjectEventArgs): void;  // TODO: make this mandatory, not optional.
 
         /** Notifies that properties of the IVisual have changed. */
         persistProperties(changes: VisualObjectInstance[]): void;
@@ -15843,6 +15892,8 @@ declare module powerbi.extensibility {
 
 
 
+
+
 declare module powerbi.data {
     /** Allows generic traversal and type discovery for a SQExpr tree. */
     interface ISQExprVisitorWithArg<T, TArg> {
@@ -15982,7 +16033,10 @@ declare module powerbi {
             color?: SQExpr;
         };
     }
-    function createSolidFillDefinition(color: string): FillDefinition;
+    module FillDefinitionHelpers {
+        function createSolidFillDefinition(color: string): FillDefinition;
+        function createSolidFillSQExpr(color: string): SQExpr | StructuralObjectDefinition;
+    }
     module FillSolidColorTypeDescriptor {
         /** Gets a value indicating whether the descriptor is nullable or not. */
         function nullable(descriptor: FillSolidColorTypeDescriptor): boolean;
@@ -16124,6 +16178,7 @@ declare module powerbi {
         constructor(type: ExtendedType);
         year: boolean;
         month: boolean;
+        paddedDateTableDate: boolean;
     }
     class GeographyType implements GeographyTypeDescriptor {
         private underlyingType;
@@ -16195,16 +16250,17 @@ declare module powerbi {
         Duration = 10,
         Binary = 11,
         None = 12,
-        Year = 66048,
-        Year_Text = 66049,
-        Year_Integer = 66308,
-        Year_Date = 66054,
-        Year_DateTime = 66055,
-        Month = 131584,
-        Month_Text = 131585,
-        Month_Integer = 131844,
-        Month_Date = 131590,
-        Month_DateTime = 131591,
+        Years = 66048,
+        Years_Text = 66049,
+        Years_Integer = 66308,
+        Years_Date = 66054,
+        Years_DateTime = 66055,
+        Months = 131584,
+        Months_Text = 131585,
+        Months_Integer = 131844,
+        Months_Date = 131590,
+        Months_DateTime = 131591,
+        PaddedDateTableDates = 197127,
         Address = 6554625,
         City = 6620161,
         Continent = 6685697,
@@ -16379,6 +16435,7 @@ declare module powerbi.data {
         function containsWildcard(selector: Selector): boolean;
         function hasRoleWildcard(selector: Selector): boolean;
         function isRoleWildcard(dataItem: DataRepetitionSelector): dataItem is DataViewRoleWildcard;
+        function convertSelectorsByColumnToSelector(selectorsByColumn: SelectorsByColumn): Selector;
     }
 }
 
@@ -17327,9 +17384,18 @@ declare module powerbi.data {
 
 declare module powerbi.data {
     module DataViewConcatenateCategoricalColumns {
-        function detectAndApply(dataView: DataView, objectDescriptors: DataViewObjectDescriptors, roleMappings: DataViewMapping[], projectionOrdering: DataViewProjectionOrdering, selects: DataViewSelectTransform[], projectionActiveItems: DataViewProjectionActiveItems): DataView;
+        function detectAndApply(dataView: DataView, objectDescriptors: DataViewObjectDescriptors, applicableRoleMappings: DataViewMapping[], projectionOrdering: DataViewProjectionOrdering, projectionActiveItems: DataViewProjectionActiveItems): DataView;
         /** For applying concatenation to the DataViewCategorical that is the data for one of the frames in a play chart. */
         function applyToPlayChartCategorical(metadata: DataViewMetadata, objectDescriptors: DataViewObjectDescriptors, categoryRoleName: string, categorical: DataViewCategorical): DataView;
+    }
+}
+
+declare module powerbi {
+    module DataViewMapping {
+        /**
+         * Returns dataViewMapping.usage.regression if defined.  Else, returns undefined.
+         */
+        function getRegressionUsage(dataViewMapping: DataViewMapping): _.Dictionary<DataViewObjectPropertyIdentifier>;
     }
 }
 
@@ -17437,10 +17503,55 @@ declare module powerbi.data {
     module DataViewObjectDefinitions {
         /** Creates or reuses a DataViewObjectDefinition for matching the given objectName and selector within the defns. */
         function ensure(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): DataViewObjectDefinition;
+        /**
+         * Removes every property defined in targetDefns from sourceDefns if exists.
+         * Properties are matches using ObjectName, Selector, and PropertyName.
+         * @param {DataViewObjectDefinition} targetDefns Defenitions to remove properties from
+         * @param {DataViewObjectDefinition} sourceDefns Defenitions to match properties against
+         */
+        function deleteProperties(targetDefns: DataViewObjectDefinitions, sourceDefns: DataViewObjectDefinitions): void;
+        /**
+         * Fills in missing properties with default ones, mutating the first definitions.
+         * Properties are matched agains defaultDefns using ObjectName, Selector, and PropertyName.
+         * It just fills missing properties, it doesn't overwrite existing ones.
+         * Any property already in targetDefns will not change.
+         * Any property in defaultDefns but not in targetDefns will be added by reference.
+         * @param {DataViewObjectDefinitions} targetDefns Default definitions. Will be mutated. Expected to be defined
+         * @param {DataViewObjectDefinitions} defaultDefns Definitions to fill inside targetDefns
+         */
+        function extend(targetDefns: DataViewObjectDefinitions, defaultDefns: DataViewObjectDefinitions): void;
+        /**
+         * Delete the first matching property from the Defns if it matches objName + selector + propertyName
+         * @param {DataViewObjectDefinitions} defns
+         * @param {string} objectName
+         * @param {Selector} selector
+         * @param {string} propertyName
+         */
         function deleteProperty(defns: DataViewObjectDefinitions, objectName: string, selector: Selector, propertyName: string): void;
+        /**
+         *
+         * @param {DataViewObjectDefinitions} defns
+         * @param {DataViewObjectPropertyIdentifier} propertyId
+         * @param {Selector} selector
+         * @param {DataViewObjectPropertyDefinition} value
+         */
         function setValue(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector, value: DataViewObjectPropertyDefinition): void;
+        /**
+         *
+         * @param {DataViewObjectDefinitions} defns
+         * @param {DataViewObjectPropertyIdentifier} propertyId
+         * @param {Selector} selector
+         * @returns
+         */
         function getValue(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector): DataViewObjectPropertyDefinition;
         function getPropertyContainer(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector): DataViewObjectPropertyDefinitions;
+        /**
+         * Get the first DataViewObjectDefinition that match selector and objectName
+         * @param {DataViewObjectDefinitions} defns DataViewObjectDefinitions to search
+         * @param {string} objectName objectName to match
+         * @param {Selector} selector selector to match
+         * @returns The first match, if any. If no match, returns undefined
+         */
         function getObjectDefinition(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): DataViewObjectDefinition;
         function propertiesAreEqual(a: DataViewObjectPropertyDefinition, b: DataViewObjectPropertyDefinition): boolean;
         function allPropertiesAreEqual(a: DataViewObjectPropertyDefinitions, b: DataViewObjectPropertyDefinitions): boolean;
@@ -17552,7 +17663,7 @@ declare module powerbi.data {
          * pivot the secondary before the primary.
          */
         function pivotBinding(binding: DataShapeBinding, allMappings: CompiledDataViewMapping[], finalMapping: CompiledDataViewMapping, defaultDataVolume: number): void;
-        function unpivotResult(oldDataView: DataView, selects: DataViewSelectTransform[], dataViewMappings: DataViewMapping[], projectionActiveItems: DataViewProjectionActiveItems): DataView;
+        function unpivotResult(oldDataView: DataView, selects: DataViewSelectTransform[], roleKindByQueryRef: DataViewAnalysis.RoleKindByQueryRef, queryProjectionsByRole: QueryProjectionsByRole, applicableRoleMappings: DataViewMapping[]): DataView;
     }
 }
 declare module powerbi.data {
@@ -17560,6 +17671,128 @@ declare module powerbi.data {
     /** Responsible for removing selects from the DataView. */
     module DataViewRemoveSelects {
         function apply(dataView: DataView, targetDataViewKinds: StandardDataViewKinds, selectsToInclude: INumberDictionary<boolean>): void;
+    }
+}
+declare module powerbi.data {
+    import RoleKindByQueryRef = powerbi.DataViewAnalysis.RoleKindByQueryRef;
+    /**
+     * A property bag containing information about a DataViewTransform session, including input arguments and some values derived from the input arguments.
+     *
+     * This interface is part of the internal implementation of DataViewTransform and is subject to frequent changes.
+     *
+     * All properties in this context interface are agnostic to any specific "split" in the transform.
+     * E.g. DataViewTransformContext.transforms.splits has the select indices in each split, but an instance of this context is not tied to a particular split.
+     *
+     * Also, DataViewTransformContext does not include a property for the dataView object(s) in transformation, because almost all of the existing DataViewTransform functions
+     * handles one dataView at a time, and DataViewTransformContext should not have a property containing the dataView for a specific split.
+     *
+     * And to avoid confusion, this DataViewTransformContext does not include a property for the visual dataView, because almost all functions in DataViewTransform
+     * are chained together by taking the output DataView from one function and use it as the input of the next.  It never needs to get back to the very original prototype.
+     *
+     * ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     * 2016/06/29 Notes about visualCapabilitiesRoleMappings/visualCapabilitiesDataViewKinds vs. applicableRoleMappings/applicableDataViewKinds:
+     *
+     * - Short version -
+     * For the time being, use visualCapabilitiesRoleMappings/visualCapabilitiesDataViewKinds for the essential transforms that would otherwise
+     * crash the visuals code if not performed (such as DataViewTransform.transformSelects()).
+     *
+     * Use applicableRoleMappings/applicableDataViewKinds for the more advanced transforms that procude the correct visual dataView (such as categorical concatentation).
+     *
+     * - Long version -
+     * visualCapabilitiesRoleMappings is the full list of role mappings as specified in Visual Capabilities, whereas applicableRoleMappings is the
+     * actual applicable one(s) based on the select fields in each of the role buckets.
+     *
+     * There is a bug (VSTS 7427800) in DataViewTransformActionsSerializer such that some DataViewTransformActions converted from VisualElements will contain incorrect values.
+     *
+     * With incorrect DataViewTransformActions input, DataViewAnalysis cannot possibly compute the correct applicableRoleMappings, and hence the
+     * visual dataView from DataViewTransform will be incorrect.  This is why sometimes when you open a report in PBI Portal, the initial rendering of some visuals
+     * are incorrect (most frequently on combo chart).
+     *
+     * However, no one has fixed or complained about it yet because the visuals will automatically re-render correctly within a couple seconds, thanks to the
+     * automatic query re-generation and re-execution that always follow after the initial rendering.  The DataViewTransformActions from this re-generated query
+     * will be correct and the visuals will then render with the correctly transformed visual dataView.
+     *
+     * Because of the above, the existing DataViewTransform code thus far has never relied on applicableRoleMappings for deciding whether to perform the very essential transforms
+     * such as DataViewTransform.transformSelects(), because without which the dataView will be missing some important properties and will lead to crashes in visuals code.
+     * As long as the relevant dataView kind is in visualCapabilitiesDataViewKinds, those transform operations will get carried out, even if it is not in applicableDataViewKinds.
+     *
+     * Unfortunately, there are also some transform operations that requires applicableRoleMappings, and hence DataViewTransformContext has both sets of properties for now.
+     *
+     * When the bug in DataViewTransformActionsSerializer gets fixed and DataViewTransformActions is always correct,
+     * then visualCapabilitiesRoleMappings/visualCapabilitiesDataViewKinds can be completely replaced by applicableRoleMappings/applicableDataViewKinds in DataViewTransform.
+     */
+    interface DataViewTransformContext {
+        /**
+         * The metadata property of the query DataView.
+         */
+        queryDataViewMetadata: DataViewMetadata;
+        /**
+         * From Visual Capabilities.  Can be undefined.
+         */
+        objectDescriptors?: DataViewObjectDescriptors;
+        /**
+         * From Visual Capabilities.  Can be undefined.
+         */
+        dataRoles?: VisualDataRole[];
+        transforms: DataViewTransformActions;
+        colorAllocatorFactory: IColorAllocatorFactory;
+        /**
+         * The select transforms for this DataViewTransform session.
+         * This property contains the same object as this.transforms.selects.
+         *
+         * Can be undefined or empty.  Can contain undefined elements.
+         */
+        selectTransforms?: DataViewSelectTransform[];
+        /** This property contains the same object as this.transforms.roles.ordering.  Can be undefined. */
+        projectionOrdering?: DataViewProjectionOrdering;
+        /** This property contains the same object as this.transforms.roles.activeItems.  Can be undefined. */
+        projectionActiveItems?: DataViewProjectionActiveItems;
+        /** The mapping from queryRef to VisualDataRoleKind value (Grouping, Measure, etc), computed from query DataView's metadata. */
+        roleKindByQueryRef: RoleKindByQueryRef;
+        /** The mapping from role name to query projection. */
+        queryProjectionsByRole: QueryProjectionsByRole;
+        /**
+         * The full list of possible target dataView kinds in this DataViewTransform session, as specified in Visual Capabilities role mappings.
+         *
+         * Can be undefined.
+         *
+         * Note: When applicableRoleMappings becomes reliable, all usages of this property should use applicableRoleMappings instead.
+         */
+        visualCapabilitiesRoleMappings?: DataViewMapping[];
+        /**
+         * All possible target dataView kinds in this DataViewTransform session, which is taken from all possible dataView kinds listed in visual capabilities role mapping.
+         *
+         * Note: When applicableDataViewKinds becomes reliable, all usages of this property should use applicableDataViewKinds instead.
+         */
+        visualCapabilitiesDataViewKinds: StandardDataViewKinds;
+        /**
+         * The applicable DataViewMappings for this transform, as computed by DataViewAnalysis.
+         * This property is undefined if there is no supported DataViewMappings for the other specified inputs.
+         *
+         * Note: There is currently a bug in DataViewTransformActionsSerializer that leads to incorrect DataViewTransformActions.
+         * As a result, this property can contain incorrect value until the query is regenerated and this property recomputed.
+         */
+        applicableRoleMappings?: DataViewMapping[];
+        /**
+         * The applicable dataView kinds of this DataViewTransform session, as computed from applicableRoleMappings.
+         *
+         * Note: There is currently a bug in DataViewTransformActionsSerializer that leads to incorrect DataViewTransformActions.
+         * As a result, this property can contain incorrect value until the query is regenerated and this property recomputed.
+         */
+        applicableDataViewKinds: StandardDataViewKinds;
+    }
+    module DataViewTransformContext {
+        /**
+         * Creates an object that all properties in the DataViewTransformContext interface.
+         *
+         * @param queryDataViewMetadata The metadata property of the query DataView.
+         * @param objectDescriptors From Visual Capabilities.  Can be undefined.
+         * @param dataViewMappings From Visual Capabilities.  Can be undefined.
+         * @param dataRoles From Visual Capabilities.  Can be undefined.
+         * @param transforms
+         * @param colorAllocatorFactory
+         */
+        function create(queryDataViewMetadata: DataViewMetadata, objectDescriptors: DataViewObjectDescriptors, dataViewMappings: DataViewMapping[], dataRoles: VisualDataRole[], transforms: DataViewTransformActions, colorAllocatorFactory: IColorAllocatorFactory): DataViewTransformContext;
     }
 }
 declare module powerbi.data {
@@ -18035,16 +18268,18 @@ declare module powerbi.data {
 }
 
 declare module powerbi.data {
+    import DataViewMapping = powerbi.DataViewMapping;
+    import RoleKindByQueryRef = DataViewAnalysis.RoleKindByQueryRef;
     interface DataViewRegressionRunOptions {
-        dataViewMappings: DataViewMapping[];
         visualDataViews: DataView[];
         dataRoles: VisualDataRole[];
         objectDescriptors: DataViewObjectDescriptors;
         objectDefinitions: DataViewObjectDefinitions;
         colorAllocatorFactory: IColorAllocatorFactory;
         transformSelects: DataViewSelectTransform[];
-        metadata: DataViewMetadata;
-        projectionActiveItems: DataViewProjectionActiveItems;
+        applicableDataViewMappings: DataViewMapping[];
+        roleKindByQueryRef: RoleKindByQueryRef;
+        queryProjectionsByRole: QueryProjectionsByRole;
     }
     module DataViewRegression {
         const regressionYQueryName: string;
@@ -18437,7 +18672,7 @@ declare module powerbi.data {
     interface ISQAggregationOperations {
         /** Returns an array of supported aggregates for a given expr and role type. */
         getSupportedAggregates(expr: SQExpr, schema: FederatedConceptualSchema, targetTypes: ValueTypeDescriptor[]): QueryAggregateFunction[];
-        isSupportedAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregate: QueryAggregateFunction, targetTypes: ValueTypeDescriptor[]): boolean;
+        isSupportedAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregate: QueryAggregateFunction, targetTypes: ValueTypeDescriptor[], forConsumption?: boolean): boolean;
         createExprWithAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregateNonNumericFields: boolean, targetTypes: ValueTypeDescriptor[], preferredAggregate?: QueryAggregateFunction): SQExpr;
     }
     function createSQAggregationOperations(datetimeMinMaxSupported: boolean): ISQAggregationOperations;
@@ -19321,15 +19556,19 @@ declare module powerbi {
     /** Defines a list of style presets for a particular IVisual */
     interface VisualStylePresets {
         /** Title of PropertyPane section for selecting the style */
-        displayName: DisplayNameGetter;
+        sectionTitle: DisplayNameGetter;
+        /** Title of PropertyPane slice for selecting the style */
+        sliceTitle: DisplayNameGetter;
+        /** Default style preset name for the Visual. Usually looked up with when searching by name fails.
+         * Must be one of the presets */
+        defaultPresetName: string;
         /** List of style presets for the IVisual indexed by preset name */
-        presets: VisualStylePresetCollection;
-    }
-    interface VisualStylePresetCollection {
-        [stylePresetName: string]: VisualStylePreset;
+        presets: _.Dictionary<VisualStylePreset>;
     }
     /** Defines some rules to derive IVisual formatting elements from a Report Theme */
     interface VisualStylePreset {
+        /** Serialized name. Changing it would break saved reports */
+        name: string;
         /** Display name for the style preset */
         displayName: DisplayNameGetter;
         /** Discription text for the style preset, can be used for a tooltip */
@@ -19340,7 +19579,18 @@ declare module powerbi {
          */
         evaluate: (theme: IVisualStyle) => DataViewObjectDefinitions;
     }
+    module VisualStylePresetHelpers {
+        /**
+         * Get a visual style preset by name.
+         * If stylePresets is undefined, returns undefined
+         * If the name doesn't match one or name is undefined, the default preset should be returned, can be undefined
+         * @param {string} name name of the Style Preset
+         */
+        function getStylePreset(stylePresets: VisualStylePresets, name: string): VisualStylePreset;
+        function getStylePresetsEnum(stylePresets: VisualStylePresets): IEnumType;
+    }
 }
+
 
 
 
@@ -19420,6 +19670,7 @@ declare module powerbi.extensibility {
         private selectedIds;
         private hostServices;
         private promiseFactory;
+        private dataPointObjectName;
         constructor(options: SelectionManagerOptions);
         select(selectionId: ISelectionId, multiSelect?: boolean): IPromise<ISelectionId[]>;
         showContextMenu(selectionId: ISelectionId, position: IPoint): IPromise<{}>;
@@ -19516,6 +19767,17 @@ declare module powerbi.extensibility {
         isCustomVisual(): boolean;
         private executeSafely(callback);
     }
+}
+declare module powerbi.extensibility.legacy {
+    interface DeprecatedSelectEventArgs {
+        visualObjects: VisualObject[];
+        selectors?: powerbi.data.Selector[];
+        data?: powerbi.data.Selector[];
+        data2?: SelectorsByColumn[];
+    }
+    function isOldSelectEventArgs(args: SelectEventArgs): args is DeprecatedSelectEventArgs;
+    function getSelectorsByColumn(args: DeprecatedSelectEventArgs): SelectorsByColumn[];
+    function getSelectors(args: DeprecatedSelectEventArgs): data.Selector[];
 }
 
 declare module powerbi.extensibility.v100 {

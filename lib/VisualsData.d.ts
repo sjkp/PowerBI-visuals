@@ -91,6 +91,8 @@
 
 
 
+
+
 declare module powerbi.data {
     /** Allows generic traversal and type discovery for a SQExpr tree. */
     interface ISQExprVisitorWithArg<T, TArg> {
@@ -230,7 +232,10 @@ declare module powerbi {
             color?: SQExpr;
         };
     }
-    function createSolidFillDefinition(color: string): FillDefinition;
+    module FillDefinitionHelpers {
+        function createSolidFillDefinition(color: string): FillDefinition;
+        function createSolidFillSQExpr(color: string): SQExpr | StructuralObjectDefinition;
+    }
     module FillSolidColorTypeDescriptor {
         /** Gets a value indicating whether the descriptor is nullable or not. */
         function nullable(descriptor: FillSolidColorTypeDescriptor): boolean;
@@ -372,6 +377,7 @@ declare module powerbi {
         constructor(type: ExtendedType);
         year: boolean;
         month: boolean;
+        paddedDateTableDate: boolean;
     }
     class GeographyType implements GeographyTypeDescriptor {
         private underlyingType;
@@ -443,16 +449,17 @@ declare module powerbi {
         Duration = 10,
         Binary = 11,
         None = 12,
-        Year = 66048,
-        Year_Text = 66049,
-        Year_Integer = 66308,
-        Year_Date = 66054,
-        Year_DateTime = 66055,
-        Month = 131584,
-        Month_Text = 131585,
-        Month_Integer = 131844,
-        Month_Date = 131590,
-        Month_DateTime = 131591,
+        Years = 66048,
+        Years_Text = 66049,
+        Years_Integer = 66308,
+        Years_Date = 66054,
+        Years_DateTime = 66055,
+        Months = 131584,
+        Months_Text = 131585,
+        Months_Integer = 131844,
+        Months_Date = 131590,
+        Months_DateTime = 131591,
+        PaddedDateTableDates = 197127,
         Address = 6554625,
         City = 6620161,
         Continent = 6685697,
@@ -627,6 +634,7 @@ declare module powerbi.data {
         function containsWildcard(selector: Selector): boolean;
         function hasRoleWildcard(selector: Selector): boolean;
         function isRoleWildcard(dataItem: DataRepetitionSelector): dataItem is DataViewRoleWildcard;
+        function convertSelectorsByColumnToSelector(selectorsByColumn: SelectorsByColumn): Selector;
     }
 }
 
@@ -1575,9 +1583,18 @@ declare module powerbi.data {
 
 declare module powerbi.data {
     module DataViewConcatenateCategoricalColumns {
-        function detectAndApply(dataView: DataView, objectDescriptors: DataViewObjectDescriptors, roleMappings: DataViewMapping[], projectionOrdering: DataViewProjectionOrdering, selects: DataViewSelectTransform[], projectionActiveItems: DataViewProjectionActiveItems): DataView;
+        function detectAndApply(dataView: DataView, objectDescriptors: DataViewObjectDescriptors, applicableRoleMappings: DataViewMapping[], projectionOrdering: DataViewProjectionOrdering, projectionActiveItems: DataViewProjectionActiveItems): DataView;
         /** For applying concatenation to the DataViewCategorical that is the data for one of the frames in a play chart. */
         function applyToPlayChartCategorical(metadata: DataViewMetadata, objectDescriptors: DataViewObjectDescriptors, categoryRoleName: string, categorical: DataViewCategorical): DataView;
+    }
+}
+
+declare module powerbi {
+    module DataViewMapping {
+        /**
+         * Returns dataViewMapping.usage.regression if defined.  Else, returns undefined.
+         */
+        function getRegressionUsage(dataViewMapping: DataViewMapping): _.Dictionary<DataViewObjectPropertyIdentifier>;
     }
 }
 
@@ -1685,10 +1702,55 @@ declare module powerbi.data {
     module DataViewObjectDefinitions {
         /** Creates or reuses a DataViewObjectDefinition for matching the given objectName and selector within the defns. */
         function ensure(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): DataViewObjectDefinition;
+        /**
+         * Removes every property defined in targetDefns from sourceDefns if exists.
+         * Properties are matches using ObjectName, Selector, and PropertyName.
+         * @param {DataViewObjectDefinition} targetDefns Defenitions to remove properties from
+         * @param {DataViewObjectDefinition} sourceDefns Defenitions to match properties against
+         */
+        function deleteProperties(targetDefns: DataViewObjectDefinitions, sourceDefns: DataViewObjectDefinitions): void;
+        /**
+         * Fills in missing properties with default ones, mutating the first definitions.
+         * Properties are matched agains defaultDefns using ObjectName, Selector, and PropertyName.
+         * It just fills missing properties, it doesn't overwrite existing ones.
+         * Any property already in targetDefns will not change.
+         * Any property in defaultDefns but not in targetDefns will be added by reference.
+         * @param {DataViewObjectDefinitions} targetDefns Default definitions. Will be mutated. Expected to be defined
+         * @param {DataViewObjectDefinitions} defaultDefns Definitions to fill inside targetDefns
+         */
+        function extend(targetDefns: DataViewObjectDefinitions, defaultDefns: DataViewObjectDefinitions): void;
+        /**
+         * Delete the first matching property from the Defns if it matches objName + selector + propertyName
+         * @param {DataViewObjectDefinitions} defns
+         * @param {string} objectName
+         * @param {Selector} selector
+         * @param {string} propertyName
+         */
         function deleteProperty(defns: DataViewObjectDefinitions, objectName: string, selector: Selector, propertyName: string): void;
+        /**
+         *
+         * @param {DataViewObjectDefinitions} defns
+         * @param {DataViewObjectPropertyIdentifier} propertyId
+         * @param {Selector} selector
+         * @param {DataViewObjectPropertyDefinition} value
+         */
         function setValue(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector, value: DataViewObjectPropertyDefinition): void;
+        /**
+         *
+         * @param {DataViewObjectDefinitions} defns
+         * @param {DataViewObjectPropertyIdentifier} propertyId
+         * @param {Selector} selector
+         * @returns
+         */
         function getValue(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector): DataViewObjectPropertyDefinition;
         function getPropertyContainer(defns: DataViewObjectDefinitions, propertyId: DataViewObjectPropertyIdentifier, selector: Selector): DataViewObjectPropertyDefinitions;
+        /**
+         * Get the first DataViewObjectDefinition that match selector and objectName
+         * @param {DataViewObjectDefinitions} defns DataViewObjectDefinitions to search
+         * @param {string} objectName objectName to match
+         * @param {Selector} selector selector to match
+         * @returns The first match, if any. If no match, returns undefined
+         */
         function getObjectDefinition(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): DataViewObjectDefinition;
         function propertiesAreEqual(a: DataViewObjectPropertyDefinition, b: DataViewObjectPropertyDefinition): boolean;
         function allPropertiesAreEqual(a: DataViewObjectPropertyDefinitions, b: DataViewObjectPropertyDefinitions): boolean;
@@ -1800,7 +1862,7 @@ declare module powerbi.data {
          * pivot the secondary before the primary.
          */
         function pivotBinding(binding: DataShapeBinding, allMappings: CompiledDataViewMapping[], finalMapping: CompiledDataViewMapping, defaultDataVolume: number): void;
-        function unpivotResult(oldDataView: DataView, selects: DataViewSelectTransform[], dataViewMappings: DataViewMapping[], projectionActiveItems: DataViewProjectionActiveItems): DataView;
+        function unpivotResult(oldDataView: DataView, selects: DataViewSelectTransform[], roleKindByQueryRef: DataViewAnalysis.RoleKindByQueryRef, queryProjectionsByRole: QueryProjectionsByRole, applicableRoleMappings: DataViewMapping[]): DataView;
     }
 }
 declare module powerbi.data {
@@ -1808,6 +1870,128 @@ declare module powerbi.data {
     /** Responsible for removing selects from the DataView. */
     module DataViewRemoveSelects {
         function apply(dataView: DataView, targetDataViewKinds: StandardDataViewKinds, selectsToInclude: INumberDictionary<boolean>): void;
+    }
+}
+declare module powerbi.data {
+    import RoleKindByQueryRef = powerbi.DataViewAnalysis.RoleKindByQueryRef;
+    /**
+     * A property bag containing information about a DataViewTransform session, including input arguments and some values derived from the input arguments.
+     *
+     * This interface is part of the internal implementation of DataViewTransform and is subject to frequent changes.
+     *
+     * All properties in this context interface are agnostic to any specific "split" in the transform.
+     * E.g. DataViewTransformContext.transforms.splits has the select indices in each split, but an instance of this context is not tied to a particular split.
+     *
+     * Also, DataViewTransformContext does not include a property for the dataView object(s) in transformation, because almost all of the existing DataViewTransform functions
+     * handles one dataView at a time, and DataViewTransformContext should not have a property containing the dataView for a specific split.
+     *
+     * And to avoid confusion, this DataViewTransformContext does not include a property for the visual dataView, because almost all functions in DataViewTransform
+     * are chained together by taking the output DataView from one function and use it as the input of the next.  It never needs to get back to the very original prototype.
+     *
+     * ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     * 2016/06/29 Notes about visualCapabilitiesRoleMappings/visualCapabilitiesDataViewKinds vs. applicableRoleMappings/applicableDataViewKinds:
+     *
+     * - Short version -
+     * For the time being, use visualCapabilitiesRoleMappings/visualCapabilitiesDataViewKinds for the essential transforms that would otherwise
+     * crash the visuals code if not performed (such as DataViewTransform.transformSelects()).
+     *
+     * Use applicableRoleMappings/applicableDataViewKinds for the more advanced transforms that procude the correct visual dataView (such as categorical concatentation).
+     *
+     * - Long version -
+     * visualCapabilitiesRoleMappings is the full list of role mappings as specified in Visual Capabilities, whereas applicableRoleMappings is the
+     * actual applicable one(s) based on the select fields in each of the role buckets.
+     *
+     * There is a bug (VSTS 7427800) in DataViewTransformActionsSerializer such that some DataViewTransformActions converted from VisualElements will contain incorrect values.
+     *
+     * With incorrect DataViewTransformActions input, DataViewAnalysis cannot possibly compute the correct applicableRoleMappings, and hence the
+     * visual dataView from DataViewTransform will be incorrect.  This is why sometimes when you open a report in PBI Portal, the initial rendering of some visuals
+     * are incorrect (most frequently on combo chart).
+     *
+     * However, no one has fixed or complained about it yet because the visuals will automatically re-render correctly within a couple seconds, thanks to the
+     * automatic query re-generation and re-execution that always follow after the initial rendering.  The DataViewTransformActions from this re-generated query
+     * will be correct and the visuals will then render with the correctly transformed visual dataView.
+     *
+     * Because of the above, the existing DataViewTransform code thus far has never relied on applicableRoleMappings for deciding whether to perform the very essential transforms
+     * such as DataViewTransform.transformSelects(), because without which the dataView will be missing some important properties and will lead to crashes in visuals code.
+     * As long as the relevant dataView kind is in visualCapabilitiesDataViewKinds, those transform operations will get carried out, even if it is not in applicableDataViewKinds.
+     *
+     * Unfortunately, there are also some transform operations that requires applicableRoleMappings, and hence DataViewTransformContext has both sets of properties for now.
+     *
+     * When the bug in DataViewTransformActionsSerializer gets fixed and DataViewTransformActions is always correct,
+     * then visualCapabilitiesRoleMappings/visualCapabilitiesDataViewKinds can be completely replaced by applicableRoleMappings/applicableDataViewKinds in DataViewTransform.
+     */
+    interface DataViewTransformContext {
+        /**
+         * The metadata property of the query DataView.
+         */
+        queryDataViewMetadata: DataViewMetadata;
+        /**
+         * From Visual Capabilities.  Can be undefined.
+         */
+        objectDescriptors?: DataViewObjectDescriptors;
+        /**
+         * From Visual Capabilities.  Can be undefined.
+         */
+        dataRoles?: VisualDataRole[];
+        transforms: DataViewTransformActions;
+        colorAllocatorFactory: IColorAllocatorFactory;
+        /**
+         * The select transforms for this DataViewTransform session.
+         * This property contains the same object as this.transforms.selects.
+         *
+         * Can be undefined or empty.  Can contain undefined elements.
+         */
+        selectTransforms?: DataViewSelectTransform[];
+        /** This property contains the same object as this.transforms.roles.ordering.  Can be undefined. */
+        projectionOrdering?: DataViewProjectionOrdering;
+        /** This property contains the same object as this.transforms.roles.activeItems.  Can be undefined. */
+        projectionActiveItems?: DataViewProjectionActiveItems;
+        /** The mapping from queryRef to VisualDataRoleKind value (Grouping, Measure, etc), computed from query DataView's metadata. */
+        roleKindByQueryRef: RoleKindByQueryRef;
+        /** The mapping from role name to query projection. */
+        queryProjectionsByRole: QueryProjectionsByRole;
+        /**
+         * The full list of possible target dataView kinds in this DataViewTransform session, as specified in Visual Capabilities role mappings.
+         *
+         * Can be undefined.
+         *
+         * Note: When applicableRoleMappings becomes reliable, all usages of this property should use applicableRoleMappings instead.
+         */
+        visualCapabilitiesRoleMappings?: DataViewMapping[];
+        /**
+         * All possible target dataView kinds in this DataViewTransform session, which is taken from all possible dataView kinds listed in visual capabilities role mapping.
+         *
+         * Note: When applicableDataViewKinds becomes reliable, all usages of this property should use applicableDataViewKinds instead.
+         */
+        visualCapabilitiesDataViewKinds: StandardDataViewKinds;
+        /**
+         * The applicable DataViewMappings for this transform, as computed by DataViewAnalysis.
+         * This property is undefined if there is no supported DataViewMappings for the other specified inputs.
+         *
+         * Note: There is currently a bug in DataViewTransformActionsSerializer that leads to incorrect DataViewTransformActions.
+         * As a result, this property can contain incorrect value until the query is regenerated and this property recomputed.
+         */
+        applicableRoleMappings?: DataViewMapping[];
+        /**
+         * The applicable dataView kinds of this DataViewTransform session, as computed from applicableRoleMappings.
+         *
+         * Note: There is currently a bug in DataViewTransformActionsSerializer that leads to incorrect DataViewTransformActions.
+         * As a result, this property can contain incorrect value until the query is regenerated and this property recomputed.
+         */
+        applicableDataViewKinds: StandardDataViewKinds;
+    }
+    module DataViewTransformContext {
+        /**
+         * Creates an object that all properties in the DataViewTransformContext interface.
+         *
+         * @param queryDataViewMetadata The metadata property of the query DataView.
+         * @param objectDescriptors From Visual Capabilities.  Can be undefined.
+         * @param dataViewMappings From Visual Capabilities.  Can be undefined.
+         * @param dataRoles From Visual Capabilities.  Can be undefined.
+         * @param transforms
+         * @param colorAllocatorFactory
+         */
+        function create(queryDataViewMetadata: DataViewMetadata, objectDescriptors: DataViewObjectDescriptors, dataViewMappings: DataViewMapping[], dataRoles: VisualDataRole[], transforms: DataViewTransformActions, colorAllocatorFactory: IColorAllocatorFactory): DataViewTransformContext;
     }
 }
 declare module powerbi.data {
@@ -2283,16 +2467,18 @@ declare module powerbi.data {
 }
 
 declare module powerbi.data {
+    import DataViewMapping = powerbi.DataViewMapping;
+    import RoleKindByQueryRef = DataViewAnalysis.RoleKindByQueryRef;
     interface DataViewRegressionRunOptions {
-        dataViewMappings: DataViewMapping[];
         visualDataViews: DataView[];
         dataRoles: VisualDataRole[];
         objectDescriptors: DataViewObjectDescriptors;
         objectDefinitions: DataViewObjectDefinitions;
         colorAllocatorFactory: IColorAllocatorFactory;
         transformSelects: DataViewSelectTransform[];
-        metadata: DataViewMetadata;
-        projectionActiveItems: DataViewProjectionActiveItems;
+        applicableDataViewMappings: DataViewMapping[];
+        roleKindByQueryRef: RoleKindByQueryRef;
+        queryProjectionsByRole: QueryProjectionsByRole;
     }
     module DataViewRegression {
         const regressionYQueryName: string;
@@ -2685,7 +2871,7 @@ declare module powerbi.data {
     interface ISQAggregationOperations {
         /** Returns an array of supported aggregates for a given expr and role type. */
         getSupportedAggregates(expr: SQExpr, schema: FederatedConceptualSchema, targetTypes: ValueTypeDescriptor[]): QueryAggregateFunction[];
-        isSupportedAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregate: QueryAggregateFunction, targetTypes: ValueTypeDescriptor[]): boolean;
+        isSupportedAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregate: QueryAggregateFunction, targetTypes: ValueTypeDescriptor[], forConsumption?: boolean): boolean;
         createExprWithAggregate(expr: SQExpr, schema: FederatedConceptualSchema, aggregateNonNumericFields: boolean, targetTypes: ValueTypeDescriptor[], preferredAggregate?: QueryAggregateFunction): SQExpr;
     }
     function createSQAggregationOperations(datetimeMinMaxSupported: boolean): ISQAggregationOperations;
@@ -3569,15 +3755,19 @@ declare module powerbi {
     /** Defines a list of style presets for a particular IVisual */
     interface VisualStylePresets {
         /** Title of PropertyPane section for selecting the style */
-        displayName: DisplayNameGetter;
+        sectionTitle: DisplayNameGetter;
+        /** Title of PropertyPane slice for selecting the style */
+        sliceTitle: DisplayNameGetter;
+        /** Default style preset name for the Visual. Usually looked up with when searching by name fails.
+         * Must be one of the presets */
+        defaultPresetName: string;
         /** List of style presets for the IVisual indexed by preset name */
-        presets: VisualStylePresetCollection;
-    }
-    interface VisualStylePresetCollection {
-        [stylePresetName: string]: VisualStylePreset;
+        presets: _.Dictionary<VisualStylePreset>;
     }
     /** Defines some rules to derive IVisual formatting elements from a Report Theme */
     interface VisualStylePreset {
+        /** Serialized name. Changing it would break saved reports */
+        name: string;
         /** Display name for the style preset */
         displayName: DisplayNameGetter;
         /** Discription text for the style preset, can be used for a tooltip */
@@ -3587,5 +3777,15 @@ declare module powerbi {
          * @param IVisualStyle Report theme
          */
         evaluate: (theme: IVisualStyle) => DataViewObjectDefinitions;
+    }
+    module VisualStylePresetHelpers {
+        /**
+         * Get a visual style preset by name.
+         * If stylePresets is undefined, returns undefined
+         * If the name doesn't match one or name is undefined, the default preset should be returned, can be undefined
+         * @param {string} name name of the Style Preset
+         */
+        function getStylePreset(stylePresets: VisualStylePresets, name: string): VisualStylePreset;
+        function getStylePresetsEnum(stylePresets: VisualStylePresets): IEnumType;
     }
 }

@@ -1507,6 +1507,8 @@ declare module powerbi.visuals {
         areas: D3.Selection;
         isPartOfCombo?: boolean;
         tooltipOverlay: D3.Selection;
+        getCategoryIndex(seriesData: LineChartSeries, pointX: number): number;
+        categoryIdentities?: SelectionId[];
     }
     class LineChartWebBehavior implements IInteractiveBehavior {
         private lines;
@@ -1515,6 +1517,7 @@ declare module powerbi.visuals {
         private tooltipOverlay;
         bindEvents(options: LineChartBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
+        private getPointX(rootNode);
     }
 }
 
@@ -1643,7 +1646,6 @@ declare module powerbi.visuals {
     interface VerticalSlicerBehaviorOptions extends SlicerBehaviorOptions {
         itemContainers: D3.Selection;
         itemInputs: D3.Selection;
-        searchInput: D3.Selection;
     }
     class VerticalSlicerWebBehavior implements IInteractiveBehavior {
         private itemLabels;
@@ -1669,13 +1671,14 @@ declare module powerbi.visuals {
         interactivityService: IInteractivityService;
         settings: SlicerSettings;
         slicerValueHandler: SlicerValueHandler;
+        searchInput: D3.Selection;
     }
     class SlicerWebBehavior implements IInteractiveBehavior {
         private behavior;
         private static searchInputTimeoutDuration;
         bindEvents(options: SlicerOrientationBehaviorOptions, selectionHandler: ISelectionHandler): void;
         renderSelection(hasSelection: boolean): void;
-        static bindSlicerEvents(slicerContainer: D3.Selection, slicers: D3.Selection, slicerClear: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService, slicerValueHandler: SlicerValueHandler, slicerSearch?: D3.Selection): void;
+        static bindSlicerEvents(behaviorOptions: SlicerBehaviorOptions, slicers: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService): void;
         static setSelectionOnSlicerItems(selectableItems: D3.Selection, itemLabel: D3.Selection, hasSelection: boolean, interactivityService: IInteractivityService, slicerSettings: SlicerSettings): void;
         static styleSlicerItems(slicerItems: D3.Selection, hasSelection: boolean, isSelectionInverted: boolean): void;
         private static bindSlicerItemSelectionEvent(slicers, selectionHandler, slicerSettings, interactivityService);
@@ -2562,6 +2565,7 @@ declare module powerbi.visuals.utility {
     class SelectionManager {
         private selectedIds;
         private hostServices;
+        private dataPointObjectName;
         constructor(options: SelectionManagerOptions);
         select(selectionId: SelectionId, multiSelect?: boolean): JQueryDeferred<SelectionId[]>;
         showContextMenu(selectionId: SelectionId, position?: Point): JQueryDeferred<{}>;
@@ -2776,6 +2780,7 @@ declare module powerbi.visuals {
         }
         function getContainsFilter(expr: SQExpr, containsText: string): SemanticFilter;
         function tryRemoveValueFromRetainedList(value: DataViewScopeIdentity, selectedScopeIds: DataViewScopeIdentity[], caseInsensitive?: boolean): boolean;
+        function getUpdatedSelfFilter(searchKey: string, metaData: DataViewMetadata): data.SemanticFilter;
         /** Helper class for creating and measuring slicer DOM elements  */
         class DOMHelper {
             private static SearchInputHeight;
@@ -3757,6 +3762,7 @@ declare module powerbi.visuals {
         getLocalizedString(stringId: string): string;
         onDragStart(): void;
         canSelect(): boolean;
+        onSelecting(args: SelectingEventArgs): void;
         onSelect(): void;
         onContextMenu(): void;
         loadMoreData(): void;
@@ -3783,7 +3789,14 @@ declare module powerbi.visuals {
     import SemanticFilter = powerbi.data.SemanticFilter;
     interface SelectableDataPoint {
         selected: boolean;
+        /** Identity for identifying the selectable data point for selection purposes */
         identity: SelectionId;
+        /**
+         * A specific identity for when data points exist at a finer granularity than
+         * selection is performed.  For example, if your data points should select based
+         * only on series even if they exist as category/series intersections.
+         */
+        specificIdentity?: SelectionId;
     }
     /**
      * Factory method to create an IInteractivityService instance.
@@ -3831,7 +3844,11 @@ declare module powerbi.visuals {
         isDefaultValueEnabled(): boolean;
     }
     interface ISelectionHandler {
-        /** Handles a selection event by selecting the given data point */
+        /**
+         * Handles a selection event by selecting the given data point.  If the data point's
+         * identity is undefined, the selection state is cleared. In this case, if specificIdentity
+         * exists, it will still be sent to the host.
+         */
         handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void;
         /** Handles a request for a context menu. */
         handleContextMenu(dataPoint: SelectableDataPoint, position: IPoint): void;
@@ -3858,6 +3875,7 @@ declare module powerbi.visuals {
         selectableDataPoints: SelectableDataPoint[];
         selectableLegendDataPoints: SelectableDataPoint[];
         selectableLabelsDataPoints: SelectableDataPoint[];
+        private dataPointObjectName;
         constructor(hostServices: IVisualHostServices);
         /** Binds the vsiual to the interactivityService */
         bind(dataPoints: SelectableDataPoint[], behavior: IInteractiveBehavior, behaviorOptions: any, options?: InteractivityServiceOptions): void;
@@ -3891,6 +3909,7 @@ declare module powerbi.visuals {
         private static createChangeForFilterProperty(filterPropertyIdentifier, filter);
         private sendContextMenuToHost(dataPoint, position);
         private sendSelectionToHost();
+        private createSelectEventArgs(selectedIds);
         private getSelectorsByColumn(selectionIds);
         private takeSelectionStateFromDataPoints(dataPoints);
         /**
@@ -6524,7 +6543,6 @@ declare module powerbi.visuals {
         isLabelInteractivityEnabled?: boolean;
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
-        cartesianLoadMoreEnabled?: boolean;
         trimOrdinalDataOnOverflow?: boolean;
         advancedLineLabelsEnabled?: boolean;
     }
@@ -6552,7 +6570,6 @@ declare module powerbi.visuals {
         isLabelInteractivityEnabled?: boolean;
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
-        cartesianLoadMoreEnabled?: boolean;
         advancedLineLabelsEnabled?: boolean;
     }
     interface CartesianVisualRenderResult {
@@ -6680,7 +6697,6 @@ declare module powerbi.visuals {
         private isLabelInteractivityEnabled;
         private tooltipsEnabled;
         private tooltipBucketEnabled;
-        private cartesianLoadMoreEnabled;
         private trimOrdinalDataOnOverflow;
         private isMobileChart;
         private advancedLineLabelsEnabled;
@@ -6762,9 +6778,9 @@ declare module powerbi.visuals {
         static getCategoryThickness(seriesList: CartesianSeries[], numCategories: number, plotLength: number, domain: number[], isScalar: boolean, trimOrdinalDataOnOverflow: boolean): number;
         private static getMinInterval(seriesList);
         /**
-         * Makes the necessary changes to the mapping if load more data is enabled for cartesian charts. Usually called during `customizeQuery`.
+         * Expands the category data reduction algorithm window if there are no series in any of the data view mappings.
          */
-        static applyLoadMoreEnabledToMapping(cartesianLoadMoreEnabled: boolean, mapping: powerbi.data.CompiledDataViewMapping): void;
+        static expandCategoryWindow(mappings: powerbi.data.CompiledDataViewMapping[]): void;
     }
     const enum AxisLocation {
         X = 0,
@@ -7701,7 +7717,6 @@ declare module powerbi.visuals {
         private static MinDistanceFromBottom;
         private static MinWidthForTargetLabel;
         private static DefaultTopBottomMargin;
-        private static DefaultLeftRightMargin;
         private static ReducedLeftRightMargin;
         private static DEFAULT_MAX;
         private static DEFAULT_MIN;
@@ -7746,6 +7761,7 @@ declare module powerbi.visuals {
         private tooltipsEnabled;
         private tooltipBucketEnabled;
         private hostService;
+        private labels;
         private dataView;
         animator: IGenericAnimator;
         constructor(options?: GaugeConstructorOptions);
@@ -7783,7 +7799,7 @@ declare module powerbi.visuals {
         /** Note: public for testability */
         drawViewPort(drawOptions: GaugeVisualProperties): void;
         getValueAngle(): number;
-        private createTicks();
+        private createLabels();
         private updateInternal(suppressAnimations);
         private updateVisualStyles();
         private updateVisualConfigurations();
@@ -7792,7 +7808,7 @@ declare module powerbi.visuals {
         private getFormatter(dataLabelSettings, metadataColumn, maxValue?);
         private renderTarget(radius, height, width, margin);
         private arcTween(transition, arr);
-        private showMinMaxLabelsOnBottom();
+        private getLabelsPosition();
         private setMargins();
         private showSideNumbersLabelText();
     }
@@ -7940,6 +7956,7 @@ declare module powerbi.visuals {
         categoryData?: LineChartCategoriesData[];
         seriesDisplayName?: string;
         hasValues?: boolean;
+        categoryIdentities?: SelectionId[];
     }
     interface LineChartSeries extends CartesianSeries, SelectableDataPoint {
         displayName: string;
@@ -7961,6 +7978,7 @@ declare module powerbi.visuals {
         pointColor?: string;
         stackedValue?: number;
         extraTooltipInfo?: TooltipDataItem[];
+        specificIdentity: SelectionId;
     }
     interface HoverLineDataPoint {
         color: string;
@@ -8077,6 +8095,7 @@ declare module powerbi.visuals {
          * Note: Public for tests.
          */
         getCategoryIndexFromTooltipEvent(tooltipEvent: TooltipEvent, pointX: number): number;
+        getCategoryIndexFromSeriesAndPointX(seriesData: LineChartSeries, pointX: number): number;
         getVisualCategoryAxisIsScalar(): boolean;
         getSupportedCategoryAxisType(): string;
         getPreferredPlotArea(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport;
@@ -8960,6 +8979,7 @@ declare module powerbi.visuals {
 }
 
 declare module powerbi.visuals {
+    import SQExpr = powerbi.data.SQExpr;
     class HorizontalSlicerRenderer implements ISlicerRenderer, SlicerValueHandler {
         private element;
         private currentViewport;
@@ -8984,7 +9004,7 @@ declare module powerbi.visuals {
         private domHelper;
         constructor(options?: SlicerConstructorOptions);
         getDefaultValue(): data.SQConstantExpr;
-        getIdentityFields(): data.SQExpr[];
+        getIdentityFields(): SQExpr[];
         getUpdatedSelfFilter(searchKey: string): data.SemanticFilter;
         init(slicerInitOptions: SlicerInitOptions): IInteractivityService;
         render(options: SlicerRenderOptions): void;
@@ -9270,6 +9290,9 @@ declare module powerbi.visuals {
         hasRowGroups(): boolean;
         private sortIconsEnabled();
     }
+    interface TableConstructorOptions {
+        isTouchEnabled?: boolean;
+    }
     class Table implements IVisual {
         private static preferredLoadMoreThreshold;
         private element;
@@ -9277,6 +9300,7 @@ declare module powerbi.visuals {
         private style;
         private formatter;
         private isInteractive;
+        private isTouchEnabled;
         private getLocalizedString;
         private hostServices;
         private tablixControl;
@@ -9290,7 +9314,7 @@ declare module powerbi.visuals {
         * Flag indicating that we are persisting objects, so that next onDataChanged can be safely ignored.
         */
         persistingObjects: boolean;
-        constructor();
+        constructor(options?: TableConstructorOptions);
         static customizeQuery(options: CustomizeQueryOptions): void;
         static getSortableRoles(): string[];
         init(options: VisualInitOptions): void;
@@ -9481,6 +9505,9 @@ declare module powerbi.visuals {
          */
         private getSortableHeaderColumnMetadata(item);
     }
+    interface MatrixConstructorOptions {
+        isTouchEnabled?: boolean;
+    }
     class Matrix implements IVisual {
         private static preferredLoadMoreThreshold;
         /**
@@ -9493,6 +9520,7 @@ declare module powerbi.visuals {
         private dataView;
         private formatter;
         private isInteractive;
+        private isTouchEnabled;
         private hostServices;
         private hierarchyNavigator;
         private waitingForData;
@@ -9504,7 +9532,7 @@ declare module powerbi.visuals {
         * Flag indicating that we are persisting objects, so that next onDataChanged can be safely ignored.
         */
         persistingObjects: boolean;
-        constructor();
+        constructor(options?: MatrixConstructorOptions);
         static customizeQuery(options: CustomizeQueryOptions): void;
         static getSortableRoles(): string[];
         init(options: VisualInitOptions): void;
@@ -10204,19 +10232,21 @@ declare module powerbi.visuals {
     class ScriptVisual implements IVisual {
         private element;
         private imageBackgroundElement;
+        private imageElement;
         private hostServices;
         private canRefresh;
         constructor(options: ScriptVisualOptions);
         init(options: VisualInitOptions): void;
         update(options: VisualUpdateOptions): void;
-        onResizing(finalViewport: IViewport): void;
-        private getImageUrl(dataView);
+        onResizing(finalViewport: IViewport, resizeMode?: ResizeMode): void;
         private ensureHtmlElement();
+        private ensureImageElement();
     }
 }
 
 declare module powerbi.visuals.system {
     class DebugVisual implements IVisual {
+        static defaultCapabilities: VisualCapabilities;
         static capabilities: VisualCapabilities;
         private static autoReloadPollTime;
         private static errorMessageTemplate;
@@ -10253,7 +10283,7 @@ declare module powerbi.visuals.system {
         private createSmilyBtn();
         private buildControls();
         private buildErrorMessage(options);
-        private setCapabilities(capabilities);
+        private setCapabilities(capabilities?);
         init(options: VisualInitOptions): void;
         update(options: VisualUpdateOptions): void;
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
@@ -10340,5 +10370,5 @@ declare module powerbi.visuals {
 }
 
 declare module powerbi.visuals {
-    const tableStylePresets: VisualStylePresets;
+    function tableStylePresets(): VisualStylePresets;
 }

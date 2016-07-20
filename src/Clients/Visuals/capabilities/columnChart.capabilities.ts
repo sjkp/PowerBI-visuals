@@ -239,13 +239,13 @@ module powerbi.visuals {
                 categorical: {
                     categories: {
                         for: { in: 'Category' },
-                        dataReductionAlgorithm: { top: {} }
+                        dataReductionAlgorithm: { window: { count: 100 } }
                     },
                     values: {
                         group: {
                             by: 'Series',
                             select: [{ for: { in: 'Y' } }, { bind: { to: 'Gradient' } }],
-                            dataReductionAlgorithm: { top: {} }
+                            dataReductionAlgorithm: { top: { count: 60 } }
                         }
                     },
                     rowCount: { preferred: { min: 2 }, supported: { min: 0 } }

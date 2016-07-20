@@ -6,7 +6,7 @@
         "name": "MekkoChart",
             "displayName": "Mekko Chart",
             "guid": "MekkoChart1449744733038",
-            "version": "1.7.10",
+            "version": "1.7.11",
             "description": "A Mekko chart is a mix of a 100% stacked column chart and a 100% stacked bar chart combined into one view. Similar to a treemap, the dimensional values are represented by length and width of each rectangle. The width of a column is proportional to the total value of the column.",
             "build": "13.0.1100.210",
         "author": {

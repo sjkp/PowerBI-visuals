@@ -29,6 +29,53 @@
 module powerbi.visuals.samples {
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import PixelConverter = jsCommon.PixelConverter;
+    import LegendData = powerbi.visuals.LegendData;
+    import IDataLabelInfo = powerbi.IDataLabelInfo;
+    import LabelEnabledDataPoint = powerbi.visuals.LabelEnabledDataPoint;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import IMargin = powerbi.visuals.IMargin;
+    import IViewport = powerbi.IViewport;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import DataView = powerbi.DataView;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import IEnumType = powerbi.IEnumType;
+    import createEnumType = powerbi.createEnumType;
+    import IEnumMember = powerbi.IEnumMember;
+    import DataViewObjects = powerbi.DataViewObjects;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import ObjectEnumerationBuilder = powerbi.visuals.ObjectEnumerationBuilder;
+    import VisualObjectInstance = powerbi.VisualObjectInstance;
+    import dataLabelUtils = powerbi.visuals.dataLabelUtils;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import DataViewValueColumns = powerbi.DataViewValueColumns;
+    import DataViewCategoricalColumn = powerbi.DataViewCategoricalColumn;
+    import converterHelper = powerbi.visuals.converterHelper;
+    import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
+    import DataViewValueColumn = powerbi.DataViewValueColumn;
+    import IVisual = powerbi.IVisual;
+    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
+    import createDisplayNameGetter = powerbi.data.createDisplayNameGetter;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import SelectionManager = powerbi.visuals.utility.SelectionManager;
+    import ColorHelper = powerbi.visuals.ColorHelper;
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import SelectionIdBuilder = powerbi.visuals.SelectionIdBuilder;
+    import TooltipBuilder = powerbi.visuals.TooltipBuilder;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import AnimatorCommon = powerbi.visuals.AnimatorCommon;
+    import DataLabelManager = powerbi.DataLabelManager;
+    import DataLabelArrangeGrid = powerbi.DataLabelArrangeGrid;
+    import shapes = powerbi.visuals.shapes;
+    import IRect = powerbi.visuals.IRect;
+    import SVGUtil = powerbi.visuals.SVGUtil;
+    import TooltipManager = powerbi.visuals.TooltipManager;
+    import TooltipEvent = powerbi.visuals.TooltipEvent;
+    import ILabelLayout = powerbi.visuals.ILabelLayout;
+    import DataViewObjectPropertyTypeDescriptor = powerbi.data.DataViewObjectPropertyTypeDescriptor;
+    import lessWithPrecision = powerbi.Double.lessWithPrecision;
 
     export interface ChordChartData {
         settings: ChordChartSettings;
@@ -57,6 +104,10 @@ module powerbi.visuals.samples {
         labelColor: string;
         barColor: string;
         isCategory: boolean;
+    }
+
+    export interface ChordLabelEnabledDataPoint extends LabelEnabledDataPoint {
+        data?: ChordArcLabelData;
     }
 
     export interface ChordTooltipData {
@@ -209,7 +260,7 @@ module powerbi.visuals.samples {
                 .map(x => <IEnumMember>{ value: x, displayName: x }));
         }
 
-        private static getValueFnByType(type: powerbi.data.DataViewObjectPropertyTypeDescriptor) {
+        private static getValueFnByType(type: DataViewObjectPropertyTypeDescriptor) {
             switch(_.keys(type)[0]) {
                 case 'fill': 
                     return DataViewObjects.getFillColor;
@@ -361,18 +412,18 @@ module powerbi.visuals.samples {
             }],
             objects: {
                 dataPoint: {
-                    displayName: data.createDisplayNameGetter('Visual_DataPoint'),
+                    displayName: createDisplayNameGetter('Visual_DataPoint'),
                     properties: {
                         defaultColor: {
-                            displayName: data.createDisplayNameGetter('Visual_DefaultColor'),
+                            displayName: createDisplayNameGetter('Visual_DefaultColor'),
                             type: { fill: { solid: { color: true } } }
                         },
                         showAllDataPoints: {
-                            displayName: data.createDisplayNameGetter('Visual_DataPoint_Show_All'),
+                            displayName: createDisplayNameGetter('Visual_DataPoint_Show_All'),
                             type: { bool: true }
                         },
                         fill: {
-                            displayName: data.createDisplayNameGetter('Visual_Fill'),
+                            displayName: createDisplayNameGetter('Visual_Fill'),
                             type: { fill: { solid: { color: true } } }
                         },
                     },
@@ -392,12 +443,12 @@ module powerbi.visuals.samples {
                             type: { bool: true }
                         },
                         color: {
-                            displayName: data.createDisplayNameGetter("Visual_Reference_Line_Data_Label_Color"),
-                            description: data.createDisplayNameGetter('Visual_Reference_Line_Data_Label_Color_Description'),
+                            displayName: createDisplayNameGetter("Visual_Reference_Line_Data_Label_Color"),
+                            description: createDisplayNameGetter('Visual_Reference_Line_Data_Label_Color_Description'),
                             type: { fill: { solid: { color: true } } }
                         },
                         fontSize: {
-                            displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                            displayName: createDisplayNameGetter('Visual_TextSize'),
                             type: { formatting: { fontSize: true } },
                         },
                     },
@@ -480,7 +531,7 @@ module powerbi.visuals.samples {
         private layout: VisualLayout;
         private duration: number;
         private colors: IDataColorPalette;
-        private selectionManager: utility.SelectionManager;
+        private selectionManager: SelectionManager;
 
         private radius: number;
         private get innerRadius(): number {
@@ -667,7 +718,7 @@ module powerbi.visuals.samples {
 
         public init(options: VisualInitOptions): void {
             var element = this.element = options.element;
-            this.selectionManager = new utility.SelectionManager({ hostServices: options.host });
+            this.selectionManager = new SelectionManager({ hostServices: options.host });
             this.layout = new VisualLayout(options.viewport, ChordChart.DefaultMargin);
             this.layout.minViewport = { width: 150, height:150 };
 
@@ -817,7 +868,7 @@ module powerbi.visuals.samples {
                     return true;
                 }
 
-                return powerbi.Double.lessWithPrecision(intersection.height, position.height / 2);
+                return lessWithPrecision(intersection.height, position.height / 2);
             }
         }
 
@@ -1047,7 +1098,7 @@ module powerbi.visuals.samples {
         }
 
         private renderLabels(
-            filteredData: LabelEnabledDataPoint[],
+            filteredData: ChordLabelEnabledDataPoint[],
             layout: ILabelLayout,
             isDonut: boolean = false,
             forAnimation: boolean = false): void {
@@ -1067,7 +1118,7 @@ module powerbi.visuals.samples {
 
             var dataLabels = isDonut
                 ? this.labels.selectAll(ChordChart.labelsClass.selector)
-                    .data(filteredData, (d: DonutArcDescriptor) => d.data.identity.getKey())
+                    .data(filteredData, (d: ChordLabelEnabledDataPoint) => d.data.identity.getKey())
                 : getIdentifier !== null
                     ? this.labels.selectAll(ChordChart.labelsClass.selector).data(filteredData, getIdentifier)
                     : this.labels.selectAll(ChordChart.labelsClass.selector).data(filteredData);
@@ -1126,7 +1177,7 @@ module powerbi.visuals.samples {
             var maxLabelWidth: number = (this.layout.viewportIn.width - this.radius * 2 - ChordChart.LabelMargin * 2)/1.6;
 
             return {
-                labelText: (d: DonutArcDescriptor) => {
+                labelText: (d: ChordLabelEnabledDataPoint) => {
                     // show only category label
                     return dataLabelUtils.getLabelFormattedText({
                         label: d.data.label,

@@ -157,6 +157,20 @@ module powerbitests.customVisuals {
                 });
             });
 
+            it("range text cut off with small screen size", (done) => {
+                let visualBuilder = new TimelineBuilder(300,500);
+                visualBuilder.update(dataView);
+                visualBuilder.currentPeriod = GranularityType.month;
+                helpers.renderTimeout(() => {
+                    visualBuilder.updateRenderTimeout(dataView, () => {
+                        let textLabels: JQuery = $(".selectionRangeContainer");
+                        let textRangeText = powerbitests.helpers.findElementText(textLabels);
+                        expect(textRangeText.indexOf('…') !== -1).toBe(true);
+                        done();
+                    });
+                });
+            });
+
             it("change color for selected cell color", (done) => {
                 dataView.metadata.objects = {};
                 visualBuilder.update(dataView);

@@ -1246,21 +1246,28 @@ module powerbitests {
             });
 
             it("Get_Viewport_Properties works", () => {
+                let innerRadiusFactor = 0.7;
+                let width = parseFloat(gaugeVisualDataBuilder.width);
+                let height = parseFloat(gaugeVisualDataBuilder.height);
+                let radius = width / 2;
+                let left = height / 2;
+                let top = radius + (height - radius) / 2; 
+                
                 let expectedViewPortProperty = {
-                    radius: 205,
-                    innerRadiusOfArc: 143.5,
-                    left: 250,
-                    top: 352.5,
-                    height: 460,
-                    width: 410,
+                    radius: radius,
+                    innerRadiusOfArc: radius * innerRadiusFactor,
+                    left: left,
+                    top: top,
+                    height: height,
+                    width: width,
+                    transformString: "translate(" + left + "," + top + ")",
+                    innerRadiusFactor: 0.7,
                     margin: {
-                        top: 20,
-                        bottom: 20,
-                        left: 45,
-                        right: 45
-                    },
-                    transformString: "translate(250,352.5)",
-                    innerRadiusFactor: 0.7
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0
+                    }
                 };
 
                 let viewPortProperty = gaugeVisualDataBuilder.gauge.getGaugeVisualProperties();
@@ -1358,22 +1365,6 @@ module powerbitests {
                 }, DefaultWaitForRender);
             });
 
-            it("onResizing aspect ratio check", (done) => {
-                gaugeVisualDataBuilder.values = [[10], [0], [300], [200]];
-                gaugeVisualDataBuilder.onDataChanged();
-                gaugeVisualDataBuilder.onResizing(100, 400);
-
-                setTimeout(() => {
-                    let foregroundArc = $(".foregroundArc");
-                    let path: string = foregroundArc.attr("d");
-                    
-                    // ensure the radius is correct
-                    expect(path.indexOf("A 60 60") > -1 || path.indexOf("A60,60") > -1 || path.indexOf("A60 60") > -1).toBeTruthy();
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
             it("check target uses its own format instead of metadata format.", (done) => {
                 gaugeVisualDataBuilder.dataViewMetadata.columns[0].objects = {
                     general: { formatString: "0.00" }
@@ -1454,10 +1445,10 @@ module powerbitests {
 
             let expectedViewPortProperty = {
                 margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 45,
-                    right: 45
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0
                 },
             };
 
@@ -1471,10 +1462,10 @@ module powerbitests {
 
             let expectedViewPortProperty = {
                 margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 45,
-                    right: 45
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0
                 },
             };
 
@@ -1489,10 +1480,10 @@ module powerbitests {
 
             let expectedViewPortProperty = {
                 margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 45,
-                    right: 45
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0
                 },
             };
 
@@ -1517,16 +1508,16 @@ module powerbitests {
             expect(viewPortProperty.margin).toEqual(expectedViewPortProperty.margin);
         });
 
-        it("Gauge margin test with height greater than width", () => {
+        it("Gauge margin test with no data labels should have no margins", () => {
             gaugeVisualDataBuilder.height = "200";
             gaugeVisualDataBuilder.width = "199";
 
             let expectedViewPortProperty = {
                 margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 15,
-                    right: 15
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0
                 },
             };
 
@@ -1543,17 +1534,9 @@ module powerbitests {
 
             gaugeVisualDataBuilder.onDataChanged();
 
-            let expectedViewPortProperty = {
-                margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 45,
-                    right: 15
-                },
-            };
-
             let viewPortProperty = gaugeVisualDataBuilder.gauge.getGaugeVisualProperties();
-            expect(viewPortProperty.margin).toEqual(expectedViewPortProperty.margin);
+            expect(viewPortProperty.margin.left).toEqual(0);
+            expect(viewPortProperty.margin.top).toEqual(20);
         });
 
         it("Gauge margin test with target on right and height greater than width", () => {
@@ -1565,17 +1548,9 @@ module powerbitests {
 
             gaugeVisualDataBuilder.onDataChanged();
 
-            let expectedViewPortProperty = {
-                margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 15,
-                    right: 45
-                },
-            };
-
             let viewPortProperty = gaugeVisualDataBuilder.gauge.getGaugeVisualProperties();
-            expect(viewPortProperty.margin).toEqual(expectedViewPortProperty.margin);
+            expect(viewPortProperty.margin.top).toEqual(20);
+            expect(viewPortProperty.margin.right).toEqual(0);
         });
 
         it("Gauge margin test with small width and target", () => {
@@ -1587,47 +1562,9 @@ module powerbitests {
 
             gaugeVisualDataBuilder.onDataChanged();
 
-            let expectedViewPortProperty = {
-                margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 15,
-                    right: 15
-                },
-            };
-
             let viewPortProperty = gaugeVisualDataBuilder.gauge.getGaugeVisualProperties();
-            expect(viewPortProperty.margin).toEqual(expectedViewPortProperty.margin);
-        });
-
-        it("Gauge with tick labels which fit and no target put labels on side", (done) => {
-            gaugeVisualDataBuilder.height = "200";
-            gaugeVisualDataBuilder.width = "400";
-
-            gaugeVisualDataBuilder.singleValue = 10;
-            gaugeVisualDataBuilder.values = [[-1], [-2], [0]];
-
-            gaugeVisualDataBuilder.onDataChanged();
-
-            let expectedViewPortProperty = {
-                margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 45,
-                    right: 45
-                },
-            };
-
-            let viewPortProperty = gaugeVisualDataBuilder.gauge.getGaugeVisualProperties();
-            expect(viewPortProperty.margin).toEqual(expectedViewPortProperty.margin);
-
-            setTimeout(() => {
-                let labels = $(".labelText");
-                expect(labels.eq(0).css('text-anchor')).toBe('end');
-                expect(labels.eq(1).css('text-anchor')).toBe('start');
-
-                done();
-            }, DefaultWaitForRender);
+            expect(viewPortProperty.margin.right).toEqual(0);
+            expect(viewPortProperty.margin.top).toEqual(0);
         });
 
         it("Gauge with very long minTick label and no target put labels on bottom", (done) => {
@@ -1639,17 +1576,9 @@ module powerbitests {
 
             gaugeVisualDataBuilder.onDataChanged();
 
-            let expectedViewPortProperty = {
-                margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 15,
-                    right: 15
-                },
-            };
-
             let viewPortProperty = gaugeVisualDataBuilder.gauge.getGaugeVisualProperties();
-            expect(viewPortProperty.margin).toEqual(expectedViewPortProperty.margin);
+            expect(viewPortProperty.margin.left).toEqual(0);
+            expect(viewPortProperty.margin.right).toEqual(0);
 
             setTimeout(() => {
                 let labels = $(".labelText");
@@ -1669,17 +1598,9 @@ module powerbitests {
 
             gaugeVisualDataBuilder.onDataChanged();
 
-            let expectedViewPortProperty = {
-                margin: {
-                    top: 20,
-                    bottom: 20,
-                    left: 15,
-                    right: 15
-                },
-            };
-
             let viewPortProperty = gaugeVisualDataBuilder.gauge.getGaugeVisualProperties();
-            expect(viewPortProperty.margin).toEqual(expectedViewPortProperty.margin);
+            expect(viewPortProperty.margin.left).toEqual(0);
+            expect(viewPortProperty.margin.right).toEqual(0);
 
             setTimeout(() => {
                 let labels = $(".labelText");

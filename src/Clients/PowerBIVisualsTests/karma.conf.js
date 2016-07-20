@@ -39,7 +39,7 @@ module.exports = function (config) {
         singleRun: true,
         client: {},
         browserDisconnectTimeout: 10 * 60 * 1000,    // defaults to 2000 ms
-        browserDisconnectTolerance: 0,   // defaults to 0 (i.e. no reconnects allowed)
+        browserDisconnectTolerance: 1,   // defaults to 0 (i.e. no reconnects allowed)
         browserNoActivityTimeout: 10 * 60 * 1000,   // defaults to 10000 ms
         proxies: {
             "/images/": "/base/images/"

@@ -28,43 +28,38 @@
 
 module powerbi.visuals.samples {
     import PixelConverter = jsCommon.PixelConverter;
-
-    export let bulletChartProps = {
-        values: {
-            targetValue: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'targetValue' },
-            minimumPercent: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'minimumPercent' },
-            needsImprovementPercent: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'needsImprovementPercent' },
-            satisfactoryPercent: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'satisfactoryPercent' },
-            goodPercent: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'goodPercent' },
-            veryGoodPercent: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'veryGoodPercent' },
-            maximumPercent: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'maximumPercent' },
-            targetValue2: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'targetValue2' },
-            secondTargetVisibility: <DataViewObjectPropertyIdentifier>{ objectName: 'values', propertyName: 'secondTargetVisibility' },
-        },
-        orientation: {
-            orientation: <DataViewObjectPropertyIdentifier>{ objectName: 'orientation', propertyName: 'orientation' },
-        },
-        colors: {
-            badColor: <DataViewObjectPropertyIdentifier>{ objectName: 'colors', propertyName: 'badColor' },
-            needsImprovementColor: <DataViewObjectPropertyIdentifier>{ objectName: 'colors', propertyName: 'needsImprovementColor' },
-            satisfactoryColor: <DataViewObjectPropertyIdentifier>{ objectName: 'colors', propertyName: 'satisfactoryColor' },
-            goodColor: <DataViewObjectPropertyIdentifier>{ objectName: 'colors', propertyName: 'goodColor' },
-            veryGoodColor: <DataViewObjectPropertyIdentifier>{ objectName: 'colors', propertyName: 'veryGoodColor' },
-            bulletColor: <DataViewObjectPropertyIdentifier>{ objectName: 'colors', propertyName: 'bulletColor' },
-        },
-        axis: {
-            axis: <DataViewObjectPropertyIdentifier>{ objectName: 'axis', propertyName: 'axis' },
-            axisColor: <DataViewObjectPropertyIdentifier>{ objectName: 'axis', propertyName: 'axisColor' },
-            measureUnits: <DataViewObjectPropertyIdentifier>{ objectName: 'axis', propertyName: 'measureUnits' },
-            unitsColor: <DataViewObjectPropertyIdentifier>{ objectName: 'axis', propertyName: 'unitsColor' },
-        },
-        formatString: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'formatString' },
-        labels: {
-            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'fontSize' },
-            show: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'show' },
-            labelColor: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'labelColor' }
-        }
-    };
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import VisualDataLabelsSettings = powerbi.visuals.VisualDataLabelsSettings;
+    import IEnumType = powerbi.IEnumType;
+    import createEnumType = powerbi.createEnumType;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import IVisual = powerbi.IVisual;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
+    import createDisplayNameGetter = powerbi.data.createDisplayNameGetter;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import IVisualHostServices = powerbi.IVisualHostServices;
+    import IViewport = powerbi.IViewport;
+    import TextProperties = powerbi.TextProperties;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import DataView = powerbi.DataView;
+    import DataViewObjects = powerbi.DataViewObjects;
+    import TextMeasurementService = powerbi.TextMeasurementService;
+    import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import DataViewScopeIdentity = powerbi.DataViewScopeIdentity;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import TooltipBuilder = powerbi.visuals.TooltipBuilder;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import appendClearCatcher = powerbi.visuals.appendClearCatcher;
+    import createInteractivityService = powerbi.visuals.createInteractivityService;
+    import TooltipManager = powerbi.visuals.TooltipManager;
+    import TooltipEvent = powerbi.visuals.TooltipEvent;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstance = powerbi.VisualObjectInstance;
+    import IInteractiveBehavior = powerbi.visuals.IInteractiveBehavior;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
 
     export interface BarData {
         scale: any;
@@ -102,41 +97,47 @@ module powerbi.visuals.samples {
         fifthScale: number;
     }
 
-    export interface BarValueRect extends BarRect {
+    export interface BarValueRect extends BarRect { }
+
+    export interface BulletChartValues {
+        targetValue: number;
+        minimumPercent: number;
+        needsImprovementPercent: number;
+        satisfactoryPercent: number;
+        goodPercent: number;
+        veryGoodPercent: number;
+        maximumPercent: number;
+        targetValue2: number;
+        secondTargetVisibility: boolean;
+    }
+
+    export interface BulletChartOrientation {
+        orientation: string;
+        reverse: boolean;
+        vertical: boolean;
+    }
+
+    export interface BulletChartColors {
+        badColor: string;
+        needsImprovementColor: string;
+        satisfactoryColor: string;
+        goodColor: string;
+        veryGoodColor: string;
+        bulletColor: string;
+    }
+
+    export interface BulletChartAxis {
+        axis: boolean;
+        axisColor: string;
+        measureUnits: string;
+        unitsColor: string;
     }
 
     export interface BulletChartSettings {
-        values: {
-            targetValue: number;
-            minimumPercent: number;
-            needsImprovementPercent: number;
-            satisfactoryPercent: number;
-            goodPercent: number;
-            veryGoodPercent: number;
-            maximumPercent: number;
-            targetValue2: number;
-            secondTargetVisibility: boolean;
-        };
-        orientation: {
-            orientation: string;
-            reverse: boolean;
-            vertical: boolean;
-        };
-        colors: {
-            badColor: string;
-            needsImprovementColor: string;
-            satisfactoryColor: string;
-            goodColor: string;
-            veryGoodColor: string;
-            bulletColor: string;
-        };
-
-        axis: {
-            axis: boolean;
-            axisColor: string;
-            measureUnits: string;
-            unitsColor: string;
-        };
+        values: BulletChartValues;
+        orientation: BulletChartOrientation;
+        colors: BulletChartColors;
+        axis: BulletChartAxis;
         labelSettings: VisualDataLabelsSettings;
     }
 
@@ -180,6 +181,53 @@ module powerbi.visuals.samples {
             { value: VERTICALBOTTOM, displayName: VERTICALBOTTOM }
         ]);
     }
+
+    export interface BulletChartProperty {
+        [propertyName: string]: DataViewObjectPropertyIdentifier;
+    }
+
+    export interface BulletChartProperties {
+        [propertyName: string]: BulletChartProperty;
+    }
+
+    export let bulletChartProps: BulletChartProperties = {
+        values: {
+            targetValue: { objectName: 'values', propertyName: 'targetValue' },
+            minimumPercent: { objectName: 'values', propertyName: 'minimumPercent' },
+            needsImprovementPercent: { objectName: 'values', propertyName: 'needsImprovementPercent' },
+            satisfactoryPercent: { objectName: 'values', propertyName: 'satisfactoryPercent' },
+            goodPercent: { objectName: 'values', propertyName: 'goodPercent' },
+            veryGoodPercent: { objectName: 'values', propertyName: 'veryGoodPercent' },
+            maximumPercent: { objectName: 'values', propertyName: 'maximumPercent' },
+            targetValue2: { objectName: 'values', propertyName: 'targetValue2' },
+            secondTargetVisibility: { objectName: 'values', propertyName: 'secondTargetVisibility' },
+        },
+        orientation: {
+            orientation: { objectName: 'orientation', propertyName: 'orientation' },
+        },
+        colors: {
+            badColor: { objectName: 'colors', propertyName: 'badColor' },
+            needsImprovementColor: { objectName: 'colors', propertyName: 'needsImprovementColor' },
+            satisfactoryColor: { objectName: 'colors', propertyName: 'satisfactoryColor' },
+            goodColor: { objectName: 'colors', propertyName: 'goodColor' },
+            veryGoodColor: { objectName: 'colors', propertyName: 'veryGoodColor' },
+            bulletColor: { objectName: 'colors', propertyName: 'bulletColor' },
+        },
+        axis: {
+            axis: { objectName: 'axis', propertyName: 'axis' },
+            axisColor: { objectName: 'axis', propertyName: 'axisColor' },
+            measureUnits: { objectName: 'axis', propertyName: 'measureUnits' },
+            unitsColor: { objectName: 'axis', propertyName: 'unitsColor' },
+        },
+        general: {
+            formatString: { objectName: 'general', propertyName: 'formatString' },
+        },
+        labels: {
+            fontSize: { objectName: 'labels', propertyName: 'fontSize' },
+            show: { objectName: 'labels', propertyName: 'show' },
+            labelColor: { objectName: 'labels', propertyName: 'labelColor' }
+        }
+    };
 
     export class BulletChart implements IVisual {
         private static ScrollBarSize = 22;
@@ -249,7 +297,7 @@ module powerbi.visuals.samples {
             ],
             objects: {
                 general: {
-                    displayName: data.createDisplayNameGetter('Visual_General'),
+                    displayName: createDisplayNameGetter('Visual_General'),
                     properties: {
                         formatString: {
                             type: { formatting: { formatString: true } },
@@ -301,16 +349,16 @@ module powerbi.visuals.samples {
                     displayName: 'Category labels',
                     properties: {
                         show: {
-                            displayName: data.createDisplayNameGetter('Visual_Show'),
+                            displayName: createDisplayNameGetter('Visual_Show'),
                             type: { bool: true },
                         },
                         labelColor: {
-                            displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
-                            description: data.createDisplayNameGetter('Visual_LabelsFillDescription'),
+                            displayName: createDisplayNameGetter('Visual_LabelsFill'),
+                            description: createDisplayNameGetter('Visual_LabelsFillDescription'),
                             type: { fill: { solid: { color: true } } }
                         },
                         fontSize: {
-                            displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                            displayName: createDisplayNameGetter('Visual_TextSize'),
                             type: { formatting: { fontSize: true } },
                         },
                     },
@@ -517,34 +565,34 @@ module powerbi.visuals.samples {
             let settings = bulletModel.bulletChartSettings;
 
             if (objects) {
-                settings.values.targetValue = DataViewObjects.getValue<number>(objects, bulletChartProps.values.targetValue, defaultSettings.values.targetValue);
-                settings.values.targetValue2 = DataViewObjects.getValue<number>(objects, bulletChartProps.values.targetValue2, defaultSettings.values.targetValue2);
-                settings.values.secondTargetVisibility = DataViewObjects.getValue<boolean>(objects, bulletChartProps.values.secondTargetVisibility, defaultSettings.values.secondTargetVisibility);
-                settings.values.minimumPercent = DataViewObjects.getValue<number>(objects, bulletChartProps.values.minimumPercent, defaultSettings.values.minimumPercent);
-                settings.values.needsImprovementPercent = DataViewObjects.getValue<number>(objects, bulletChartProps.values.needsImprovementPercent, defaultSettings.values.needsImprovementPercent);
-                settings.values.satisfactoryPercent = DataViewObjects.getValue<number>(objects, bulletChartProps.values.satisfactoryPercent, defaultSettings.values.satisfactoryPercent);
-                settings.values.goodPercent = DataViewObjects.getValue<number>(objects, bulletChartProps.values.goodPercent, defaultSettings.values.goodPercent);
-                settings.values.veryGoodPercent = DataViewObjects.getValue<number>(objects, bulletChartProps.values.veryGoodPercent, defaultSettings.values.veryGoodPercent);
-                settings.values.maximumPercent = DataViewObjects.getValue<number>(objects, bulletChartProps.values.maximumPercent, defaultSettings.values.maximumPercent);
+                settings.values.targetValue = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["targetValue"], defaultSettings.values.targetValue);
+                settings.values.targetValue2 = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["targetValue2"], defaultSettings.values.targetValue2);
+                settings.values.secondTargetVisibility = DataViewObjects.getValue<boolean>(objects, bulletChartProps["values"]["secondTargetVisibility"], defaultSettings.values.secondTargetVisibility);
+                settings.values.minimumPercent = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["minimumPercent"], defaultSettings.values.minimumPercent);
+                settings.values.needsImprovementPercent = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["needsImprovementPercent"], defaultSettings.values.needsImprovementPercent);
+                settings.values.satisfactoryPercent = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["satisfactoryPercent"], defaultSettings.values.satisfactoryPercent);
+                settings.values.goodPercent = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["goodPercent"], defaultSettings.values.goodPercent);
+                settings.values.veryGoodPercent = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["veryGoodPercent"], defaultSettings.values.veryGoodPercent);
+                settings.values.maximumPercent = DataViewObjects.getValue<number>(objects, bulletChartProps["values"]["maximumPercent"], defaultSettings.values.maximumPercent);
 
-                settings.orientation.orientation = DataViewObjects.getValue<string>(objects, bulletChartProps.orientation.orientation, defaultSettings.orientation.orientation);
+                settings.orientation.orientation = DataViewObjects.getValue<string>(objects, bulletChartProps["orientation"]["orientation"], defaultSettings.orientation.orientation);
 
-                settings.colors.badColor = DataViewObjects.getFillColor(objects, bulletChartProps.colors.badColor, defaultSettings.colors.badColor);
-                settings.colors.needsImprovementColor = DataViewObjects.getFillColor(objects, bulletChartProps.colors.needsImprovementColor, defaultSettings.colors.needsImprovementColor);
-                settings.colors.satisfactoryColor = DataViewObjects.getFillColor(objects, bulletChartProps.colors.satisfactoryColor, defaultSettings.colors.satisfactoryColor);
-                settings.colors.goodColor = DataViewObjects.getFillColor(objects, bulletChartProps.colors.goodColor, defaultSettings.colors.goodColor);
-                settings.colors.veryGoodColor = DataViewObjects.getFillColor(objects, bulletChartProps.colors.veryGoodColor, defaultSettings.colors.veryGoodColor);
-                settings.colors.bulletColor = DataViewObjects.getFillColor(objects, bulletChartProps.colors.bulletColor, defaultSettings.colors.bulletColor);
+                settings.colors.badColor = DataViewObjects.getFillColor(objects, bulletChartProps["colors"]["badColor"], defaultSettings.colors.badColor);
+                settings.colors.needsImprovementColor = DataViewObjects.getFillColor(objects, bulletChartProps["colors"]["needsImprovementColor"], defaultSettings.colors.needsImprovementColor);
+                settings.colors.satisfactoryColor = DataViewObjects.getFillColor(objects, bulletChartProps["colors"]["satisfactoryColor"], defaultSettings.colors.satisfactoryColor);
+                settings.colors.goodColor = DataViewObjects.getFillColor(objects, bulletChartProps["colors"]["goodColor"], defaultSettings.colors.goodColor);
+                settings.colors.veryGoodColor = DataViewObjects.getFillColor(objects, bulletChartProps["colors"]["veryGoodColor"], defaultSettings.colors.veryGoodColor);
+                settings.colors.bulletColor = DataViewObjects.getFillColor(objects, bulletChartProps["colors"]["bulletColor"], defaultSettings.colors.bulletColor);
 
-                settings.axis.axis = DataViewObjects.getValue<boolean>(objects, bulletChartProps.axis.axis, defaultSettings.axis.axis);
-                settings.axis.axisColor = DataViewObjects.getFillColor(objects, bulletChartProps.axis.axisColor, defaultSettings.axis.axisColor);
+                settings.axis.axis = DataViewObjects.getValue<boolean>(objects, bulletChartProps["axis"]["axis"], defaultSettings.axis.axis);
+                settings.axis.axisColor = DataViewObjects.getFillColor(objects, bulletChartProps["axis"]["axisColor"], defaultSettings.axis.axisColor);
                 settings.axis.measureUnits = TextMeasurementService.getTailoredTextOrDefault(BulletChart.getTextProperties(
-                    DataViewObjects.getValue<string>(objects, bulletChartProps.axis.measureUnits, defaultSettings.axis.measureUnits), BulletChart.DefaultSubtitleFontSizeInPt), BulletChart.MaxLabelWidth);
-                settings.axis.unitsColor = DataViewObjects.getFillColor(objects, bulletChartProps.axis.unitsColor, defaultSettings.axis.unitsColor);
+                    DataViewObjects.getValue<string>(objects, bulletChartProps["axis"]["measureUnits"], defaultSettings.axis.measureUnits), BulletChart.DefaultSubtitleFontSizeInPt), BulletChart.MaxLabelWidth);
+                settings.axis.unitsColor = DataViewObjects.getFillColor(objects, bulletChartProps["axis"]["unitsColor"], defaultSettings.axis.unitsColor);
 
-                settings.labelSettings.fontSize = DataViewObjects.getValue<number>(objects, bulletChartProps.labels.fontSize, defaultSettings.labelSettings.fontSize);
-                settings.labelSettings.show = DataViewObjects.getValue<boolean>(objects, bulletChartProps.labels.show, defaultSettings.labelSettings.show);
-                settings.labelSettings.labelColor = DataViewObjects.getFillColor(objects, bulletChartProps.labels.labelColor, defaultSettings.labelSettings.labelColor);
+                settings.labelSettings.fontSize = DataViewObjects.getValue<number>(objects, bulletChartProps["labels"]["fontSize"], defaultSettings.labelSettings.fontSize);
+                settings.labelSettings.show = DataViewObjects.getValue<boolean>(objects, bulletChartProps["labels"]["show"], defaultSettings.labelSettings.show);
+                settings.labelSettings.labelColor = DataViewObjects.getFillColor(objects, bulletChartProps["labels"]["labelColor"], defaultSettings.labelSettings.labelColor);
             }
             if (settings.orientation.orientation === Orientation.HORIZONTALRIGHT || settings.orientation.orientation === Orientation.VERTICALBOTTOM)
                 settings.orientation.reverse = true;
@@ -561,13 +609,13 @@ module powerbi.visuals.samples {
                 categories = dataView.categorical.categories[0];
                 categoryValues = categories.values;
                 categoryValuesLen = categoryValues.length;
-                categoryFormatString = valueFormatter.getFormatString(categories.source, bulletChartProps.formatString);
+                categoryFormatString = valueFormatter.getFormatString(categories.source, bulletChartProps["general"]["formatString"]);
             }
 
             bulletModel.labelHeight = (settings.labelSettings.show || 0) && parseFloat(PixelConverter.fromPoint(settings.labelSettings.fontSize));
-            bulletModel.labelHeightTop = (settings.labelSettings.show || 0) && parseFloat(PixelConverter.fromPoint(settings.labelSettings.fontSize))/1.4;
+            bulletModel.labelHeightTop = (settings.labelSettings.show || 0) && parseFloat(PixelConverter.fromPoint(settings.labelSettings.fontSize)) / 1.4;
             bulletModel.spaceRequiredForBarHorizontally = Math.max(60, bulletModel.labelHeight + 20);
-            bulletModel.bulletValueFormatString = valueFormatter.getFormatString(dataView.categorical.values[0].source, bulletChartProps.formatString);
+            bulletModel.bulletValueFormatString = valueFormatter.getFormatString(dataView.categorical.values[0].source, bulletChartProps["general"]["formatString"]);
             bulletModel.viewportLength = (settings.orientation.vertical
                 ? (options.viewport.height - bulletModel.labelHeightTop - BulletChart.SubtitleMargin - 20 - BulletChart.YMarginVertical * 2)
                 : (options.viewport.width - BulletChart.MaxLabelWidth - BulletChart.XMarginHorizontal * 3)) - BulletChart.ScrollBarSize;
@@ -711,14 +759,14 @@ module powerbi.visuals.samples {
                     start: start,
                     end: end,
                     fill: fill,
-                    tooltipInfo: TooltipBuilder.createTooltipInfo(bulletChartProps.formatString, null, null, null, null, tooltipInfo),
+                    tooltipInfo: TooltipBuilder.createTooltipInfo(bulletChartProps["general"]["formatString"], null, null, null, null, tooltipInfo),
                     selected: false,
                     identity: SelectionId.createWithId(categoryIdentity),
                     key: SelectionId.createWithIdAndMeasure(categoryIdentity, start + " " + end).getKey(),
                     highlight: highlight,
                 });
         }
- 
+
         /* One time setup*/
         public init(options: VisualInitOptions): void {
             let body = d3.select(options.element.get(0));
@@ -831,7 +879,7 @@ module powerbi.visuals.samples {
                 'height': BulletChart.BulletSize,
             }).classed('range', true).style({
                 'fill': (d: BarRect) => d.fill,
-                'opacity': (d: BarRect) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
+                'opacity': (d: BarRect) => bulletChartUtils.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
             });
 
             rectSelection.exit();
@@ -845,7 +893,7 @@ module powerbi.visuals.samples {
                 'height': BulletChart.BulletSize * 1 / 4,
             }).classed('value', true).style({
                 'fill': (d: BarValueRect) => d.fill,
-                'opacity': (d: BarRect) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
+                'opacity': (d: BarRect) => bulletChartUtils.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
             });
 
             valueSelection.exit();
@@ -900,7 +948,7 @@ module powerbi.visuals.samples {
                 barSelection.enter().append('text').classed("title", true).attr({
                     'x': ((d: BarData) => {
                         if (reveresed)
-							return BulletChart.XMarginHorizontal * 2 + model.viewportLength;
+                            return BulletChart.XMarginHorizontal * 2 + model.viewportLength;
                         return d.x;
                     }),
                     'y': ((d: BarData) => d.y + this.baselineDelta),
@@ -921,7 +969,7 @@ module powerbi.visuals.samples {
                             return BulletChart.XMarginHorizontal * 2 + model.viewportLength + BulletChart.SubtitleMargin;
                         return d.x - BulletChart.SubtitleMargin;
                     }),
-                    'y': ((d: BarData) => d.y + this.model.labelHeight/2 + 12),
+                    'y': ((d: BarData) => d.y + this.model.labelHeight / 2 + 12),
                     'fill': model.bulletChartSettings.axis.unitsColor,
                     'font-size': PixelConverter.fromPoint(BulletChart.DefaultSubtitleFontSizeInPt)
                 }).text(measureUnitsText);
@@ -965,7 +1013,7 @@ module powerbi.visuals.samples {
                 'width': BulletChart.BulletSize,
             }).classed('range', true).style({
                 'fill': (d: BarRect) => d.fill,
-                'opacity': (d: BarRect) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
+                'opacity': (d: BarRect) => bulletChartUtils.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
             });
 
             rectSelection.exit();
@@ -979,7 +1027,7 @@ module powerbi.visuals.samples {
                 'width': BulletChart.BulletSize * 1 / 4,
             }).classed('value', true).style({
                 'fill': (d: BarValueRect) => d.fill,
-                'opacity': (d: BarRect) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
+                'opacity': (d: BarRect) => bulletChartUtils.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights),
             });
 
             valueSelection.exit();
@@ -1001,7 +1049,7 @@ module powerbi.visuals.samples {
 
             if (model.bulletChartSettings.values.secondTargetVisibility) {
                 this.drawSecondTarget(markerSelection.enter(),
-                    (d: TargetValue) => bars[d.barIndex].x  + BulletChart.BulletSize / 3 + BulletChart.BulletSize/8,
+                    (d: TargetValue) => bars[d.barIndex].x + BulletChart.BulletSize / 3 + BulletChart.BulletSize / 8,
                     (d: TargetValue) => this.calculateLabelHeight(bars[d.barIndex], null, reveresed) + d.value2);
             }
 
@@ -1030,7 +1078,7 @@ module powerbi.visuals.samples {
                 }
             }
 
-			let labelsStartPos = BulletChart.YMarginVertical + (reveresed ? model.viewportLength + 15 : 0) + this.model.labelHeightTop;
+            let labelsStartPos = BulletChart.YMarginVertical + (reveresed ? model.viewportLength + 15 : 0) + this.model.labelHeightTop;
 
             // Draw Labels
             if (model.bulletChartSettings.labelSettings.show) {
@@ -1045,7 +1093,7 @@ module powerbi.visuals.samples {
             }
 
             let measureUnitsText = TextMeasurementService.getTailoredTextOrDefault(
-                BulletChart.getTextProperties(model.bulletChartSettings.axis.measureUnits,BulletChart.DefaultSubtitleFontSizeInPt),
+                BulletChart.getTextProperties(model.bulletChartSettings.axis.measureUnits, BulletChart.DefaultSubtitleFontSizeInPt),
                 BulletChart.MaxMeasureUnitWidth);
 
             // Draw measure label
@@ -1083,8 +1131,8 @@ module powerbi.visuals.samples {
             selection: D3.EnterSelection,
             getX: (d: TargetValue) => number,
             getY: (d: TargetValue) => number): void {
-            
-            let targetStyle = { 
+
+            let targetStyle = {
                 'stroke': ((d: TargetValue) => d.fill),
                 'stroke-width': 2
             };
@@ -1309,10 +1357,21 @@ module powerbi.visuals.samples {
             let hasHighlights = options.hasHighlights;
 
             options.valueRects.style("opacity", (d: BarValueRect) =>
-                ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights));
+                bulletChartUtils.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights));
 
             options.rects.style("opacity", (d: BarRect) =>
-                ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights));
+                bulletChartUtils.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights));
+        }
+    }
+
+    export module bulletChartUtils {
+        export var DimmedOpacity: number = 0.4;
+        export var DefaultOpacity: number = 1.0;
+
+        export function getFillOpacity(selected: boolean, highlight: boolean, hasSelection: boolean, hasPartialHighlights: boolean): number {
+            if ((hasPartialHighlights && !highlight) || (hasSelection && !selected))
+                return DimmedOpacity;
+            return DefaultOpacity;
         }
     }
 }

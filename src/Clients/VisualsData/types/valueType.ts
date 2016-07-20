@@ -96,8 +96,9 @@ module powerbi {
             }
             if (descriptor.enumeration) return ValueType.fromEnum(descriptor.enumeration);
             if (descriptor.temporal) {
-                if (descriptor.temporal.year) return ValueType.fromExtendedType(ExtendedType.Year_Integer);
-                if (descriptor.temporal.month) return ValueType.fromExtendedType(ExtendedType.Month_Integer);
+                if (descriptor.temporal.year) return ValueType.fromExtendedType(ExtendedType.Years_Integer);
+                if (descriptor.temporal.month) return ValueType.fromExtendedType(ExtendedType.Months_Integer);
+                if (descriptor.temporal.paddedDateTableDate) return ValueType.fromExtendedType(ExtendedType.PaddedDateTableDates);
             }
             if (descriptor.geography) {
                 if (descriptor.geography.address) return ValueType.fromExtendedType(ExtendedType.Address);
@@ -317,10 +318,13 @@ module powerbi {
         }
 
         public get year(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Year);
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Years);
         }
         public get month(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Month);
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Months);
+        }
+        public get paddedDateTableDate(): boolean {
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.PaddedDateTableDates);
         }
     }
 
@@ -468,16 +472,17 @@ module powerbi {
 
         // Extended types (0-32767 << 16 range [0xFFFF0000] | corresponding primitive type | flags)
         // Temporal
-        Year = Temporal | (1 << 16),
-        Year_Text = Year | Text,
-        Year_Integer = Year | Integer,
-        Year_Date = Year | Date,
-        Year_DateTime = Year | DateTime,
-        Month = Temporal | (2 << 16),
-        Month_Text = Month | Text,
-        Month_Integer = Month | Integer,
-        Month_Date = Month | Date,
-        Month_DateTime = Month | DateTime,
+        Years = Temporal | (1 << 16),
+        Years_Text = Years | Text,
+        Years_Integer = Years | Integer,
+        Years_Date = Years | Date,
+        Years_DateTime = Years | DateTime,
+        Months = Temporal | (2 << 16),
+        Months_Text = Months | Text,
+        Months_Integer = Months | Integer,
+        Months_Date = Months | Date,
+        Months_DateTime = Months | DateTime,
+        PaddedDateTableDates = Temporal | DateTime | (3 << 16),
         // Geography
         Address = Text | Geography | (100 << 16),
         City = Text | Geography | (101 << 16),

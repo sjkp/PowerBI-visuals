@@ -4,7 +4,7 @@
     "package": {
         "name": "StreamGraph",
         "displayName": "Stream Graph",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "guid": "StreamGraph1446659696222",
         "description": "A stacked area chart with smooth interpolation. Often used to display values over time.",
         "build": "13.0.1100.210",

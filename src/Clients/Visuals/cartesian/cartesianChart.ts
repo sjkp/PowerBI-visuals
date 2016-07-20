@@ -114,7 +114,6 @@ module powerbi.visuals {
         isLabelInteractivityEnabled?: boolean;
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
-        cartesianLoadMoreEnabled?: boolean;
         trimOrdinalDataOnOverflow?: boolean;
         advancedLineLabelsEnabled?: boolean;
     }
@@ -144,7 +143,6 @@ module powerbi.visuals {
         isLabelInteractivityEnabled?: boolean;
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
-        cartesianLoadMoreEnabled?: boolean;
         advancedLineLabelsEnabled?: boolean;
     }
 
@@ -299,7 +297,6 @@ module powerbi.visuals {
         private isLabelInteractivityEnabled: boolean;
         private tooltipsEnabled: boolean;
         private tooltipBucketEnabled: boolean;
-        private cartesianLoadMoreEnabled: boolean;
         private trimOrdinalDataOnOverflow: boolean;
         private isMobileChart: boolean;
         private advancedLineLabelsEnabled: boolean;
@@ -343,7 +340,6 @@ module powerbi.visuals {
             if (options) {
                 this.tooltipsEnabled = options.tooltipsEnabled;
                 this.tooltipBucketEnabled = options.tooltipBucketEnabled;
-                this.cartesianLoadMoreEnabled = options.cartesianLoadMoreEnabled;
                 this.type = options.chartType;
                 this.isLabelInteractivityEnabled = options.isLabelInteractivityEnabled;
                 this.advancedLineLabelsEnabled = options.advancedLineLabelsEnabled;
@@ -521,22 +517,20 @@ module powerbi.visuals {
                             transparency: DataViewObjects.getValue(dataView.metadata.objects, scatterChartProps.plotArea.transparency, visualBackgroundHelper.getDefaultTransparency()),
                         };
                         
-                        if (this.cartesianLoadMoreEnabled) {
-                            let isScalar = true;
-                            let categoryColumn = dataView && dataView.categorical && _.first(dataView.categorical.categories);
+                        let isScalar = true;
+                        let categoryColumn = dataView && dataView.categorical && _.first(dataView.categorical.categories);
 
-                            if (categoryColumn && categoryColumn.source) {
-                                isScalar = visuals.CartesianChart.getIsScalar(dataView.metadata.objects, visuals.columnChartProps.categoryAxis.axisType, categoryColumn.source.type);
-                            }
+                        if (categoryColumn && categoryColumn.source) {
+                            isScalar = visuals.CartesianChart.getIsScalar(dataView.metadata.objects, visuals.columnChartProps.categoryAxis.axisType, categoryColumn.source.type);
+                        }
 
-                            // Clear the load more handler if we're scalar and there's an existing handler. 
-                            // Setup a handler if we're categorical and don't have one.
-                            if (isScalar && this.loadMoreDataHandler) {
-                                this.loadMoreDataHandler = null;
-                            }
-                            else if (!isScalar && !this.loadMoreDataHandler) {
-                                this.loadMoreDataHandler = new CartesianLoadMoreDataHandler(null, this.hostServices.loadMoreData, CartesianChart.LoadMoreThreshold);
-                            }
+                        // Clear the load more handler if we're scalar and there's an existing handler. 
+                        // Setup a handler if we're categorical and don't have one.
+                        if (isScalar && this.loadMoreDataHandler) {
+                            this.loadMoreDataHandler = null;
+                        }
+                        else if (!isScalar && !this.loadMoreDataHandler) {
+                            this.loadMoreDataHandler = new CartesianLoadMoreDataHandler(null, this.hostServices.loadMoreData, CartesianChart.LoadMoreThreshold);
                         }
                     }
                 }
@@ -876,8 +870,7 @@ module powerbi.visuals {
                 this.axes.isScrollable,
                 this.tooltipsEnabled,
                 this.tooltipBucketEnabled,
-                this.advancedLineLabelsEnabled,
-                this.cartesianLoadMoreEnabled);
+                this.advancedLineLabelsEnabled);
 
             // Initialize the layers
             let cartesianOptions = <CartesianVisualInitOptions>Prototype.inherit(this.visualInitOptions);
@@ -1525,37 +1518,64 @@ module powerbi.visuals {
         }
         
         /**
-         * Makes the necessary changes to the mapping if load more data is enabled for cartesian charts. Usually called during `customizeQuery`.
+         * Expands the category data reduction algorithm window if there are no series in any of the data view mappings.
          */
-        public static applyLoadMoreEnabledToMapping(cartesianLoadMoreEnabled: boolean, mapping: powerbi.data.CompiledDataViewMapping): void {
-            const CartesianLoadMoreCategoryWindowCount: number = 100;
-            const CartesianLoadMoreValueTopCount: number = 60;
+        public static expandCategoryWindow(mappings: powerbi.data.CompiledDataViewMapping[]): void {
+            const NoSeriesWindowCount: number = 1000;
 
-            if (!cartesianLoadMoreEnabled) {
+            if (!shouldExpandCategoryWindow(mappings)) {
                 return;
             }
 
-            let categorical = mapping.categorical;
+            for (let mapping of mappings) {
+                if (!mapping.categorical) {
+                    return;
+                }
 
-            if (!categorical) {
-                return;
-            }
+                let categories = <data.CompiledDataViewRoleForMappingWithReduction>mapping.categorical.categories;
 
-            let categories = <data.CompiledDataViewRoleForMappingWithReduction>categorical.categories;
-            let values = <data.CompiledDataViewGroupedRoleMapping>categorical.values;
+                if (!categories) {
+                    return;
+                }
 
-            if (categories) {
+                debug.assertValue(categories.dataReductionAlgorithm, 'categories does not have dataReductionAlgorithm');
+                debug.assertValue(categories.dataReductionAlgorithm.window, 'dataReductionAlgorithm does not have a window');
+
                 categories.dataReductionAlgorithm = {
-                    window: { count: CartesianLoadMoreCategoryWindowCount }
-                };
-            }
-
-            if (values && values.group) {
-                values.group.dataReductionAlgorithm = {
-                    top: { count: CartesianLoadMoreValueTopCount }
+                    window: { count: NoSeriesWindowCount }
                 };
             }
         }
+    }
+
+    /**
+     * Determines if the category window should be expanded. The window should be expanded if there are no series in any of the data view mappings.
+     */
+    function shouldExpandCategoryWindow(mappings: powerbi.data.CompiledDataViewMapping[]): boolean {
+        if (_.isEmpty(mappings)) {
+            return false;
+        }
+
+        // Check if any of the mappings have series
+        let hasSeries = _.any(mappings, (mapping: powerbi.data.CompiledDataViewMapping): boolean => {
+            let categorical = mapping.categorical;
+
+            if (!categorical) {
+                return false;
+            }
+
+            let categories = <data.CompiledDataViewRoleForMappingWithReduction>categorical.categories;
+
+            if (!categories) {
+                return false;
+            }
+
+            let values = <data.CompiledDataViewGroupedRoleMapping>categorical.values;
+
+            return !!(values && values.group && values.group.by && !_.isEmpty(values.group.by.items));
+        });
+
+        return !hasSeries;
     }
 
     function getLayerDataViews(dataViews: DataView[]): DataView[] {
@@ -1675,6 +1695,12 @@ module powerbi.visuals {
         private isHorizontal: boolean;
         private brushStartExtent: number[];
 
+        private static events = {
+            brushStart: 'brushstart',
+            brush: 'brush',
+            brushEnd: 'brushend'
+        };
+
         private static Brush = createClassAndSelector('brush');
 
         constructor(brushWidth: number) {
@@ -1688,6 +1714,11 @@ module powerbi.visuals {
 
         public remove(): void {
             this.element.selectAll(SvgBrush.Brush.selector).remove();
+            // Remove the listeners
+            this.brush
+                .on(SvgBrush.events.brushStart, null)
+                .on(SvgBrush.events.brush, null)
+                .on(SvgBrush.events.brushEnd, null);
             this.brushGraphicsContext = undefined;
         }
 
@@ -1726,11 +1757,11 @@ module powerbi.visuals {
             
             // events
             this.brush
-                .on("brushstart", () => this.brushStartExtent = this.brush.extent())
-                .on("brush", () => {
+                .on(SvgBrush.events.brushStart, () => this.brushStartExtent = this.brush.extent())
+                .on(SvgBrush.events.brush, () => {
                     window.requestAnimationFrame(scrollCallback);
                 })
-                .on("brushend", () => {
+                .on(SvgBrush.events.brushEnd, () => {
                     this.resizeExtent(extentLength);
                     this.updateExtentPosition(extentLength);
                     this.brushStartExtent = null;
@@ -1836,6 +1867,11 @@ module powerbi.visuals {
 
             let domain = scrollScale.domain();
             selected = domain.slice(startIndex, endIndex); // NOTE: Up to but not including 'end'
+
+            if (_.isEqual(selected, mainAxisScale.domain())) {
+                return; //no need to do any more work
+            }
+
             if (selected && selected.length > 0) {
                 for (let i = 0; i < layers.length; i++) {
                     data[i] = layers[i].setFilteredData(selected[0], selected[selected.length - 1] + 1);
@@ -1961,6 +1997,8 @@ module powerbi.visuals {
             // This function will be called whenever we scroll.
             let renderOnScroll = (extent: number[], suppressAnimations: boolean) => {
                 let dataRange = this.filterDataToViewport(this.axisScale, layers, axesLayout.axes, this.scrollScale, extent, numVisibleCategories);
+                if (dataRange == null)
+                    return;
                 
                 if (loadMoreDataHandler) {
                     loadMoreDataHandler.viewportDataRange = dataRange;
@@ -2488,7 +2526,6 @@ module powerbi.visuals {
             }
         }
 
-        // Margin convention: http://bl.ocks.org/mbostock/3019563
         private translateAxes(viewport: IViewport, margin: IMargin): void {
             let width = viewport.width - (margin.left + margin.right);
             let height = viewport.height - (margin.top + margin.bottom);
@@ -3165,8 +3202,7 @@ module powerbi.visuals {
             isScrollable: boolean = false,
             tooltipsEnabled?: boolean,
             tooltipBucketEnabled?: boolean,
-            advancedLineLabelsEnabled?: boolean,
-            cartesianLoadMoreEnabled?: boolean): ICartesianVisual[] {
+            advancedLineLabelsEnabled?: boolean): ICartesianVisual[] {
 
             let layers: ICartesianVisual[] = [];
 
@@ -3176,8 +3212,7 @@ module powerbi.visuals {
                 interactivityService: interactivityService,
                 tooltipsEnabled: tooltipsEnabled,
                 tooltipBucketEnabled: tooltipBucketEnabled,
-                advancedLineLabelsEnabled: advancedLineLabelsEnabled,
-                cartesianLoadMoreEnabled: cartesianLoadMoreEnabled
+                advancedLineLabelsEnabled: advancedLineLabelsEnabled
             };
 
             switch (type) {
@@ -3254,8 +3289,7 @@ module powerbi.visuals {
                 tooltipsEnabled: !isTrendLayer && defaultOptions.tooltipsEnabled,
                 tooltipBucketEnabled: defaultOptions.tooltipBucketEnabled,
                 chartType: type,
-                advancedLineLabelsEnabled: defaultOptions.advancedLineLabelsEnabled,
-                cartesianLoadMoreEnabled: defaultOptions.cartesianLoadMoreEnabled,
+                advancedLineLabelsEnabled: defaultOptions.advancedLineLabelsEnabled
             };
 
             if (inComboChart) {
@@ -3285,7 +3319,6 @@ module powerbi.visuals {
                 isScrollable: defaultOptions.isScrollable,
                 tooltipsEnabled: defaultOptions.tooltipsEnabled,
                 tooltipBucketEnabled: defaultOptions.tooltipBucketEnabled,
-                cartesianLoadMoreEnabled: defaultOptions.cartesianLoadMoreEnabled,
                 chartType: type
             };
             return new ColumnChart(options);

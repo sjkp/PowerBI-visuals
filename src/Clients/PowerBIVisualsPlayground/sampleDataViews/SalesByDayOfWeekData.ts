@@ -149,7 +149,7 @@ module powerbi.visuals.sampleDataViews {
                         isMeasure: true,
                         queryName: 'temp2',
                         type: powerbi.ValueType.fromDescriptor({ numeric: true }),
-                        roles: { Y: true }
+                        roles: { Y2: true }
                     }
                 ]
             };

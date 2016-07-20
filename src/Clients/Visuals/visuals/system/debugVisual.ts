@@ -37,7 +37,25 @@ module powerbi.visuals.system {
     }
 
     export class DebugVisual implements IVisual {
-        public static capabilities: VisualCapabilities = {};
+        public static defaultCapabilities: VisualCapabilities = {
+            dataRoles: [
+                {
+                    displayName: 'Values',
+                    name: 'Values',
+                    kind: VisualDataRoleKind.Measure
+                },
+            ],
+            dataViewMappings: [
+                {
+                    table: {
+                        rows: {
+                            for: { in: 'Values' }
+                        }
+                    },
+                }
+            ],
+        };
+        public static capabilities: VisualCapabilities = DebugVisual.defaultCapabilities;
 
         private static autoReloadPollTime = 300;
         private static errorMessageTemplate = `
@@ -89,7 +107,7 @@ module powerbi.visuals.system {
                     type: 'blockedsite'
                 });
                 this.container.html(errorMessage);
-                this.setCapabilities({});
+                this.setCapabilities();
                 return;
             }
 
@@ -118,7 +136,7 @@ module powerbi.visuals.system {
                         type: 'repair'
                     });
                     this.container.html(errorMessage);
-                    this.setCapabilities({});
+                    this.setCapabilities();
                     return;
                 }
 
@@ -136,14 +154,14 @@ module powerbi.visuals.system {
 
                     //loaded separately for sourcemap support
                     $.getScript(baseUrl + 'visual.js').done(() => {
-                        debug.assertValue(powerbi.visuals.plugins[this.visualGuid], "DebugVisual - Plugin not found");
-                        if (!powerbi.visuals.plugins[this.visualGuid]) {
+                        debug.assertValue(plugins[this.visualGuid], "DebugVisual - Plugin not found");
+                        if (!plugins[this.visualGuid]) {
                             return;
                         }
                         //attach json capabilities to plugin
-                        powerbi.visuals.plugins[this.visualGuid].capabilities = pbivizJson.capabilities;
+                        plugins[this.visualGuid].capabilities = pbivizJson.capabilities;
                         //translate plugin
-                        powerbi.extensibility.translateVisualPlugin(powerbi.visuals.plugins[this.visualGuid]);
+                        powerbi.extensibility.translateVisualPlugin(plugins[this.visualGuid]);
                         //loaded separately for sourcemap support
                         $.get(baseUrl + 'visual.css').done((data) => {
                             $('#css-DEBUG').remove();
@@ -155,7 +173,7 @@ module powerbi.visuals.system {
                             this.loadVisual(this.visualGuid);
 
                             //override debugVisual capabilities with user's
-                            this.setCapabilities(powerbi.visuals.plugins[this.visualGuid].capabilities);
+                            this.setCapabilities(plugins[this.visualGuid].capabilities);
                         });
                     });
                 });
@@ -169,7 +187,7 @@ module powerbi.visuals.system {
                     type: 'error'
                 });
                 this.container.html(errorMessage);
-                this.setCapabilities({});
+                this.setCapabilities();
             }).always(() => {
                 this.statusLoading = false;
             });
@@ -179,7 +197,7 @@ module powerbi.visuals.system {
             this.visualContainer.attr('class', 'visual-' + guid);
             this.visualContainer.empty();
             this.container.empty().append(this.visualContainer);
-            let adapter = this.adapter = extensibility.createVisualAdapter(powerbi.visuals.plugins[guid]);
+            let adapter = this.adapter = extensibility.createVisualAdapter(plugins[guid]);
             if (adapter.init) {
                 adapter.init(this.optionsForVisual);
             }
@@ -275,8 +293,9 @@ module powerbi.visuals.system {
             return _.template(DebugVisual.errorMessageTemplate)(options);
         }
 
-        private setCapabilities(capabilities: VisualCapabilities): void {
-            powerbi.visuals.plugins.debugVisual.capabilities = capabilities;
+        private setCapabilities(capabilities: VisualCapabilities = DebugVisual.defaultCapabilities): void {
+            if (_.isEqual(capabilities, plugins.debugVisual.capabilities)) return;
+            plugins.debugVisual.capabilities = capabilities;
             this.host.visualCapabilitiesChanged();
         }
 

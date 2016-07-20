@@ -107,6 +107,16 @@ module powerbi.visuals {
             return false;
         }
 
+        export function getUpdatedSelfFilter(searchKey: string, metaData: DataViewMetadata): data.SemanticFilter {
+            if (!metaData || _.isEmpty(searchKey))
+                return;
+
+            debug.assert(_.size(metaData.columns) === 1, 'slicer should not have more than one column based on the capability');
+            let column = _.first(metaData.columns);
+            if (column && column.expr)
+                return SlicerUtil.getContainsFilter(<SQExpr>column.expr, searchKey);
+        }
+
         /** Helper class for creating and measuring slicer DOM elements  */
         export class DOMHelper {
             private static SearchInputHeight = 20;
@@ -205,6 +215,8 @@ module powerbi.visuals {
                         'border-color': settings.general.outlineColor,
                         'border-width': VisualBorderUtil.getBorderWidth(settings.slicerText.outline, settings.general.outlineWeight),
                         'font-size': PixelConverter.fromPoint(settings.slicerText.textSize),
+                         // Makes height consistent between browsers. 1.79 was found by aproximating current chrome line-height: normal calculation.
+                        "line-height": Math.floor(1.79 * settings.slicerText.textSize) + "px"
                     });
             }
 

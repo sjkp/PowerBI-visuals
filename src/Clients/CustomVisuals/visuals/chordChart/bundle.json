@@ -4,7 +4,7 @@
     "package": {
         "name": "ChordChart",
         "displayName": "Chord",
-        "version": "0.3.1",
+        "version": "0.3.2",
         "guid": "ChordChart1444757060245",
         "description": "A chord diagram is a graphical method of displaying the inter-relationships between data in a matrix.",
         "build": "13.0.1100.210",

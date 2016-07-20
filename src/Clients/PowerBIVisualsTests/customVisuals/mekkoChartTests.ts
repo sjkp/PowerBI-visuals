@@ -30,12 +30,11 @@ module powerbitests.customVisuals {
     import VisualClass = powerbi.visuals.samples.MekkoChart;
     import VisualBuilderBase = powerbitests.customVisuals.VisualBuilderBase;
     import MekkoChartData = sampleDataViews.MekkoChartData;
-
     import MekkoColumnChart = powerbi.visuals.samples.MekkoColumnChart;
     import MekkoColumnChartData = powerbi.visuals.samples.MekkoColumnChartData;
     import DataColorPalette = powerbi.visuals.DataColorPalette;
-    import ColumnChartType = powerbi.visuals.ColumnChartType;
-    import ColumnChartSeries = powerbi.visuals.ColumnChartSeries;
+    import MekkoVisualChartType = powerbi.visuals.samples.MekkoVisualChartType;
+    import MekkoChartSeries = powerbi.visuals.samples.MekkoChartSeries;
     import colorAssert = powerbitests.helpers.assertColorsMatch;
 
     powerbitests.mocks.setLocale();
@@ -134,7 +133,7 @@ module powerbitests.customVisuals {
                         false,
                         false,
                         dataView.metadata,
-                        ColumnChartType.hundredPercentStackedBar);
+                        MekkoVisualChartType.hundredPercentStackedBar);
                 });
 
                 it("mekkoColumnChartData is defined", () => {
@@ -143,7 +142,7 @@ module powerbitests.customVisuals {
                 });
 
                 describe("series", () => {
-                    let series: ColumnChartSeries[];
+                    let series: MekkoChartSeries[];
 
                     beforeEach(() => {
                         series = mekkoColumnChartData.series;
@@ -155,7 +154,7 @@ module powerbitests.customVisuals {
                     });
 
                     it("each element of series is defined", () => {
-                        series.map((columnChartSeries: ColumnChartSeries) => {
+                        series.map((columnChartSeries: MekkoChartSeries) => {
                             expect(columnChartSeries).toBeDefined();
                             expect(columnChartSeries).not.toBeNull();
                         });
@@ -163,14 +162,14 @@ module powerbitests.customVisuals {
 
                     describe("identity", () => {
                         it("identity is defined", () => {
-                            series.map((columnChartSeries: ColumnChartSeries) => {
+                            series.map((columnChartSeries: MekkoChartSeries) => {
                                 expect(columnChartSeries.identity).toBeDefined();
                                 expect(columnChartSeries.identity).not.toBeNull();
                             });
                         });
 
                         it("identity has key", () => {
-                            series.map((columnChartSeries: ColumnChartSeries) => {
+                            series.map((columnChartSeries: MekkoChartSeries) => {
                                 expect(columnChartSeries.identity.getKey()).toBeDefined();
                             });
                         });

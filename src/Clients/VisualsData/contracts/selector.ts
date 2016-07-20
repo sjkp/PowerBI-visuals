@@ -222,5 +222,17 @@ module powerbi.data {
         export function isRoleWildcard(dataItem: DataRepetitionSelector): dataItem is DataViewRoleWildcard {
             return !_.isEmpty((<DataViewRoleWildcard>dataItem).roles);
         }
+
+        export function convertSelectorsByColumnToSelector(selectorsByColumn: SelectorsByColumn): Selector {
+            let data: DataRepetitionSelector[] = [];
+            for (let key in selectorsByColumn.dataMap) {
+                data.push(selectorsByColumn.dataMap[key]);
+            }
+            return {
+                data: data,
+                metadata: selectorsByColumn.metadata,
+                id: selectorsByColumn.id,
+            };
+        }
     }
 }

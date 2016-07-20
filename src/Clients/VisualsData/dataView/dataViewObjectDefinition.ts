@@ -73,6 +73,112 @@ module powerbi.data {
             return newDefn;
         }
 
+        /**
+         * Removes every property defined in targetDefns from sourceDefns if exists.
+         * Properties are matches using ObjectName, Selector, and PropertyName.
+         * @param {DataViewObjectDefinition} targetDefns Defenitions to remove properties from
+         * @param {DataViewObjectDefinition} sourceDefns Defenitions to match properties against
+         */
+        export function deleteProperties(targetDefns: DataViewObjectDefinitions, sourceDefns: DataViewObjectDefinitions): void {
+            if (!targetDefns || !sourceDefns)
+                return;
+
+            for (let objName in sourceDefns) {
+                let objDefns = sourceDefns[objName];
+
+                for (let defn of objDefns) {
+                    for (let propName in defn.properties) {
+                        deleteProperty(targetDefns, objName, defn.selector, propName);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Fills in missing properties with default ones, mutating the first definitions.
+         * Properties are matched agains defaultDefns using ObjectName, Selector, and PropertyName.
+         * It just fills missing properties, it doesn't overwrite existing ones.
+         * Any property already in targetDefns will not change.
+         * Any property in defaultDefns but not in targetDefns will be added by reference.
+         * @param {DataViewObjectDefinitions} targetDefns Default definitions. Will be mutated. Expected to be defined
+         * @param {DataViewObjectDefinitions} defaultDefns Definitions to fill inside targetDefns
+         */
+        export function extend(targetDefns: DataViewObjectDefinitions, defaultDefns: DataViewObjectDefinitions): void {
+            debug.assertValue(targetDefns, "Trying to cascade into undefined DataViewObjectDefinitions");
+            if (!targetDefns) {
+                return;
+            }
+
+            if (!defaultDefns) {
+                // No need to change targetDefns
+                return;
+            }
+
+            for (let objName in defaultDefns) {
+                let defaultObjDefns = defaultDefns[objName];
+                if (!defaultObjDefns) {
+                    continue;
+                }
+
+                let targetObjDefns = targetDefns[objName];
+                if (!targetObjDefns) {
+                    targetObjDefns = targetDefns[objName] = [];
+                }
+
+                extendObjectDefinitions(targetObjDefns, defaultObjDefns);
+            }
+        }
+
+        function extendObjectDefinitions(targetObjDefns: DataViewObjectDefinition[], defaultObjDefns: DataViewObjectDefinition[]): void {
+            let found: boolean;
+
+            for (let defaultObjDefn of defaultObjDefns) {
+                found = false;
+
+                for (let targetObjDefn of targetObjDefns) {
+                    if (Selector.equals(targetObjDefn.selector, defaultObjDefn.selector)) {
+                        extendPropDefns(targetObjDefn.properties, defaultObjDefn.properties);
+                        found = true;
+                        break; // We are assuming a single match
+                    }
+                }
+
+                if (!found) {
+                    let newObjDefn: DataViewObjectDefinition = {
+                        selector: defaultObjDefn.selector,
+                        properties: {},
+                    };
+
+                    extendPropDefns(newObjDefn.properties, defaultObjDefn.properties);
+                    targetObjDefns.push(newObjDefn);
+                }
+            }
+        }
+
+        function extendPropDefns(targetPropDefns: DataViewObjectPropertyDefinitions, defaultPropDefns: DataViewObjectPropertyDefinitions): void {
+            for (let propName in defaultPropDefns) {
+                let defaultPropDefn = defaultPropDefns[propName];
+
+                // This case handles when a PropertyDefinition is there just to clear existing property
+                if (!defaultPropDefn) {
+                    continue;
+                }
+
+                let targetPropDefn = targetPropDefns[propName];
+                if (!targetPropDefn) {
+                    // Copy the Property Definition into propDefns1
+                    targetPropDefns[propName] = defaultPropDefn;
+                }
+            }
+        }
+
+        /**
+         * Delete the first matching property from the Defns if it matches objName + selector + propertyName
+         * @param {DataViewObjectDefinitions} defns
+         * @param {string} objectName
+         * @param {Selector} selector
+         * @param {string} propertyName
+         */
         export function deleteProperty(
             defns: DataViewObjectDefinitions,
             objectName: string,
@@ -80,13 +186,20 @@ module powerbi.data {
             propertyName: string): void {
             debug.assertValue(defns, 'defns');
 
-            let defn = getObjectDefinition(defns, objectName, selector);
-            if (!defn)
+            let match = getObjectDefinition(defns, objectName, selector);
+            if (!match)
                 return;
 
-            DataViewObjectDefinition.deleteSingleProperty(defn, propertyName);
+            DataViewObjectDefinition.deleteSingleProperty(match, propertyName);
         }
         
+        /**
+         * 
+         * @param {DataViewObjectDefinitions} defns
+         * @param {DataViewObjectPropertyIdentifier} propertyId
+         * @param {Selector} selector
+         * @param {DataViewObjectPropertyDefinition} value
+         */
         export function setValue(
             defns: DataViewObjectDefinitions,
             propertyId: DataViewObjectPropertyIdentifier,
@@ -98,6 +211,13 @@ module powerbi.data {
             ensure(defns, propertyId.objectName, selector).properties[propertyId.propertyName] = value;
         }
 
+        /**
+         * 
+         * @param {DataViewObjectDefinitions} defns
+         * @param {DataViewObjectPropertyIdentifier} propertyId
+         * @param {Selector} selector
+         * @returns
+         */
         export function getValue(
             defns: DataViewObjectDefinitions,
             propertyId: DataViewObjectPropertyIdentifier,
@@ -122,6 +242,13 @@ module powerbi.data {
             return defn.properties;
         }
 
+        /**
+         * Get the first DataViewObjectDefinition that match selector and objectName
+         * @param {DataViewObjectDefinitions} defns DataViewObjectDefinitions to search
+         * @param {string} objectName objectName to match
+         * @param {Selector} selector selector to match
+         * @returns The first match, if any. If no match, returns undefined
+         */
         export function getObjectDefinition(
             defns: DataViewObjectDefinitions,
             objectName: string,

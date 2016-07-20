@@ -4137,9 +4137,13 @@ module powerbitests {
             slices.eq(sliceToClick).d3Click(0, 0);
 
             expect(onSelectSpy).toHaveBeenCalled();
-            expect(onSelectSpy.calls.argsFor(0)[0].data[0]).toEqual({
-                data: [identities[sliceToClick]],
-                metadata: dataViewMetadataTwoColumn.columns[1].queryName
+            expect(onSelectSpy.calls.argsFor(0)[0].visualObjects[0]).toEqual({
+                    objectName: 'dataPoint',
+                    selectorsByColumn:
+                    {
+                        dataMap: { 'col1': identities[sliceToClick] },
+                        metadata: dataViewMetadataTwoColumn.columns[1].queryName
+                    }
             });
         });
 
@@ -4265,9 +4269,13 @@ module powerbitests {
             slices.eq(sliceToClick).d3Click(0, 0);
 
             expect(onSelectSpy).toHaveBeenCalled();
-            expect(onSelectSpy.calls.argsFor(0)[0].data[0]).toEqual({
-                data: [identities[sliceToClick]],
-                metadata: dataViewMetadataTwoColumn.columns[1].queryName
+            expect(onSelectSpy.calls.argsFor(0)[0].visualObjects[0]).toEqual({
+                objectName: 'dataPoint',
+                selectorsByColumn:
+                {
+                    dataMap: { 'col1': identities[sliceToClick] },
+                    metadata: dataViewMetadataTwoColumn.columns[1].queryName
+                }
             });
         });
 

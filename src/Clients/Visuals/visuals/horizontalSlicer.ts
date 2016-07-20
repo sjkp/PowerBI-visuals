@@ -29,6 +29,7 @@
 module powerbi.visuals {
     import PixelConverter = jsCommon.PixelConverter;
     import SlicerOrientation = slicerOrientation.Orientation;
+    import SQExpr = powerbi.data.SQExpr;
 
     const ItemWidthSampleSize = 50;
     const MinTextWidth = 80;
@@ -81,13 +82,16 @@ module powerbi.visuals {
                 return <data.SQConstantExpr>this.data.defaultValue.value;
         }
 
-        public getIdentityFields(): data.SQExpr[] {
+        public getIdentityFields(): SQExpr[] {
             return SlicerUtil.DefaultValueHandler.getIdentityFields(this.dataView);
         }
 
         public getUpdatedSelfFilter(searchKey: string): data.SemanticFilter {
-            // Search in horizontal Slicer is not implemented.
-            return;
+            let metadata = this.dataView && this.dataView.metadata;
+            if (this.data.searchKey === searchKey)
+                return;
+
+            return SlicerUtil.getUpdatedSelfFilter(searchKey, metadata);
         }
 
         public init(slicerInitOptions: SlicerInitOptions): IInteractivityService {
@@ -259,7 +263,18 @@ module powerbi.visuals {
                 let itemLabels = body.selectAll(SlicerUtil.Selectors.LabelText.selector);
                 let clear = this.header.select(SlicerUtil.Selectors.Clear.selector);
                 let data = this.data;
-
+                let searchInput = this.header.select('input');
+                if (!searchInput.empty()) {
+                    let element: HTMLInputElement = <HTMLInputElement>searchInput.node();
+                    let existingSearchKey: string = element.value;
+                    // When the existingSearchKey is empty, try set it using the searchKey from data.
+                    // This is to ensure the search key is diplayed in the input box when the input box was first rendered.
+                    // If the search key was reset from exploreUI when search is turned off, then the data.searchkey will be ''
+                    // The input box value need to be reset to ''.
+                    if (_.isEmpty(existingSearchKey) || _.isEmpty(data.searchKey))
+                        searchInput
+                            .property('value', data.searchKey);
+                }
                 let behaviorOptions: HorizontalSlicerBehaviorOptions = {
                     dataPoints: data.slicerDataPoints,
                     slicerContainer: this.container,
@@ -269,6 +284,7 @@ module powerbi.visuals {
                     interactivityService: this.interactivityService,
                     settings: data.slicerSettings,
                     slicerValueHandler: this,
+                    searchInput: searchInput,
                 };
 
                 let orientationBehaviorOptions: SlicerOrientationBehaviorOptions = {

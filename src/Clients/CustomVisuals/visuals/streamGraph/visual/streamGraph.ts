@@ -27,10 +27,59 @@
 /// <reference path="../../../_references.ts"/>
 
 module powerbi.visuals.samples {
-
-    import ValueFormatter = powerbi.visuals.valueFormatter;
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import PixelConverter = jsCommon.PixelConverter;
+    import ValueFormatter = powerbi.visuals.valueFormatter;
+    import LegendData = powerbi.visuals.LegendData;
+    import IValueFormatter = powerbi.visuals.IValueFormatter;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import VisualDataLabelsSettings = powerbi.visuals.VisualDataLabelsSettings;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import IInteractiveBehavior = powerbi.visuals.IInteractiveBehavior;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
+    import IVisual = powerbi.IVisual;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
+    import createDisplayNameGetter = powerbi.data.createDisplayNameGetter;
+    import legendPosition = powerbi.visuals.legendPosition;
+    import IMargin = powerbi.visuals.IMargin;
+    import IViewport = powerbi.IViewport;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import ILegend = powerbi.visuals.ILegend;
+    import DataView = powerbi.DataView;
+    import DataViewCategorical = powerbi.DataViewCategorical;
+    import DataViewValueColumns = powerbi.DataViewValueColumns;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import LegendIcon = powerbi.visuals.LegendIcon;
+    import TooltipBuilder = powerbi.visuals.TooltipBuilder;
+    import TextMeasurementService = powerbi.TextMeasurementService;
+    import DataViewObjects = powerbi.DataViewObjects;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import appendClearCatcher = powerbi.visuals.appendClearCatcher;
+    import createInteractivityService = powerbi.visuals.createInteractivityService;
+    import createLegend = powerbi.visuals.createLegend;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import TooltipManager = powerbi.visuals.TooltipManager;
+    import TooltipEvent = powerbi.visuals.TooltipEvent;
+    import ILabelLayout = powerbi.visuals.ILabelLayout;
+    import dataLabelUtils = powerbi.visuals.dataLabelUtils;
+    import SVGUtil = powerbi.visuals.SVGUtil;
+    import Fill = powerbi.Fill;
+    import TextProperties = powerbi.TextProperties;
+    import AxisHelper = powerbi.visuals.AxisHelper;
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import DataViewObject = powerbi.DataViewObject;
+    import legendProps = powerbi.visuals.legendProps;
+    import LegendPosition = powerbi.visuals.LegendPosition;
+    import Legend = powerbi.visuals.Legend;
+    import ObjectEnumerationBuilder = powerbi.visuals.ObjectEnumerationBuilder;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
+    import VisualDataLabelsSettingsOptions = powerbi.visuals.VisualDataLabelsSettingsOptions;
+    import VisualObjectInstance = powerbi.VisualObjectInstance;
 
     export interface StreamData {
         series: StreamGraphSeries[];
@@ -146,7 +195,7 @@ module powerbi.visuals.samples {
         public renderSelection(hasSelection: boolean) {
             let hasHighlights = this.interactivityService.hasSelection();
             this.selection.style("fill-opacity", (d: StreamGraphSeries) => {
-                return ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights);
+                return streamGraphUtils.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights);
             });
         }
     }
@@ -257,7 +306,7 @@ module powerbi.visuals.samples {
                 }, {
                     name: "Y",
                     kind: VisualDataRoleKind.Measure,
-                    displayName: data.createDisplayNameGetter("Role_DisplayName_Values"),
+                    displayName: createDisplayNameGetter("Role_DisplayName_Values"),
                 }
             ],
             dataViewMappings: [{
@@ -685,7 +734,7 @@ module powerbi.visuals.samples {
 
             selection
                 .style("fill", (d: StreamGraphSeries, i) => this.colors.getColorByIndex(i).value)
-                .style("fill-opacity", ColumnUtil.DefaultOpacity)
+                .style("fill-opacity", streamGraphUtils.DefaultOpacity)
                 .transition()
                 .duration(duration)
                 .attr("d", (d: StreamGraphSeries) => area(d.dataPoints));
@@ -855,7 +904,7 @@ module powerbi.visuals.samples {
         }
 
         private getYAxisTitleFromValues(values: DataViewValueColumns): string {
-            let valuesMetadataArray: powerbi.DataViewMetadataColumn[] = [];
+            let valuesMetadataArray: DataViewMetadataColumn[] = [];
             for (let i = 0; i < values.length; i++) {
                 if (values[i] && values[i].source && values[i].source.displayName) {
                     valuesMetadataArray.push({ displayName: values[i].source.displayName });
@@ -1184,6 +1233,17 @@ module powerbi.visuals.samples {
             }
 
             return enumeration.complete();
+        }
+    }
+
+    export module streamGraphUtils {
+        export var DimmedOpacity: number = 0.4;
+        export var DefaultOpacity: number = 1.0;
+
+        export function getFillOpacity(selected: boolean, highlight: boolean, hasSelection: boolean, hasPartialHighlights: boolean): number {
+            if ((hasPartialHighlights && !highlight) || (hasSelection && !selected))
+                return DimmedOpacity;
+            return DefaultOpacity;
         }
     }
 }

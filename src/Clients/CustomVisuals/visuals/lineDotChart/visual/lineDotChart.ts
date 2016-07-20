@@ -390,7 +390,7 @@ module powerbi.visuals.samples {
                 ]
             };
             this.hostServices.persistProperties(objects);
-            this.hostServices.onSelect({ data: [] });
+            this.hostServices.onSelect({ visualObjects: [] });
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {

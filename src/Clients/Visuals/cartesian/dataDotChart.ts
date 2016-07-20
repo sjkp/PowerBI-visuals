@@ -473,9 +473,13 @@ module powerbi.visuals {
                     debug.assert(!category.identity || categoryIndex < category.identity.length, 'Category identities is smaller than category values.');
 
                     // I create the identity from the category.  If there is no category, then I use the measure name to create identity
-                    let identity = category.identity ?
-                        SelectionId.createWithIdAndMeasure(category.identity[categoryIndex], measure.source.queryName) :
-                        SelectionId.createWithMeasure(measure.source.queryName);
+                    let idBuilder = new SelectionIdBuilder();
+                    if (category.identity) {
+                        idBuilder = idBuilder.withCategory(category, categoryIndex);
+                    }
+                    let identity = idBuilder
+                        .withMeasure(measure.source.queryName)
+                        .createSelectionId();
 
                     let categoryValue = categoryValues[categoryIndex];
 

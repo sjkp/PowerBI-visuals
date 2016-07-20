@@ -5,7 +5,7 @@
     "package": {
         "name": "ChicletSlicer",
         "displayName": "Chiclet Slicer",
-        "version": "1.2.3",
+        "version": "1.2.4",
         "guid": "ChicletSlicer1448559807354",
         "description": "Use this slicer to display image and/or text buttons that act as an in-canvas filter. Define additional properties for the layout & selection to customize this slicer to meet your specific needs",
         "build": "13.0.1100.210",

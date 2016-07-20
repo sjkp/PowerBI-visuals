@@ -79,6 +79,30 @@ module powerbitests {
             expect(visuals.slicerCapabilities.sorting.custom).not.toBeDefined();
             expect(visuals.slicerCapabilities.sorting.default).toBeDefined();
         });
+
+        it('getUpdatedSelfFilter', () => {
+            let field = powerbi.data.SQExprBuilder.fieldDef({
+                schema: 's',
+                entity: "Entity2",
+                column: "PropertyName"
+            });
+
+            let dataView: powerbi.DataView = slicerHelper.buildDataViewWithSelfFilter(powerbi.visuals.slicerOrientation.Orientation.Vertical, field);
+            let updatedFilter = powerbi.visuals.SlicerUtil.getUpdatedSelfFilter('a', dataView.metadata);            
+            let condition = <powerbi.data.SQContainsExpr>updatedFilter.conditions()[0];
+            expect(condition).toBeDefined();
+            let data = <powerbi.data.SQConstantExpr>condition.right;
+            expect(data.value).toBe('a');
+            
+            updatedFilter = powerbi.visuals.SlicerUtil.getUpdatedSelfFilter('abc', dataView.metadata);
+            condition = <powerbi.data.SQContainsExpr>updatedFilter.conditions()[0];
+            expect(condition).toBeDefined();
+            data = <powerbi.data.SQConstantExpr>condition.right;
+            expect(data.value).toBe('abc');
+
+            updatedFilter = powerbi.visuals.SlicerUtil.getUpdatedSelfFilter('', dataView.metadata);
+            expect(updatedFilter).toBeUndefined();
+        });
     });
 
     describe("CommonSlicer Tests", () => {
@@ -164,7 +188,7 @@ module powerbitests {
                 clearBtn.first().d3Click(0, 0);
 
                 validateSelectionState(orientation, []);
-                expect(builder.hostServices.onSelect).toHaveBeenCalledWith({ data: [] });
+                expect(builder.hostServices.onSelect).toHaveBeenCalledWith({ visualObjects: [] });
             });
 
             it("Slicer item select by text", () => {
@@ -174,11 +198,12 @@ module powerbitests {
 
                 let selectionId = new powerbi.visuals.SelectionIdBuilder().withCategory(builder.interactiveDataViewOptions.dataViews[0].categorical.categories[0], 0).createSelectionId();
                 expect(builder.hostServices.onSelect).toHaveBeenCalledWith({
-                    data: [
-                        selectionId.getSelector()
-                    ],
-                    data2: [
-                        selectionId.getSelectorsByColumn()
+                    visualObjects:
+                    [
+                        {
+                            objectName: 'dataPoint',
+                            selectorsByColumn: selectionId.getSelectorsByColumn(),
+                        }
                     ]
                 });
             });

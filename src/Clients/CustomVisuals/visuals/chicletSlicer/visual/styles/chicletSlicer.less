@@ -61,6 +61,7 @@
             position: relative;
             cursor: pointer;
             width: 100%;
+            float: left;
         }
 
         ul {
@@ -98,17 +99,21 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
+
             .slicer-img-wrapper {
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: contain;
+                max-width: 100%;
+                height: auto;
+                align-self: center;
             }
+
             .stretchImage {
-                background-size: 100% 100%;
+                align-self: auto;
             }
+
             .bottomImage {
                 order: 1;
             }
+
             .slicerItem-disabled {
                 opacity: 0.4;
                 color: #fff !important;
@@ -117,11 +122,10 @@
 
         &.slicerBody-vertical {
             .cell {
-                clear:both;
-                float:left;
+                clear: both;
             }
             .row {
-                float:left;
+                float: left;
             }
         }
     }

@@ -120,18 +120,19 @@ module powerbitests {
                 scriptVisual.update(visualUpdateOptions);
 
                 //Verifying the DOM
-                let imageDiv = element.find('.imageBackground');
-                expect(imageDiv.css('backgroundImage')).toBe('none');
+                let imageElement = element.find('.autoScaleImage');
+                expect(imageElement.attr('src')).toBeUndefined();
             });
 
             it('visual shows the image from the dataView result', () => {
-                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'imageimageimage');
+                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ');
                 scriptVisual.update(visualUpdateOptions);
 
                 //Verifying the DOM
-                let imageDiv = element.find('.imageBackground');
-                let backgroundImage = imageDiv.css('backgroundImage');
-                let isUrlEqual = (backgroundImage === 'url(data:image/png;base64,imageimageimage)') || (backgroundImage === 'url("data:image/png;base64,imageimageimage")');
+                let imageDiv = element.find('.autoScaleImageContainer');
+                let imageElement = element.find('.autoScaleImage');
+                let imageUrl = imageElement.attr('src');
+                let isUrlEqual = (imageUrl === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ') || (imageUrl === '"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ"');
                 expect(isUrlEqual).toBeTruthy();
                 expect(imageDiv.css('height')).toBe(viewport.height + 'px');
                 expect(imageDiv.css('width')).toBe(viewport.width + 'px');
@@ -146,7 +147,7 @@ module powerbitests {
                 let visualInitOptions = ScriptVisualHelpers.buildInitOptions(element, viewport, hostServices);
                 scriptVisual.init(visualInitOptions);
 
-                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'imageimageimage');
+                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ');
                 scriptVisual.update(visualUpdateOptions);
 
                 expect(warningSpy).toHaveBeenCalled();
@@ -163,7 +164,7 @@ module powerbitests {
                 let visualInitOptions = ScriptVisualHelpers.buildInitOptions(element, viewport, hostServices);
                 scriptVisual.init(visualInitOptions);
 
-                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'imageimageimage');
+                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ');
                 scriptVisual.update(visualUpdateOptions);
 
                 expect(warningSpy).not.toHaveBeenCalled();

@@ -27,9 +27,65 @@
 /// <reference path="../../../_references.ts"/>
 
 module powerbi.visuals.samples {
-    import SelectionManager = utility.SelectionManager;
     import PixelConverter = jsCommon.PixelConverter;
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import CreateClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
+    import SelectionManager = powerbi.visuals.utility.SelectionManager;
+    import IEnumType = powerbi.IEnumType;
+    import createEnumType = powerbi.createEnumType;
+    import IEnumMember = powerbi.IEnumMember;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import IValueFormatter = powerbi.visuals.IValueFormatter;
+    import LegendData = powerbi.visuals.LegendData;
+    import IVisual = powerbi.IVisual;
+    import IViewport = powerbi.IViewport;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import ILegend = powerbi.visuals.ILegend;
+    import TextProperties = powerbi.TextProperties;
+    import legendPosition = powerbi.visuals.legendPosition;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
+    import createDisplayNameGetter = powerbi.data.createDisplayNameGetter;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import IMargin = powerbi.visuals.IMargin;
+    import IVisualStyle = powerbi.IVisualStyle;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import IVisualHostServices = powerbi.IVisualHostServices;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import createInteractivityService = powerbi.visuals.createInteractivityService;
+    import appendClearCatcher = powerbi.visuals.appendClearCatcher;
+    import createLegend = powerbi.visuals.createLegend;
+    import LegendPosition = powerbi.visuals.LegendPosition;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import DataViewTableRow = powerbi.DataViewTableRow;
+    import DataView = powerbi.DataView;
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import ColorHelper = powerbi.visuals.ColorHelper;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import DataViewObjects = powerbi.DataViewObjects;
+    import LegendIcon = powerbi.visuals.LegendIcon;
+    import Legend = powerbi.visuals.Legend;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import IAxisProperties = powerbi.visuals.IAxisProperties;
+    import ValueType = powerbi.ValueType;
+    import PrimitiveType = powerbi.PrimitiveType;
+    import NumberRange = powerbi.NumberRange;
+    import AxisHelper = powerbi.visuals.AxisHelper;
+    import TextMeasurementService = powerbi.TextMeasurementService;
+    import TooltipManager = powerbi.visuals.TooltipManager;
+    import TooltipEvent = powerbi.visuals.TooltipEvent;
+    import SVGUtil = powerbi.visuals.SVGUtil;
+    import VisualObjectInstance = powerbi.VisualObjectInstance;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
+    import ObjectEnumerationBuilder = powerbi.visuals.ObjectEnumerationBuilder;
+    import IInteractiveBehavior = powerbi.visuals.IInteractiveBehavior;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
+    import IVisualWarning = powerbi.IVisualWarning;
+    import IVisualErrorMessage = powerbi.IVisualErrorMessage;
+    import axisScale = powerbi.visuals.axisScale;
 
     var PercentFormat: string = "0.00 %;-0.00 %;0.00 %";
     var MillisecondsInADay: number = 86400000;
@@ -49,7 +105,7 @@ module powerbi.visuals.samples {
     function createEnumTypeFromEnum(type: any): IEnumType {
         var even: any = false;
         return createEnumType(Object.keys(type)
-            .filter((key,i) => ((!!(i % 2)) === even && type[key] === key && !void(even === !even)) || (!!(i % 2)) !== even)
+            .filter((key, i) => ((!!(i % 2)) === even && type[key] === key && !void (even === !even)) || (!!(i % 2)) !== even)
             .map(x => <IEnumMember>{ value: x, displayName: x }));
     }
 
@@ -104,6 +160,26 @@ module powerbi.visuals.samples {
         typeName: string;
     };
 
+    export interface GanttCalculateScaleAndDomainOptions {
+        viewport: IViewport;
+        margin: IMargin;
+        showCategoryAxisLabel: boolean;
+        showValueAxisLabel: boolean;
+        forceMerge: boolean;
+        categoryAxisScaleType: string;
+        valueAxisScaleType: string;
+        trimOrdinalDataOnOverflow: boolean;
+        forcedTickCount?: number;
+        forcedYDomain?: any[];
+        forcedXDomain?: any[];
+        ensureXDomain?: NumberRange;
+        ensureYDomain?: NumberRange;
+        categoryAxisDisplayUnits?: number;
+        categoryAxisPrecision?: number;
+        valueAxisDisplayUnits?: number;
+        valueAxisPrecision?: number;
+    }
+
     interface Line {
         x1: number;
         y1: number;
@@ -113,10 +189,6 @@ module powerbi.visuals.samples {
     }
 
     module Selectors {
-
-        import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
-        import CreateClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
-
         export var ClassName: ClassAndSelector = CreateClassAndSelector("gantt");
         export var Chart: ClassAndSelector = CreateClassAndSelector("chart");
         export var ChartLine: ClassAndSelector = CreateClassAndSelector("chart-line");
@@ -142,7 +214,7 @@ module powerbi.visuals.samples {
     }
 
     export interface GanttSettings<T> {
-        general: { 
+        general: {
             groupTasks: T
         };
         legend: {
@@ -180,11 +252,11 @@ module powerbi.visuals.samples {
 
         private textProperties: TextProperties = {
             fontFamily: 'wf_segoe-ui_normal',
-            fontSize: jsCommon.PixelConverter.toString(9),
+            fontSize: PixelConverter.toString(9),
         };
 
         public static DefaultSettings: GanttSettings<any> = {
-            general: { 
+            general: {
                 groupTasks: false
             },
             legend: {
@@ -229,7 +301,7 @@ module powerbi.visuals.samples {
                 Week: "MMM dd",
                 Month: "MMM yyyy",
                 Year: "yyyy"
-            } 
+            }
         };
 
         public static capabilities: VisualCapabilities = {
@@ -303,7 +375,7 @@ module powerbi.visuals.samples {
             }],
             objects: {
                 general: {
-                    displayName: data.createDisplayNameGetter("Visual_General"),
+                    displayName: createDisplayNameGetter("Visual_General"),
                     properties: {
                         groupTasks: {
                             displayName: "Group Tasks",
@@ -345,15 +417,6 @@ module powerbi.visuals.samples {
                         }
                     }
                 },
-                //dataPoint: {
-                //    displayName: "Data colors",
-                //    properties: {
-                //        fill: {
-                //            displayName: "Fill",
-                //            type: { fill: { solid: { color: true } } }
-                //        }
-                //    }
-                //},
                 taskLabels: {
                     displayName: 'Category Labels',
                     properties: {
@@ -422,10 +485,10 @@ module powerbi.visuals.samples {
         private static Properties: GanttSettings<DataViewObjectPropertyIdentifier> = Gantt.getProperties(Gantt.capabilities);
         private static getProperties(capabilities: VisualCapabilities): any {
             var result = {};
-            for(var objectKey in capabilities.objects) {
+            for (var objectKey in capabilities.objects) {
                 result[objectKey] = {};
-                for(var propKey in capabilities.objects[objectKey].properties) {
-                    result[objectKey][propKey] = <DataViewObjectPropertyIdentifier> {
+                for (var propKey in capabilities.objects[objectKey].properties) {
+                    result[objectKey][propKey] = <DataViewObjectPropertyIdentifier>{
                         objectName: objectKey,
                         propertyName: propKey
                     };
@@ -563,7 +626,7 @@ module powerbi.visuals.samples {
                 !columnSource[0].roles)
                 return null;
 
-            var index = columnSource.indexOf(columnSource.filter(x=> x.roles[propertyName])[0]);
+            var index = columnSource.indexOf(columnSource.filter(x => x.roles[propertyName])[0]);
             return index !== -1 ? <T>child[index] : null;
         }
 
@@ -601,10 +664,10 @@ module powerbi.visuals.samples {
             return tooltipDataArray;
         }
 
-         /**
-         * Check if task has data for task
-         * @param dataView
-         */
+        /**
+        * Check if task has data for task
+        * @param dataView
+        */
         private static isChartHasTask(dataView: DataView): boolean {
             if (dataView.table &&
                 dataView.table.columns) {
@@ -656,11 +719,11 @@ module powerbi.visuals.samples {
             var columnSource = dataView.table.columns;
             var data = dataView.table.rows;
             var categories = dataView.categorical.categories[0];
-            var colorHelper = new ColorHelper(colors, undefined/* Gantt.Properties.dataPoint.fill*/);
+            var colorHelper = new ColorHelper(colors, undefined);
 
             return data.map((child: DataViewTableRow, index: number) => {
                 var dateString = Gantt.getTaskProperty<Date>(columnSource, child, "StartDate");
-                //var startDate = new Date(dateString);
+
                 dateString = Gantt.isValidDate(dateString) ? dateString : new Date(Date.now());
 
                 var duration = Gantt.getTaskProperty<number>(columnSource, child, "Duration");
@@ -700,7 +763,7 @@ module powerbi.visuals.samples {
        */
         private static createSeries(objects: DataViewObjects, tasks: Task[], dataView: DataView, colors: IDataColorPalette): GanttSeries[] {
             var colorHelper = new ColorHelper(colors, undefined /*Gantt.Properties.dataPoint.fill*/);
-            var taskGroup: _.Dictionary<Task[]> = _.groupBy(tasks, t=> t.taskType);
+            var taskGroup: _.Dictionary<Task[]> = _.groupBy(tasks, t => t.taskType);
             var taskTypes = Gantt.getAllTasksTypes(dataView);
 
             var series: GanttSeries[] = _.map(taskTypes.types, type => {
@@ -721,7 +784,7 @@ module powerbi.visuals.samples {
         * @param dataView The data Model
         */
         public static converter(dataView: DataView, colors: IDataColorPalette): GanttViewModel {
-            if(!dataView 
+            if (!dataView
                 || !dataView.categorical
                 || !Gantt.isChartHasTask(dataView)
                 || dataView.table.rows.length === 0) {
@@ -767,7 +830,7 @@ module powerbi.visuals.samples {
 
         private static parseSettings(dataView: DataView, colors: IDataColorPalette): GanttSettings<any> {
             var result: GanttSettings<any> = _.cloneDeep(Gantt.DefaultSettings);
-            if(!dataView || !dataView.metadata || !dataView.metadata.objects) {
+            if (!dataView || !dataView.metadata || !dataView.metadata.objects) {
                 return result;
             }
 
@@ -775,7 +838,7 @@ module powerbi.visuals.samples {
 
             result.general.groupTasks = DataViewObjects.getValue<boolean>(objects, Gantt.Properties.general.groupTasks, Gantt.DefaultSettings.general.groupTasks);
 
-            result.taskLabels.show = DataViewObjects.getValue<boolean>(objects, Gantt.Properties.taskLabels.show, Gantt.DefaultSettings.taskLabels.show); 
+            result.taskLabels.show = DataViewObjects.getValue<boolean>(objects, Gantt.Properties.taskLabels.show, Gantt.DefaultSettings.taskLabels.show);
             result.taskLabels.fill = DataViewObjects.getFillColor(objects, Gantt.Properties.taskLabels.fill, Gantt.DefaultSettings.taskLabels.fill);
             result.taskLabels.fontSize = DataViewObjects.getValue<number>(objects, Gantt.Properties.taskLabels.fontSize, Gantt.DefaultSettings.taskLabels.fontSize);
             result.taskLabels.width = DataViewObjects.getValue<number>(objects, Gantt.Properties.taskLabels.width, result.taskLabels.show ? Gantt.DefaultSettings.taskLabels.width : 0);
@@ -857,7 +920,7 @@ module powerbi.visuals.samples {
             this.legend.drawLegend(this.viewModel.legendData, _.clone(this.viewport));
             Legend.positionChartArea(this.ganttDiv, this.legend);
 
-            switch(this.legend.getOrientation()) {
+            switch (this.legend.getOrientation()) {
                 case LegendPosition.Left:
                 case LegendPosition.LeftCenter:
                 case LegendPosition.Right:
@@ -883,7 +946,7 @@ module powerbi.visuals.samples {
             }
 
             this.viewModel = Gantt.converter(options.dataViews[0], this.colors);
-            if(!this.viewModel) {
+            if (!this.viewModel) {
                 this.clearViewport();
                 return;
             }
@@ -982,14 +1045,14 @@ module powerbi.visuals.samples {
 
             var dataTypeDatetime = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Date);
             var category: DataViewMetadataColumn = { displayName: "StartDate", queryName: "StartDate", type: dataTypeDatetime, index: 0 };
-            var visualOptions: CalculateScaleAndDomainOptions = {
+            var visualOptions: GanttCalculateScaleAndDomainOptions = {
                 viewport: viewportIn,
                 margin: this.margin,
                 forcedXDomain: [startDate, endDate],
                 forceMerge: false,
                 showCategoryAxisLabel: false,
                 showValueAxisLabel: false,
-                categoryAxisScaleType: powerbi.visuals.axisScale.linear,
+                categoryAxisScaleType: axisScale.linear,
                 valueAxisScaleType: null,
                 valueAxisDisplayUnits: 0,
                 categoryAxisDisplayUnits: 0,
@@ -1014,7 +1077,7 @@ module powerbi.visuals.samples {
             return axes;
         }
 
-        private calculateAxesProperties(viewportIn: IViewport, options: CalculateScaleAndDomainOptions, axisLength: number, metaDataColumn: DataViewMetadataColumn): IAxisProperties {
+        private calculateAxesProperties(viewportIn: IViewport, options: GanttCalculateScaleAndDomainOptions, axisLength: number, metaDataColumn: DataViewMetadataColumn): IAxisProperties {
             var xAxisProperties = AxisHelper.createAxis({
                 pixelSpan: viewportIn.width,
                 dataDomain: options.forcedXDomain,
@@ -1039,14 +1102,14 @@ module powerbi.visuals.samples {
         }
 
         private groupTasks(tasks: Task[]): GroupedTask[] {
-            if(this.viewModel.settings.general.groupTasks) {
+            if (this.viewModel.settings.general.groupTasks) {
                 var groupedTasks = _.groupBy(tasks, x => x.name);
-                var result: GroupedTask[] = _.map(groupedTasks, (x,i) => <GroupedTask>{ 
+                var result: GroupedTask[] = _.map(groupedTasks, (x, i) => <GroupedTask>{
                     name: i,
-                    tasks: groupedTasks[i] 
+                    tasks: groupedTasks[i]
                 });
 
-                result.forEach((x,i) => { 
+                result.forEach((x, i) => {
                     x.tasks.forEach(t => t.id = i);
                     x.id = i;
                 });
@@ -1054,10 +1117,10 @@ module powerbi.visuals.samples {
                 return result;
             }
 
-            return tasks.map(x => <GroupedTask>{ 
+            return tasks.map(x => <GroupedTask>{
                 name: x.name,
                 id: x.id,
-                tasks: [x] 
+                tasks: [x]
             });
         }
 

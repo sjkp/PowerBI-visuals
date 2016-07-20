@@ -1273,6 +1273,10 @@ module powerbi.visuals {
         }
     }
 
+    export interface MatrixConstructorOptions {
+        isTouchEnabled?: boolean;
+    }
+
     export class Matrix implements IVisual {
         private static preferredLoadMoreThreshold: number = 0.8;
         
@@ -1287,6 +1291,7 @@ module powerbi.visuals {
         private dataView: DataView;
         private formatter: ICustomValueColumnFormatter;
         private isInteractive: boolean;
+        private isTouchEnabled: boolean;
         private hostServices: IVisualHostServices;
         private hierarchyNavigator: IMatrixHierarchyNavigator;
         private waitingForData: boolean;
@@ -1300,7 +1305,10 @@ module powerbi.visuals {
         */
         public persistingObjects: boolean;
 
-        constructor() {
+        constructor(options?: MatrixConstructorOptions) {
+            if (options) {
+                this.isTouchEnabled = options.isTouchEnabled;
+            }
         }
 
         public static customizeQuery(options: CustomizeQueryOptions): void {
@@ -1470,7 +1478,7 @@ module powerbi.visuals {
 
             let tablixOptions: controls.TablixOptions = {
                 interactive: this.isInteractive,
-                enableTouchSupport: true,
+                enableTouchSupport: this.isTouchEnabled,
                 layoutKind: layoutKind,
                 fontSize: TablixObjects.getTextSizeInPx(textSize),
             };

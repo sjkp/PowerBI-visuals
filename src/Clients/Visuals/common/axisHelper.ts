@@ -578,7 +578,7 @@ module powerbi.visuals {
         }
 
         export function isOrdinal(type: ValueTypeDescriptor): boolean {
-            return !!(type && (type.text || type.bool));
+            return !!(type && (type.text || type.bool || (type.misc && type.misc.barcode) || (type.geography && type.geography.postalCode)));
         }
 
         export function isOrdinalScale(scale: any): boolean {

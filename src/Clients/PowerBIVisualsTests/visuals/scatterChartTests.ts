@@ -89,56 +89,66 @@ module powerbitests {
                     format: 'yyyy',
                     type: ValueType.fromDescriptor({ dateTime: true }),
                     roles: { Category: true },
+                    queryName: 'category',
                 }, {
-                    displayName: 'series'
+                    displayName: 'series',
+                    queryName: 'series',
                 }, {
                     displayName: 'x',
                     format: '#,0.00',
                     isMeasure: true,
                     roles: { 'X': true },
                     groupName: firstGroupName,
+                    queryName: 'x',
                 }, {
                     displayName: 'y',
                     format: '#,0',
                     isMeasure: true,
                     roles: { 'Y': true },
                     groupName: firstGroupName,
+                    queryName: 'y',
                 }, {
                     displayName: 'size',
                     format: '#,0',
                     isMeasure: true,
                     roles: { 'Size': true },
                     groupName: firstGroupName,
+                    queryName: 'size',
                 }, {
                     displayName: 'tooltips',
                     format: '#,0',
                     isMeasure: true,
                     roles: { 'Tooltips': true },
                     groupName: firstGroupName,
+                    queryName: 'tooltips',
                 }, {
                     displayName: 'x',
                     format: '#,0.00',
                     isMeasure: true,
                     roles: { 'X': true },
                     groupName: secondGroupName,
+                    queryName: 'x',
                 }, {
                     displayName: 'y',
                     format: '#,0',
                     isMeasure: true,
                     roles: { 'Y': true },
                     groupName: secondGroupName,
+                    queryName: 'y',
                 }, {
                     displayName: 'size',
                     format: '#,0',
                     isMeasure: true,
                     roles: { 'Size': true },
                     groupName: secondGroupName,
+                    queryName: 'size',
                 }, {
                     displayName: 'tooltips',
                     format: '#,0',
                     isMeasure: true,
                     roles: { 'Tooltips': true },
                     groupName: secondGroupName,
+                    queryName: 'tooltips',
                 }
             ]
         };
@@ -2478,14 +2488,14 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[3]]
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[3] }
+                                    }
                                 }
-                            ],
-                            data2: [{
-                                dataMap: { 'select1': categoryIdentities[3] }
-                            }]
+                            ]
                         });
 
                     done();
@@ -2541,14 +2551,12 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[3]]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[3] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[3] }
+                                    }
                                 }
                             ]
                         });
@@ -2561,14 +2569,12 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[1]]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[1] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[1] }
+                                    }
                                 }
                             ]
 
@@ -2582,7 +2588,7 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: []
+                            visualObjects: []
                         });
 
                     done();
@@ -2641,11 +2647,11 @@ module powerbitests {
                     expect(dots[3].style.fillOpacity).toBe(dimmedOpacity);
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith({
-                        data: [
-                            { data: [categoryIdentities[3]] },
-                        ],
-                        data2: [
-                            { dataMap: { 'select1': categoryIdentities[3] } },
+                        visualObjects: [
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[3] } },
+                            },
                         ],
                     });
 
@@ -2656,13 +2662,15 @@ module powerbitests {
                     expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith({
-                        data: [
-                            { data: [categoryIdentities[3]] },
-                            { data: [categoryIdentities[1]] },
-                        ],
-                        data2: [
-                            { dataMap: { 'select1': categoryIdentities[3] } },
-                            { dataMap: { 'select1': categoryIdentities[1] } },
+                        visualObjects: [
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[3] } },
+                            },
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[1] } },
+                            },
                         ],
                     });
 
@@ -2673,15 +2681,19 @@ module powerbitests {
                     expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
                     expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith({
-                        data: [
-                            { data: [categoryIdentities[3]] },
-                            { data: [categoryIdentities[1]] },
-                            { data: [categoryIdentities[0]] },
-                        ],
-                        data2: [
-                            { dataMap: { 'select1': categoryIdentities[3] } },
-                            { dataMap: { 'select1': categoryIdentities[1] } },
-                            { dataMap: { 'select1': categoryIdentities[0] } },
+                        visualObjects: [
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[3] } },
+                            },
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[1] } },
+                            },
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[0] } }
+                            },
                         ],
                     });
 
@@ -2692,13 +2704,15 @@ module powerbitests {
                     expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
                     expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith({
-                        data: [
-                            { data: [categoryIdentities[3]] },
-                            { data: [categoryIdentities[1]] },
-                        ],
-                        data2: [
-                            { dataMap: { 'select1': categoryIdentities[3] } },
-                            { dataMap: { 'select1': categoryIdentities[1] } },
+                        visualObjects: [
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[3] } },
+                            },
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: { dataMap: { 'select1': categoryIdentities[1] } },
+                            }
                         ],
                     });
 
@@ -2755,14 +2769,12 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[3]]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[3] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[3] }
+                                    }
                                 }
                             ]
                         });
@@ -2775,27 +2787,23 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[3]]
-                                },
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[3] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[3] }
+                                    }
                                 }
                             ]
                         });
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[1]]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[1] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[1] }
+                                    }
                                 }
                             ]
                         });
@@ -2815,29 +2823,23 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[3]]
-                                }
-                            ]
-                            ,
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[3] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[3] }
+                                    }
                                 }
                             ]
                         });
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[0]]
-                                }
-                            ]
-                            ,
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[0] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[0] }
+                                    }
                                 }
                             ]
                         });
@@ -2850,14 +2852,12 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [categoryIdentities[1]]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': categoryIdentities[1] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': categoryIdentities[1] }
+                                    }
                                 }
                             ]
                         });
@@ -2915,17 +2915,12 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data:
-                                    [
-                                        identities[3]
-                                    ]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': identities[3] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': identities[3] }
+                                    }
                                 }
                             ]
                         });
@@ -2990,17 +2985,12 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data:
-                                    [
-                                        identities[3]
-                                    ]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: { 'select1': identities[3] }
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn: {
+                                        dataMap: { 'select1': identities[3] }
+                                    }
                                 }
                             ]
                         });
@@ -3013,7 +3003,7 @@ module powerbitests {
                     expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                     expect(hostServices.onSelect).toHaveBeenCalledWith(
                         {
-                            data: []
+                            visualObjects: []
                         });
 
                     done();

@@ -509,6 +509,7 @@
     /* Animated Text (and card) Styles */
     .animatedNumber .mainText, .card .mainText {
         fill: @neutralPrimaryColor;
+        // Per Design, this is the light font instead of the regular font (#7966810)
         font-family: @lightSecondaryFontFamily;
     }
 
@@ -1023,6 +1024,21 @@
         background-repeat: no-repeat;
     }
 
+    .autoScaleImageContainer {
+        position: relative;
+
+        .autoScaleImage {
+            max-width: 100%;
+            max-height: 100%;
+            position: absolute;
+            top: 50%;
+            /* @noflip */
+            left: 50%;
+            transform: translateY(-50%) translateX(-50%);
+            -webkit-transform: translateY(-50%) translateX(-50%);
+        }
+    }
+
     .mapCurrentLocation {
         background-image: url('../images/locationButton.svg');
         position: absolute;
@@ -1342,6 +1358,12 @@
             100% {
                 transform: rotate(2deg);
             }
+        }
+    }
+
+    .gauge {
+        .labelText {
+            font-family: @regularSecondaryFontFamily;
         }
     }
 

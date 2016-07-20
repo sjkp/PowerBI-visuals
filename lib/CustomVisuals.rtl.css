@@ -157,6 +157,7 @@
   position: relative;
   cursor: pointer;
   width: 100%;
+  float: right;
 }
 .chicletSlicer .slicerBody ul {
   margin: 0;
@@ -193,12 +194,12 @@
   text-overflow: ellipsis;
 }
 .chicletSlicer .slicerBody li.slicerItemContainer .slicer-img-wrapper {
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  max-width: 100%;
+  height: auto;
+  align-self: center;
 }
 .chicletSlicer .slicerBody li.slicerItemContainer .stretchImage {
-  background-size: 100% 100%;
+  align-self: auto;
 }
 .chicletSlicer .slicerBody li.slicerItemContainer .bottomImage {
   order: 1;
@@ -209,7 +210,6 @@
 }
 .chicletSlicer .slicerBody.slicerBody-vertical .cell {
   clear: both;
-  float: right;
 }
 .chicletSlicer .slicerBody.slicerBody-vertical .row {
   float: right;

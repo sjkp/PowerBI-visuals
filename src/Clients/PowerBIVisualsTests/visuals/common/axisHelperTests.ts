@@ -675,6 +675,16 @@ module powerbitests {
             expect(AxisHelper.isOrdinal(ValueType.fromDescriptor({ text: true }))).toBe(true);
         });
 
+        it("isOrdinal valid for bar code", () => {
+            let valueType = ValueType.fromDescriptor({ misc: { barcode: true } });
+            expect(AxisHelper.isOrdinal(valueType)).toBe(true);
+        });
+
+        it("isOrdinal valid for postal code", () => {
+            let valueType = ValueType.fromDescriptor({ geography: { postalCode: true } });
+            expect(AxisHelper.isOrdinal(valueType)).toBe(true);
+        });
+
         it("isDateTime valid for DateTime", () => {
             expect(AxisHelper.isDateTime(ValueType.fromDescriptor({ dateTime: true }))).toBe(true);
         });

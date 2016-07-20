@@ -130,11 +130,8 @@ module powerbi.data {
 
             let prototype = options.prototype,
                 objectDescriptors = options.objectDescriptors,
-                dataViewMappings = options.dataViewMappings,
                 transforms = options.transforms,
-                projectionActiveItems = transforms && transforms.roles && transforms.roles.activeItems,
-                colorAllocatorFactory = options.colorAllocatorFactory,
-                dataRoles = options.dataRoles;
+                colorAllocatorFactory = options.colorAllocatorFactory;
 
             if (!prototype)
                 return transformEmptyDataView(objectDescriptors, transforms, colorAllocatorFactory);
@@ -142,40 +139,48 @@ module powerbi.data {
             if (!transforms)
                 return [prototype];
 
+            let transformContext = DataViewTransformContext.create(prototype.metadata, objectDescriptors, options.dataViewMappings, options.dataRoles, transforms, colorAllocatorFactory);
+
+            // If the query was pivoted, we must unpivot the DataViewMatrix and convert it to DataViewCategorical as the 
+            // very first step in the transform.  This is because the visual capability role mapping(s) actually targets a Categorical
+            // but the DSR from such query cannot be parsed into a Categorical.  Hence, create the Categorical from Matrix
+            // before handing the DataView to the rest of the transform pipeline, so that the Categorical can receive the relevant transforms.
+            prototype = DataViewPivotCategoricalToPrimaryGroups.unpivotResult(
+                prototype,
+                transformContext.selectTransforms,
+                transformContext.roleKindByQueryRef,
+                transformContext.queryProjectionsByRole,
+                transformContext.applicableRoleMappings);
+
             // Transform Query DataView
-            prototype = DataViewPivotCategoricalToPrimaryGroups.unpivotResult(prototype, transforms.selects, dataViewMappings, projectionActiveItems);
-            let visualDataViews: DataView[] = transformQueryToVisualDataView(prototype, transforms, objectDescriptors, dataViewMappings, colorAllocatorFactory, dataRoles);
+            let visualDataViews: DataView[] = transformQueryToVisualDataView(prototype, transformContext);
 
             // Transform and generate derived visual DataViews
             visualDataViews = DataViewRegression.run({
-                dataViewMappings: dataViewMappings,
                 visualDataViews: visualDataViews,
-                dataRoles: dataRoles,
+                dataRoles: transformContext.dataRoles,
                 objectDescriptors: objectDescriptors,
                 objectDefinitions: transforms.objects,
                 colorAllocatorFactory: colorAllocatorFactory,
                 transformSelects: transforms.selects,
-                metadata: prototype.metadata,
-                projectionActiveItems: projectionActiveItems,
+                applicableDataViewMappings: transformContext.applicableRoleMappings,
+                roleKindByQueryRef: transformContext.roleKindByQueryRef,
+                queryProjectionsByRole: transformContext.queryProjectionsByRole,
             });
 
             return visualDataViews;
         }
 
-        function transformQueryToVisualDataView(
-            prototype: DataView,
-            transforms: DataViewTransformActions,
-            objectDescriptors: DataViewObjectDescriptors,
-            dataViewMappings: DataViewMapping[],
-            colorAllocatorFactory: IColorAllocatorFactory,
-            dataRoles: VisualDataRole[]): DataView[] {
+        function transformQueryToVisualDataView(prototype: DataView, transformContext: DataViewTransformContext): DataView[] {
+            debug.assertValue(transformContext, 'transformContext');
+
             let transformedDataViews: DataView[] = [];
-            let splits = transforms.splits;
+            let splits = transformContext.transforms.splits;
             if (_.isEmpty(splits)) {
-                transformedDataViews.push(transformDataView(prototype, objectDescriptors, dataViewMappings, transforms, colorAllocatorFactory, dataRoles));
+                transformedDataViews.push(transformDataView(prototype, transformContext));
             } else {
                 for (let split of splits) {
-                    let transformed = transformDataView(prototype, objectDescriptors, dataViewMappings, transforms, colorAllocatorFactory, dataRoles, split.selects);
+                    let transformed = transformDataView(prototype, transformContext, split.selects);
                     transformedDataViews.push(transformed);
                 }
             }
@@ -206,63 +211,49 @@ module powerbi.data {
 
         function transformDataView(
             prototype: DataView,
-            objectDescriptors: DataViewObjectDescriptors,
-            roleMappings: DataViewMapping[],
-            transforms: DataViewTransformActions,
-            colorAllocatorFactory: IColorAllocatorFactory,
-            dataRoles: VisualDataRole[],
+            transformContext: DataViewTransformContext,
             selectsToInclude?: INumberDictionary<boolean>): DataView {
             debug.assertValue(prototype, 'prototype');
-            debug.assertValue(transforms, 'transforms');
+            debug.assertValue(transformContext, 'transformContext');
             debug.assert(!selectsToInclude ||
                 _.filter(
                     Object.keys(selectsToInclude),
-                    (selectIndex) => selectsToInclude[selectIndex] && (!transforms.selects || !transforms.selects[selectIndex]))
+                    (selectIndex) => selectsToInclude[selectIndex] && (!transformContext.selectTransforms || !transformContext.selectTransforms[selectIndex]))
                     .length === 0, // asserts that the number of select indices in selectsToInclude without a corresponding Select Transform === 0
                 'If selectsToInclude is specified, every Select Index in it must have a corresponding Select Transform.');
 
-            let targetKinds = getTargetKinds(roleMappings);
+            // TODO VSTS 7427800: Use applicableDataViewKinds/applicableRoleMappings instead of visualCapabilitiesDataViewKinds/visualCapabilitiesRoleMappings
+            // when the input DataViewTransformActions becomes reliable.
+            let targetDataViewKinds = transformContext.visualCapabilitiesDataViewKinds;
+            let targetRoleMappings = transformContext.visualCapabilitiesRoleMappings;
+            let selectTransforms = transformContext.selectTransforms;
+            let objectDescriptors = transformContext.objectDescriptors;
+            let projectionOrdering = transformContext.projectionOrdering;
+
             let transformed = inherit(prototype);
             transformed.metadata = inherit(prototype.metadata);
 
-            let projectionOrdering = transforms.roles && transforms.roles.ordering;
-            let projectionActiveItems = transforms.roles && transforms.roles.activeItems;
-            transformed = transformSelects(transformed, targetKinds, roleMappings, transforms.selects, projectionOrdering);
-            transformObjects(transformed, targetKinds, objectDescriptors, transforms.objects, transforms.selects, colorAllocatorFactory);
-            DataViewRemoveSelects.apply(transformed, targetKinds, selectsToInclude);
+            transformed = transformSelects(transformed, targetDataViewKinds, targetRoleMappings, selectTransforms, projectionOrdering);
+            
+            transformObjects(transformed, transformContext.visualCapabilitiesDataViewKinds, objectDescriptors, transformContext.transforms.objects, selectTransforms, transformContext.colorAllocatorFactory);
+
+            DataViewRemoveSelects.apply(transformed, targetDataViewKinds, selectsToInclude);
 
             // Note: Do this step after transformObjects() so that metadata columns in 'transformed' have roles and objects.general.formatString populated
-            transformed = DataViewConcatenateCategoricalColumns.detectAndApply(transformed, objectDescriptors, roleMappings, projectionOrdering, transforms.selects, projectionActiveItems);
+            transformed = DataViewConcatenateCategoricalColumns.detectAndApply(
+                transformed,
+                transformContext.objectDescriptors,
+                transformContext.applicableRoleMappings,
+                transformContext.projectionOrdering,
+                transformContext.projectionActiveItems);
 
             DataViewNormalizeValues.apply({
                 dataview: transformed,
-                dataViewMappings: roleMappings,
-                dataRoles: dataRoles,
+                dataViewMappings: targetRoleMappings,
+                dataRoles: transformContext.dataRoles,
             });
 
             return transformed;
-        }
-
-        function getTargetKinds(roleMappings: DataViewMapping[]): StandardDataViewKinds {
-            debug.assertAnyValue(roleMappings, 'roleMappings');
-
-            if (!roleMappings)
-                return StandardDataViewKinds.None;
-
-            let result = StandardDataViewKinds.None;
-            for (let roleMapping of roleMappings) {
-                if (roleMapping.categorical)
-                    result |= StandardDataViewKinds.Categorical;
-                if (roleMapping.matrix)
-                    result |= StandardDataViewKinds.Matrix;
-                if (roleMapping.single)
-                    result |= StandardDataViewKinds.Single;
-                if (roleMapping.table)
-                    result |= StandardDataViewKinds.Table;
-                if (roleMapping.tree)
-                    result |= StandardDataViewKinds.Tree;
-            }
-            return result;
         }
 
         function transformSelects(
@@ -270,7 +261,12 @@ module powerbi.data {
             targetDataViewKinds: StandardDataViewKinds,
             roleMappings: DataViewMapping[],
             selectTransforms: DataViewSelectTransform[],
-            projectionOrdering?: DataViewProjectionOrdering): DataView {
+            projectionOrdering: DataViewProjectionOrdering): DataView {
+            debug.assertValue(dataView, 'prototype');
+            debug.assertValue(targetDataViewKinds, 'targetDataViewKinds');
+            debug.assert(targetDataViewKinds === StandardDataViewKinds.None || !_.isEmpty(roleMappings), 'if targetDataViewKinds !== None, then roleMappings must be non-empty');
+            debug.assertAnyValue(selectTransforms, 'selectTransforms');
+            debug.assertAnyValue(projectionOrdering, 'projectionOrdering');
 
             let columnRewrites: ValueRewrite<DataViewMetadataColumn>[] = [];
             if (selectTransforms) {
@@ -419,7 +415,7 @@ module powerbi.data {
             let newColumn = inheritColumnProperties({ displayName: select.displayName }, select);
             columns.push(newColumn);
             return newColumn;
-            }
+        }
 
         function evaluateAggregate(
             evalContext: IEvalContext,
@@ -1577,6 +1573,8 @@ module powerbi.data {
                 return;
 
             let categories = dataViewCategorical.categories;
+            if (!categories)
+                return;
 
             let selectorsForRuleInput: Selector[] = [];
             let categoryRoles: { [name: string]: boolean };
@@ -1585,9 +1583,11 @@ module powerbi.data {
                 let categoryColumn = categories[categoryIndex],
                     categoryIdentityFields = categoryColumn.identityFields;
                 categoryRoles = categoryColumn.source.roles;
+                if (!categoryRoles || !categoryIdentityFields)
+                    continue;
 
                 let columnHasSelectorRole = _.any(selectorRoles, (role: string) => categoryRoles[role]);
-                if (!categoryRoles || !categoryIdentityFields || !columnHasSelectorRole)
+                if (!columnHasSelectorRole)
                     continue;
 
                 selectorsForRuleInput.push({ data: [DataViewScopeWildcard.fromExprs(<SQExpr[]>categoryIdentityFields)] });

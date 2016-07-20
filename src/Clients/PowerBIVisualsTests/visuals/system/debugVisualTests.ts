@@ -143,9 +143,8 @@ module powerbitests {
             });
 
             describe("refresh", () => {
-                it("calling refresh should ask host to refesh", () => {
+                it("should reload visual from dev server", () => {
                     let adapterSpy = spyOn(powerbi.extensibility, 'createVisualAdapter').and.callThrough();
-                    let hostSpy = spyOn((<any>debugVisual).host, 'visualCapabilitiesChanged').and.callFake(() => { });
 
                     expect(getJSONSpy.calls.count()).toBe(1);
                     expect(getScriptSpy.calls.count()).toBe(1);
@@ -154,10 +153,24 @@ module powerbitests {
                     (<any>debugVisual).reloadAdapter();
 
                     expect(adapterSpy).toHaveBeenCalled();
-                    expect(hostSpy).toHaveBeenCalled();
                     expect(getJSONSpy.calls.count()).toBe(2);
                     expect(getScriptSpy.calls.count()).toBe(2);
                     expect(getSpy.calls.count()).toBe(4);
+                });
+
+                it("should reload host capabilities if they've changed", () => {
+                    let hostSpy = spyOn((<any>debugVisual).host, 'visualCapabilitiesChanged').and.callFake(() => { });
+
+                    (<any>debugVisual).reloadAdapter();
+                    expect(hostSpy.calls.count()).toBe(0);
+
+                    capabilities = {};
+
+                    (<any>debugVisual).reloadAdapter();
+                    expect(hostSpy.calls.count()).toBe(1);
+
+                    (<any>debugVisual).reloadAdapter();
+                    expect(hostSpy.calls.count()).toBe(1);
                 });
 
                 it("update should be called upon refesh if previously updated", () => {
@@ -396,7 +409,7 @@ module powerbitests {
 
                 it("Should reset capabilities", () => {
                     expect(hostSpy).toHaveBeenCalled();
-                    expect(powerbi.visuals.plugins.debugVisual.capabilities).toEqual({});
+                    expect(powerbi.visuals.plugins.debugVisual.capabilities).toEqual(powerbi.visuals.system.DebugVisual.defaultCapabilities);
                 });
             });
 
@@ -442,11 +455,11 @@ module powerbitests {
                     expect(hostSpy.calls.count()).toBe(1);
 
                     (<any>debugVisual).reloadAdapter();
-                    expect(hostSpy.calls.count()).toBe(2);
+                    expect(hostSpy.calls.count()).toBe(1);
                     expect(buildErrorMessage.calls.count()).toBe(1);
 
                     (<any>debugVisual).reloadAdapter(true);
-                    expect(hostSpy.calls.count()).toBe(2);
+                    expect(hostSpy.calls.count()).toBe(1);
                     expect(buildErrorMessage.calls.count()).toBe(1);
                 });
             });
@@ -505,7 +518,7 @@ module powerbitests {
                 });
                 it("Should reset capabilities", () => {
                     expect(hostSpy).toHaveBeenCalled();
-                    expect(powerbi.visuals.plugins.debugVisual.capabilities).toEqual({});
+                    expect(powerbi.visuals.plugins.debugVisual.capabilities).toEqual(powerbi.visuals.system.DebugVisual.defaultCapabilities);
                 });
             });
 
@@ -582,7 +595,7 @@ module powerbitests {
 
                 it("Should reset capabilities", () => {
                     expect(hostSpy).toHaveBeenCalled();
-                    expect(powerbi.visuals.plugins.debugVisual.capabilities).toEqual({});
+                    expect(powerbi.visuals.plugins.debugVisual.capabilities).toEqual(powerbi.visuals.system.DebugVisual.defaultCapabilities);
                 });
             });
         });

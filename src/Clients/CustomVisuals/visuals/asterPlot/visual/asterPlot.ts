@@ -31,7 +31,68 @@ module powerbi.visuals.samples {
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
     import PixelConverter = jsCommon.PixelConverter;
+    import IStringResourceProvider = jsCommon.IStringResourceProvider;
     import ValueFormatter = powerbi.visuals.valueFormatter;
+    import LegendData = powerbi.visuals.LegendData;
+    import IValueFormatter = powerbi.visuals.IValueFormatter;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import IInteractiveBehavior = powerbi.visuals.IInteractiveBehavior;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
+    import IVisualWarning = powerbi.IVisualWarning;
+    import IVisualErrorMessage = powerbi.IVisualErrorMessage;
+    import IMargin = powerbi.visuals.IMargin;
+    import IViewport = powerbi.IViewport;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import DataView = powerbi.DataView;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import IEnumType = powerbi.IEnumType;
+    import createEnumType = powerbi.createEnumType;
+    import IEnumMember = powerbi.IEnumMember;
+    import DataViewObjects = powerbi.DataViewObjects;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import ObjectEnumerationBuilder = powerbi.visuals.ObjectEnumerationBuilder;
+    import VisualObjectInstance = powerbi.VisualObjectInstance;
+    import LegendPosition = powerbi.visuals.LegendPosition;
+    import dataLabelUtils = powerbi.visuals.dataLabelUtils;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import DataViewValueColumns = powerbi.DataViewValueColumns;
+    import DataViewCategoricalColumn = powerbi.DataViewCategoricalColumn;
+    import converterHelper = powerbi.visuals.converterHelper;
+    import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
+    import DataViewValueColumn = powerbi.DataViewValueColumn;
+    import IVisual = powerbi.IVisual;
+    import createDisplayNameGetter = powerbi.data.createDisplayNameGetter;
+    import legendPosition = powerbi.visuals.legendPosition;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import ColorHelper = powerbi.visuals.ColorHelper;
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import TooltipBuilder = powerbi.visuals.TooltipBuilder;
+    import DataViewScopeIdentity = powerbi.DataViewScopeIdentity;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import LegendIcon = powerbi.visuals.LegendIcon;
+    import IVisualHostServices = powerbi.IVisualHostServices;
+    import ILegend = powerbi.visuals.ILegend;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import SelectEventArgs = powerbi.SelectEventArgs;
+    import appendClearCatcher = powerbi.visuals.appendClearCatcher;
+    import createInteractivityService = powerbi.visuals.createInteractivityService;
+    import createLegend = powerbi.visuals.createLegend;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import MinervaAnimationDuration = powerbi.visuals.AnimatorCommon.MinervaAnimationDuration;
+    import SVGUtil = powerbi.visuals.SVGUtil;
+    import TooltipManager = powerbi.visuals.TooltipManager;
+    import TooltipEvent = powerbi.visuals.TooltipEvent;
+    import ILabelLayout = powerbi.visuals.ILabelLayout;
+    import TextProperties = powerbi.TextProperties;
+    import TextMeasurementService = powerbi.TextMeasurementService;
+    import DataLabelManager = powerbi.DataLabelManager;
+    import LabelEnabledDataPoint = powerbi.visuals.LabelEnabledDataPoint;
+    import Legend = powerbi.visuals.Legend;
+    import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
+    import DataViewObjectPropertyTypeDescriptor = powerbi.data.DataViewObjectPropertyTypeDescriptor;
+    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
 
     var AsterPlotVisualClassName: string = "asterPlot";
     var AsterRadiusRatio: number = 0.9;
@@ -95,7 +156,11 @@ module powerbi.visuals.samples {
         public renderSelection(hasSelection: boolean) {
 
             this.selection.style("fill-opacity", (d) => {
-                return ColumnUtil.getFillOpacity(d.data.selected, d.data.highlight, hasSelection, this.hasHighlights);
+                return asterPlotUtils.getFillOpacity(
+                    d.data.selected,
+                    d.data.highlight,
+                    hasSelection,
+                    this.hasHighlights);
             });
         }
     }
@@ -110,7 +175,7 @@ module powerbi.visuals.samples {
             return "AsterPlotWarning";
         }
 
-        public getMessages(resourceProvider: jsCommon.IStringResourceProvider): IVisualErrorMessage {
+        public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
             return {
                 message: this.message,
                 title: resourceProvider.get(""),
@@ -316,7 +381,7 @@ module powerbi.visuals.samples {
                 .map(x => <IEnumMember>{ value: x, displayName: x }));
         }
 
-        private static getValueFnByType(type: powerbi.data.DataViewObjectPropertyTypeDescriptor) {
+        private static getValueFnByType(type: DataViewObjectPropertyTypeDescriptor) {
             switch(_.keys(type)[0]) {
                 case "fill": 
                     return DataViewObjects.getFillColor;
@@ -445,12 +510,12 @@ module powerbi.visuals.samples {
                 {
                     displayName: "Category",
                     name: AsterPlotColumns.Roles.Category,
-                    kind: powerbi.VisualDataRoleKind.Grouping,
+                    kind: VisualDataRoleKind.Grouping,
                 },
                 {
                     displayName: "Y Axis",
                     name: AsterPlotColumns.Roles.Y,
-                    kind: powerbi.VisualDataRoleKind.Measure,
+                    kind: VisualDataRoleKind.Measure,
                 },
             ],
             dataViewMappings: [{
@@ -469,7 +534,7 @@ module powerbi.visuals.samples {
             }],
             objects: {
                 general: {
-                    displayName: data.createDisplayNameGetter("Visual_General"),
+                    displayName: createDisplayNameGetter("Visual_General"),
                     properties: {
                         formatString: {
                             type: { formatting: { formatString: true } },
@@ -754,11 +819,13 @@ module powerbi.visuals.samples {
         public init(options: VisualInitOptions): void {
             this.hostServices = options.host;
             this.hostServices.canSelect = (args: SelectEventArgs) => {
-                if (args.data && (args.data.length > 1)) {
-                    if (args.data.some((value: data.Selector) => value && value.data && value.data.length > 1)) {
+                let selectors = _.map(args.visualObjects, (visualObject) => powerbi.data.Selector.convertSelectorsByColumnToSelector(visualObject.selectorsByColumn));
+
+                // We can't have multiple selections if any include more than one identity
+                if (selectors.length > 1) {
+                    if (selectors.some((value: data.Selector) => value && value.data && value.data.length > 1))
                         return false;
                     }
-                }
 
                 return true;
             };
@@ -789,7 +856,7 @@ module powerbi.visuals.samples {
 
             this.layout.viewport = options.viewport;
 
-            var duration = options.suppressAnimations ? 0 : AnimatorCommon.MinervaAnimationDuration;
+            var duration = options.suppressAnimations ? 0 : MinervaAnimationDuration;
             var data = AsterPlot.converter(options.dataViews[0], this.colors);
 
             if (!data) {
@@ -1160,6 +1227,19 @@ module powerbi.visuals.samples {
                 AsterPlot.capabilities);
 
             return instances.complete();
+        }
+    }
+
+    export module asterPlotUtils {
+        export var DimmedOpacity: number = 0.4;
+        export var DefaultOpacity: number = 1.0;
+
+        export function getFillOpacity(selected: boolean, highlight: boolean, hasSelection: boolean, hasPartialHighlights: boolean): number {
+            if ((hasPartialHighlights && !highlight) || (hasSelection && !selected)) {
+                return DimmedOpacity;
+            }
+
+            return DefaultOpacity;
         }
     }
 }

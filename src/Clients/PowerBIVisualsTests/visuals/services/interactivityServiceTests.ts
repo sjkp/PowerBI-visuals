@@ -36,6 +36,7 @@ module powerbitests {
     describe('Interactivity service', () => {
         let host: powerbi.IVisualHostServices;
         let interactivityService: powerbi.visuals.InteractivityService;
+        let identities: SelectionId[];
         let selectableDataPoints: SelectableDataPoint[];
         let behavior: MockBehavior;
         let filterPropertyId: powerbi.DataViewObjectPropertyIdentifier;
@@ -44,13 +45,21 @@ module powerbitests {
             host = powerbitests.mocks.createVisualHostServices();
             host.canSelect = () => true; // Allows for multiselect behavior by default
             interactivityService = <powerbi.visuals.InteractivityService>powerbi.visuals.createInteractivityService(host);
-            selectableDataPoints = <SelectableDataPoint[]> [
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("b"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("b"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("b"), "queryName") },
+            identities = [
+                SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName"),
+                SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("b"), "queryName"),
+                SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("a"), "queryName"),
+                SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("b"), "queryName"),
+                SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("a"), "queryName"),
+                SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("b"), "queryName"),
+            ];
+            selectableDataPoints = <SelectableDataPoint[]>[
+                { selected: false, identity: identities[0] },
+                { selected: false, identity: identities[1] },
+                { selected: false, identity: identities[2] },
+                { selected: false, identity: identities[3] },
+                { selected: false, identity: identities[4] },
+                { selected: false, identity: identities[5] },
             ];
             filterPropertyId = {
                 objectName: 'general',
@@ -59,308 +68,311 @@ module powerbitests {
             behavior = new MockBehavior(selectableDataPoints, filterPropertyId);
         });
 
-        it('Basic binding', () => {
-            spyOn(behavior, "bindEvents");
-            spyOn(behavior, "renderSelection");
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            expect(behavior.bindEvents).toHaveBeenCalled();
-            expect(behavior.verifyCleared()).toBeTruthy();
-            expect(behavior.renderSelection).not.toHaveBeenCalled();
-            expect(interactivityService.hasSelection()).toBeFalsy();
+        describe('Binding', () => {
+
+            it('Basic binding', () => {
+                spyOn(behavior, "bindEvents");
+                spyOn(behavior, "renderSelection");
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                expect(behavior.bindEvents).toHaveBeenCalled();
+                expect(behavior.verifyCleared()).toBeTruthy();
+                expect(behavior.renderSelection).not.toHaveBeenCalled();
+                expect(interactivityService.hasSelection()).toBeFalsy();
+            });
+
+            it('Binding passes behaviorOptions', () => {
+                spyOn(behavior, "bindEvents");
+                let arbitraryBehaviorOptions = {
+                    some: "random",
+                    collection: "of",
+                    random: "stuff",
+                };
+                interactivityService.bind(selectableDataPoints, behavior, arbitraryBehaviorOptions);
+                expect(behavior.bindEvents).toHaveBeenCalledWith(arbitraryBehaviorOptions, interactivityService);
+            });
         });
 
-        it('Binding passes behaviorOptions', () => {
-            spyOn(behavior, "bindEvents");
-            let arbitraryBehaviorOptions = {
-                some: "random",
-                collection: "of",
-                random: "stuff",
-            };
-            interactivityService.bind(selectableDataPoints, behavior, arbitraryBehaviorOptions);
-            expect(behavior.bindEvents).toHaveBeenCalledWith(arbitraryBehaviorOptions, interactivityService);
-        });
+        describe('Selection', () => {
 
-        it('Basic selection', () => {
-            spyOn(behavior, "renderSelection");
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(0, false);
-            expect(behavior.verifySingleSelectedAt(0)).toBeTruthy();
-            expect(behavior.renderSelection).toHaveBeenCalledWith(true);
-            expect(interactivityService.hasSelection()).toBeTruthy();
-        });
+            it('Basic selection', () => {
+                spyOn(behavior, "renderSelection");
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(0, false);
+                expect(behavior.verifySingleSelectedAt(0)).toBeTruthy();
+                expect(behavior.renderSelection).toHaveBeenCalledWith(true);
+                expect(interactivityService.hasSelection()).toBeTruthy();
+            });
 
-        it('Apply selection', () => {
-            let newDataPoints = <SelectableDataPoint[]>[
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("b"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("b"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("b"), "queryName") },
-            ];
-            spyOn(behavior, "renderSelection");
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(0, false);
-            expect(behavior.verifySingleSelectedAt(0)).toBeTruthy();
-            expect(behavior.renderSelection).toHaveBeenCalledWith(true);
-            interactivityService.applySelectionStateToData(newDataPoints);
-            expect(newDataPoints[0].selected).toBeTruthy();
-            expect(newDataPoints[1].selected).toBeFalsy();
-            expect(newDataPoints[2].selected).toBeFalsy();
-            expect(newDataPoints[3].selected).toBeFalsy();
-            expect(newDataPoints[4].selected).toBeFalsy();
-            expect(newDataPoints[5].selected).toBeFalsy();
-        });
+            it('Apply selection', () => {
+                let newDataPoints = <SelectableDataPoint[]>[
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("b"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("a"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("b"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("a"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("b"), "queryName") },
+                ];
+                spyOn(behavior, "renderSelection");
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(0, false);
+                expect(behavior.verifySingleSelectedAt(0)).toBeTruthy();
+                expect(behavior.renderSelection).toHaveBeenCalledWith(true);
+                interactivityService.applySelectionStateToData(newDataPoints);
+                expect(newDataPoints[0].selected).toBeTruthy();
+                expect(newDataPoints[1].selected).toBeFalsy();
+                expect(newDataPoints[2].selected).toBeFalsy();
+                expect(newDataPoints[3].selected).toBeFalsy();
+                expect(newDataPoints[4].selected).toBeFalsy();
+                expect(newDataPoints[5].selected).toBeFalsy();
+            });
 
-        it('Clear selection through event', () => {
-            spyOn(behavior, "renderSelection");
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(0, false);
-            behavior.clear();
-            expect(behavior.verifyCleared()).toBeTruthy();
-            expect(behavior.renderSelection).toHaveBeenCalledWith(false);
-            expect(interactivityService.hasSelection()).toBeFalsy();
-        });
+            it('Clear selection through event', () => {
+                spyOn(behavior, "renderSelection");
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(0, false);
+                behavior.clear();
+                expect(behavior.verifyCleared()).toBeTruthy();
+                expect(behavior.renderSelection).toHaveBeenCalledWith(false);
+                expect(interactivityService.hasSelection()).toBeFalsy();
+            });
 
-        it('Clear selection through service', () => {
-            spyOn(behavior, "renderSelection");
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(0, false);
-            interactivityService.clearSelection();
-            expect(behavior.verifyCleared()).toBeTruthy();
-            expect(behavior.renderSelection).toHaveBeenCalledWith(false);
-            expect(interactivityService.hasSelection()).toBeFalsy();
-        });
+            it('Clear selection through service', () => {
+                spyOn(behavior, "renderSelection");
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(0, false);
+                interactivityService.clearSelection();
+                expect(behavior.verifyCleared()).toBeTruthy();
+                expect(behavior.renderSelection).toHaveBeenCalledWith(false);
+                expect(interactivityService.hasSelection()).toBeFalsy();
+            });
 
-        it('Clear selection should reset isInvertedSelectionMode for defaultValue ', () => {
-            let valueHandler = new MockSlicerValueHandler();
-            valueHandler.searchKey = '';
-            interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: valueHandler });
-            interactivityService.setSelectionModeInverted(true);
-            interactivityService.clearSelection();
-            expect(interactivityService.isSelectionModeInverted()).toBe(false);
-        });                                                                                                                                                                
+            it('Clear selection should reset isInvertedSelectionMode for defaultValue ', () => {
+                let valueHandler = new MockSlicerValueHandler();
+                valueHandler.searchKey = '';
+                interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: valueHandler });
+                interactivityService.setSelectionModeInverted(true);
+                interactivityService.clearSelection();
+                expect(interactivityService.isSelectionModeInverted()).toBe(false);
+            });
 
-        it('Selection sent to host', () => {
-            spyOn(host, "onSelect");
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(0, false);
-            expect(host.onSelect).toHaveBeenCalledWith({ data: [selectableDataPoints[0].identity.getSelector()] });
-        });
-
-        it('ContextMenu request sent to host', () => {
-            let categoryA = mocks.dataViewScopeIdentity('A');
-            let categoryColumn: powerbi.DataViewCategoryColumn = {
-                source: {
-                    queryName: 'categoryA',
-                    displayName: 'testDisplayName'
-                },
-                identity: [categoryA],
-                values: []
-            };
-
-            let id = SelectionIdBuilder.builder().withCategory(categoryColumn, 0).createSelectionId();
-            let dataPoint: SelectableDataPoint = {
-                selected: false,
-                identity: id
-            };
-
-            let contextMenuSpy = spyOn(host, "onContextMenu");
-            interactivityService.handleContextMenu(dataPoint, { x: 5, y: 15 });
-
-            expect(contextMenuSpy.calls.argsFor(0)[0].data[0]).toEqual({
-                dataMap: {
-                    categoryA: id.getSelector().data[0]
+            it('Multiple single selects', () => {
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                for (let i = 0, ilen = selectableDataPoints.length; i < ilen; i++) {
+                    behavior.selectIndex(i, false);
+                    expect(behavior.verifySingleSelectedAt(i)).toBeTruthy();
                 }
             });
-        });
 
-        it('persistSelectionFilter calls persistProperties', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            spyOn(host, "persistProperties");
-            behavior.bindEvents(null, interactivityService);
-            behavior.selectIndexAndPersist(0, false);
-            expect(host.persistProperties).toHaveBeenCalled();
-        });
-
-        it('persistSelfFilter calls persistProperties', () => {
-            let valueHandler = new MockSlicerValueHandler();
-            valueHandler.searchKey = 'apple';
-            interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: valueHandler });
-            spyOn(host, "persistProperties");
-            behavior.bindEvents(null, interactivityService);
-            let selfFilterPropertyIdentifier: powerbi.DataViewObjectPropertyIdentifier = {
-                objectName: 'general',
-                propertyName: 'selfFilter',
-            };
-            interactivityService.persistSelfFilter(selfFilterPropertyIdentifier, valueHandler.getSelfFilter());
-            expect(host.persistProperties).toHaveBeenCalledWith({
-                merge: [{
-                    objectName: 'general',
-                    selector: undefined,
-                    properties: {
-                        'selfFilter': valueHandler.getSelfFilter(),
-                    }
-                }]
-            });
-        });
-
-        describe('createChangeForFilterProperty', () => {
-            beforeEach(() => {
+            it('Single select clears', () => {
                 interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(1, false);
+                expect(behavior.verifySingleSelectedAt(1)).toBeTruthy();
+                behavior.selectIndex(1, false);
+                expect(behavior.verifyCleared()).toBeTruthy();
             });
 
-            it('select a single data point', () => {
-                behavior.bindEvents(null, interactivityService);
+            it('Single select null identity does not crash', () => {
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.select({
+                    identity: new SelectionId(null, false),
+                    selected: false,
+                });
+                expect(behavior.verifyCleared()).toBeTruthy();
+            });
+
+            it('Basic multiselect', () => {
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(1, true);
+                expect(behavior.verifySelectionState([false, true, false, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(2, true);
+                expect(behavior.verifySelectionState([false, true, true, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(5, true);
+                expect(behavior.verifySelectionState([false, true, true, false, false, true, false])).toBeTruthy();
+            });
+
+            it('Multiselect clears', () => {
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(1, true);
+                expect(behavior.verifySelectionState([false, true, false, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(2, true);
+                expect(behavior.verifySelectionState([false, true, true, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(1, true);
+                expect(behavior.verifySelectionState([false, false, true, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(5, true);
+                expect(behavior.verifySelectionState([false, false, true, false, false, true, false])).toBeTruthy();
+                behavior.selectIndex(5, true);
+                expect(behavior.verifySelectionState([false, false, true, false, false, false, false])).toBeTruthy();
+            });
+
+            it('Single and multiselect', () => {
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(1, false);
+                expect(behavior.verifySingleSelectedAt(1)).toBeTruthy();
+                behavior.selectIndex(2, true);
+                expect(behavior.verifySelectionState([false, true, true, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(5, true);
+                expect(behavior.verifySelectionState([false, true, true, false, false, true, false])).toBeTruthy();
+                behavior.selectIndex(3, false);
+                expect(behavior.verifySingleSelectedAt(3)).toBeTruthy();
+                behavior.selectIndex(0, true);
+                expect(behavior.verifySelectionState([true, false, false, true, false, false, false])).toBeTruthy();
+            });
+
+            it('Multiselect treated as single select when host says selection is invalid', () => {
+                host.canSelect = () => false;
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(1, true);
+                expect(behavior.verifySelectionState([false, true, false, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(2, true);
+                expect(behavior.verifySelectionState([false, false, true, false, false, false, false])).toBeTruthy();
+                behavior.selectIndex(5, true);
+                expect(behavior.verifySelectionState([false, false, false, false, false, true, false])).toBeTruthy();
+            });
+
+            it('Multiselect cannot mix measure-only with non-measure-only selections', () => {
+                let mixedSelectableDataPoints = [
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("b"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("a"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("b"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("a"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("b"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithMeasure("queryName2") },
+                    { selected: false, identity: SelectionId.createWithMeasure("queryName3") },
+                ];
+                let mixedBehavior = new MockBehavior(mixedSelectableDataPoints, filterPropertyId);
+                interactivityService.bind(mixedSelectableDataPoints, mixedBehavior, null);
+                mixedBehavior.selectIndex(1, true);
+                expect(mixedBehavior.verifySelectionState([false, true, false, false, false, false, false, false])).toBeTruthy();
+                mixedBehavior.selectIndex(2, true);
+                expect(mixedBehavior.verifySelectionState([false, true, true, false, false, false, false, false])).toBeTruthy();
+                mixedBehavior.selectIndex(6, true);
+                expect(mixedBehavior.verifySelectionState([false, false, false, false, false, false, true, false])).toBeTruthy();
+                mixedBehavior.selectIndex(7, true);
+                expect(mixedBehavior.verifySelectionState([false, false, false, false, false, false, true, true])).toBeTruthy();
+                mixedBehavior.selectIndex(1, true);
+                expect(mixedBehavior.verifySelectionState([false, true, false, false, false, false, false, false])).toBeTruthy();
+            });
+
+            it('Null identity', () => {
+                let nullIdentity: SelectableDataPoint = {
+                    selected: false,
+                    identity: null,
+                    specificIdentity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName"),
+                };
+                interactivityService.handleSelection(nullIdentity, false);
+                expect(interactivityService.hasSelection()).toBe(false);
+            });
+
+            it('Null specific identity', () => {
+                let nullIdentity: SelectableDataPoint = {
+                    selected: false,
+                    identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName"),
+                    specificIdentity: null,
+                };
+                interactivityService.handleSelection(nullIdentity, false);
+                expect(interactivityService.hasSelection()).toBe(true);
+            });
+
+            it('Null for identity and specific identity', () => {
+                let nullIdentity: SelectableDataPoint = {
+                    selected: false,
+                    identity: null,
+                    specificIdentity: null,
+                };
+                interactivityService.handleSelection(nullIdentity, false);
+                expect(interactivityService.hasSelection()).toBe(false);
+            });
+        });
+
+        describe('Host interaction', () => {
+
+            it('DataPointSelection is sent to host', () => {
+                spyOn(host, "onSelecting");
+                selectableDataPoints.push({ selected: false, identity: SelectionId.createWithIdAndMeasure(mocks.dataViewScopeIdentity("2"), "queryName"), specificIdentity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("c"), "queryName") });
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(6, false);
+                expect(host.onSelecting).toHaveBeenCalledWith({ visualObjects: [{ objectName: 'dataPoint', selectorsByColumn: undefined }] });
+            });
+
+            it('Selection sent to host', () => {
+                spyOn(host, "onSelect");
+                let identity = SelectionId.createWithIdAndMeasureAndCategory(mocks.dataViewScopeIdentity("2"), "queryName", "categoryqueryName");
+                selectableDataPoints.push({ selected: false, identity: identity, specificIdentity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("c"), "queryName") });
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(6, false);
+                expect(host.onSelect).toHaveBeenCalledWith({ visualObjects: [{ objectName: 'dataPoint', selectorsByColumn: identity.getSelectorsByColumn() }] });
+            });
+
+            it('Selection for old ids sent to host', () => {
+                spyOn(host, "onSelect");
+                let identity = SelectionId.createWithIdAndMeasure(mocks.dataViewScopeIdentity("2"), "queryName");
+                selectableDataPoints.push({ selected: false, identity: identity, specificIdentity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("c"), "queryName") });
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                behavior.selectIndex(6, false);
+                expect(host.onSelect).toHaveBeenCalledWith({ visualObjects: [{ objectName: 'dataPoint', selectorsByColumn: undefined }], selectors: [identity.getSelector()] });
+            });
+
+            it('ContextMenu request sent to host', () => {
+                let categoryA = mocks.dataViewScopeIdentity('A');
+                let categoryColumn: powerbi.DataViewCategoryColumn = {
+                    source: {
+                        queryName: 'categoryA',
+                        displayName: 'testDisplayName'
+                    },
+                    identity: [categoryA],
+                    values: []
+                };
+
+                let id = SelectionIdBuilder.builder().withCategory(categoryColumn, 0).createSelectionId();
+                let dataPoint: SelectableDataPoint = {
+                    selected: false,
+                    identity: id
+                };
+
+                let contextMenuSpy = spyOn(host, "onContextMenu");
+                interactivityService.handleContextMenu(dataPoint, { x: 5, y: 15 });
+
+                expect(contextMenuSpy.calls.argsFor(0)[0].data[0]).toEqual({
+                    dataMap: {
+                        categoryA: id.getSelector().data[0]
+                    }
+                });
+            });
+
+            it('persistSelectionFilter calls persistProperties', () => {
+                interactivityService.bind(selectableDataPoints, behavior, null);
                 spyOn(host, "persistProperties");
-                behavior.selectIndexAndPersist(0, false);      
-                
+                behavior.bindEvents(null, interactivityService);
+                behavior.selectIndexAndPersist(0, false);
+                expect(host.persistProperties).toHaveBeenCalled();
+            });
+
+            it('persistSelfFilter calls persistProperties', () => {
+                let valueHandler = new MockSlicerValueHandler();
+                valueHandler.searchKey = 'apple';
+                interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: valueHandler });
+                spyOn(host, "persistProperties");
+                behavior.bindEvents(null, interactivityService);
+                let selfFilterPropertyIdentifier: powerbi.DataViewObjectPropertyIdentifier = {
+                    objectName: 'general',
+                    propertyName: 'selfFilter',
+                };
+                interactivityService.persistSelfFilter(selfFilterPropertyIdentifier, valueHandler.getSelfFilter());
                 expect(host.persistProperties).toHaveBeenCalledWith({
                     merge: [{
                         objectName: 'general',
                         selector: undefined,
                         properties: {
-                            'filter': powerbi.data.Selector.filterFromSelector([selectableDataPoints[0].identity.getSelector()], false),
+                            'selfFilter': valueHandler.getSelfFilter(),
                         }
                     }]
                 });
-            });
-
-            it('no selection should result in empty filter', () => {
-                behavior.bindEvents(null, interactivityService);
-                behavior.selectIndexAndPersist(0, false);
-
-                // select the same index again to unselect the selected data.
-                spyOn(host, "persistProperties");
-                behavior.selectIndexAndPersist(0, false);
-                expect(host.persistProperties).toHaveBeenCalledWith({
-                    remove: [{
-                        objectName: 'general',
-                        selector: undefined,
-                        properties: {
-                            'filter': { },
-                        }
-                    }]
-                });
-            });
-        });
-
-        it('Multiple single selects', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            for (let i = 0, ilen = selectableDataPoints.length; i < ilen; i++) {
-                behavior.selectIndex(i, false);
-                expect(behavior.verifySingleSelectedAt(i)).toBeTruthy();
-            }
-        });
-
-        it('Single select clears', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(1, false);
-            expect(behavior.verifySingleSelectedAt(1)).toBeTruthy();
-            behavior.selectIndex(1, false);
-            expect(behavior.verifyCleared()).toBeTruthy();
-        });
-
-        it('Single select null identity does not crash', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.select({
-                identity: new SelectionId(null, false),
-                selected: false,
-            });
-            expect(behavior.verifyCleared()).toBeTruthy();
-        });
-
-        it('Basic multiselect', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(1, true);
-            expect(behavior.verifySelectionState([false, true, false, false, false, false])).toBeTruthy();
-            behavior.selectIndex(2, true);
-            expect(behavior.verifySelectionState([false, true, true, false, false, false])).toBeTruthy();
-            behavior.selectIndex(5, true);
-            expect(behavior.verifySelectionState([false, true, true, false, false, true])).toBeTruthy();
-        });
-
-        it('Multiselect clears', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(1, true);
-            expect(behavior.verifySelectionState([false, true, false, false, false, false])).toBeTruthy();
-            behavior.selectIndex(2, true);
-            expect(behavior.verifySelectionState([false, true, true, false, false, false])).toBeTruthy();
-            behavior.selectIndex(1, true);
-            expect(behavior.verifySelectionState([false, false, true, false, false, false])).toBeTruthy();
-            behavior.selectIndex(5, true);
-            expect(behavior.verifySelectionState([false, false, true, false, false, true])).toBeTruthy();
-            behavior.selectIndex(5, true);
-            expect(behavior.verifySelectionState([false, false, true, false, false, false])).toBeTruthy();
-        });
-
-        it('Single and multiselect', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(1, false);
-            expect(behavior.verifySingleSelectedAt(1)).toBeTruthy();
-            behavior.selectIndex(2, true);
-            expect(behavior.verifySelectionState([false, true, true, false, false, false])).toBeTruthy();
-            behavior.selectIndex(5, true);
-            expect(behavior.verifySelectionState([false, true, true, false, false, true])).toBeTruthy();
-            behavior.selectIndex(3, false);
-            expect(behavior.verifySingleSelectedAt(3)).toBeTruthy();
-            behavior.selectIndex(0, true);
-            expect(behavior.verifySelectionState([true, false, false, true, false, false])).toBeTruthy();
-        });
-
-        it('Multiselect treated as single select when host says selection is invalid', () => {
-            host.canSelect = () => false;
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            behavior.selectIndex(1, true);
-            expect(behavior.verifySelectionState([false, true, false, false, false, false])).toBeTruthy();
-            behavior.selectIndex(2, true);
-            expect(behavior.verifySelectionState([false, false, true, false, false, false])).toBeTruthy();
-            behavior.selectIndex(5, true);
-            expect(behavior.verifySelectionState([false, false, false, false, false, true])).toBeTruthy();
-        });
-
-        it('Multiselect cannot mix measure-only with non-measure-only selections', () => {
-            let mixedSelectableDataPoints = [
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("0"), mocks.dataViewScopeIdentity("b"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("1"), mocks.dataViewScopeIdentity("b"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdsAndMeasure(mocks.dataViewScopeIdentity("2"), mocks.dataViewScopeIdentity("b"), "queryName") },
-                { selected: false, identity: SelectionId.createWithMeasure("queryName2") },
-                { selected: false, identity: SelectionId.createWithMeasure("queryName3") },
-            ];
-            let mixedBehavior = new MockBehavior(mixedSelectableDataPoints, filterPropertyId);
-            interactivityService.bind(mixedSelectableDataPoints, mixedBehavior, null);
-            mixedBehavior.selectIndex(1, true);
-            expect(mixedBehavior.verifySelectionState([false, true, false, false, false, false, false, false])).toBeTruthy();
-            mixedBehavior.selectIndex(2, true);
-            expect(mixedBehavior.verifySelectionState([false, true, true, false, false, false, false, false])).toBeTruthy();
-            mixedBehavior.selectIndex(6, true);
-            expect(mixedBehavior.verifySelectionState([false, false, false, false, false, false, true, false])).toBeTruthy();
-            mixedBehavior.selectIndex(7, true);
-            expect(mixedBehavior.verifySelectionState([false, false, false, false, false, false, true, true])).toBeTruthy();
-            mixedBehavior.selectIndex(1, true);
-            expect(mixedBehavior.verifySelectionState([false, true, false, false, false, false, false, false])).toBeTruthy();
-        });
-
-        describe('overrideSelectionFromData', () => {
-            it('with', () => {
-                selectableDataPoints[5].selected = true;
-                interactivityService.bind(selectableDataPoints, behavior, null, { overrideSelectionFromData: true });
-
-                expect(interactivityService.hasSelection()).toBeTruthy();
-            });
-
-            it('without', () => {
-                selectableDataPoints[5].selected = true;
-                interactivityService.bind(selectableDataPoints, behavior, null);
-
-                expect(interactivityService.hasSelection()).toBeFalsy();
             });
         });
 
         describe('Legend', () => {
+
             it('Selection', () => {
                 let legendDataPoints = [
                     { selected: false, identity: SelectionId.createWithIdAndMeasure(mocks.dataViewScopeIdentity("a"), "queryName") },
@@ -455,89 +467,165 @@ module powerbitests {
             });
         });
 
-        it('Label selection', () => {
-            let labelsDataPoints = [
-                { selected: false, identity: SelectionId.createWithIdAndMeasure(mocks.dataViewScopeIdentity("a"), "queryName") },
-                { selected: false, identity: SelectionId.createWithIdAndMeasure(mocks.dataViewScopeIdentity("b"), "queryName") },
-            ];
-            let labelBehavior = new MockBehavior(labelsDataPoints, null);
-            interactivityService.bind(selectableDataPoints, behavior, null);
-            interactivityService.bind(labelsDataPoints, labelBehavior, null, { isLabels: true });
+        describe('Labels', () => {
 
-            labelBehavior.selectIndex(0);
-            labelBehavior.verifySingleSelectedAt(0);
-            behavior.verifySelectionState([true, false, true, false, true, false]);
-            expect(interactivityService.hasSelection()).toBeTruthy();
-            expect(interactivityService.labelsHasSelection()).toBeTruthy();
+            it('Basic selection', () => {
+                let labelsDataPoints = [
+                    { selected: false, identity: SelectionId.createWithIdAndMeasure(mocks.dataViewScopeIdentity("a"), "queryName") },
+                    { selected: false, identity: SelectionId.createWithIdAndMeasure(mocks.dataViewScopeIdentity("b"), "queryName") },
+                ];
+                let labelBehavior = new MockBehavior(labelsDataPoints, null);
+                interactivityService.bind(selectableDataPoints, behavior, null);
+                interactivityService.bind(labelsDataPoints, labelBehavior, null, { isLabels: true });
 
-            behavior.selectIndex(1);
-            behavior.verifySingleSelectedAt(1);
-            labelBehavior.verifyCleared();
-            expect(interactivityService.hasSelection()).toBeTruthy();
-            expect(interactivityService.labelsHasSelection()).toBeFalsy();
-        });
+                labelBehavior.selectIndex(0);
+                labelBehavior.verifySingleSelectedAt(0);
+                behavior.verifySelectionState([true, false, true, false, true, false]);
+                expect(interactivityService.hasSelection()).toBeTruthy();
+                expect(interactivityService.labelsHasSelection()).toBeTruthy();
 
-        it('Slicer selection', () => {
-            selectableDataPoints[5].selected = true;
-            interactivityService.bind(selectableDataPoints, behavior, null, { overrideSelectionFromData: true });
-
-            // Multiple binds to simulate reloading (should not result in dupes in filter condition).
-            selectableDataPoints[5].selected = true;
-            interactivityService.bind(selectableDataPoints, behavior, null, { overrideSelectionFromData: true });
-
-            let onSelectSpy = spyOn(host, 'onSelect');
-
-            behavior.selectIndex(0, true);
-
-            expect(behavior.selections()).toEqual([true, false, false, false, false, true]);
-            expect(getSelectedIds(interactivityService)).toEqual([
-                selectableDataPoints[5].identity,
-                selectableDataPoints[0].identity,
-            ]);
-
-            expect(host.onSelect).toHaveBeenCalled();
-            expect(onSelectSpy.calls.argsFor(0)).toEqual([<powerbi.SelectEventArgs>{
-                data: [
-                    selectableDataPoints[5].identity.getSelector(),
-                    selectableDataPoints[0].identity.getSelector(),
-                ]
-            }]);
-        });
-
-        it('Slicer selection with default value', () => {
-            selectableDataPoints[5].selected = true;
-            interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: new MockSlicerValueHandler() });
-            behavior.bindEvents(null, interactivityService);
-
-            let spyCalled = false;
-            spyOn(host, "persistProperties").and.callFake((change: powerbi.VisualObjectInstancesToPersist) => {
-                expect(powerbi.data.SemanticFilter.isDefaultFilter(<powerbi.data.SemanticFilter>change.merge[0].properties['filter'])).toBeTruthy();
-                spyCalled = true;
+                behavior.selectIndex(1);
+                behavior.verifySingleSelectedAt(1);
+                labelBehavior.verifyCleared();
+                expect(interactivityService.hasSelection()).toBeTruthy();
+                expect(interactivityService.labelsHasSelection()).toBeFalsy();
             });
-            interactivityService.setDefaultValueMode(true);
-            let propertyIdentifier: powerbi.DataViewObjectPropertyIdentifier = {
-                objectName: 'general',
-                propertyName: 'filter'
-            };
-            interactivityService.clearSelection();
-            interactivityService.persistSelectionFilter(propertyIdentifier);
-            expect(spyCalled).toBe(true);
         });
 
-        it('Slicer selection with any value', () => {
-            interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: new MockSlicerValueHandler() });
-            behavior.bindEvents(null, interactivityService);
-            behavior.selectIndexAndPersist(0, false);
-            
-            let spyCalled = false;
-            spyOn(host, "persistProperties").and.callFake((change: powerbi.VisualObjectInstancesToPersist) => {
-                expect(powerbi.data.SemanticFilter.isAnyFilter(<powerbi.data.SemanticFilter>change.merge[0].properties['filter'])).toBeTruthy();
-                spyCalled = true;
+        describe('Slicer', () => {
+
+            describe('createChangeForFilterProperty', () => {
+                beforeEach(() => {
+                    interactivityService.bind(selectableDataPoints, behavior, null);
+                });
+
+                it('select a single data point', () => {
+                    behavior.bindEvents(null, interactivityService);
+                    spyOn(host, "persistProperties");
+                    behavior.selectIndexAndPersist(0, false);
+
+                    expect(host.persistProperties).toHaveBeenCalledWith({
+                        merge: [{
+                            objectName: 'general',
+                            selector: undefined,
+                            properties: {
+                                'filter': powerbi.data.Selector.filterFromSelector([selectableDataPoints[0].identity.getSelector()], false),
+                            }
+                        }]
+                    });
+                });
+
+                it('no selection should result in empty filter', () => {
+                    behavior.bindEvents(null, interactivityService);
+                    behavior.selectIndexAndPersist(0, false);
+
+                    // select the same index again to unselect the selected data.
+                    spyOn(host, "persistProperties");
+                    behavior.selectIndexAndPersist(0, false);
+                    expect(host.persistProperties).toHaveBeenCalledWith({
+                        remove: [{
+                            objectName: 'general',
+                            selector: undefined,
+                            properties: {
+                                'filter': {},
+                            }
+                        }]
+                    });
+                });
             });
 
-            // clear the selected value.
-            behavior.selectIndexAndPersist(0, false);
-            expect(spyCalled).toBe(true);
+            describe('overrideSelectionFromData', () => {
+
+                it('with', () => {
+                    selectableDataPoints[5].selected = true;
+                    interactivityService.bind(selectableDataPoints, behavior, null, { overrideSelectionFromData: true });
+
+                    expect(interactivityService.hasSelection()).toBeTruthy();
+                });
+
+                it('without', () => {
+                    selectableDataPoints[5].selected = true;
+                    interactivityService.bind(selectableDataPoints, behavior, null);
+
+                    expect(interactivityService.hasSelection()).toBeFalsy();
+                });
+            });
+
+            describe('Selection', () => {
+
+                it('Basic selection', () => {
+                    selectableDataPoints[5].selected = true;
+                    interactivityService.bind(selectableDataPoints, behavior, null, { overrideSelectionFromData: true });
+
+                    // Multiple binds to simulate reloading (should not result in dupes in filter condition).
+                    selectableDataPoints[5].selected = true;
+                    interactivityService.bind(selectableDataPoints, behavior, null, { overrideSelectionFromData: true });
+
+                    let onSelectSpy = spyOn(host, 'onSelect');
+
+                    behavior.selectIndex(0, true);
+
+                    expect(behavior.selections()).toEqual([true, false, false, false, false, true]);
+                    expect(getSelectedIds(interactivityService)).toEqual([
+                        selectableDataPoints[5].identity,
+                        selectableDataPoints[0].identity,
+                    ]);
+
+                    expect(host.onSelect).toHaveBeenCalled();
+                    expect(onSelectSpy.calls.argsFor(0)).toEqual([<powerbi.SelectEventArgs>{
+                        visualObjects: [
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: undefined,
+                            },
+                            {
+                                objectName: 'dataPoint',
+                                selectorsByColumn: undefined,
+                            }
+                        ],
+                        selectors: [
+                            identities[5].getSelector(),
+                            identities[0].getSelector(),
+                        ],
+                    }]);
+                });
+
+                it('Slicer selection with default value', () => {
+                    selectableDataPoints[5].selected = true;
+                    interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: new MockSlicerValueHandler() });
+                    behavior.bindEvents(null, interactivityService);
+
+                    let spyCalled = false;
+                    spyOn(host, "persistProperties").and.callFake((change: powerbi.VisualObjectInstancesToPersist) => {
+                        expect(powerbi.data.SemanticFilter.isDefaultFilter(<powerbi.data.SemanticFilter>change.merge[0].properties['filter'])).toBeTruthy();
+                        spyCalled = true;
+                    });
+                    interactivityService.setDefaultValueMode(true);
+                    let propertyIdentifier: powerbi.DataViewObjectPropertyIdentifier = {
+                        objectName: 'general',
+                        propertyName: 'filter'
+                    };
+                    interactivityService.clearSelection();
+                    interactivityService.persistSelectionFilter(propertyIdentifier);
+                    expect(spyCalled).toBe(true);
+                });
+
+                it('Slicer selection with any value', () => {
+                    interactivityService.bind(selectableDataPoints, behavior, null, { slicerValueHandler: new MockSlicerValueHandler() });
+                    behavior.bindEvents(null, interactivityService);
+                    behavior.selectIndexAndPersist(0, false);
+
+                    let spyCalled = false;
+                    spyOn(host, "persistProperties").and.callFake((change: powerbi.VisualObjectInstancesToPersist) => {
+                        expect(powerbi.data.SemanticFilter.isAnyFilter(<powerbi.data.SemanticFilter>change.merge[0].properties['filter'])).toBeTruthy();
+                        spyCalled = true;
+                    });
+
+                    // clear the selected value.
+                    behavior.selectIndexAndPersist(0, false);
+                    expect(spyCalled).toBe(true);
+                });
+            });
         });
     });
 

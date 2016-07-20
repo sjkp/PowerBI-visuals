@@ -4,7 +4,7 @@
     "package": {
         "name": "Histogram",
         "displayName": "Histogram",
-        "version": "0.2.3",
+        "version": "0.2.4",
         "guid": "Histogram1445664487616",
         "description": "A histogram chart plots data ranges into intervals. Useful for estimating density.",
         "build": "13.0.1100.210",

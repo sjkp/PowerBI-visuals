@@ -581,11 +581,14 @@ module powerbi.visuals {
             for (let i = 0, len = grouped.length; i < len; i++) {
                 let grouping = grouped[i];
                 let color = colorHelper.getColorForSeriesValue(grouping.objects, dataValues.identityFields, grouping.name);
+                let identity = SelectionIdBuilder.builder()
+                    .withSeries(categorical, grouped[i])
+                    .createSelectionId();
                 legendItems.push({
                     color: color,
                     icon: LegendIcon.Circle,
                     label: valueFormatter.format(grouping.name, formatString),
-                    identity: grouping.identity ? SelectionId.createWithId(grouping.identity) : SelectionId.createNull(),
+                    identity: identity,
                     selected: false
                 });
             }

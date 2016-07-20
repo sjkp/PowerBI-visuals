@@ -166,29 +166,21 @@ module powerbi.visuals.samples {
             var deferred: JQueryDeferred<data.Selector[]> = $.Deferred();
 
             var selectArgs: SelectEventArgs = {
-                data: ids
+                visualObjects: _.chain(ids)
                     .filter((value: SelectionId) => value.hasIdentity())
-                    .map((value: SelectionId) => value.getSelector())
+                    .map((value: SelectionId) => {
+                        return <VisualObject>{
+                            objectName: undefined,
+                            selectorsByColumn: value.getSelectorsByColumn(),
+                        };
+                    })
+                    .value(),
             };
-
-            var data2 = this.getSelectorsByColumn(ids);
-
-            if (!_.isEmpty(data2)) {
-                selectArgs.data2 = data2;
-            }
 
             this.hostServices.onSelect(selectArgs);
 
             deferred.resolve(this.selectionIds);
             return deferred;
-        }
-
-        private getSelectorsByColumn(selectionIds: SelectionId[]): SelectorsByColumn[] {
-            return _(selectionIds)
-                .filter(value => value.hasIdentity)
-                .map(value => value.getSelectorsByColumn())
-                .compact()
-                .value();
         }
     }
 
@@ -678,11 +670,15 @@ module powerbi.visuals.samples {
                         : explore.util.getRandomColor();
                 }
 
+                let selectionId = new SelectionIdBuilder()
+                    .withCategory(dataView.categorical.categories[0], index)
+                    .createSelectionId();
+
                 return <WordCloudText>{
                     text: item,
                     count: (catValues.Values && catValues.Values[index] && !isNaN(catValues.Values[index])) ? catValues.Values[index] : 1,
                     index: index,
-                    selectionId: SelectionId.createWithId(dataView.categorical.categories[0].identity[index]),
+                    selectionId: selectionId,
                     color: color,
                     textGroup: item
                 };

@@ -48,7 +48,7 @@ module powerbi.visuals {
         margin: any;
     }
 
-    export interface LineChartCategoriesData extends LineChartDataPoint { }
+    export interface LineChartCategoriesData extends LineChartDataPoint {}
 
     export interface LineChartData extends CartesianData {
         series: LineChartSeries[];
@@ -62,6 +62,7 @@ module powerbi.visuals {
         categoryData?: LineChartCategoriesData[];
         seriesDisplayName?: string;
         hasValues?: boolean;
+        categoryIdentities?: SelectionId[]; // TODO: Make this non-optional once real time line chart code is merged into this line chart (may also need to update pulse chart)
     }
 
     export interface LineChartSeries extends CartesianSeries, SelectableDataPoint {
@@ -85,6 +86,7 @@ module powerbi.visuals {
         pointColor?: string;
         stackedValue?: number;
         extraTooltipInfo?: TooltipDataItem[];
+        specificIdentity: SelectionId; // Identity (from SelectableDataPoint) is for selection and is purely series while specificIdentity here is category+series used for onSelecting
     }
 
     export interface HoverLineDataPoint {
@@ -200,12 +202,35 @@ module powerbi.visuals {
 
             dataViewMapping.categorical.dataVolume = 4;
 
-            if (CartesianChart.detectScalarMapping(dataViewMapping)) {
                 let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
+
+            // Opt in to scalar key if the axis type isn't explicitly not scalar and there is a scalar key.
+            let usingScalarKey = false;
+            let axisTypeValue = DataViewObjects.getValue(dataViewMapping.metadata.objects, lineChartProps.categoryAxis.axisType);
+            if (axisTypeValue !== axisType.categorical) {
+                let roleItems = dataViewCategories.for.in.items;
+                if (roleItems) {
+                    for (let item of roleItems) {
+                        if (item.hasScalarKey) {
+                            item.scalarKeyMinProperty = lineChartProps.scalarKey.scalarKeyMin;
+                            usingScalarKey = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (CartesianChart.detectScalarMapping(dataViewMapping) || usingScalarKey) {
                 dataViewCategories.dataReductionAlgorithm = { sample: {} };
+
+                let values = <data.CompiledDataViewGroupedRoleMapping>dataViewMapping.categorical.values;
+
+                if(values && values.group){
+                    values.group.dataReductionAlgorithm = { top: {} };
+                }
             }
             else {
-                CartesianChart.applyLoadMoreEnabledToMapping(options.cartesianLoadMoreEnabled, dataViewMapping);
+                CartesianChart.expandCategoryWindow([dataViewMapping]);
             }
         }
 
@@ -245,7 +270,7 @@ module powerbi.visuals {
             tooltipsEnabled: boolean = true,
             tooltipBucketEnabled: boolean = false): LineChartData {
             let reader = powerbi.data.createIDataViewCategoricalReader(dataView);
-            let valueRoleName = reader.hasValues('Y') ? 'Y' : 'Y2';
+            let valueRoleName = isComboChart ? 'Y2' : 'Y';
             let categorical = dataView.categorical;
             let category = categorical.categories && categorical.categories.length > 0
                 ? categorical.categories[0]
@@ -276,7 +301,8 @@ module powerbi.visuals {
             let categoryType: ValueType = AxisHelper.getCategoryValueType(category.source, isScalar);
             let isDateTime = AxisHelper.isDateTime(categoryType);
             let categoryValues = category.values;
-            let categoryData = [];
+            let categoryData: LineChartDataPoint[] = [];
+            let categoryIdentities: SelectionId[] = [];
             let series: LineChartSeries[] = [];
             let seriesCount = reader.getSeriesCount(valueRoleName);
             let hasDynamicSeries = !!(categorical.values && categorical.values.source);
@@ -307,13 +333,14 @@ module powerbi.visuals {
             }
 
             for (let seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
-                let column = categorical.values[seriesIndex];
+                let column = reader.getValueColumn(valueRoleName, seriesIndex);
                 let valuesMetadata = column.source;
                 let dataPoints: LineChartDataPoint[] = [];
                 let groupedIdentity = grouped[seriesIndex];
-                let identity = hasDynamicSeries && groupedIdentity
-                    ? SelectionId.createWithIdAndMeasure(groupedIdentity.identity, column.source.queryName)
-                    : SelectionId.createWithMeasure(column.source.queryName);
+                let identity = SelectionIdBuilder.builder()
+                    .withSeries(categorical.values, column)
+                    .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
+                    .createSelectionId();
                 let key = identity.getKey();
                 let color = this.getColor(colorHelper, hasDynamicSeries, values, grouped, seriesIndex, groupedIdentity);
                 let seriesLabelSettings: LineChartDataLabelsSettings;
@@ -383,6 +410,16 @@ module powerbi.visuals {
                         }
                     }
 
+                    let idBuilder = new SelectionIdBuilder();
+                    if (reader.hasCategories()) {
+                        idBuilder = idBuilder.withCategory(reader.getCategoryColumn("Category"), categoryIndex);
+                    }
+                    if (hasDynamicSeries) {
+                        idBuilder = idBuilder.withSeries(dataView.categorical.values, reader.getValueColumn(valueRoleName, seriesIndex)); 
+                    }
+                    let specificIdentity = idBuilder
+                        .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
+                        .createSelectionId();
                     let categoryKey = category && !_.isEmpty(category.identity) && category.identity[categoryIndex] ? category.identity[categoryIndex].key : categoryIndex;
 
                     let dataPoint: LineChartDataPoint = {
@@ -393,6 +430,7 @@ module powerbi.visuals {
                         tooltipInfo: tooltipInfo,
                         selected: false,
                         identity: identity,
+                        specificIdentity: specificIdentity,
                         key: JSON.stringify({ series: key, category: categoryKey }),
                         labelFill: dataPointLabelSettings.labelColor,
                         labelFormatString: valuesMetadata.format,
@@ -413,6 +451,13 @@ module powerbi.visuals {
 
                     if (!categoryData[categoryIndex]) {
                         categoryData[categoryIndex] = dataPoint;
+                    }
+                    if (!categoryIdentities[categoryIndex] && reader.hasCategories()) {
+                        let categoryIdBuilder = new SelectionIdBuilder();
+                        categoryIdentities[categoryIndex] = categoryIdBuilder
+                            .withCategory(reader.getCategoryColumn("Category"), categoryIndex)
+                            .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
+                            .createSelectionId();
                     }
                 }
 
@@ -469,6 +514,7 @@ module powerbi.visuals {
                 categoryData: categoryData,
                 seriesDisplayName: hasDynamicSeries ? converterHelper.formatFromMetadataColumn(reader.getSeriesDisplayName(), reader.getSeriesMetadataColumn(), formatStringProp) : undefined,
                 hasValues: reader.hasValues(valueRoleName),
+                categoryIdentities: categoryIdentities,
             };
         }
 
@@ -613,6 +659,7 @@ module powerbi.visuals {
                 categories: [],
                 categoryMetadata: undefined,
                 categoryData: [],
+                categoryIdentities: [],
             };
 
             if (dataViews.length > 0) {
@@ -1085,6 +1132,10 @@ module powerbi.visuals {
                     dots: dots,
                     areas: areas,
                     tooltipOverlay: this.overlayRect,
+                    getCategoryIndex: (seriesData, pointX) => {
+                        return this.getCategoryIndexFromSeriesAndPointX(seriesData, pointX);
+                    },
+                    categoryIdentities: data.categoryIdentities,
                 };
             }
 
@@ -1409,6 +1460,10 @@ module powerbi.visuals {
             }
 
             let seriesData = <LineChartSeries>tooltipEvent.data;
+            return this.getCategoryIndexFromSeriesAndPointX(seriesData, pointX);
+        }
+
+        public getCategoryIndexFromSeriesAndPointX(seriesData: LineChartSeries, pointX: number): number {
             let offsetX = 0; // Offset based on the firstCategoryOffset (since lines don't start at x = 0) as well as the offset due to lines that may not start at the first category
             if (seriesData && !_.isEmpty(seriesData.data) && this.xAxisProperties) {
                 // Tooltip originated from a path; determine series offset from the first point that is part of a path
@@ -1623,20 +1678,21 @@ module powerbi.visuals {
                     // Get the item color for the handle dots
                     let color = series.color;
                     let circleToChange = that.selectionCircles[series.lineIndex];
-
-                    circleToChange
-                        .attr({
-                            'cx': chartX,
-                            'cy': () => {
-                                let pathElement = d3.select(this).node<D3.D3Element>();
-                                let pos = that.getPosition(chartX, pathElement);
-                                return pos.y;
-                            }
-                        })
-                        .style({
-                            'opacity': () => _.some(series.data, (value) => value.categoryIndex === columnIndex) ? 1 : 0,
-                            'fill': color
-                        });
+                    if (circleToChange) {
+                        circleToChange
+                            .attr({
+                                'cx': chartX,
+                                'cy': () => {
+                                    let pathElement = d3.select(this).node<D3.D3Element>();
+                                    let pos = that.getPosition(chartX, pathElement);
+                                    return pos.y;
+                                }
+                            })
+                            .style({
+                                'opacity': () => _.some(series.data, (value) => value.categoryIndex === columnIndex) ? 1 : 0,
+                                'fill': color
+                            });
+                    }
 
                     if (that.dragHandle) that.dragHandle.attr('cx', chartX);
                 });

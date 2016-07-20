@@ -31,6 +31,7 @@ module powerbi.visuals {
     import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
     import PixelConverter = jsCommon.PixelConverter;
     import DataRoleHelper = powerbi.data.DataRoleHelper;
+    import ISize = powerbi.visuals.shapes.ISize;
 
     export interface GaugeData extends TooltipEnabledDataPoint {
         total: number;
@@ -91,6 +92,17 @@ module powerbi.visuals {
         };
     }
 
+    const enum GaugeLabelPosition {
+        None,
+        LeftRight,
+        Bottom
+    }
+
+    interface GaugeLabel {
+        text: string;
+        size: ISize;
+    }
+
     export interface GaugeSmallViewPortProperties {
         hideGaugeSideNumbersOnSmallViewPort: boolean;
         smallGaugeMarginsOnSmallViewPort: boolean;
@@ -139,14 +151,13 @@ module powerbi.visuals {
         private static MinDistanceFromBottom = 10;
         private static MinWidthForTargetLabel = 150;
         private static DefaultTopBottomMargin = 20;
-        private static DefaultLeftRightMargin = 45;
         private static ReducedLeftRightMargin = 15;
         private static DEFAULT_MAX = 1;
         private static DEFAULT_MIN = 0;
         private static VisualClassName = 'gauge';
         private static DefaultStyleProperties: GaugeStyle = {
             transition: {
-                ease: 'bounce'
+                ease: 'cubic-in-out'
             },
             arcColors: {
                 background: '#e9e9e9',
@@ -225,6 +236,7 @@ module powerbi.visuals {
         private tooltipBucketEnabled: boolean;
 
         private hostService: IVisualHostServices;
+        private labels: GaugeLabel[];
 
         // TODO: Remove this once all visuals have implemented update.
         private dataView: DataView;
@@ -384,25 +396,28 @@ module powerbi.visuals {
 
         public update(options: VisualUpdateOptions) {
             debug.assertValue(options, 'options');
-            
+
             this.currentViewport = options.viewport;
             if (!options.dataViews || !options.dataViews[0]) {
                 return;
             }
-            
-            let dataView = this.dataView = options.dataViews[0];  
+
+            let dataView = this.dataView = options.dataViews[0];
             let reader = data.createIDataViewCategoricalReader(dataView);
             this.data = Gauge.converter(reader, this.tooltipBucketEnabled);
             this.targetSettings = this.data.targetSettings;
             this.dataView.single = { value: this.data.total };
+            this.labels = this.createLabels();
 
             // Only show the target label if:
             //   1. There is a target
-            //   2. The viewport width is big enough for a target
-            //   3. We're showing label text for side numbers
-            //   4. Data label settings specify to show
+            //   2. The target is inside boundaries
+            //   3. The viewport width is big enough for a target
+            //   4. We're showing label text for side numbers
+            //   5. Data label settings specify to show
             this.showTargetLabel = this.targetSettings.target != null
-                && (this.currentViewport.width > Gauge.MinWidthForTargetLabel || !this.showMinMaxLabelsOnBottom())
+                && (this.targetSettings.target >= this.targetSettings.min && this.targetSettings.target <= this.targetSettings.max) 
+                && (this.currentViewport.width > Gauge.MinWidthForTargetLabel || this.getLabelsPosition() !== GaugeLabelPosition.Bottom)
                 && this.showSideNumbersLabelText()
                 && this.data.dataLabelsSettings.show;
 
@@ -414,7 +429,7 @@ module powerbi.visuals {
             this.updateCalloutValue(options.suppressAnimations);
 
             let warnings = getInvalidValueWarnings(
-                [ dataView ],
+                [dataView],
                 false /*supportsNaN*/,
                 false /*supportsNegativeInfinity*/,
                 false /*supportsPositiveInfinity*/);
@@ -438,7 +453,7 @@ module powerbi.visuals {
                 this.animatedNumber.setFormatter(formatter);
                 this.animatedNumber.update({
                     viewport: animatedNumberProperties.viewport,
-                    dataViews: [ this.dataView ],
+                    dataViews: [this.dataView],
                     suppressAnimations: suppressAnimations,
                 });
 
@@ -463,25 +478,25 @@ module powerbi.visuals {
         public onResizing(viewport: IViewport): void {
             // TODO: Remove onDataChanged & onResizing once all visuals have implemented update.
             this.update({
-                dataViews:[ this.dataView ],
+                dataViews: [this.dataView],
                 suppressAnimations: true,
                 viewMode: ViewMode.View,
                 viewport: viewport
             });
         }
-        
+
         /**
          * Populates Gauge data based on roles or axis settings.
          */
         private static parseGaugeData(reader: data.IDataViewCategoricalReader, tooltipBucketEnabled?: boolean): GaugeTargetData {
             let dataViewObjects = <GaugeDataViewObjects>reader.getStaticObjects();
-            let metadataColumn = reader.getCategoryMetadataColumn(gaugeRoleNames.y);
+            let valueMetadata = reader.getValueMetadataColumn(gaugeRoleNames.y);
             let axisObject = dataViewObjects ? dataViewObjects.axis : null;
-            let isValueDefined  = reader.hasValues(gaugeRoleNames.y);
+            let isValueDefined = reader.hasValues(gaugeRoleNames.y);
             let isMaxDefined = reader.hasValues(gaugeRoleNames.maxValue);
             let isMinDefined = reader.hasValues(gaugeRoleNames.minValue);
             let valueIndex = 0;
-            
+
             let data: GaugeTargetData = {
                 max: null,
                 min: null,
@@ -489,26 +504,25 @@ module powerbi.visuals {
                 value: null,
                 tooltipItems: []
             };
-            
+
             // Set value
             if (isValueDefined) {
-                let valueMetadata = reader.getValueMetadataColumn(gaugeRoleNames.y);
                 data.value = reader.getValue(gaugeRoleNames.y, valueIndex);
                 let value = converterHelper.formatFromMetadataColumn(data.value, valueMetadata, Gauge.formatStringProp);
                 data.tooltipItems.push({ displayName: reader.getValueDisplayName(gaugeRoleNames.y), value: value });
             }
-            
+
             // Set target
             if (reader.hasValues(gaugeRoleNames.targetValue)) {
                 let targetMetadata = reader.getValueMetadataColumn(gaugeRoleNames.targetValue);
                 data.target = reader.getValue(gaugeRoleNames.targetValue, valueIndex);
                 let value = converterHelper.formatFromMetadataColumn(data.target, targetMetadata, Gauge.formatStringProp);
                 data.tooltipItems.push({ displayName: reader.getValueDisplayName(gaugeRoleNames.targetValue), value: value });
-            } 
+            }
             else if (axisObject) {
                 data.target = axisObject.target;
             }
-            
+
             // For maxumum we set values in such priority: 
             // 1. Maximum column
             // 2. Property pane axis settings
@@ -518,27 +532,27 @@ module powerbi.visuals {
             // 4. Use Default Max value what is 1 right now. 
             if (isMaxDefined) {
                 data.max = reader.getValue(gaugeRoleNames.maxValue, valueIndex);
-            } 
+            }
             else if (axisObject && axisObject.max != null) {
                 data.max = axisObject.max;
-            } 
+            }
             else {
                 data.max = Gauge.DEFAULT_MAX;
                 if (isValueDefined && data.value && data.value !== 0) {
                     let hasPercent = false;
-                    if (metadataColumn) {
-                        let formatString = valueFormatter.getFormatString(metadataColumn, Gauge.formatStringProp, true);
+                    if (valueMetadata) {
+                        let formatString = valueFormatter.getFormatString(valueMetadata, Gauge.formatStringProp, true);
                         if (formatString != null) {
                             hasPercent = valueFormatter.getFormatMetadata(formatString).hasPercent;
-                        }       
+                        }
                     }
-                    
+
                     if (!hasPercent && !isMinDefined) {
                         data.max = data.value < 0 ? Gauge.DEFAULT_MIN : 2 * data.value;
                     }
                 }
             }
-            
+
             // For minimum we set values in such priority: 
             // 1. Minimum column.
             // 2. Property pane axis settings.
@@ -546,10 +560,10 @@ module powerbi.visuals {
             // 4. Use value * 2 for value < 0 and max hasn't been specified.
             if (isMinDefined) {
                 data.min = reader.getValue(gaugeRoleNames.minValue, valueIndex);
-            } 
+            }
             else if (axisObject && axisObject.min != null) {
                 data.min = axisObject.min;
-            } 
+            }
             else {
                 data.min = Gauge.DEFAULT_MIN;
                 if (!isMaxDefined && isValueDefined && data.value != null && data.value < 0) {
@@ -563,20 +577,20 @@ module powerbi.visuals {
 
             return data;
         }
-        
+
         /** Note: Made public for testability */
         public static converter(reader: data.IDataViewCategoricalReader, tooltipBucketEnabled: boolean = true): GaugeData {
             let objectSettings = reader.getStaticObjects();
             let metadataColumn = reader.getValueMetadataColumn(gaugeRoleNames.y);
             let gaugeData = Gauge.parseGaugeData(reader, tooltipBucketEnabled);
             let value = gaugeData.value;
-            
+
             return {
                 total: value,
                 tooltipInfo: gaugeData.tooltipItems,
                 maxColumnMetadata: reader.getValueMetadataColumn(gaugeRoleNames.maxValue),
                 minColumnMetadata: reader.getValueMetadataColumn(gaugeRoleNames.minValue),
-                targetColumnMetadata:reader.getValueMetadataColumn(gaugeRoleNames.targetValue),
+                targetColumnMetadata: reader.getValueMetadataColumn(gaugeRoleNames.targetValue),
                 metadataColumn: metadataColumn,
                 targetSettings: { min: gaugeData.min, max: gaugeData.max, target: gaugeData.target },
                 dataLabelsSettings: Gauge.convertDataLabelSettings(objectSettings, "labels"),
@@ -584,7 +598,7 @@ module powerbi.visuals {
                 dataPointSettings: Gauge.convertDataPointSettings(objectSettings, gaugeData)
             };
         }
-       
+
         private static convertDataLabelSettings(objects: DataViewObjects, objectName: string): VisualDataLabelsSettings {
             let dataLabelsSettings = dataLabelUtils.getDefaultGaugeLabelSettings();
             if (objects) {
@@ -592,12 +606,12 @@ module powerbi.visuals {
                 let labelsObj = <DataLabelObject>objects[objectName];
                 dataLabelUtils.updateLabelSettingsFromLabelsObject(labelsObj, dataLabelsSettings);
             }
-                
+
             return dataLabelsSettings;
         }
 
         private static convertDataPointSettings(objects: DataViewObjects, targetSettings: GaugeTargetSettings): GaugeDataPointSettings {
-            
+
             // Default the fill color the the default fill color. Default the target to undefined as it's only used if there's a target.
             let fillColor = Gauge.DefaultDataPointSettings.fillColor;
             let targetColor: string;
@@ -643,16 +657,16 @@ module powerbi.visuals {
                 kpiArcPaths.push(arcPath);
             }
         }
-        
+
         /**
          * Indicates whether gauge arc is valid.
          */
         private isValid(): boolean {
             if (!this.data || !this.data.targetSettings)
                 return false;
-            
+
             let targetSettings = this.data.targetSettings;
-            
+
             return $.isNumeric(targetSettings.min) && $.isNumeric(targetSettings.max) || targetSettings.min > targetSettings.max;
         }
 
@@ -823,7 +837,7 @@ module powerbi.visuals {
             let margin = drawOptions.margin;
             let height = drawOptions.height;
             let targetSettings = this.targetSettings;
-            
+
             if (!this.settings.targetLine.show || !this.isValid() || !$.isNumeric(targetSettings.target)) {
                 this.removeTargetElements();
             } else {
@@ -836,30 +850,53 @@ module powerbi.visuals {
             }
             this.svg.attr('height', this.currentViewport.height).attr('width', this.currentViewport.width);
         }
-        
+
         public getValueAngle(): number {
             let settings = this.data.targetSettings;
             let total = this.data.total;
             if (!this.isValid() || !$.isNumeric(total)) {
                 return 0;
             }
-            
+
             let adjustedTotal = Math.min(Math.max(total, settings.min), settings.max);
             let angle: number = (adjustedTotal - settings.min) / (settings.max - settings.min);
-            
+
             return angle;
         }
 
-        private createTicks(): string[] {
+        private createLabels(): GaugeLabel[] {
             let targetSettings = this.targetSettings;
-            let arr: string[] = [];
-            
+            let arr: GaugeLabel[] = [];
+            let label: GaugeLabel = null;
+
+            let textProperties: TextProperties = {
+                fontFamily: NewDataLabelUtils.LabelTextProperties.fontFamily,
+                fontSize: PixelConverter.fromPoint(this.data.dataLabelsSettings.fontSize || NewDataLabelUtils.DefaultLabelFontSizeInPt),
+                fontWeight: NewDataLabelUtils.LabelTextProperties.fontWeight,
+            };
+
             let minFormatter = this.getFormatter(this.data.dataLabelsSettings, this.data.minColumnMetadata, targetSettings.max);
-            arr.push(minFormatter.format(targetSettings.min));
-            
+            textProperties.text = minFormatter.format(targetSettings.min);
+            label = {
+                size: {
+                    width: TextMeasurementService.measureSvgTextWidth(textProperties),
+                    height: TextMeasurementService.estimateSvgTextHeight(textProperties)
+                },
+                text: textProperties.text
+            };
+            arr.push(label);
+
             let maxFormatter = this.getFormatter(this.data.dataLabelsSettings, this.data.maxColumnMetadata, targetSettings.max);
-            arr.push(maxFormatter.format(targetSettings.max));
-            
+            textProperties.text = maxFormatter.format(targetSettings.max);
+            label = {
+                size: {
+                    width: TextMeasurementService.measureSvgTextWidth(textProperties),
+                    height: TextMeasurementService.estimateSvgTextHeight(textProperties)
+                },
+                text: textProperties.text
+            };
+
+            arr.push(label);
             return arr;
         }
 
@@ -872,16 +909,13 @@ module powerbi.visuals {
 
             let data = this.data;
             let lastAngle = this.lastAngle = -Math.PI / 2 + Math.PI * this.getValueAngle();
-
-            let ticks = this.createTicks();
-            
             this.foregroundArcPath
                 .transition()
                 .ease(this.settings.transition.ease)
                 .duration(duration)
                 .call(this.arcTween, [lastAngle, this.foregroundArc]);
 
-            this.renderMinMaxLabels(ticks, radius, height, width, margin);
+            this.renderMinMaxLabels(this.labels, radius, height, width, margin);
             this.updateVisualConfigurations();
             this.updateVisualStyles();
             if (this.tooltipsEnabled) {
@@ -913,38 +947,36 @@ module powerbi.visuals {
             this.foregroundArcPath.style('fill', dataPointSettings.fillColor);
         }
 
-        private renderMinMaxLabels(ticks: string[], radius: number, height: number, width: number, margin: IMargin) {
+        private renderMinMaxLabels(ticks: GaugeLabel[], radius: number, height: number, width: number, margin: IMargin) {
             this.svg.selectAll(Gauge.LabelText.selector).remove();
             if (!this.data.dataLabelsSettings.show) return;
 
             let total = ticks.length;
             let divisor = total - 1;
-            let top = (radius + (height - radius) / 2 + margin.top);
-            let showMinMaxLabelsOnBottom = this.showMinMaxLabelsOnBottom();
+            let position = this.getLabelsPosition();
             let fontSize = PixelConverter.fromPoint(this.data.dataLabelsSettings.fontSize || NewDataLabelUtils.DefaultLabelFontSizeInPt);
             let padding = this.settings.labels.padding;
-
             for (let index = 0; index < total; index++) {
+                let y = this.gaugeVisualProperties.top;
                 let textProperties: TextProperties = {
-                    text: ticks[index],
-                    fontFamily: dataLabelUtils.LabelTextProperties.fontFamily,
-                    fontSize: dataLabelUtils.LabelTextProperties.fontSize,
-                    fontWeight: dataLabelUtils.LabelTextProperties.fontWeight,
+                    text: ticks[index].text,
+                    fontFamily: NewDataLabelUtils.LabelTextProperties.fontFamily,
+                    fontSize: PixelConverter.fromPoint(this.data.dataLabelsSettings.fontSize || NewDataLabelUtils.DefaultLabelFontSizeInPt),
+                    fontWeight: NewDataLabelUtils.LabelTextProperties.fontWeight,
                 };
 
                 if (this.showSideNumbersLabelText()) {
 
                     let x = (margin.left + width / 2) - (radius * Math.cos(Math.PI * index / divisor));
-                    let y = top - (radius * Math.sin(Math.PI * index / divisor));
                     let anchor: string;
                     let onRight = index === 1;
                     let onBottom = false;
 
-                    if (showMinMaxLabelsOnBottom) {
+                    if (position === GaugeLabelPosition.Bottom) {
                         // If this is a min or max label and we're showing them on the bottom rather than the sides
                         // Adjust the label display properties to appear under the arc
                         onBottom = true;
-                        y += padding / 2;
+                        y += padding;
 
                         // Align the labels with the outer edge of the arc
                         anchor = onRight ? 'end' : 'start';
@@ -984,12 +1016,12 @@ module powerbi.visuals {
                 TextMeasurementService.svgEllipsis);
         }
 
-        private getFormatter(dataLabelSettings: VisualDataLabelsSettings, metadataColumn: DataViewMetadataColumn,  maxValue?: number): IValueFormatter {
+        private getFormatter(dataLabelSettings: VisualDataLabelsSettings, metadataColumn: DataViewMetadataColumn, maxValue?: number): IValueFormatter {
             let max = dataLabelSettings.displayUnits === 0 ? maxValue : null;
             if (!metadataColumn || !metadataColumn.objects || _.isEmpty(DataViewObjects.getValue<string>(metadataColumn.objects, Gauge.formatStringProp))) {
                 metadataColumn = this.data.metadataColumn;
             }
-            
+
             let formatString: string = valueFormatter.getFormatString(metadataColumn, Gauge.formatStringProp);
             let precision = dataLabelUtils.getLabelPrecision(dataLabelSettings.precision, formatString);
             let valueFormatterOptions: ValueFormatterOptions = dataLabelUtils.getOptionsForLabelFormatter(dataLabelSettings, formatString, max, precision);
@@ -1076,33 +1108,35 @@ module powerbi.visuals {
             });
         }
 
-        private showMinMaxLabelsOnBottom(): boolean {
-            // More vertical space, put labels on bottom
-            if (this.currentViewport.height > this.currentViewport.width)
-                return true;
+        private getLabelsPosition(): GaugeLabelPosition {
+            if (!this.data || !this.data.dataLabelsSettings.show || _.isEmpty(this.labels)) {
+                return GaugeLabelPosition.None;
+            }
+
+            let textWidth = this.labels[0].size.width + this.labels[1].size.width;
+            let textHeight = this.labels[0].size.height;
+            if (this.currentViewport.height - textHeight > (this.currentViewport.width - textWidth) / 2) {
+                return GaugeLabelPosition.Bottom;
+            }
 
             // We want to show the start/end ticks on the bottom when there
             // is insufficient space for the left and right label text
-            if (this.data && this.gaugeVisualProperties) {
-                let ticks = this.createTicks();
+            if (this.gaugeVisualProperties) {
+                let labels = this.labels;
                 let visualWhitespace = (this.currentViewport.width - (this.gaugeVisualProperties.radius * 2)) / 2;
                 let maxLabelWidth = visualWhitespace - this.settings.labels.padding;
-                let textProperties: TextProperties = TextMeasurementService.getMeasurementProperties($(this.svg.node()));
-                textProperties.fontSize = PixelConverter.fromPoint(this.data.dataLabelsSettings.fontSize || NewDataLabelUtils.DefaultLabelFontSizeInPt);
 
-                let width: number;
-                for (let tickValue of [ticks[0], ticks[ticks.length - 1]]) {
-                    textProperties.text = tickValue;
-                    width = TextMeasurementService.measureSvgTextWidth(textProperties);
-                    if (width > maxLabelWidth)
-                        return true;
+                for (let label of labels) {
+                    if (label.size.width > maxLabelWidth)
+                        return GaugeLabelPosition.Bottom;
                 }
             }
 
-            return false;
+            return GaugeLabelPosition.LeftRight;
         }
 
         private setMargins(): void {
+            // Used for mobile phones.
             if (this.gaugeSmallViewPortProperties) {
                 if (this.gaugeSmallViewPortProperties.smallGaugeMarginsOnSmallViewPort && (this.currentViewport.height < this.gaugeSmallViewPortProperties.MinHeightGaugeSideNumbersVisible)) {
                     let margins = this.gaugeSmallViewPortProperties.GaugeMarginsOnSmallViewPort;
@@ -1111,18 +1145,19 @@ module powerbi.visuals {
                 }
             }
 
+            let labelsPosition = this.getLabelsPosition();
             this.margin = {
-                top: Gauge.DefaultTopBottomMargin,
-                bottom: Gauge.DefaultTopBottomMargin,
-                left: Gauge.DefaultLeftRightMargin,
-                right: Gauge.DefaultLeftRightMargin
+                bottom: 0, 
+                left: 0,
+                right: 0,
+                top: this.showTargetLabel ? Gauge.DefaultTopBottomMargin : 0
             };
 
-            // If we're not showing side labels, reduce the margin so that the gauge has more room to display
-            if (!this.showSideNumbersLabelText() || this.showMinMaxLabelsOnBottom()) {
-                let targetSettings = this.targetSettings;
+            if (labelsPosition === GaugeLabelPosition.Bottom) {
+                this.margin.bottom = this.labels[0].size.height + this.settings.labels.padding * 2;
 
                 if (this.showTargetLabel) {
+                    let targetSettings = this.targetSettings;
                     // If we're showing the target label, only reduce the margin on the side that doesn't have a target label
                     let tRatio = (targetSettings.target - targetSettings.min) / (targetSettings.max - targetSettings.min);
 
@@ -1131,21 +1166,12 @@ module powerbi.visuals {
                     else
                         this.margin.right = Gauge.ReducedLeftRightMargin;
                 }
-                else {
-                    // Otherwise, reduce both margins
-                    this.margin.left = this.margin.right = Gauge.ReducedLeftRightMargin;
-                }
             }
-
-            let fontSize = 0;
-            if (this.data && this.data.dataLabelsSettings && this.data.dataLabelsSettings.fontSize && this.data.dataLabelsSettings.fontSize >= NewDataLabelUtils.DefaultLabelFontSizeInPt) {
-                fontSize = PixelConverter.fromPointToPixel(this.data.dataLabelsSettings.fontSize - NewDataLabelUtils.DefaultLabelFontSizeInPt);
-            }
-
-            if (fontSize !== 0) {
-                this.margin.bottom += fontSize;
-                this.margin.left += fontSize;
-                this.margin.right += fontSize;
+            else if (labelsPosition === GaugeLabelPosition.LeftRight) {
+                let padding = this.settings.labels.padding * 2;
+                this.margin.left = this.labels[0].size.width + padding;
+                this.margin.right = this.labels[1].size.width + padding;
+                this.margin.bottom = padding;
             }
         }
 

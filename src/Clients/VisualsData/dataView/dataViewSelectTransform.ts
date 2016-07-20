@@ -61,6 +61,9 @@ module powerbi.data {
             debug.assertAnyValue(selects, "selects");
             debug.assertAnyValue(projectionActiveItems, "projectionActiveItems");
 
+            if (_.isEmpty(selects))
+                return {};
+
             let projections: QueryProjectionsByRole = {};
             for (let select of selects) {
                 if (!select)

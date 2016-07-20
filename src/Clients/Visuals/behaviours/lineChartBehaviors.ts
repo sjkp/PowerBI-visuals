@@ -34,6 +34,8 @@ module powerbi.visuals {
         areas: D3.Selection;
         isPartOfCombo?: boolean;
         tooltipOverlay: D3.Selection;
+        getCategoryIndex(seriesData: LineChartSeries, pointX: number): number;
+        categoryIdentities?: SelectionId[];
     }
 
     export class LineChartWebBehavior implements IInteractiveBehavior {
@@ -48,16 +50,34 @@ module powerbi.visuals {
             let dots = this.dots = options.dots;
             let areas = this.areas = options.areas;
             let tooltipOverlay = this.tooltipOverlay = options.tooltipOverlay;
+            let getPointX = (rootNode) => this.getPointX(rootNode);
 
-            InteractivityUtils.registerStandardInteractivityHandlers(interactivityLines, selectionHandler);
+            interactivityLines.on('click', function (d: LineChartSeries, index: number) {
+                let categoryIndex = options.getCategoryIndex(d, getPointX(this));
+                selectionHandler.handleSelection(d.data[categoryIndex], d3.event.ctrlKey);
+            });
+            
             InteractivityUtils.registerStandardInteractivityHandlers(dots, selectionHandler);
 
             if (areas) {
                 InteractivityUtils.registerStandardInteractivityHandlers(areas, selectionHandler);
             }
 
-            if (tooltipOverlay)
-                tooltipOverlay.on('click', () => selectionHandler.handleClearSelection());
+            if (tooltipOverlay) {
+                if (options.categoryIdentities) {
+                    tooltipOverlay.on('click', function () {
+                        let categoryIndex = options.getCategoryIndex(undefined, getPointX(this));
+                        selectionHandler.handleSelection({
+                            selected: false,
+                            identity: undefined,
+                            specificIdentity: options.categoryIdentities[categoryIndex],
+                        }, d3.event.ctrlKey);
+                    });
+                }
+                else {
+                    tooltipOverlay.on('click', () => selectionHandler.handleClearSelection());
+                }
+            }
         }
 
         public renderSelection(hasSelection: boolean) {
@@ -65,6 +85,13 @@ module powerbi.visuals {
             this.dots.style("fill-opacity", (d: SelectableDataPoint) => ColumnUtil.getFillOpacity(d.selected, false, hasSelection, false));
             if (this.areas)
                 this.areas.style("fill-opacity", (d: SelectableDataPoint) => (hasSelection && !d.selected) ? LineChart.DimmedAreaFillOpacity : LineChart.AreaFillOpacity);
+        }
+
+        private getPointX(rootNode: Element): number {
+            let e = d3.event, s;
+            while (s = e.sourceEvent) e = s;
+            let rect = rootNode.getBoundingClientRect();
+            return e.clientX - rect.left - rootNode.clientLeft;
         }
     }
 } 

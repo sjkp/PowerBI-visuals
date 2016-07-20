@@ -1753,7 +1753,7 @@ module powerbi.visuals.samples {
 
 		public renderTimeRangeText(timelineData: TimelineData, timeRangeFormat: LabelFormat): void {
 			let leftMargin = (GranularityNames.length + 2) * this.timelineProperties.elementWidth;
-			let maxWidth = this.svgWidth - leftMargin - this.timelineProperties.leftMargin;
+			let maxWidth = this.svgWidth - leftMargin - this.timelineProperties.leftMargin - timeRangeFormat.sizeProperty;
 
 			if (timeRangeFormat.showProperty && maxWidth > 0) {
 				let timeRangeText = Utils.timeRangeText(timelineData);
@@ -1796,7 +1796,7 @@ module powerbi.visuals.samples {
 				]
 			};
 			this.hostServices.persistProperties(objects);
-			this.hostServices.onSelect({ data: [] });
+			this.hostServices.onSelect({ visualObjects: [] });
 		}
 
 		// This function retruns the values to be displayed in the property pane for each object.

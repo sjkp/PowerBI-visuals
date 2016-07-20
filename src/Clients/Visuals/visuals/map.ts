@@ -1034,8 +1034,7 @@ module powerbi.visuals {
 
         public init(options: VisualInitOptions) {
             debug.assertValue(options, 'options');
-            let element = this.element = $("<div>");
-            element.appendTo(options.element);
+            let element = this.element = options.element;
             this.pendingGeocodingRender = false;
             this.currentViewport = options.viewport;
             this.style = options.style;
@@ -1064,6 +1063,8 @@ module powerbi.visuals {
                 Map.removeHillShading();
                 Microsoft.Maps.loadModule('Microsoft.Maps.Overlays.Style', {
                     callback: () => {
+                        if (this.isDestroyed)
+                            return;
                         this.initialize(element[0]);
                         if (this.enableCurrentLocation) {
                             this.createCurrentLocation(element);

@@ -659,16 +659,14 @@ module powerbitests {
 
                     expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [data],
-                                    metadata: dataBuilder.measureColumn.queryName,
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: dataMap,
-                                    metadata: dataBuilder.measureColumn.queryName,
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn:
+                                    {
+                                        dataMap: dataMap,
+                                        metadata: dataBuilder.measureColumn.queryName,
+                                    }
                                 }
                             ]
                         });
@@ -722,7 +720,7 @@ module powerbitests {
 
                     expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                         {
-                            data: []
+                            visualObjects: []
                         });
 
                     done();

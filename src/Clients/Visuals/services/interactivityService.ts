@@ -32,7 +32,14 @@ module powerbi.visuals {
 
     export interface SelectableDataPoint {
         selected: boolean;
+        /** Identity for identifying the selectable data point for selection purposes */
         identity: SelectionId;
+        /**
+         * A specific identity for when data points exist at a finer granularity than
+         * selection is performed.  For example, if your data points should select based
+         * only on series even if they exist as category/series intersections.
+         */
+        specificIdentity?: SelectionId;
     }
 
     /**
@@ -113,7 +120,11 @@ module powerbi.visuals {
     }
 
     export interface ISelectionHandler {
-        /** Handles a selection event by selecting the given data point */
+        /**
+         * Handles a selection event by selecting the given data point.  If the data point's
+         * identity is undefined, the selection state is cleared. In this case, if specificIdentity
+         * exists, it will still be sent to the host.
+         */
         handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void;
 
         /** Handles a request for a context menu. */
@@ -156,6 +167,8 @@ module powerbi.visuals {
         public selectableDataPoints: SelectableDataPoint[];
         public selectableLegendDataPoints: SelectableDataPoint[];
         public selectableLabelsDataPoints: SelectableDataPoint[];
+
+        private dataPointObjectName = 'dataPoint';
 
         constructor(hostServices: IVisualHostServices) {
             debug.assertValue(hostServices, 'hostServices');
@@ -265,10 +278,33 @@ module powerbi.visuals {
             if (!dataPoint)
                 return;
 
+            let selectingSelectorsByColumn: SelectorsByColumn;
+            if (dataPoint.specificIdentity) {
+                selectingSelectorsByColumn = dataPoint.specificIdentity.getSelectorsByColumn();
+            }
+            else if (dataPoint.identity) {
+                selectingSelectorsByColumn = dataPoint.identity.getSelectorsByColumn();
+            }
+
+            let selectingArgs: SelectingEventArgs = {
+                visualObjects: [{
+                    objectName: this.dataPointObjectName,
+                    selectorsByColumn: selectingSelectorsByColumn,
+                }],
+            };
+            this.hostService.onSelecting(selectingArgs);
+
+            if (selectingArgs.action === VisualInteractivityAction.Selection || selectingArgs.action == null) {
+                if (!dataPoint.identity) {
+                    this.handleClearSelection();
+                }
+                else {
             this.useDefaultValue = false;
             this.select(dataPoint, multiSelect);
             this.sendSelectionToHost();
             this.renderAll();
+        }
+            }
         }
 
         public handleContextMenu(dataPoint: SelectableDataPoint, point: IPoint): void {
@@ -354,7 +390,7 @@ module powerbi.visuals {
                 }
             }
             // We do a single select if we didn't do a multiselect or if we find out that the multiselect is invalid.
-            if (!multiSelect || !this.hostService.canSelect({ data: this.selectedIds.map((value: SelectionId) => value.getSelector()) })) {
+            if (!multiSelect || !this.hostService.canSelect(this.createSelectEventArgs(this.selectedIds))) {
                 this.clearSelection();
                 if (selected) {
                     d.selected = true;
@@ -463,17 +499,31 @@ module powerbi.visuals {
         private sendSelectionToHost() {
             let host = this.hostService;
             if (host.onSelect) {
-                let selectArgs: SelectEventArgs = {
-                    data: this.selectedIds.map((value: SelectionId) => value.getSelector())
-                };
-
-                let data2 = this.getSelectorsByColumn(this.selectedIds);
-
-                if (!_.isEmpty(data2))
-                    selectArgs.data2 = data2;
+                let selectArgs = this.createSelectEventArgs(this.selectedIds);
 
                 host.onSelect(selectArgs);
             }
+        }
+
+        private createSelectEventArgs(selectedIds: SelectionId[]): SelectEventArgs {
+            let shouldInsertSelectors = false;
+            let dataPointObjectName = this.dataPointObjectName;
+            if (!_.isEmpty(selectedIds)) {
+                shouldInsertSelectors = selectedIds[0].getSelector() && !selectedIds[0].getSelectorsByColumn();
+            }
+            let selectedIdsWithIdentities = _.chain(selectedIds)
+                .filter((value: SelectionId) => value.hasIdentity());
+            let selectEventArgs: SelectEventArgs = {
+                visualObjects: selectedIdsWithIdentities
+                    .map((value: SelectionId) => { return { objectName: dataPointObjectName, selectorsByColumn: value.getSelectorsByColumn() }; })
+                    .value(),
+            };
+            if (shouldInsertSelectors) {
+                selectEventArgs.selectors = selectedIdsWithIdentities
+                    .map((value: SelectionId) => value.getSelector())
+                    .value();
+            }
+            return selectEventArgs;
         }
 
         private getSelectorsByColumn(selectionIds: SelectionId[]): SelectorsByColumn[] {

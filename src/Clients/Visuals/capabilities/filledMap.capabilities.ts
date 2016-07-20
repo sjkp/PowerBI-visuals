@@ -67,7 +67,7 @@ module powerbi.visuals {
                     { geography: { longitude: true } }
                 ],
             }, {
-                name: 'Size',
+                name: 'Size', // This role is actually gradient, but we're keeping the name "size" to avoid needing upgrade code for an internal name
                 kind: VisualDataRoleKind.Measure,
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Gradient'),
                 description: data.createDisplayNameGetter('Role_DisplayName_GradientDescription'),

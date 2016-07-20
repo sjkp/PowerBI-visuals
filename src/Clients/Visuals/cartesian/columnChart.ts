@@ -253,9 +253,15 @@ module powerbi.visuals {
             if (CartesianChart.detectScalarMapping(dataViewMapping)) {
                 let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
                 dataViewCategories.dataReductionAlgorithm = { sample: {} };
+
+                let values = <data.CompiledDataViewGroupedRoleMapping>dataViewMapping.categorical.values;
+
+                if(values && values.group){
+                    values.group.dataReductionAlgorithm = { top: {} };
+                }
             }
             else {
-                CartesianChart.applyLoadMoreEnabledToMapping(options.cartesianLoadMoreEnabled, dataViewMapping);
+                CartesianChart.expandCategoryWindow([dataViewMapping]);
             }
         }
 
@@ -1376,6 +1382,7 @@ module powerbi.visuals {
             let seriesSources: DataViewMetadataColumn[] = [];
             let seriesObjects: DataViewObjects[][] = [];
             let grouped: boolean = false;
+            let reader = this.reader;
 
             let colorHelper = new ColorHelper(colors, columnChartProps.dataPoint.fill, defaultColor);
             let legendTitle = undefined;
@@ -1401,9 +1408,13 @@ module powerbi.visuals {
                         seriesSources.push(source);
                         seriesObjects.push(series.objects);
 
-                        let selectionId = series.identity ?
-                            SelectionId.createWithIdAndMeasure(series.identity, source.queryName) :
-                            SelectionId.createWithMeasure(this.getMeasureNameByIndex(valueIndex));
+                        let selectionIdBuilder = new SelectionIdBuilder();
+                        selectionIdBuilder = selectionIdBuilder.withMeasure(this.getMeasureNameByIndex(valueIndex));
+                        if (reader.hasDynamicSeries()) {
+                            selectionIdBuilder = selectionIdBuilder.withSeries(reader.getSeriesValueColumns(), reader.getSeriesValueColumnGroup(valueGroupsIndex));
+                        }
+
+                        let selectionId = selectionIdBuilder.createSelectionId();
 
                         let label = converterHelper.getFormattedLegendLabel(source, allValues, formatStringProp);
 

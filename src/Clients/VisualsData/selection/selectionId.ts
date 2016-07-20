@@ -187,7 +187,6 @@ module powerbi.visuals {
         }
 
         public static createWithSelectorForColumnAndMeasure(dataMap: SelectorForColumn, measureId: string, highlight: boolean = false): SelectionId {
-
             let selectionId: visuals.SelectionId;
             let keys = Object.keys(dataMap);
             if (keys.length === 2) {

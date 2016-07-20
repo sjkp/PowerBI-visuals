@@ -36,11 +36,13 @@ module powerbi.data {
             schema: FederatedConceptualSchema,
             targetTypes: ValueTypeDescriptor[]): QueryAggregateFunction[];
 
+        /* forConsumption optional argument may not be need when Min/Max(Date) becomes supported aggregate. See datetimeMinMaxSupported feature switch*/
         isSupportedAggregate(
             expr: SQExpr,
             schema: FederatedConceptualSchema,
             aggregate: QueryAggregateFunction,
-            targetTypes: ValueTypeDescriptor[]): boolean;
+            targetTypes: ValueTypeDescriptor[],
+            forConsumption?: boolean): boolean;
 
         createExprWithAggregate(
             expr: SQExpr,
@@ -58,10 +60,12 @@ module powerbi.data {
         constructor(private datetimeMinMaxSupported: boolean) {
         }
 
+        /* forConsumption optional argument may not be need when Min/Max(Date) becomes supported aggregate. See datetimeMinMaxSupported feature switch*/
         public getSupportedAggregates(
             expr: SQExpr,
             schema: FederatedConceptualSchema,
-            targetTypes: ValueTypeDescriptor[]): QueryAggregateFunction[] {
+            targetTypes: ValueTypeDescriptor[],
+            forConsumption?: boolean): QueryAggregateFunction[] {
 
             debug.assertValue(expr, 'expr');
             debug.assertValue(schema, 'schema');
@@ -99,7 +103,7 @@ module powerbi.data {
             let aggregates: QueryAggregateFunction[] = [];
 
             // Min/Max of DateTime
-            if (this.datetimeMinMaxSupported &&
+            if ((this.datetimeMinMaxSupported || forConsumption) &&
                 valueType.dateTime &&
                 (_.isEmpty(targetTypes) || ValueType.isCompatibleTo(valueType, targetTypes))) {
                 aggregates.push(Agg.Min);
@@ -117,16 +121,18 @@ module powerbi.data {
             return aggregates;
         }
 
+        /* forConsumption optional argument may not be need when Min/Max(Date) becomes supported aggregate. See datetimeMinMaxSupported feature switch*/
         public isSupportedAggregate(
             expr: SQExpr,
             schema: FederatedConceptualSchema,
             aggregate: QueryAggregateFunction,
-            targetTypes: ValueTypeDescriptor[]): boolean {
+            targetTypes: ValueTypeDescriptor[],
+            forConsumption?: boolean): boolean {
 
             debug.assertValue(expr, 'expr');
             debug.assertValue(schema, 'schema');
 
-            let supportedAggregates = this.getSupportedAggregates(expr, schema, targetTypes);
+            let supportedAggregates = this.getSupportedAggregates(expr, schema, targetTypes, forConsumption);
             return _.contains(supportedAggregates, aggregate);
         }
 
