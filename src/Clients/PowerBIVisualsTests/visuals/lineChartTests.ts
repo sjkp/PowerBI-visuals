@@ -33,6 +33,7 @@ module powerbitests {
     import CartesianChartType = powerbi.visuals.CartesianChartType;
     import DataViewObjects = powerbi.DataViewObjects;
     import DataViewPivotCategorical = powerbi.data.DataViewPivotCategorical;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
     import ScalarKeys = powerbi.visuals.ScalarKeys;
     import DataViewTransform = powerbi.data.DataViewTransform;
     import LineChart = powerbi.visuals.LineChart;
@@ -46,6 +47,7 @@ module powerbitests {
     import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
     import PixelConverter = jsCommon.PixelConverter;
     import LabelParentRect = powerbi.LabelParentRect;
+    import SortDirection = powerbi.SortDirection;
     import TrendLineHelper = powerbi.visuals.TrendLineHelper;
     import buildSelectorForColumn = powerbitests.helpers.buildSelectorForColumn;
 
@@ -239,6 +241,37 @@ module powerbitests {
                 });
             });
 
+            it('uses scalar key if sorted by category', () => {
+                let scalarKeyUsed = runCustomizeQueryWithForcedScalarKey(undefined, true);
+                expect(scalarKeyUsed).toBe(true);
+            });
+
+            it('does not use scalar key if sorted by non-category', () => {
+                let scalarKeyUsed = runCustomizeQueryWithForcedScalarKey(undefined, false);
+                expect(scalarKeyUsed).toBe(false);
+            });
+
+            it('uses scalar key if there is no explicit sort', () => {
+                let scalarKeyUsed = runCustomizeQueryWithForcedScalarKey(undefined, undefined);
+                expect(scalarKeyUsed).toBe(true);
+            });
+
+            it('removes forecast dataViewMapping if present on non-scalar axis', () => {
+                let objects: DataViewObjects = {
+                    categoryAxis: {}
+                };
+                let dataViewMapping = createCompiledDataViewMapping(ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text), objects);
+                let forecastDataViewMapping = createCompiledDataViewMapping(ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text), objects);
+                forecastDataViewMapping.usage = { forecast: {} };
+                let options: powerbi.CustomizeQueryOptions = {
+                    dataViewMappings: [dataViewMapping, forecastDataViewMapping]
+                };
+
+                LineChart.customizeQuery(options);
+
+                expect(options.dataViewMappings.length).toBe(1);
+            });
+
             it('uses scalar key if axis type is undefined', () => {
                 let scalarKeyUsed = runCustomizeQueryWithForcedScalarKey(undefined);
                 expect(scalarKeyUsed).toBe(true);
@@ -255,7 +288,7 @@ module powerbitests {
             });
 
             // Runs the line chart by forcing the scalar key property to true and returns whether customizeQuery decided to use it
-            function runCustomizeQueryWithForcedScalarKey(axisType: string): boolean {
+            function runCustomizeQueryWithForcedScalarKey(axisType: string, sortByCategory?: boolean): boolean {
                 let objects: DataViewObjects = {
                     categoryAxis: {
                         axisType: axisType
@@ -263,6 +296,14 @@ module powerbitests {
                 };
 
                 let dataViewMapping = createCompiledDataViewMapping(ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime), objects);
+
+                // Set sort
+                if (sortByCategory !== undefined) {
+                    if (sortByCategory)
+                        _.find(dataViewMapping.metadata.columns, (c) => c.queryName === 'c1').sort = SortDirection.Ascending;
+                    else
+                        _.find(dataViewMapping.metadata.columns, (c) => c.queryName === 's1').sort = SortDirection.Ascending;
+                }
 
                 // Force scalar key support
                 let dataViewCategories = <powerbi.data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
@@ -326,12 +367,20 @@ module powerbitests {
 
         function createCompiledDataViewMapping(categoryType: ValueType, objects?: DataViewObjects): CompiledDataViewMapping {
             let categoryItems: powerbi.data.CompiledDataViewRoleItem[] = [];
-            if (categoryType)
+            let columns: DataViewMetadataColumn[] = [
+                { displayName: null, queryName: 'y1' },
+                { displayName: null, queryName: 's1' },
+            ];
+
+            if (categoryType) {
                 categoryItems.push({ queryName: 'c1', type: categoryType });
+                columns.push({ displayName: null, queryName: 'c1' });
+            }
 
             return {
                 metadata: {
-                    objects: objects
+                    objects: objects,
+                    columns: columns,
                 },
                 categorical: {
                     categories: {
@@ -377,6 +426,79 @@ module powerbitests {
             };
             let actualData = LineChart.converter(dataView, blankCategoryValue, colors, false);
             expect(actualData.series).toEqual([]);
+        });
+
+        /**
+         * This test case is for VSTS 7928625 (Calculation of the Y Axis range for Line Date chart does not filter out Blank values)
+         */
+        it('converter - Y axis range should not take into account the measure value with a corresponding null scalar key', () => {
+            // arrange...
+            let metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    powerbi.Prototype.inherit(dataViewMetadata.columns[0], c => {
+                        c.displayName = "Quarter Year";
+                    }),
+                    powerbi.Prototype.inherit(dataViewMetadata.columns[1], c => {
+                        c.aggregates = { minLocal: 11, maxLocal: 1098 };
+                    }),
+                    powerbi.Prototype.inherit(dataViewMetadata.columns[2], c => {
+                        c.displayName = "Min of Date";
+                        c.aggregates = { min: new Date('2016-01-01T08:00:00.000Z') };
+                    }),
+                ]
+            };
+            let dataView: powerbi.DataView = {
+                metadata: metadata,
+                categorical: {
+                    categories: [{
+                        source: metadata.columns[0],
+                        values: [
+                            '(Blank) (Blank)',
+                            'Qtr 1 2016',
+                            'Qtr 2 2016'
+                        ],
+                        objects: [
+                            { scalarKey: { min: null } },
+                            { scalarKey: { min: new Date('2016-01-01T08:00:00.000Z') } },
+                            { scalarKey: { min: new Date('2016-04-01T07:00:00.000Z') } }
+                        ],
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: metadata.columns[1],
+                            values: [1098, 11, 210],
+                            minLocal: 11,
+                            maxLocal: 1098,
+                        }, {
+                            source: metadata.columns[2],
+                            values: [null, new Date('2016-01-01T08:00:00.000Z') , new Date('2016-04-01T07:00:00.000Z')],
+                            min: new Date('2016-01-01T08:00:00.000Z'),
+                        },
+                    ]),
+                }
+            };
+            
+            // act...
+            let actualData = LineChart.converter(dataView, blankCategoryValue, colors, /* isScalar */ true);
+
+            // assert...
+            expect(actualData.series[0].data.length).toBe(2, 'actualData.series[0].data.length');
+            expect(actualData.series[0].data[0].categoryIndex).toBe(1, 'actualData.series[0].data[0].categoryIndex');
+            expect(actualData.series[0].data[0].value).toBe(11, 'actualData.series[0].data[0].value');
+            expect(actualData.series[0].data[1].categoryIndex).toBe(2, 'actualData.series[0].data[1].categoryIndex');
+            expect(actualData.series[0].data[1].value).toBe(210, 'actualData.series[0].data[1].value');
+
+            // The expectation for actualData.categoryData and actualData.categoryIdentities is that they will have an element for
+            // the row with null category as well, and the array element at that row index (i.e. 0) is undefined.
+            // This is consistent with the behavior of LineChart.converter() with a continuous axis that does not have scalar key.
+            expect(actualData.categoryData.length).toBe(3, 'actualData.categoryData.length');
+            expect(actualData.categoryData[0]).toBeUndefined('actualData.categoryData[0]');
+            expect(actualData.categoryData[1].categoryIndex).toBe(1, 'actualData.categoryData[1].categoryIndex');
+            expect(actualData.categoryData[2].categoryIndex).toBe(2, 'actualData.categoryData[2].categoryIndex');
+            expect(actualData.categoryIdentities.length).toBe(3, 'actualData.categoryIdentities.length');
+            expect(actualData.categoryIdentities[0]).toBeUndefined('actualData.categoryIdentities[0]');
+            expect(actualData.categoryIdentities[1]).toBeDefined('actualData.categoryIdentities[1]');
+            expect(actualData.categoryIdentities[2]).toBeDefined('actualData.categoryIdentities[2]');
         });
 
         it('validate tooltip info not being created when tooltips are disabled', () => {
@@ -2154,7 +2276,7 @@ module powerbitests {
             //check that the second series stacked value
             for (let i = 0, len = actualData.series[1].data.length; i < len; i++) {
                 let dataPoint = actualData.series[1].data[i];
-                let expectedValue = valueColumns[1].values[i] + valueColumns[0].values[i];
+                let expectedValue = <number>valueColumns[1].values[i] + <number>valueColumns[0].values[i];
                 expect(dataPoint.stackedValue).toEqual(expectedValue);
             }
         });
@@ -2669,6 +2791,50 @@ module powerbitests {
                     done();
                 }, DefaultWaitForRender);
             });
+
+            it('line chart clears when you have a dynamic series and no values', (done) => {
+                let categoryValues = ['a', 'b', 'c', 'd', 'e'];
+                let categoryIdentities = [
+                    mocks.dataViewScopeIdentity(categoryValues[0]),
+                    mocks.dataViewScopeIdentity(categoryValues[1]),
+                    mocks.dataViewScopeIdentity(categoryValues[2]),
+                    mocks.dataViewScopeIdentity(categoryValues[3]),
+                    mocks.dataViewScopeIdentity(categoryValues[4]),
+                ];
+                let metadata: powerbi.DataViewMetadata = {
+                    columns: [
+                        {
+                            displayName: 'category',
+                            queryName: 'category',
+                            type: ValueType.fromDescriptor({ text: true }),
+                            roles: { Category: true }
+                        },
+                        {
+                            displayName: 'series',
+                            queryName: 'series',
+                            type: ValueType.fromDescriptor({ text: true }),
+                            roles: { Series: true }
+                        }]
+                };
+                let dataViews = [{
+                    metadata: metadata,
+                    categorical: {
+                        categories: [{
+                            source: metadata.columns[0],
+                            values: categoryValues,
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([], undefined, metadata.columns[1])
+                    }
+                }];
+                v.onDataChanged({
+                    dataViews: dataViews
+                });
+                setTimeout(() => {
+                    expect($('.line').length).toEqual(0);
+                    done();
+                }, DefaultWaitForRender);
+            }); 
 
             it('verify viewport when filtering data', (done) => {
                 // Clone in order to keep the original as it is
@@ -4435,6 +4601,66 @@ module powerbitests {
                     setTimeout(() => {
                         let trendLines = $('.trend-line');
                         helpers.verifyTrendLines(trendLines, []);
+                        done();
+                    }, DefaultWaitForRender);
+                });
+            });
+
+            describe('forecast lines', () => {
+                it('single series', (done) => {
+                    let forecastLineColor = '#FF0000';
+                    let objects: DataViewObjects = {
+                        forecast: [{
+                            id: '1',
+                            object: {
+                                show: true,
+                                lineColor: {
+                                    solid: {
+                                        color: forecastLineColor,
+                                    }
+                                }
+                            },
+                        }]
+                    };
+
+                    let dataViews = new helpers.ForecastBuilder().withObjects(objects).buildDataViews();
+
+                    v.onDataChanged({
+                        dataViews: dataViews,
+                    });
+                    setTimeout(() => {
+                        let forecastLines = $('.forecast-line');
+                        let errorRangeBand = $('.forecast-error-range');
+                        helpers.verifyForecasts(forecastLines, errorRangeBand, [{
+                            color: forecastLineColor,
+                            opacity: 0.2
+                        }]);
+
+                        done();
+                    }, DefaultWaitForRender);
+                });
+
+                it('not supported with ordinal axis', (done) => {
+                    let objects: DataViewObjects = {
+                        forecast: {
+                            show: true,
+                        },
+                        categoryAxis: {
+                            show: true,
+                            axisType: AxisType.categorical,
+                        },
+                    };
+
+                    let dataViews = new helpers.ForecastBuilder().withObjects(objects).buildDataViews();
+
+                    v.onDataChanged({
+                        dataViews: dataViews,
+                    });
+
+                    setTimeout(() => {
+                        let forecastLines = $('.forecast-line');
+                        let errorRangeBand = $('.forecast-error-range');
+                        helpers.verifyForecasts(forecastLines, errorRangeBand, []);
                         done();
                     }, DefaultWaitForRender);
                 });

@@ -216,7 +216,7 @@ module powerbitests {
         it('Sortable roles', () => {
             let items: powerbi.data.CompiledDataViewRoleItem[] = [];
             let dataViewMapping: powerbi.data.CompiledDataViewMapping = {
-                metadata: {},
+                metadata: { columns: [] },
                 table: {
                     rows: {
                         for: {

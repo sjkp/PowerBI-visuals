@@ -470,7 +470,7 @@ module powerbi.visuals.samples {
             let fontSizeInPx = PixelConverter.fromPoint(streamGraphSettings.dataLabelsSettings.fontSize);
 
             for (let i = 0; i < values.length; i++) {
-                let label = values[i].source.groupName;
+                let label = <string>values[i].source.groupName;
                 let identity: SelectionId = values[i].identity
                     ? SelectionId.createWithId(values[i].identity)
                     : SelectionId.createWithMeasure(values[i].source.queryName);
@@ -508,7 +508,7 @@ module powerbi.visuals.samples {
                     continue;
 
                 for (let k = 0; k < dataPointsValues.length; k++) {
-                    let y: number = hasHighlights ? values[i].highlights[k] : dataPointsValues[k];
+                    let y = hasHighlights ? <number>values[i].highlights[k] : <number>dataPointsValues[k];
                     if (y > value)
                         value = y;
 

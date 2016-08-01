@@ -269,6 +269,13 @@ module powerbitests {
                         expect(Color.hexBlend(color1, opacity[i], color2)).toEqual(colors[i]);
                     }
                 });
+
+                it('calculateHighlightColor', () => {
+                    let yellowRGB = Color.parseColorString(yellow);
+                    expect(Color.calculateHighlightColor(yellowRGB, 0.8, 0.2)).toEqual('#CCCC00');
+                    let blackRGB = Color.parseColorString(black);
+                    expect(Color.calculateHighlightColor(blackRGB, 0.8, 0.2)).toEqual('#333333');
+                });
             });
         });
     });

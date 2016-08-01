@@ -876,7 +876,7 @@ module powerbi.visuals.samples {
 
             var eventSizeScale: D3.Scale.LinearScale = <D3.Scale.LinearScale> PulseChart.createScale(
                 true,
-                columns.EventSize ? [d3.min(columns.EventSize.values), d3.max(columns.EventSize.values)] : [0, 0],
+                columns.EventSize ? [d3.min(<number[]>columns.EventSize.values), d3.max(<number[]>columns.EventSize.values)] : [0, 0],
                 minSize,
                 maxSize);
 
@@ -914,7 +914,7 @@ module powerbi.visuals.samples {
 
                 if (isGap && dataPoints.length > 0) {
                     series.push({
-                        displayName: grouped[firstGroupIndex].name,
+                        displayName: <string>grouped[firstGroupIndex].name,
                         key: identity.getKey(),
                         lineIndex: series.length,
                         color: settings.series.fill,
@@ -950,8 +950,8 @@ module powerbi.visuals.samples {
 
                     popupInfo = {
                         value: formattedValue,
-                        title: columns.EventTitle && columns.EventTitle.values && columns.EventTitle.values[categoryIndex],
-                        description: columns.EventDescription && columns.EventDescription.values && columns.EventDescription.values[categoryIndex],
+                        title: columns.EventTitle && columns.EventTitle.values && <string>columns.EventTitle.values[categoryIndex],
+                        description: columns.EventDescription && columns.EventDescription.values && <string>columns.EventDescription.values[categoryIndex],
                     };
                 }
 
@@ -968,7 +968,7 @@ module powerbi.visuals.samples {
                     labelFill: dataPointLabelSettings.labelColor,
                     labelSettings: dataPointLabelSettings,
                     x: categoryValue,
-                    y: (y_group0Values && y_group0Values[categoryIndex]) || (y_group1Values && y_group1Values[categoryIndex]) || 0,
+                    y: <number>(y_group0Values && y_group0Values[categoryIndex]) || <number>(y_group1Values && y_group1Values[categoryIndex]) || 0,
                     pointColor: settings.series.fill,
                     groupIndex: PulseChart.getGroupIndex(categoryIndex, grouped),
                     eventSize: columns.EventSize ? eventSizeScale(eventSize) : 0,
@@ -986,7 +986,7 @@ module powerbi.visuals.samples {
 
             if (dataPoints.length > 0) {
                 series.push({
-                    displayName: grouped[firstGroupIndex].name,
+                    displayName: <string>grouped[firstGroupIndex].name,
                     key: identity.getKey(),
                     lineIndex: series.length,
                     color: settings.series.fill,
@@ -1445,7 +1445,7 @@ module powerbi.visuals.samples {
                 stepOfHeight: number = height / data.grouped.length;
 
             return <D3.Scale.LinearScale[]> data.grouped.map((group: DataViewValueColumnGroup, index: number) => {
-                var values: number[] = group.values[0].values.map(x => x || 0);
+                var values: number[] = group.values[0].values.map(x => <number>x || 0);
 
                 var minValue: number = Number.MAX_VALUE,
                     maxValue: number = -Number.MAX_VALUE;

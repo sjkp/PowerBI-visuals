@@ -104,7 +104,7 @@ module powerbi.visuals {
                         for (let j: number = 0; j < valueValueLength; j++) {
                             let v = value.values[j];
 
-                            if (isNaN(v))
+                            if (isNaN(<any>v))
                                 this.hasNaN = true;
                             else if (v === Number.POSITIVE_INFINITY)
                                 this.hasPositiveInfinity = true;

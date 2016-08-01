@@ -134,6 +134,8 @@ declare module powerbi {
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
     const RS_AccessDeniedDueToRLSGroup: string;
     const RS_CannotRetrieveModel: string;
+    const DMTS_NoGatewayWithAllDatasourcesToBindError: string;
+    const DM_GWPipeline_UnknownError: string;
     interface ServiceError {
         statusCode: number;
         /**
@@ -655,6 +657,14 @@ declare module jsCommon {
          * @returns result channel value
          */
         function channelBlend(foreChannel: number, opacity: number, backChannel: number): number;
+        /**
+         * Calculate the highlight color from the rgbColor based on the lumianceThreshold and delta.
+         * @param {RgbColor} rgbColor The original color.
+         * @param {number} lumianceThreshold The lumiance threshold used, the highlight color will be brighter when the lumiance is smaller the threshold, otherwise the highlight color will be darker. Will be enforced to be between 0 and 1.
+         * @param {number} delta the highlight color will be calculated based on the delta. Will be enforced to be between 0 and 1. lumianceThreshold + delta cannot greater than 1.
+         * @returns result highlight color value
+         */
+        function calculateHighlightColor(rgbColor: RgbColor, lumianceThreshold: number, delta: number): string;
         interface RgbColor {
             R: number;
             G: number;

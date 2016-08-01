@@ -43,6 +43,7 @@ module powerbitests {
     import valueFormatter = powerbi.visuals.valueFormatter;
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
+    import PrimitiveValue = powerbi.PrimitiveValue;
     import SortDirection = powerbi.SortDirection;
     import Controls = powerbi.visuals.controls;
     import TablixObjects = Controls.internal.TablixObjects;
@@ -534,7 +535,8 @@ module powerbitests {
         function createCompiledDataViewMapping(objects?: DataViewObjects): CompiledDataViewMapping {
             return {
                 metadata: {
-                    objects: objects
+                    objects: objects,
+                    columns: []
                 },
                 table: {
                     rows: {
@@ -1802,8 +1804,8 @@ module powerbitests {
             tablixHelper.validateSortIconClassNames(expectedValues, ".tablixCanvas tr");
         }
 
-        function validateTable(expectedValues: string[][]): void {
-            tablixHelper.validateTable(expectedValues, ".tablixCanvas tr");
+        function validateTable(expectedValues: PrimitiveValue[][]): void {
+            tablixHelper.validateTable(<string[][]>expectedValues, ".tablixCanvas tr");
         }
 
         function validateClassNames(expectedValues: string[][]): void {
@@ -2129,7 +2131,7 @@ module powerbitests {
                         let total2: string = formatter(dataView.table.totals[3], measureSource2);
                         let total3: string = formatter(dataView.table.totals[4], measureSource3);
 
-                        let expectedCells: string[][] = [
+                        let expectedCells: PrimitiveValue[][] = [
                             [groupSource1.displayName, groupSource2.displayName, measureSource1.displayName, measureSource2.displayName, measureSource3.displayName],
                             [dataView.table.rows[0][0], dataView.table.rows[0][1], cellValue1, cellValue8, cellValue15],
                             [dataView.table.rows[1][0], dataView.table.rows[1][1], cellValue2, cellValue9, cellValue16],
@@ -2351,7 +2353,7 @@ module powerbitests {
                 let total2: string = formatter(dataView.table.totals[3], measureSource2);
                 let total3: string = formatter(dataView.table.totals[4], measureSource3);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [groupSource1.displayName, groupSource2.displayName, measureSource1.displayName, measureSource2.displayName, measureSource3.displayName],
                     [dataView.table.rows[0][0], dataView.table.rows[0][1], cellValue1, cellValue8, cellValue15],
                     [dataView.table.rows[1][0], dataView.table.rows[1][1], cellValue2, cellValue9, cellValue16],
@@ -2399,7 +2401,7 @@ module powerbitests {
 
                 let total: string = formatter(dataView.table.totals[0], measureSource1);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [measureSource1.displayName, groupSource1.displayName],
                     [cellValue1, dataView.table.rows[0][1]],
                     [cellValue2, dataView.table.rows[1][1]],
@@ -2439,7 +2441,7 @@ module powerbitests {
 
                 let total: string = formatter(dataView.table.totals[0], measureSource1);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [measureSource1.displayName, groupSource1.displayName],
                     [cellValue1, dataView.table.rows[0][1]],
                     [cellValue2, dataView.table.rows[1][1]],
@@ -2456,7 +2458,7 @@ module powerbitests {
 
                 setTimeout(() => {
 
-                    let expectedCellsNoTotal: string[][] = [
+                    let expectedCellsNoTotal: PrimitiveValue[][] = [
                         [measureSource1.displayName, groupSource1.displayName],
                         [cellValue1, dataViewNoTotal.table.rows[0][1]],
                         [cellValue2, dataViewNoTotal.table.rows[1][1]],
@@ -2781,8 +2783,8 @@ module powerbitests {
             });
         });
 
-        function validateTable(expectedValues: string[][]): void {
-            tablixHelper.validateTable(expectedValues, ".tablixDashboard tr");
+        function validateTable(expectedValues: PrimitiveValue[][]): void {
+            tablixHelper.validateTable(<string[][]>expectedValues, ".tablixDashboard tr");
         }
 
         function validateClassNames(expectedValues: string[][]): void {
@@ -2926,7 +2928,7 @@ module powerbitests {
                         let total1: string = formatter(dataView.table.totals[2], measureSource1);
                         let total2: string = formatter(dataView.table.totals[3], measureSource2);
 
-                        let expectedCells: string[][] = [
+                        let expectedCells: PrimitiveValue[][] = [
                             [groupSource1.displayName, groupSource2.displayName, measureSource1.displayName, measureSource2.displayName],
                             [dataView.table.rows[0][0], dataView.table.rows[0][1], cellValue1, cellValue8],
                             [dataView.table.rows[1][0], dataView.table.rows[1][1], cellValue2, cellValue9],
@@ -3125,7 +3127,7 @@ module powerbitests {
                 let total2: string = formatter(dataView.table.totals[3], measureSource2);
                 let total3: string = formatter(dataView.table.totals[4], measureSource3);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [groupSource1.displayName, groupSource2.displayName, measureSource1.displayName, measureSource2.displayName, measureSource3.displayName],
                     [dataView.table.rows[0][0], dataView.table.rows[0][1], cellValue1, cellValue8, cellValue15],
                     [dataView.table.rows[1][0], dataView.table.rows[1][1], cellValue2, cellValue9, cellValue16],
@@ -3173,7 +3175,7 @@ module powerbitests {
 
                 let total: string = formatter(dataView.table.totals[0], measureSource1);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [measureSource1.displayName, groupSource1.displayName],
                     [cellValue1, dataView.table.rows[0][1]],
                     [cellValue2, dataView.table.rows[1][1]],
@@ -3213,7 +3215,7 @@ module powerbitests {
 
                 let total: string = formatter(dataView.table.totals[0], measureSource1);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [measureSource1.displayName, groupSource1.displayName],
                     [cellValue1, dataView.table.rows[0][1]],
                     [cellValue2, dataView.table.rows[1][1]],
@@ -3230,7 +3232,7 @@ module powerbitests {
 
                 setTimeout(() => {
 
-                    let expectedCellsNoTotal: string[][] = [
+                    let expectedCellsNoTotal: PrimitiveValue[][] = [
                         [measureSource1.displayName, groupSource1.displayName],
                         [cellValue1, dataViewNoTotal.table.rows[0][1]],
                         [cellValue2, dataViewNoTotal.table.rows[1][1]],

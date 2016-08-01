@@ -185,6 +185,8 @@
 
 
 
+
+
 declare module powerbi.visuals {
     class Point implements IPoint {
         x: number;
@@ -411,6 +413,15 @@ declare module powerbi.visuals {
         const line: string;
         const arrow: string;
         const triangle: string;
+        const type: IEnumType;
+    }
+}
+
+declare module powerbi.visuals {
+    module confidenceBandStyle {
+        const fill: string;
+        const line: string;
+        const none: string;
         const type: IEnumType;
     }
 }
@@ -1171,6 +1182,9 @@ declare module powerbi.visuals {
         };
         scalarKey: {
             scalarKeyMin: DataViewObjectPropertyIdentifier;
+        };
+        forecast: {
+            show: DataViewObjectPropertyIdentifier;
         };
         categoryAxis: {
             axisType: DataViewObjectPropertyIdentifier;
@@ -2024,7 +2038,7 @@ declare module powerbi.visuals {
         function combineDomain(forcedDomain: any[], domain: any[], ensureDomain?: NumberRange): any[];
         function createAxisLabel(properties: DataViewObject, label: string, unitType: string, y2?: boolean): string;
         function scaleShouldClamp(combinedDomain: any[], domain: any[]): boolean;
-        function normalizeNonFiniteNumber(value: number): number;
+        function normalizeNonFiniteNumber(value: PrimitiveValue): number;
         /**
          * Indicates whether the number is power of 10.
          */
@@ -2086,7 +2100,7 @@ declare module powerbi.visuals {
          * If no explicit color or default color has been set then the color is
          * allocated from the color scale for this series.
          */
-        getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.ISQExpr[], value: string): string;
+        getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.ISQExpr[], value: PrimitiveValue): string;
         /**
          * Gets the color scale for the given series.
          */
@@ -2142,7 +2156,7 @@ declare module powerbi.visuals {
     module converterHelper {
         function categoryIsAlsoSeriesRole(dataView: DataViewCategorical, seriesRoleName: string, categoryRoleName: string): boolean;
         function getPivotedCategories(dataView: DataViewCategorical, formatStringProp: DataViewObjectPropertyIdentifier): PivotedCategoryInfo;
-        function getSeriesName(source: DataViewMetadataColumn): string;
+        function getSeriesName(source: DataViewMetadataColumn): PrimitiveValue;
         function getFormattedLegendLabel(source: DataViewMetadataColumn, values: DataViewValueColumns, formatStringProp: DataViewObjectPropertyIdentifier): string;
         function createAxesLabels(categoryAxisProperties: DataViewObject, valueAxisProperties: DataViewObject, category: DataViewMetadataColumn, values: DataViewMetadataColumn[]): {
             xAxisLabel: any;
@@ -2348,8 +2362,8 @@ declare module powerbi.visuals {
             kpiIconClass: string;
             statusValues: string[];
         }
-        function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: string, kpiImageSize?: KpiImageSize): string;
-        function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: string, kpiImageSize?: KpiImageSize): KpiImageMetadata;
+        function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: PrimitiveValue, kpiImageSize?: KpiImageSize): string;
+        function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: PrimitiveValue, kpiImageSize?: KpiImageSize): KpiImageMetadata;
     }
 }
 
@@ -2421,6 +2435,7 @@ declare module powerbi.visuals {
     module ReferenceLineHelper {
         const referenceLineProps: {
             show: string;
+            displayName: string;
             lineColor: string;
             transparency: string;
             value: string;
@@ -2703,6 +2718,7 @@ declare module powerbi.visuals {
             function intersect(rect1: IRect, rect2: IRect): IRect;
             function combine(rect1: IRect, rect2: IRect): IRect;
             function parseRect(value: any, defaultValue?: IRect): IRect;
+            function getCentroid(rect: IRect): IPoint;
         }
         module Thickness {
             function inflate(thickness: IThickness, other: IThickness): IThickness;
@@ -2794,6 +2810,7 @@ declare module powerbi.visuals {
             setSlicerTextStyle(slicerText: D3.Selection, settings: SlicerSettings): void;
             getRowsOutlineWidth(outlineElement: string, outlineWeight: number): number;
             private setSlicerHeaderTextStyle(slicerHeader, headerTextElement, settings, searchEnabled);
+            private calculateSlicerTextHighlightColor(color);
             private getTextProperties(textSize, textProperties);
         }
     }
@@ -3036,6 +3053,7 @@ declare module powerbi.visuals {
     interface TrendLine {
         points: IPoint[];
         show: boolean;
+        displayName: string;
         lineColor: Fill;
         transparency: number;
         style: string;
@@ -3073,6 +3091,34 @@ declare module powerbi {
     module VisualObjectRepetition {
         /** Determines whether two repetitions are equal. */
         function equals(x: VisualObjectRepetition, y: VisualObjectRepetition): boolean;
+    }
+}
+declare module powerbi.visuals {
+    interface PointWithError {
+        point: IPoint;
+        upperBound: IPoint;
+        lowerBound: IPoint;
+    }
+    interface Forecast {
+        id: string;
+        points: PointWithError[];
+        show: boolean;
+        lineColor: Fill;
+        confidenceBandStyle: string;
+        transparency: number;
+        style: string;
+    }
+    module ForecastHelper {
+        const defaults: {
+            lineColor: Fill;
+            confidenceBandStyle: string;
+            transparency: number;
+            style: string;
+        };
+        function enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, forecast: Forecast): void;
+        function isDataViewForForecast(dataView: DataView): boolean;
+        function readDataView(dataView: DataView, sourceDataView: DataView, colors: IDataColorPalette): Forecast;
+        function render(forecastLine: Forecast, graphicsContext: D3.Selection, axes: CartesianAxisProperties, viewport: IViewport, animator: IGenericAnimator, suppressAnimations: boolean): void;
     }
 }
 
@@ -6545,6 +6591,7 @@ declare module powerbi.visuals {
         tooltipBucketEnabled?: boolean;
         trimOrdinalDataOnOverflow?: boolean;
         advancedLineLabelsEnabled?: boolean;
+        forecastEnabled?: boolean;
     }
     interface ICartesianVisual {
         init(options: CartesianVisualInitOptions): void;
@@ -6561,7 +6608,9 @@ declare module powerbi.visuals {
         getPreferredPlotArea?(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport;
         setFilteredData?(startIndex: number, endIndex: number): CartesianData;
         supportsTrendLine?(): boolean;
+        isStacked?(): boolean;
         shouldSuppressAnimation?(): boolean;
+        supportsForecast?(): boolean;
     }
     interface CartesianVisualConstructorOptions {
         isScrollable: boolean;
@@ -6571,6 +6620,7 @@ declare module powerbi.visuals {
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
         advancedLineLabelsEnabled?: boolean;
+        forecastEnabled?: boolean;
     }
     interface CartesianVisualRenderResult {
         dataPoints: SelectableDataPoint[];
@@ -6690,6 +6740,7 @@ declare module powerbi.visuals {
         private valueAxisProperties;
         private xAxisReferenceLines;
         private y1AxisReferenceLines;
+        private referenceLines;
         private cartesianSmallViewPortProperties;
         private interactivityService;
         private behavior;
@@ -6700,7 +6751,9 @@ declare module powerbi.visuals {
         private trimOrdinalDataOnOverflow;
         private isMobileChart;
         private advancedLineLabelsEnabled;
+        private forecastEnabled;
         private trendLines;
+        private forecastLine;
         private xRefLine;
         private y1RefLine;
         animator: IGenericAnimator;
@@ -6728,6 +6781,9 @@ declare module powerbi.visuals {
         scrollTo(position: number): void;
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
         private supportsTrendLines(layerIndex?);
+        private supportsForecast(layerIndex?);
+        private supportsDataBoundReferenceLines(layerIndex?);
+        private allLayerSupports(predicate, layerIndex?);
         private shouldShowLegendCard();
         private getAxisScaleOptions(axisType);
         private getCategoryAxisValues(enumeration);
@@ -6740,7 +6796,7 @@ declare module powerbi.visuals {
         private render(suppressAnimations, resizeMode?, operationKind?);
         /**
          * Gets any minimum domain extents.
-         * Reference lines and trend lines may enforce minimum extents on X and/or Y domains.
+         * Reference lines and forecast lines may enforce minimum extents on X and/or Y domains.
          */
         private getMinimumDomainExtents();
         private getPlotAreaRect(axesLayout, legendMargins);
@@ -6749,6 +6805,7 @@ declare module powerbi.visuals {
         private calculateInteractivityRightMargin();
         private renderPlotArea(layers, axesLayout, suppressAnimations, legendMargins, resizeMode?);
         private renderTrendLines(axesLayout);
+        private renderForecast(axesLayout, suppressAnimations);
         private renderReferenceLines(axesLayout);
         private getReferenceLineLabels(axes, plotArea);
         private renderDataLabels(labelDataPointGroups, labelsAreNumeric, plotArea, suppressAnimations, isCombo);
@@ -7058,7 +7115,7 @@ declare module powerbi.visuals {
         getValueBySeriesAndCategory(series: number, category: number): number;
         getMeasureNameByIndex(series: number, category: number): string;
         hasHighlightValues(series: number): boolean;
-        getHighlightBySeriesAndCategory(series: number, category: number): number;
+        getHighlightBySeriesAndCategory(series: number, category: number): PrimitiveValue;
     }
     interface LegendSeriesInfo {
         legend: LegendData;
@@ -7140,6 +7197,7 @@ declare module powerbi.visuals {
         setFilteredData(startIndex: number, endIndex: number): CartesianData;
         static getLabelFill(labelColor: string, isInside: boolean, isCombo: boolean): string;
         supportsTrendLine(): boolean;
+        isStacked(): boolean;
         static isBar(chartType: ColumnChartType): boolean;
         static isColumn(chartType: ColumnChartType): boolean;
         static isClustered(chartType: ColumnChartType): boolean;
@@ -8057,9 +8115,12 @@ declare module powerbi.visuals {
         private static validStackedLabelPositions;
         private overlayRect;
         private isComboChart;
+        private previousCategoryIds;
+        private suppressAnimation;
         private lastDragMoveXPosition;
         private deferDragMoveOperation;
         static customizeQuery(options: CustomizeQueryOptions): void;
+        private static shouldUseScalarKey(dataViewMapping, categoryRoleItems);
         static getSortableRoles(options: VisualSortableOptions): string[];
         static converter(dataView: DataView, blankCategoryValue: string, colors: IDataColorPalette, isScalar: boolean, interactivityService?: IInteractivityService, shouldCalculateStacked?: boolean, isComboChart?: boolean, tooltipsEnabled?: boolean, tooltipBucketEnabled?: boolean): LineChartData;
         static getInteractiveLineChartDomElement(element: JQuery): HTMLElement;
@@ -8076,6 +8137,9 @@ declare module powerbi.visuals {
         private enumerateDataPoints(enumeration);
         private enumerateDataLabels(enumeration);
         supportsTrendLine(): boolean;
+        supportsForecast(): boolean;
+        isStacked(): boolean;
+        shouldSuppressAnimation(): boolean;
         private showLabelPerSeries();
         private getLabelSettingsOptions(enumeration, labelSettings, series?, showAll?);
         overrideXScale(xProperties: IAxisProperties): void;
@@ -10508,6 +10572,8 @@ declare module powerbi {
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
     const RS_AccessDeniedDueToRLSGroup: string;
     const RS_CannotRetrieveModel: string;
+    const DMTS_NoGatewayWithAllDatasourcesToBindError: string;
+    const DM_GWPipeline_UnknownError: string;
     interface ServiceError {
         statusCode: number;
         /**
@@ -11029,6 +11095,14 @@ declare module jsCommon {
          * @returns result channel value
          */
         function channelBlend(foreChannel: number, opacity: number, backChannel: number): number;
+        /**
+         * Calculate the highlight color from the rgbColor based on the lumianceThreshold and delta.
+         * @param {RgbColor} rgbColor The original color.
+         * @param {number} lumianceThreshold The lumiance threshold used, the highlight color will be brighter when the lumiance is smaller the threshold, otherwise the highlight color will be darker. Will be enforced to be between 0 and 1.
+         * @param {number} delta the highlight color will be calculated based on the delta. Will be enforced to be between 0 and 1. lumianceThreshold + delta cannot greater than 1.
+         * @returns result highlight color value
+         */
+        function calculateHighlightColor(rgbColor: RgbColor, lumianceThreshold: number, delta: number): string;
         interface RgbColor {
             R: number;
             G: number;
@@ -12901,6 +12975,8 @@ declare module powerbi.data {
     }
 
     export interface CompiledDataViewMappingMetadata {
+        columns: DataViewMetadataColumn[];
+
         /** The metadata repetition objects. */
         objects?: DataViewObjects;
     }
@@ -13110,7 +13186,7 @@ declare module powerbi {
         objects?: DataViewObjects;
 
         /** The name of the containing group. */
-        groupName?: string;
+        groupName?: PrimitiveValue;
 
         /** The sort direction of this column. */
         sort?: SortDirection;
@@ -13135,6 +13211,8 @@ declare module powerbi {
         subtotal?: PrimitiveValue;
         max?: PrimitiveValue;
         min?: PrimitiveValue;
+        average?: PrimitiveValue;
+        median?: PrimitiveValue;
         count?: number;
         percentiles?: DataViewColumnPercentileAggregate[];
 
@@ -13158,7 +13236,7 @@ declare module powerbi {
 
     export interface DataViewCategoricalColumn {
         source: DataViewMetadataColumn;
-        values: any[];
+        values: PrimitiveValue[];
 
         /** The data repetition objects. */
         objects?: DataViewObjects[];
@@ -13181,11 +13259,11 @@ declare module powerbi {
         /** The data repetition objects. */
         objects?: DataViewObjects;
 
-        name?: string;
+        name?: PrimitiveValue;
     }
 
     export interface DataViewValueColumn extends DataViewCategoricalColumn {
-        highlights?: any[];
+        highlights?: PrimitiveValue[];
         identity?: DataViewScopeIdentity;
     }
 
@@ -13202,7 +13280,7 @@ declare module powerbi {
     }
 
     export interface DataViewSingle {
-        value: any;
+        value: PrimitiveValue;
     }
 
     export interface DataViewTree {
@@ -13210,7 +13288,7 @@ declare module powerbi {
     }
 
     export interface DataViewTreeNode {
-        name?: string;
+        name?: PrimitiveValue;
 
         /**
          * When used under the context of DataView.tree, this value is one of the elements in the values property.
@@ -13223,7 +13301,7 @@ declare module powerbi {
          * New visuals code should consume the new property levelValues on DataViewMatrixNode instead.
          * If this node represents a composite group node in matrix, this property will be undefined.
          */
-        value?: any;
+        value?: PrimitiveValue;
       
         /** 
          * This property contains all the values in this node. 
@@ -13243,15 +13321,15 @@ declare module powerbi {
     }
 
     export interface DataViewTreeNodeValue {
-        value?: any;
+        value?: PrimitiveValue;
     }
 
     export interface DataViewTreeNodeMeasureValue extends DataViewTreeNodeValue, DataViewColumnAggregates {
-        highlight?: any;
+        highlight?: PrimitiveValue;
     }
 
     export interface DataViewTreeNodeGroupValue extends DataViewTreeNodeValue {
-        count?: any;
+        count?: PrimitiveValue;
     }
 
     export interface DataViewTable {
@@ -13264,10 +13342,10 @@ declare module powerbi {
 
         rows?: DataViewTableRow[];
 
-        totals?: any[];
+        totals?: PrimitiveValue[];
     }
 
-    export interface DataViewTableRow extends Array<any> {
+    export interface DataViewTableRow extends Array<PrimitiveValue> {
         /** The metadata repetition objects. */
         objects?: DataViewObjects[];
     }
@@ -13338,7 +13416,7 @@ declare module powerbi {
 
     /** Represents a value at the matrix intersection, used in the values property on DataViewMatrixNode (inherited from DataViewTreeNode). */
     export interface DataViewMatrixNodeValue extends DataViewTreeNodeValue {
-        highlight?: any;
+        highlight?: PrimitiveValue;
 
         /** Indicates the index of the corresponding measure (held by DataViewMatrix.valueSources). Its value is 0 if omitted. */
         valueSourceIndex?: number;
@@ -13569,9 +13647,10 @@ declare module powerbi {
 
     /** Defines how the mapping will be used. The set of objects in this interface can modify the usage. */
     export interface DataViewMappingUsage {
-        regression: {
+        regression?: {
             [propertyName: string]: DataViewObjectPropertyIdentifier;
         };
+        forecast?: {};
     }
 
     export interface DataViewMappingRoleProjectionAggregates {
@@ -15292,6 +15371,9 @@ declare module powerbi {
 
         /** Instances which should be deleted from the existing instances. */
         remove?: VisualObjectInstance[];
+
+        /** Instances which should be deleted from the existing objects. */
+        removeObject?: VisualObjectInstance[];
     }
     
     export interface EnumerateVisualObjectInstancesOptions {
@@ -15894,6 +15976,7 @@ declare module powerbi.extensibility {
 
 
 
+
 declare module powerbi.data {
     /** Allows generic traversal and type discovery for a SQExpr tree. */
     interface ISQExprVisitorWithArg<T, TArg> {
@@ -16311,7 +16394,7 @@ declare module powerbi.data {
     interface DataShapeBindingLimitTarget {
         Primary?: number;
     }
-    enum DataShapeBindingLimitType {
+    const enum DataShapeBindingLimitType {
         Top = 0,
         First = 1,
         Last = 2,
@@ -16362,7 +16445,7 @@ declare module powerbi.data {
     interface DataShapeBindingAxis {
         Groupings: DataShapeBindingAxisGrouping[];
     }
-    enum SubtotalType {
+    const enum SubtotalType {
         None = 0,
         Before = 1,
         After = 2,
@@ -16376,18 +16459,14 @@ declare module powerbi.data {
     }
     interface DataShapeBindingAggregate {
         Select: number;
-        Kind?: DataShapeBindingAggregateKind;
-        Aggregations?: DataShapeBindingSelectAggregateContainer[];
-    }
-    const enum DataShapeBindingAggregateKind {
-        None = 0,
-        Min = 1,
-        Max = 2,
+        Aggregations: DataShapeBindingSelectAggregateContainer[];
     }
     interface DataShapeBindingSelectAggregateContainer {
         Percentile?: DataShapeBindingSelectPercentileAggregate;
         Min?: DataShapeBindingSelectMinAggregate;
         Max?: DataShapeBindingSelectMaxAggregate;
+        Median?: DataShapeBindingSelectMedianAggregate;
+        Average?: DataShapeBindingSelectAverageAggregate;
     }
     interface DataShapeBindingSelectPercentileAggregate {
         Exclusive?: boolean;
@@ -16396,6 +16475,10 @@ declare module powerbi.data {
     interface DataShapeBindingSelectMaxAggregate {
     }
     interface DataShapeBindingSelectMinAggregate {
+    }
+    interface DataShapeBindingSelectMedianAggregate {
+    }
+    interface DataShapeBindingSelectAverageAggregate {
     }
 }
 
@@ -17141,6 +17224,22 @@ declare module powerbi.visuals {
 }
 
 declare module powerbi.data {
+    module DataViewCategoricalUtils {
+        function getCategoriesDataViewObjects(categories: DataViewCategoryColumn[]): DataViewObjects[];
+        /**
+         * In DataViewCategorical.categories, all columns have the same identity array, but any applicable DataViewObjects would be added to the first column only.
+         *
+         * If prototypeCategories is non-empty and is not an inherited object, returns the inherited version of prototypeCategories that has the objects set on its first column.
+         * Else, if prototypeCategories is non-empty and is already an inherited object, returns prototypeCategories that has the objects set on its first column.
+         * Else, if prototypeCategories is an empty array, returns undefined.
+         *
+         * Related code: DataViewTransform.findSelectedCategoricalColumn(...)
+         */
+        function setCategoriesDataViewObjects(prototypeCategories: DataViewCategoryColumn[], objects: DataViewObjects[]): DataViewCategoryColumn[];
+    }
+}
+
+declare module powerbi.data {
     module DataViewMatrixUtils {
         const enum DepthFirstTraversalCallbackResult {
             stop = 0,
@@ -17396,6 +17495,18 @@ declare module powerbi {
          * Returns dataViewMapping.usage.regression if defined.  Else, returns undefined.
          */
         function getRegressionUsage(dataViewMapping: DataViewMapping): _.Dictionary<DataViewObjectPropertyIdentifier>;
+        /**
+         * Returns the role names returned by the specified rolesGetter if they are the same for all specified roleMappings.
+         * Else, returns undefined.
+         *
+         * @rolesGetter returns all the roles in one of the grouping hierarchy axes (categories or series) or in the measures.
+         */
+        function getRolesIfSameInAllCategoricalMappings(categoricalRoleMappings: DataViewCategoricalMapping[], rolesGetter: (DataViewCategoricalMapping) => string[]): string[];
+        /**
+         * Returns the array of role names that are mapped to categorical categories.
+         * Returns an empty array if none exists.
+         */
+        function getAllRolesInCategories(categoricalRoleMapping: DataViewCategoricalMapping): string[];
     }
 }
 
@@ -17503,6 +17614,13 @@ declare module powerbi.data {
     module DataViewObjectDefinitions {
         /** Creates or reuses a DataViewObjectDefinition for matching the given objectName and selector within the defns. */
         function ensure(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): DataViewObjectDefinition;
+        /**
+         * Delete a object definition from Defns if it matches objName + selector
+         * @param {DataViewObjectDefinitions} defns
+         * @param {string} objectName
+         * @param {Selector} selector
+         */
+        function deleteObjectDefinition(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): boolean;
         /**
          * Removes every property defined in targetDefns from sourceDefns if exists.
          * Properties are matches using ObjectName, Selector, and PropertyName.
@@ -17667,13 +17785,6 @@ declare module powerbi.data {
     }
 }
 declare module powerbi.data {
-    import INumberDictionary = jsCommon.INumberDictionary;
-    /** Responsible for removing selects from the DataView. */
-    module DataViewRemoveSelects {
-        function apply(dataView: DataView, targetDataViewKinds: StandardDataViewKinds, selectsToInclude: INumberDictionary<boolean>): void;
-    }
-}
-declare module powerbi.data {
     import RoleKindByQueryRef = powerbi.DataViewAnalysis.RoleKindByQueryRef;
     /**
      * A property bag containing information about a DataViewTransform session, including input arguments and some values derived from the input arguments.
@@ -17793,6 +17904,17 @@ declare module powerbi.data {
          * @param colorAllocatorFactory
          */
         function create(queryDataViewMetadata: DataViewMetadata, objectDescriptors: DataViewObjectDescriptors, dataViewMappings: DataViewMapping[], dataRoles: VisualDataRole[], transforms: DataViewTransformActions, colorAllocatorFactory: IColorAllocatorFactory): DataViewTransformContext;
+    }
+}
+declare module powerbi.data {
+    import INumberDictionary = jsCommon.INumberDictionary;
+    /**
+     * Responsible for applying projection order and split selects to DataViewCategorical.
+     * If the specified prototype DataView needs to get transformed, the transformed DataView will be returned.
+     * Else, the prototype DataView itself will be returned.
+     */
+    module DataViewCategoricalProjectionOrder {
+        function apply(prototype: DataView, applicableRoleMappings: DataViewMapping[], projectionOrdering: DataViewProjectionOrdering, splitSelects: INumberDictionary<boolean>): DataView;
     }
 }
 declare module powerbi.data {
@@ -17922,6 +18044,8 @@ declare module powerbi.data {
         min?: boolean;
         max?: boolean;
         percentiles?: ProjectionPercentileAggregate[];
+        median?: boolean;
+        average?: boolean;
     }
     interface ProjectionPercentileAggregate {
         exclusive?: boolean;
@@ -18483,6 +18607,9 @@ declare module powerbi.data {
         Month = 6,
         Week = 7,
         Day = 8,
+        Hour = 9,
+        Minute = 10,
+        Second = 11,
     }
     const enum ConceptualMultiplicity {
         ZeroOrOne = 0,
@@ -18732,6 +18859,10 @@ declare module powerbi.data {
         static isHierarchy(expr: SQExpr): expr is SQHierarchyExpr;
         static isHierarchyLevel(expr: SQExpr): expr is SQHierarchyLevelExpr;
         static isAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMinAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMaxAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isAvgAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMedianAggregation(expr: SQExpr): expr is SQAggregationExpr;
         static isMeasure(expr: SQExpr): expr is SQMeasureRefExpr;
         static isPercentile(expr: SQExpr): expr is SQPercentileExpr;
         static isSelectRef(expr: SQExpr): expr is SQSelectRefExpr;

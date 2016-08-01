@@ -1455,8 +1455,8 @@ module powerbi.visuals.samples {
                         measureYEnd: DataViewValueColumn = EnhancedScatterChart.getMeasureValue(indicies.yEnd, seriesValues);
 
                     //TODO: need to update (refactor) these lines below.
-                    var xVal = measureX && measureX.values && !isNaN(measureX.values[categoryIdx]) ? measureX.values[categoryIdx] : null,
-                        yVal = measureY && measureY.values && !isNaN(measureY.values[categoryIdx]) ? measureY.values[categoryIdx] : 0;
+                    var xVal = measureX && measureX.values && !isNaN(<number>measureX.values[categoryIdx]) ? measureX.values[categoryIdx] : null,
+                        yVal = measureY && measureY.values && !isNaN(<number>measureY.values[categoryIdx]) ? measureY.values[categoryIdx] : 0;
 
                     var hasNullValue = (xVal == null) || (yVal == null);
 
@@ -2011,7 +2011,7 @@ module powerbi.visuals.samples {
 
             var sortedData: EnhancedScatterChartDataPoint[] = dataPoints.sort((a, b) => {
                 return b.radius.sizeMeasure
-                    ? (b.radius.sizeMeasure.values[b.radius.index] - a.radius.sizeMeasure.values[a.radius.index])
+                    ? (<number>b.radius.sizeMeasure.values[b.radius.index] - <number>a.radius.sizeMeasure.values[a.radius.index])
                     : 0;
             });
 
@@ -2174,7 +2174,7 @@ module powerbi.visuals.samples {
                 EnhancedScatterChart.MaxSizeRange);
 
             if (measureSize.values) {
-                let sizeValue = measureSize.values[radiusData.index];
+                let sizeValue = <number>measureSize.values[radiusData.index];
 
                 if (sizeValue != null) {
                     return EnhancedScatterChart.projectSizeToPixels(
@@ -3151,7 +3151,7 @@ module powerbi.visuals.samples {
                     });
                     break;
                 case "legend":
-                    this.getLegendValue(enumeration);
+                    this.enumerateLegend(enumeration);
                     break;
             }
             return enumeration.complete();
@@ -3161,7 +3161,7 @@ module powerbi.visuals.samples {
             return this.data && this.data.hasDynamicSeries;
         }
 
-        private getLegendValue(enumeration: ObjectEnumerationBuilder): void {
+        private enumerateLegend(enumeration: ObjectEnumerationBuilder): void {
             if (!this.hasLegend()) {
                 return;
             }
@@ -3191,11 +3191,16 @@ module powerbi.visuals.samples {
                 legendProps.fontSize,
                 EnhancedScatterChart.LegendLabelFontSizeDefault);
 
+            var position: string = DataViewObject.getValue<string>(
+                this.legendObjectProperties,
+                legendProps.position,
+                legendPosition.top);
+
             enumeration.pushInstance({
                 selector: null,
                 properties: {
                     show: show,
-                    position: LegendPosition[this.legend.getOrientation()],
+                    position: position,
                     showTitle: showTitle,
                     titleText: titleText,
                     labelColor: legendLabelColor,

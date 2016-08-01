@@ -133,7 +133,7 @@ declare module powerbi.visuals.samples {
         static getTableValues(dataView: DataView): AsterPlotColumns<any[]>;
         static getTableRows(dataView: DataView): AsterPlotColumns<any[]>[];
         static getCategoricalValues(dataView: DataView): AsterPlotColumns<any[]>;
-        static getSeriesValues(dataView: DataView): string[];
+        static getSeriesValues(dataView: DataView): (string | number | boolean | Date)[];
         static getCategoricalColumns(dataView: DataView): AsterPlotColumns<DataViewCategoryColumn & DataViewValueColumn[] & DataViewValueColumns>;
         private static getColumnSourcesT<T>(dataView);
         Category: T;
@@ -188,6 +188,29 @@ declare module powerbi.visuals.samples {
 
 declare module powerbi.visuals.samples {
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
+    import IGenericAnimator = powerbi.visuals.IGenericAnimator;
+    import IMargin = powerbi.visuals.IMargin;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import VisualDataLabelsSettings = powerbi.visuals.VisualDataLabelsSettings;
+    import IValueFormatter = powerbi.visuals.IValueFormatter;
+    import LegendData = powerbi.visuals.LegendData;
+    import DataViewObject = powerbi.DataViewObject;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import TextProperties = powerbi.TextProperties;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import IVisualWarning = powerbi.IVisualWarning;
+    import IVisualErrorMessage = powerbi.IVisualErrorMessage;
+    import IVisual = powerbi.IVisual;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import DataView = powerbi.DataView;
+    import DataViewValueColumns = powerbi.DataViewValueColumns;
+    import DataViewValueColumnGroup = powerbi.DataViewValueColumnGroup;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
     interface TornadoChartTextOptions {
         fontFamily?: string;
         fontSize?: number;
@@ -364,6 +387,11 @@ declare module powerbi.visuals.samples {
         private enumerateDataPoint(enumeration);
         private enumerateCategoryAxis(enumeration);
         destroy(): void;
+    }
+    module tornadoChartUtils {
+        var DimmedOpacity: number;
+        var DefaultOpacity: number;
+        function getFillOpacity(selected: boolean, highlight: boolean, hasSelection: boolean, hasPartialHighlights: boolean): number;
     }
 }
 
@@ -918,6 +946,7 @@ declare module powerbi.visuals.samples {
         static parseBorderSettings(objects: DataViewObjects): MekkoBorderSettings;
         private enumerateBorder(enumeration);
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
+        private enumerateLegend(options, enumeration);
         private shouldShowLegendCard();
         private getCategoryAxisValues(enumeration);
         private getValueAxisValues(enumeration);
@@ -1515,7 +1544,7 @@ declare module powerbi.visuals.samples {
         static getTableValues(dataView: DataView): WordCloudColumns<any[]>;
         static getTableRows(dataView: DataView): WordCloudColumns<any[]>[];
         static getCategoricalValues(dataView: DataView): WordCloudColumns<any[]>;
-        static getSeriesValues(dataView: DataView): string[];
+        static getSeriesValues(dataView: DataView): (string | number | boolean | Date)[];
         static getCategoricalColumns(dataView: DataView): WordCloudColumns<DataViewCategoryColumn & DataViewValueColumn[] & DataViewValueColumns>;
         private static getColumnSourcesT<T>(dataView);
         Category: T;
@@ -1857,6 +1886,8 @@ declare module powerbi.visuals.samples {
     import IDataColorPalette = powerbi.IDataColorPalette;
     import VisualInitOptions = powerbi.VisualInitOptions;
     import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import ArcDescriptor = D3.Layout.ArcDescriptor;
+    import GraphLink = D3.Layout.GraphLink;
     interface ChordChartData {
         settings: ChordChartSettings;
         dataView: DataView;
@@ -1869,11 +1900,13 @@ declare module powerbi.visuals.samples {
         differentFromTo: boolean;
         defaultDataPointColor?: string;
         prevAxisVisible: boolean;
+        groups: ArcDescriptor[];
+        chords: GraphLink[];
     }
-    interface ChordArcDescriptor extends D3.Layout.ArcDescriptor, IDataLabelInfo {
+    interface ChordArcDescriptor extends ArcDescriptor, IDataLabelInfo {
         data: ChordArcLabelData;
     }
-    interface ChordTicksArcDescriptor extends D3.Layout.ArcDescriptor {
+    interface ChordTicksArcDescriptor extends ArcDescriptor {
         angleLabels: {
             angle: number;
             label: string;
@@ -1928,7 +1961,7 @@ declare module powerbi.visuals.samples {
         static getTableValues(dataView: DataView): ChordChartColumns<any[]>;
         static getTableRows(dataView: DataView): ChordChartColumns<any[]>[];
         static getCategoricalValues(dataView: DataView): ChordChartColumns<any[]>;
-        static getSeriesValues(dataView: DataView): string[];
+        static getSeriesValues(dataView: DataView): (string | number | boolean | Date)[];
         static getCategoricalColumns(dataView: DataView): ChordChartColumns<DataViewCategoryColumn & DataViewValueColumn[] & DataViewValueColumns>;
         private static getColumnSourcesT<T>(dataView);
         Category: T;
@@ -1944,6 +1977,8 @@ declare module powerbi.visuals.samples {
         private static DefaultMargin;
         private static VisualClassName;
         private static TicksFontSize;
+        private static InnerLinePointMultiplier;
+        private static ChordLayoutPadding;
         private static sliceClass;
         private static chordClass;
         private static sliceTicksClass;
@@ -1954,8 +1989,6 @@ declare module powerbi.visuals.samples {
         private static labelsClass;
         private static linesGraphicsContextClass;
         private static lineClass;
-        private chordLayout;
-        private element;
         private svg;
         private mainGraphicsContext;
         private slices;
@@ -1984,6 +2017,7 @@ declare module powerbi.visuals.samples {
         private clear();
         private clearTicks();
         private getChordTicksArcDescriptors();
+        static copyArcDescriptorsWithoutNaNValues(arcDescriptors: ArcDescriptor[]): ArcDescriptor[];
         private drawTicks();
         private renderLabels(filteredData, layout, isDonut?, forAnimation?);
         private renderLines(filteredData, arc, outerArc);
@@ -2289,7 +2323,7 @@ declare module powerbi.visuals.samples {
         private enumerateDataPoints(enumeration);
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
         hasLegend(): boolean;
-        private getLegendValue(enumeration);
+        private enumerateLegend(enumeration);
         private getCategoryAxisValues(enumeration);
         private getValueAxisValues(enumeration);
         onClearSelection(): void;
@@ -2355,7 +2389,7 @@ declare module powerbi.visuals.samples {
         static getTableValues(dataView: DataView): GlobeMapColumns<any[]>;
         static getTableRows(dataView: DataView): GlobeMapColumns<any[]>[];
         static getCategoricalValues(dataView: DataView): GlobeMapColumns<any[]>;
-        static getSeriesValues(dataView: DataView): string[];
+        static getSeriesValues(dataView: DataView): (string | number | boolean | Date)[];
         static getCategoricalColumns(dataView: DataView): GlobeMapColumns<DataViewCategoryColumn & DataViewValueColumn[] & DataViewValueColumns>;
         static getGroupedValueColumns(dataView: DataView): GlobeMapColumns<DataViewValueColumn>[];
         private static getColumnSourcesT<T>(dataView);
@@ -2877,6 +2911,7 @@ declare module powerbi.visuals.samples {
         valueAxisPrecision?: number;
     }
     interface DotPlotSelectors {
+        scrollableContainer: ClassAndSelector;
         svgPlotSelector: ClassAndSelector;
         plotSelector: ClassAndSelector;
         plotGroupSelector: ClassAndSelector;
@@ -2922,7 +2957,7 @@ declare module powerbi.visuals.samples {
         fontColor?: string;
         fontSize?: number;
     }
-    interface DotPlotDataGroup extends SelectableDataPoint {
+    interface DotPlotDataGroup extends SelectableDataPoint, IDataLabelInfo {
         label?: string;
         value?: number;
         color?: string;
@@ -2939,9 +2974,14 @@ declare module powerbi.visuals.samples {
         categories: DotPlotChartCategory[];
     }
     class DotPlot implements IVisual {
-        private viewportIn;
+        private static DataLabelXOffset;
+        private static DataLabelYOffset;
+        private static DataLabelAngle;
+        private static DataLabelXOffsetIndex;
         static capabilities: VisualCapabilities;
         private DefaultMargin;
+        private viewportIn;
+        private divContainer;
         private svg;
         private xAxis;
         private dotPlot;
@@ -2972,7 +3012,7 @@ declare module powerbi.visuals.samples {
         private static getCategorySettings(objects, defaultDotPlotSettings);
         private static getPrecision(objects, defaultDotPlotSettings);
         private drawDotPlot(data, setting);
-        private getEnhanchedDotplotLayout(labelSettings, viewport);
+        private getDotPlotLabelsLayout(labelSettings, viewport);
         private enumerateDataLabels(enumeration, dataView);
         private enumerateDataPoints(enumeration, dataView);
         private enumerateCategories(enumeration, dataView);
@@ -2981,7 +3021,7 @@ declare module powerbi.visuals.samples {
         private calculateAxes(viewportIn, categoryAxisSettings, textProperties, objects, scrollbarVisible);
         private calculateAxesProperties(viewportIn, categoryAxisSettings, options, metaDataColumn, objects);
         private renderAxis(height, viewportIn, xAxisProperties, categoryAxisSettings, data, duration);
-        private static setAxisLabelColor(g, fill);
+        private static setAxisLabelColor(selection, fill);
     }
     interface DotplotBehaviorOptions {
         columns: D3.Selection;
@@ -3003,6 +3043,18 @@ declare module powerbi.visuals.samples {
 }
 
 declare module powerbi.visuals.samples {
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import DataView = powerbi.DataView;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import IEnumType = powerbi.IEnumType;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import IVisual = powerbi.IVisual;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
     enum LinkColorType {
         ByWeight,
         ByLinkType,
@@ -3044,6 +3096,15 @@ declare module powerbi.visuals.samples {
             charge: number;
         };
     }
+    interface ForceGraphTooltipInputObject {
+        [propertyName: string]: any;
+    }
+    class ForceGraphTooltipsFactory {
+        static build(inputObject: ForceGraphTooltipInputObject, dataViewMetadataColumns: DataViewMetadataColumn[], formatStringProperties?: DataViewObjectPropertyIdentifier): TooltipDataItem[];
+    }
+    class ForceGraphMetadataRoleHelper {
+        static getColumnByRoleName(dataViewMetadataColumns: DataViewMetadataColumn[], roleName: string): DataViewMetadataColumn;
+    }
     class ForceGraphColumns<T> {
         static Roles: ForceGraphColumns<string>;
         static getMetadataColumns(dataView: DataView): ForceGraphColumns<DataViewMetadataColumn>;
@@ -3078,12 +3139,15 @@ declare module powerbi.visuals.samples {
     interface ForceGraphNodes {
         [i: string]: ForceGraphNode;
     }
+    interface LinkedByName {
+        [linkName: string]: number;
+    }
     interface ForceGraphData {
         nodes: ForceGraphNodes;
         links: ForceGraphLink[];
         minFiles: number;
         maxFiles: number;
-        linkedByName: {};
+        linkedByName: LinkedByName;
         linkTypes: {};
         settings: ForceGraphSettings;
     }
@@ -3116,6 +3180,7 @@ declare module powerbi.visuals.samples {
         private static parseSettings(dataView);
         init(options: VisualInitOptions): void;
         update(options: VisualUpdateOptions): void;
+        private removeElements();
         private updateNodes();
         private tick();
         private fadePath(opacity, highlight);

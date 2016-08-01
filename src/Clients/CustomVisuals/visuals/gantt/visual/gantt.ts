@@ -627,7 +627,7 @@ module powerbi.visuals.samples {
                 return null;
 
             var index = columnSource.indexOf(columnSource.filter(x => x.roles[propertyName])[0]);
-            return index !== -1 ? <T>child[index] : null;
+            return index !== -1 ? <T><any>child[index] : null;
         }
 
         /**
@@ -889,7 +889,7 @@ module powerbi.visuals.samples {
 
             if (index !== -1) {
                 groupName = dataView.table.columns[index].displayName;
-                types = _.unique(data, (d) => d[index]).map((d) => d[index]);
+                types = <string[]>_.unique(data, (d) => d[index]).map((d) => d[index]);
             }
 
             taskTypes = {

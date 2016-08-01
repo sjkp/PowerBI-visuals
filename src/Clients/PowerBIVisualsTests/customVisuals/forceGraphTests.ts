@@ -31,22 +31,127 @@ module powerbitests.customVisuals {
     import VisualSettings = powerbi.visuals.samples.ForceGraphSettings;
     import colorAssert = powerbitests.helpers.assertColorsMatch;
     import ForceGraphData = powerbitests.customVisuals.sampleDataViews.ForceGraphData;
+    import DataView = powerbi.DataView;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import ForceGraphMetadataRoleHelper = powerbi.visuals.samples.ForceGraphMetadataRoleHelper;
+    import ForceGraphTooltipsFactory = powerbi.visuals.samples.ForceGraphTooltipsFactory;
+    import ForceGraphTooltipInputObject = powerbi.visuals.samples.ForceGraphTooltipInputObject;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
 
     describe("ForceGraph", () => {
-        let visualBuilder: ForceGraphBuilder;
-        let defaultDataViewBuilder: ForceGraphData;
-        let dataView: powerbi.DataView;
-        let settings: VisualSettings;
+        let visualBuilder: ForceGraphBuilder,
+            defaultDataViewBuilder: ForceGraphData,
+            dataView: DataView,
+            settings: VisualSettings;
 
         beforeEach(() => {
-            visualBuilder = new ForceGraphBuilder(1000,500);
+            visualBuilder = new ForceGraphBuilder(1000, 500);
             defaultDataViewBuilder = new ForceGraphData();
+
             dataView = defaultDataViewBuilder.getDataView();
+
             settings = dataView.metadata.objects = <any>new VisualSettings();
         });
 
-        describe('capabilities', () => {
+        describe("capabilities", () => {
             it("registered capabilities", () => expect(VisualClass.capabilities).toBeDefined());
+        });
+
+        describe("ForceGraphTooltipsFactory", () => {
+            it("class is available", () => {
+                expect(ForceGraphTooltipsFactory).toBeDefined();
+            });
+
+            it("shouldn't throw any unexpected exceptions when arguments are undefined", () => {
+                expect(() => {
+                    ForceGraphTooltipsFactory.build(undefined, undefined, undefined);
+                }).not.toThrow();
+            });
+
+            it("shouldn't throw any unexpected exceptions when arguments are null", () => {
+                expect(() => {
+                    ForceGraphTooltipsFactory.build(null, null, null);
+                }).not.toThrow();
+            });
+
+            it("should return an empty array when inputObject doesn't have any own properties", () => {
+                let dataViewMetadataColumns: DataViewMetadataColumn[] = dataView.metadata.columns,
+                    tooltips: TooltipDataItem[];
+
+                    tooltips = ForceGraphTooltipsFactory.build({}, dataViewMetadataColumns);
+
+                    expect(tooltips).toBeDefined();
+                    expect(tooltips).not.toBeNull();
+                    expect(tooltips.length).toBe(0);
+            });
+
+            it("should return array of tootips", () => {
+                let dataViewMetadataColumns: DataViewMetadataColumn[] = dataView.metadata.columns,
+                    tooltips: TooltipDataItem[],
+                    testValues: string[] = ["SourceTestValue", "TargetTestValue"],
+                    inputObject: ForceGraphTooltipInputObject;
+
+                inputObject = {
+                    "Source": testValues[0],
+                    "Target": testValues[1]
+                };
+
+                tooltips = ForceGraphTooltipsFactory.build(inputObject, dataViewMetadataColumns);
+
+                expect(tooltips).toBeDefined();
+                expect(tooltips).not.toBeNull();
+
+                expect(tooltips.length).toBe(2);
+
+                tooltips.forEach((tooltip: TooltipDataItem, index: number) => {
+                    expect(tooltip).toBeDefined();
+                    expect(tooltip).not.toBeNull();
+
+                    expect(tooltip.displayName).toBeDefined();
+                    expect(tooltip.value).toBe(testValues[index]);
+                });
+            });
+        });
+
+        describe("ForceGraphMetadataRoleHelper", () => {
+            it("class is available", () => {
+                expect(ForceGraphMetadataRoleHelper).toBeDefined();
+            });
+
+            it("shouldn't throw any unexpected exceptions when arguments are undefined", () => {
+                expect(() => {
+                    ForceGraphMetadataRoleHelper.getColumnByRoleName(undefined, undefined);
+                }).not.toThrow();
+            });
+
+            it("shouldn't throw any unexpected exceptions when arguments are null", () => {
+                expect(() => {
+                    ForceGraphMetadataRoleHelper.getColumnByRoleName(null, null);
+                }).not.toThrow();
+            });
+
+            it("should return null when roleName isn't available", () => {
+                let dataViewMetadataColumns: DataViewMetadataColumn[] = dataView.metadata.columns,
+                    column: DataViewMetadataColumn;
+
+                column = ForceGraphMetadataRoleHelper.getColumnByRoleName(
+                    dataViewMetadataColumns,
+                    "ForceGraphMetadataRoleHelper");
+
+                expect(column).toBeNull();
+            });
+
+            it("shouldn't return null when roleName is available", () => {
+                let dataViewMetadataColumns: DataViewMetadataColumn[] = dataView.metadata.columns,
+                    column: DataViewMetadataColumn;
+
+                column = ForceGraphMetadataRoleHelper.getColumnByRoleName(
+                    dataViewMetadataColumns,
+                    "Source");
+
+                expect(column).toBeDefined();
+                expect(column).not.toBeNull();
+            });
         });
 
         describe("DOM tests", () => {
@@ -54,10 +159,15 @@ module powerbitests.customVisuals {
 
             it("update", (done) => {
                 visualBuilder.updateRenderTimeout(dataView, () => {
-                    let categorySourceLength  = _.unique(dataView.categorical.categories[0].values).length;
-                    let categoryTargetLength  = _.unique(dataView.categorical.categories[1].values).length;
-                    expect(visualBuilder.mainElement.children("path.link").length).toBe(Math.max(categorySourceLength, categoryTargetLength));
-                    expect(visualBuilder.mainElement.children("g.node").length).toBe(categorySourceLength + categoryTargetLength);
+                    let categorySourceLength = _.unique(dataView.categorical.categories[0].values).length,
+                        categoryTargetLength = _.unique(dataView.categorical.categories[1].values).length;
+
+                    expect(visualBuilder.mainElement.children("path.link").length)
+                        .toBe(Math.max(categorySourceLength, categoryTargetLength));
+
+                    expect(visualBuilder.mainElement.children("g.node").length)
+                        .toBe(categorySourceLength + categoryTargetLength);
+
                     done();
                 });
             });

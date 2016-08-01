@@ -126,6 +126,7 @@ module powerbitests.helpers {
                 trend: {
                     combineSeries: this.options.combineSeries,
                     show: true,
+                    displayName: 'trend',
                 }
             };
         }

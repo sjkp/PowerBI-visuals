@@ -128,6 +128,11 @@ module powerbi.visuals {
                 description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
                 properties: {
                     show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
                     value: {
                         displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
                         description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),

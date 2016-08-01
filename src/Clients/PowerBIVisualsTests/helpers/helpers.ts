@@ -388,6 +388,11 @@ module powerbitests.helpers {
             return expect(rgbActual).toEqual(rgbExpected);
     }
 
+    export function assertOpacitiesMatch(actual: string, expected: number): boolean {
+        let actualOpacity = parseFloat(actual);
+        return expect(actualOpacity).toBeCloseTo(expected, 0);
+    }
+
     export function assertFontSizeMatch(actual: string, expectedInPt: number): boolean {
         let actualInPx = parseFloat(actual);
         let actualInPt = jsCommon.PixelConverter.toPoint(actualInPx);

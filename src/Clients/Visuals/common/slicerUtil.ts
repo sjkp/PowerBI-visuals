@@ -27,6 +27,7 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import Color = jsCommon.Color;
     import PixelConverter = jsCommon.PixelConverter;
     import SQExpr = powerbi.data.SQExpr;
     import SQExprBuilder = powerbi.data.SQExprBuilder;
@@ -218,6 +219,18 @@ module powerbi.visuals {
                          // Makes height consistent between browsers. 1.79 was found by aproximating current chrome line-height: normal calculation.
                         "line-height": Math.floor(1.79 * settings.slicerText.textSize) + "px"
                     });
+                let color = this.calculateSlicerTextHighlightColor(settings.slicerText.color);
+                slicerText.on('mouseover', function (d) {
+                    d3.select(this).style({
+                        'color': color,
+                    });
+                });
+
+                slicerText.on('mouseout', function (d) {
+                    d3.select(this).style({
+                        'color': settings.slicerText.color,
+                    });
+                });
             }
 
             public getRowsOutlineWidth(outlineElement: string, outlineWeight: number): number {
@@ -260,6 +273,16 @@ module powerbi.visuals {
                         'background-color': settings.header.background,
                         'font-size': PixelConverter.fromPoint(settings.header.textSize),
                     });
+            }
+
+            private calculateSlicerTextHighlightColor(color: string): string {
+                let rgbColor = Color.parseColorString(color);
+
+                // If it's white, use the @neutralTertiaryAltColor
+                if (rgbColor.R === 255 && rgbColor.G === 255 && rgbColor.B === 255)
+                    return '#C8C8C8';
+
+                return Color.calculateHighlightColor(rgbColor, 0.8, 0.2);
             }
 
             private getTextProperties(textSize: number, textProperties: TextProperties): TextProperties {

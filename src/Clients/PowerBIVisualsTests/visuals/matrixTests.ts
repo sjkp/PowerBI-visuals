@@ -48,6 +48,7 @@ module powerbitests {
     import valueFormatter = powerbi.visuals.valueFormatter;
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
+    import PrimitiveValue = powerbi.PrimitiveValue;
     import SortDirection = powerbi.SortDirection;
     //#endregion
 
@@ -3022,7 +3023,8 @@ module powerbitests {
 
             return {
                 metadata: {
-                    objects: objects
+                    objects: objects,
+                    columns: [],
                 },
                 matrix: {
                     rows: {
@@ -4392,8 +4394,8 @@ module powerbitests {
             tablixHelper.validateSortIconClassNames(expectedValues, ".tablixCanvas tr");
         }
 
-        function validateMatrix(expectedValues: string[][]): void {
-            tablixHelper.validateMatrix(expectedValues, ".tablixCanvas tr");
+        function validateMatrix(expectedValues: PrimitiveValue[][]): void {
+            tablixHelper.validateMatrix(<string[][]>expectedValues, ".tablixCanvas tr");
         }
 
         function validateMatrixTooltip(selector: string, values: powerbi.DataViewTreeNodeValue, index: number): void {
@@ -4573,7 +4575,7 @@ module powerbitests {
                         let cellValue23 = formatter(header_2_2_2.values[1].value, measureSource2);
                         let cellValue24 = formatter(header_2_2_2.values[2].value, measureSource3);
 
-                        let expectedCells: string[][] = [
+                        let expectedCells: PrimitiveValue[][] = [
                             [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName, measureSource1.displayName, measureSource2.displayName, measureSource3.displayName, ""],
                             [header_1.levelValues[0].value, header_1_1.levelValues[0].value, header_1_1_1.levelValues[0].value, cellValue1, cellValue2, cellValue3],
                             [header_1_1_2.levelValues[0].value, cellValue4, cellValue5, cellValue6],
@@ -4900,7 +4902,7 @@ module powerbitests {
 
             setTimeout(() => {
 
-                let headerValue: string = (matrix.columns.root.children[0]).levelValues[0].value;
+                let headerValue = <string>(matrix.columns.root.children[0]).levelValues[0].value;
                 let cellValue: string = formatter(matrix.rows.root.children[0].values[0].value, measureSource1);
 
                 let expectedCells: string[][] = [
@@ -4999,7 +5001,7 @@ module powerbitests {
 
             setTimeout(() => {
 
-                let headerValue: string = (matrix.columns.root.children[0]).levelValues[0].value;
+                let headerValue = <string>(matrix.columns.root.children[0]).levelValues[0].value;
 
                 let cellValue1: string = formatter(matrix.rows.root.children[0].values[0].value, measureSource1);
                 let cellValue2: string = formatter(matrix.rows.root.children[0].values[1].value, measureSource2);
@@ -5065,7 +5067,7 @@ module powerbitests {
                 let cellValue23 = formatter(header_2_2_2.values[1].value, measureSource2);
                 let cellValue24 = formatter(header_2_2_2.values[2].value, measureSource3);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName, measureSource1.displayName, measureSource2.displayName, measureSource3.displayName, ''],
                     [header_1.levelValues[0].value, header_1_1.levelValues[0].value, header_1_1_1.levelValues[0].value, cellValue1, cellValue2, cellValue3],
                     [header_1_1_2.levelValues[0].value, cellValue4, cellValue5, cellValue6],
@@ -5098,7 +5100,7 @@ module powerbitests {
                 let header = matrix.rows.root.children[0];
                 let cellValue: string = formatter(header.values[0].value, measureSource1);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, measureSource1.displayName, ""],
                     [header.levelValues[0].value, cellValue]
                 ];
@@ -5145,7 +5147,7 @@ module powerbitests {
                 let rowHeader_1_1 = rowHeader_1.children[0];
                 let rowHeader_1_1_1 = rowHeader_1_1.children[0];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName, ""],
                     [rowHeader_1.levelValues[0].value, rowHeader_1_1.levelValues[0].value, rowHeader_1_1_1.levelValues[0].value.toString()]
                 ];
@@ -5179,7 +5181,7 @@ module powerbitests {
                 let header_2 = matrix.rows.root.children[1];
                 let header_2_1 = header_2.children[0];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, ""],
                     [header_1.levelValues[0].value, EmptyCell],
                     [header_1_2.levelValues[0].value],
@@ -5217,7 +5219,7 @@ module powerbitests {
                 let header_2 = matrix.columns.root.children[1];
                 let header_2_1 = header_2.children[0];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", header_1.levelValues[0].value, header_2.levelValues[0].value, EmptyCell, ""],
                     ["", EmptyCell, header_1_2.levelValues[0].value, header_2_1.levelValues[0].value, EmptyCell, EmptyCell]
                 ];
@@ -5262,7 +5264,7 @@ module powerbitests {
                 let header_2_2_1 = header_2_2.children[0];
                 let header_2_2_2 = header_2_2.children[1];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName, ""],
                     [header_1.levelValues[0].value, header_1_1.levelValues[0].value, header_1_1_1.levelValues[0].value.toString()],
                     [header_1_1_2.levelValues[0].value.toString()],
@@ -5350,7 +5352,7 @@ module powerbitests {
             let header1 = matrix.rows.root.children[0];
             let header2 = matrix.rows.root.children[1];
 
-            let expectedCells: string[][] = [
+            let expectedCells: PrimitiveValue[][] = [
                 [rowGroupSource1.displayName, ""],
                 [header1.levelValues[0].value],
                 [header2.levelValues[0].value]
@@ -5383,7 +5385,7 @@ module powerbitests {
                 let header_2_2_1 = header_2_2.children[0].levelValues[0].value.toString();
                 let header_2_2_2 = header_2_2.children[1].levelValues[0].value.toString();
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", header_1.levelValues[0].value, header_2.levelValues[0].value, ""],
                     ["", header_1_1.levelValues[0].value, header_1_2.levelValues[0].value, header_2_1.levelValues[0].value, header_2_2.levelValues[0].value],
                     ["", header_1_1_1, header_1_1_2, header_1_2_1, header_1_2_2, header_2_1_1, header_2_1_2, header_2_2_1, header_2_2_2]
@@ -5430,7 +5432,7 @@ module powerbitests {
                 let colHeader_1_2 = colHeader_1.children[1];
                 let colHeaderValue_1_2_1 = formatter(colHeader_1_2.children[0].levelValues[0].value, columnGroupSource3formatted);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", "", columnGroupSource1.displayName, colHeader_1.levelValues[0].value, ""],
                     ["", "", columnGroupSource2.displayName, colHeader_1_1.levelValues[0].value, colHeader_1_2.levelValues[0].value],
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName, colHeaderValue_1_1_1, colHeaderValue_1_1_2, colHeaderValue_1_2_1],
@@ -5853,8 +5855,8 @@ module powerbitests {
             });
         });
 
-        function validateMatrix(expectedValues: string[][]): void {
-            tablixHelper.validateMatrix(expectedValues, ".tablixDashboard tr");
+        function validateMatrix(expectedValues: PrimitiveValue[][]): void {
+            tablixHelper.validateMatrix(<string[][]>expectedValues, ".tablixDashboard tr");
         }
 
         describe('text size', () => {
@@ -6002,7 +6004,7 @@ module powerbitests {
                         let header_2_2_1 = header_2_2.children[0];
                         let header_2_2_2 = header_2_2.children[1];
 
-                        let expectedCells: string[][] = [
+                        let expectedCells: PrimitiveValue[][] = [
                             [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName],
                             [header_1.levelValues[0].value, header_1_1.levelValues[0].value, header_1_1_1.levelValues[0].value],
                             [header_1_1_2.levelValues[0].value],
@@ -6052,10 +6054,10 @@ module powerbitests {
 
             setTimeout(() => {
 
-                let headerValue: string = (matrix.columns.root.children[0]).levelValues[0].value;
+                let headerValue = (matrix.columns.root.children[0]).levelValues[0].value;
                 let cellValue: string = formatter(matrix.rows.root.children[0].values[0].value, measureSource1);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", headerValue],
                     [EmptyCell, cellValue]
                 ];
@@ -6105,13 +6107,13 @@ module powerbitests {
 
             setTimeout(() => {
 
-                let headerValue: string = (matrix.columns.root.children[0]).levelValues[0].value;
+                let headerValue = (matrix.columns.root.children[0]).levelValues[0].value;
 
                 let cellValue1: string = formatter(matrix.rows.root.children[0].values[0].value, measureSource1);
                 let cellValue2: string = formatter(matrix.rows.root.children[0].values[1].value, measureSource2);
                 let cellValue3: string = formatter(matrix.rows.root.children[0].values[2].value, measureSource3);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", headerValue],
                     ["", measureSource1.displayName, measureSource2.displayName, measureSource3.displayName],
                     [EmptyCell, cellValue1, cellValue2, cellValue3]
@@ -6171,7 +6173,7 @@ module powerbitests {
                 let cellValue23 = formatter(header_2_2_2.values[1].value, measureSource2);
                 let cellValue24 = formatter(header_2_2_2.values[2].value, measureSource3);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName, measureSource1.displayName, measureSource2.displayName, measureSource3.displayName],
                     [header_1.levelValues[0].value, header_1_1.levelValues[0].value, header_1_1_1.levelValues[0].value, cellValue1, cellValue2, cellValue3],
                     [header_1_1_2.levelValues[0].value, cellValue4, cellValue5, cellValue6],
@@ -6204,7 +6206,7 @@ module powerbitests {
                 let header = matrix.rows.root.children[0];
                 let cellValue: string = formatter(header.values[0].value, measureSource1);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, measureSource1.displayName],
                     [header.levelValues[0].value, cellValue]
                 ];
@@ -6227,7 +6229,7 @@ module powerbitests {
                 let columnHeader = matrix.columns.root.children[0];
                 let rowHeader = matrix.rows.root.children[0];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, columnHeader.levelValues[0].value.toString()],
                     [rowHeader.levelValues[0].value.toString(), ""]
                 ];
@@ -6251,7 +6253,7 @@ module powerbitests {
                 let rowHeader_1_1 = rowHeader_1.children[0];
                 let rowHeader_1_1_1 = rowHeader_1_1.children[0];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName],
                     [rowHeader_1.levelValues[0].value, rowHeader_1_1.levelValues[0].value, rowHeader_1_1_1.levelValues[0].value.toString()]
                 ];
@@ -6285,7 +6287,7 @@ module powerbitests {
                 let header_2 = matrix.rows.root.children[1];
                 let header_2_1 = header_2.children[0];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName],
                     [header_1.levelValues[0].value, EmptyCell],
                     [header_1_2.levelValues[0].value],
@@ -6322,7 +6324,7 @@ module powerbitests {
                 let header_2 = matrix.columns.root.children[1];
                 let header_2_1 = header_2.children[0];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", header_1.levelValues[0].value, header_2.levelValues[0].value, EmptyCell],
                     ["", EmptyCell, header_1_2.levelValues[0].value, header_2_1.levelValues[0].value, EmptyCell, EmptyCell]
                 ];
@@ -6367,7 +6369,7 @@ module powerbitests {
                 let header_2_2_1 = header_2_2.children[0];
                 let header_2_2_2 = header_2_2.children[1];
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName],
                     [header_1.levelValues[0].value, header_1_1.levelValues[0].value, header_1_1_1.levelValues[0].value.toString()],
                     [header_1_1_2.levelValues[0].value.toString()],
@@ -6409,7 +6411,7 @@ module powerbitests {
                 let header_2_2_1 = (header_2_2.children[0]).levelValues[0].value.toString();
                 let header_2_2_2 = (header_2_2.children[1]).levelValues[0].value.toString();
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", header_1.levelValues[0].value, header_2.levelValues[0].value],
                     ["", header_1_1.levelValues[0].value, header_1_2.levelValues[0].value, header_2_1.levelValues[0].value, header_2_2.levelValues[0].value],
                     ["", header_1_1_1, header_1_1_2, header_1_2_1, header_1_2_2, header_2_1_1, header_2_1_2, header_2_2_1, header_2_2_2]
@@ -6455,7 +6457,7 @@ module powerbitests {
                 let colHeader_1_2 = colHeader_1.children[1];
                 let colHeaderValue_1_2_1 = formatter(colHeader_1_2.children[0].levelValues[0].value, columnGroupSource3formatted);
 
-                let expectedCells: string[][] = [
+                let expectedCells: PrimitiveValue[][] = [
                     ["", "", columnGroupSource1.displayName, colHeader_1.levelValues[0].value],
                     ["", "", columnGroupSource2.displayName, colHeader_1_1.levelValues[0].value, colHeader_1_2.levelValues[0].value],
                     [rowGroupSource1.displayName, rowGroupSource2.displayName, rowGroupSource3.displayName, colHeaderValue_1_1_1, colHeaderValue_1_1_2, colHeaderValue_1_2_1],

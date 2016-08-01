@@ -2144,8 +2144,11 @@ module powerbi.visuals.samples {
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
-            var enumeration = new ObjectEnumerationBuilder();
-            var layersLength = this.layers ? this.layers.length : 0;
+            var enumeration: ObjectEnumerationBuilder = new ObjectEnumerationBuilder();
+
+            var layersLength: number = this.layers
+                ? this.layers.length
+                : 0;
 
             if (options.objectName === 'columnBorder') {
                 this.enumerateBorder(enumeration);
@@ -2155,22 +2158,7 @@ module powerbi.visuals.samples {
                     return;
                 }
 
-                var show = DataViewObject.getValue(this.legendObjectProperties, legendProps.show, this.legend.isVisible());
-                var showTitle = DataViewObject.getValue(this.legendObjectProperties, legendProps.showTitle, true);
-                var titleText = DataViewObject.getValue(this.legendObjectProperties, legendProps.titleText, this.layerLegendData && this.layerLegendData.title ? this.layerLegendData.title : '');
-                var fontSize = DataViewObject.getValue(this.legendObjectProperties, legendProps.fontSize, this.layerLegendData && this.layerLegendData.fontSize ? this.layerLegendData.fontSize : NewDataLabelUtils.DefaultLabelFontSizeInPt);
-
-                enumeration.pushInstance({
-                    selector: null,
-                    properties: {
-                        show: show,
-                        position: LegendPosition[this.legend.getOrientation()],
-                        showTitle: showTitle,
-                        titleText: titleText,
-                        fontSize: fontSize
-                    },
-                    objectName: options.objectName
-                });
+                this.enumerateLegend(options, enumeration);
             }
             else if (options.objectName === 'categoryAxis' && this.hasCategoryAxis) {
                 this.getCategoryAxisValues(enumeration);
@@ -2187,6 +2175,58 @@ module powerbi.visuals.samples {
             }
 
             return enumeration.complete();
+        }
+
+        private enumerateLegend(
+            options: EnumerateVisualObjectInstancesOptions,
+            enumeration: ObjectEnumerationBuilder): void {
+
+                var show: boolean,
+                    showTitle: boolean,
+                    titleText: string,
+                    fontSize: number,
+                    position: string;
+
+                show = DataViewObject.getValue<boolean>(
+                    this.legendObjectProperties,
+                    legendProps.show,
+                    this.legend.isVisible());
+
+                showTitle = DataViewObject.getValue<boolean>(
+                    this.legendObjectProperties,
+                    legendProps.showTitle,
+                    true);
+
+                titleText = DataViewObject.getValue<string>(
+                    this.legendObjectProperties,
+                    legendProps.titleText,
+                    this.layerLegendData && this.layerLegendData.title
+                        ? this.layerLegendData.title
+                        : '');
+
+                fontSize = DataViewObject.getValue<number>(
+                    this.legendObjectProperties,
+                    legendProps.fontSize,
+                    this.layerLegendData && this.layerLegendData.fontSize
+                        ? this.layerLegendData.fontSize
+                        : NewDataLabelUtils.DefaultLabelFontSizeInPt);
+
+                position = DataViewObject.getValue<string>(
+                    this.legendObjectProperties,
+                    legendProps.position,
+                    legendPosition.top);
+
+                enumeration.pushInstance({
+                    selector: null,
+                    properties: {
+                        show: show,
+                        position: position,
+                        showTitle: showTitle,
+                        titleText: titleText,
+                        fontSize: fontSize
+                    },
+                    objectName: options.objectName
+                });
         }
 
         private shouldShowLegendCard(): boolean {
@@ -3593,7 +3633,7 @@ module powerbi.visuals.samples {
                     !dataViewCat.values[seriesIndex].source.roles[RoleNames.y]) {
 
                     widthIndex = seriesIndex;
-                    var widthValues: number[] = dataViewCat.values[seriesIndex].values;
+                    var widthValues = <number[]>dataViewCat.values[seriesIndex].values;
                     for (var i: number = 0, valuesLen = widthValues.length; i < valuesLen; i++) {
                         widthColumns[i] = d3.sum([0, widthColumns[i], widthValues[i]]);
                     }
@@ -3634,7 +3674,7 @@ module powerbi.visuals.samples {
                         dataViewCat.values[seriesIndex].source.roles[RoleNames.width]) {
 
                         widthIndex = seriesIndex;
-                        var widthValues: number[] = dataViewCat.values[seriesIndex].values;
+                        var widthValues = <number[]>dataViewCat.values[seriesIndex].values;
                         for (var i: number = 0, valuesLen: number = widthValues.length; i < valuesLen; i++) {
                             widthColumns[i] = d3.sum([0, widthColumns[i], widthValues[i]]);
                         }
@@ -4488,7 +4528,7 @@ module powerbi.visuals.samples {
         }
 
         public getValueBySeriesAndCategory(series: number, category: number): number {
-            return this.dataView.values[series].values[category];
+            return <number>this.dataView.values[series].values[category];
         }
 
         public getMeasureNameByIndex(index: number): string {
@@ -4501,7 +4541,7 @@ module powerbi.visuals.samples {
         }
 
         public getHighlightBySeriesAndCategory(series: number, category: number): number {
-            return this.dataView.values[series].highlights[category];
+            return <number>this.dataView.values[series].highlights[category];
         }
     }
 

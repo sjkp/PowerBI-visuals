@@ -30,6 +30,7 @@ module powerbi.visuals {
     export module ReferenceLineHelper {
         export const referenceLineProps = {
             show: 'show',
+            displayName: 'displayName',
             lineColor: 'lineColor',
             transparency: 'transparency',
             value: 'value',
@@ -74,6 +75,7 @@ module powerbi.visuals {
             for (let referenceLine of referenceLines) {
                 let referenceLineProperties = referenceLine.object;
                 let show = DataViewObject.getValue(referenceLineProperties, referenceLineProps.show, false);
+                let displayName = DataViewObject.getValue(referenceLineProperties, referenceLineProps.displayName);
                 let value = DataViewObject.getValue(referenceLineProperties, referenceLineProps.value);
                 let lineColor = DataViewObject.getValue(referenceLineProperties, referenceLineProps.lineColor, { solid: { color: defaultColor } });
                 let transparency = DataViewObject.getValue(referenceLineProperties, referenceLineProps.transparency, 50);
@@ -87,6 +89,7 @@ module powerbi.visuals {
                     },
                     properties: {
                         show: show,
+                        displayName: displayName,
                         value: value,
                         lineColor: lineColor,
                         transparency: transparency,
@@ -138,9 +141,15 @@ module powerbi.visuals {
             let refLine = graphicContext.select(classAndSelector.selector);
                        
             let index = $(refLine[0]).index();
-            let currentPosition = index > 1 ? referenceLinePosition.front : referenceLinePosition.back;
             let isRefLineExists = index !== -1; 
-            let isPositionChanged = currentPosition !== position;
+            let isPositionChanged = true;
+            if (isRefLineExists) {
+                let lastIndex = $(refLine[0]).siblings().length;
+                if (position === referenceLinePosition.back && index === 0)
+                    isPositionChanged = false;
+                else if (position === referenceLinePosition.front && index === lastIndex)
+                    isPositionChanged = false;
+            }
 
             if (isRefLineExists && isPositionChanged) 
                 refLine.remove();

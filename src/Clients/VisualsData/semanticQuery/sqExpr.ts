@@ -100,6 +100,30 @@ module powerbi.data {
             return expr.kind === SQExprKind.Aggregation;
         }
 
+        public static isMinAggregation(expr: SQExpr): expr is SQAggregationExpr {
+            debug.assertValue(expr, 'expr');
+
+            return SQExpr.isAggregation(expr) && expr.func === QueryAggregateFunction.Min;
+        }
+
+        public static isMaxAggregation(expr: SQExpr): expr is SQAggregationExpr {
+            debug.assertValue(expr, 'expr');
+
+            return SQExpr.isAggregation(expr) && expr.func === QueryAggregateFunction.Max;
+        }
+
+        public static isAvgAggregation(expr: SQExpr): expr is SQAggregationExpr {
+            debug.assertValue(expr, 'expr');
+
+            return SQExpr.isAggregation(expr) && expr.func === QueryAggregateFunction.Avg;
+        }
+
+        public static isMedianAggregation(expr: SQExpr): expr is SQAggregationExpr {
+            debug.assertValue(expr, 'expr');
+
+            return SQExpr.isAggregation(expr) && expr.func === QueryAggregateFunction.Median;
+        }
+
         public static isMeasure(expr: SQExpr): expr is SQMeasureRefExpr {
             debug.assertValue(expr, 'expr');
 

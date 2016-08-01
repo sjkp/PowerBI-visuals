@@ -109,7 +109,7 @@ module powerbi.visuals {
             return true;
         }
 
-        private updateInternal(target: number, suppressAnimations: boolean, forceUpdate: boolean = false, formatter?: IValueFormatter) {
+        private updateInternal(target: PrimitiveValue, suppressAnimations: boolean, forceUpdate: boolean = false, formatter?: IValueFormatter) {
             let start = this.value;
             let duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
 

@@ -171,7 +171,7 @@ module powerbi.visuals {
         getValueBySeriesAndCategory(series: number, category: number): number;
         getMeasureNameByIndex(series: number, category: number): string;
         hasHighlightValues(series: number): boolean;
-        getHighlightBySeriesAndCategory(series: number, category: number): number;
+        getHighlightBySeriesAndCategory(series: number, category: number): PrimitiveValue;
     }
 
     export interface LegendSeriesInfo {
@@ -1347,6 +1347,10 @@ module powerbi.visuals {
             return this.chartType === ColumnChartType.clusteredColumn && isScalar && reader.hasValues("Y");
         }
 
+        public isStacked(): boolean {
+            return ColumnChart.isStacked(this.chartType);
+        }
+
         public static isBar(chartType: ColumnChartType): boolean {
             return EnumExtensions.hasFlag(chartType, flagBar);
         }
@@ -1467,7 +1471,7 @@ module powerbi.visuals {
             return column && !!column.highlights;
         }
 
-        public getHighlightBySeriesAndCategory(series: number, category: number): number {
+        public getHighlightBySeriesAndCategory(series: number, category: number): PrimitiveValue {
             return this.dataView.values[series].highlights[category];
         }
     }

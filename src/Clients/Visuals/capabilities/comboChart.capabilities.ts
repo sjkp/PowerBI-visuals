@@ -204,6 +204,9 @@ module powerbi.visuals {
                     show: {
                         type: { bool: true }
                     },
+                    displayName: {
+                        type: { text: true } 
+                    },
                     lineColor: {
                         displayName: data.createDisplayNameGetter('Visual_Trend_Line_Color'),
                         description: data.createDisplayNameGetter('Visual_Trend_Line_Color_Description'),

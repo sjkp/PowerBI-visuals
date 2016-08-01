@@ -598,8 +598,8 @@ module powerbi.visuals.samples {
             var selector: SelectionId;
 
             for (var i = 0; i < dataView.categorical.categories[0].values.length; i++) {
-                value = dataView.categorical.values[0].values[i];
-                time = dataView.categorical.categories[0].values[i];
+                value = <number>dataView.categorical.values[0].values[i];
+                time = <number>dataView.categorical.categories[0].values[i];
                 value_sum += value;
                 selector = SelectionId.createWithId(dataView.categorical.categories[0].identity[i]);
                 result.push({

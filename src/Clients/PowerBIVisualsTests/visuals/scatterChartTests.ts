@@ -406,7 +406,7 @@ module powerbitests {
 
         for (let group of groups) {
             if (group.name) {
-                let objects = seriesObjects[group.name];
+                let objects = seriesObjects[<string>group.name];
                 if (objects) {
                     group.objects = objects;
                 }

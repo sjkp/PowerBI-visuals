@@ -163,8 +163,9 @@ module powerbi.data {
 
         if (SQExpr.isPercentile(expr)) {
             let percentile = _.find(aggregates.percentiles, (percentile) => {
-                if (percentile.exclusive === expr.exclusive && percentile.k === expr.k) {
-                    return true;
+                if (percentile.k === expr.k) {
+                    let isExclusive: boolean = !!percentile.exclusive;
+                    return expr.exclusive === isExclusive;
                 }
             });
             if (percentile)
@@ -176,6 +177,10 @@ module powerbi.data {
                     return getOptional(aggregates.min, aggregates.minLocal);
                 case QueryAggregateFunction.Max:
                     return getOptional(aggregates.max, aggregates.maxLocal);
+                case QueryAggregateFunction.Median:
+                    return aggregates.median;
+                case QueryAggregateFunction.Avg:
+                    return aggregates.average;
             }
         }
     }

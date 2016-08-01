@@ -47,7 +47,7 @@ module powerbi.visuals {
          * If no explicit color or default color has been set then the color is
          * allocated from the color scale for this series.
          */
-        public getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.ISQExpr[], value: string): string {
+        public getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.ISQExpr[], value: PrimitiveValue): string {
             return (this.fillProp && DataViewObjects.getFillColor(objects, this.fillProp))
                 || this.defaultDataPointColor
                 || this.getColorScaleForSeries(fieldIds).getColor(value).value;

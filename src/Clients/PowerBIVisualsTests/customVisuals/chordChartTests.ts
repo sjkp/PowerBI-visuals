@@ -27,15 +27,19 @@
 /// <reference path="../_references.ts"/>
 
 module powerbitests.customVisuals {
+    import PixelConverter = jsCommon.PixelConverter;
+    import ArcDescriptor = D3.Layout.ArcDescriptor;
     import VisualClass = powerbi.visuals.samples.ChordChart;
     import VisualBuilderBase = powerbitests.customVisuals.VisualBuilderBase;
     import coreHelpers = powerbitests.helpers;
-    import PixelConverter = jsCommon.PixelConverter;
     import VisualSettings = powerbi.visuals.samples.ChordChartSettings;
+    import ChordChartDataInterface = powerbi.visuals.samples.ChordChartData;
     import ChordChartData = powerbitests.customVisuals.sampleDataViews.ChordChartData;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import DataColorPalette = powerbi.visuals.DataColorPalette;
 
-	powerbitests.mocks.setLocale();
-	
+    powerbitests.mocks.setLocale();
+
     describe("ChordChart", () => {
         let visualBuilder: ChordChartBuilder;
         let defaultDataViewBuilder: ChordChartData;
@@ -43,9 +47,11 @@ module powerbitests.customVisuals {
         let settings: VisualSettings;
 
         beforeEach(() => {
-            visualBuilder = new ChordChartBuilder(1000,500);
+            visualBuilder = new ChordChartBuilder(1000, 500);
             defaultDataViewBuilder = new ChordChartData();
+
             dataView = defaultDataViewBuilder.getDataView();
+
             settings = dataView.metadata.objects = <any>new VisualSettings();
         });
 
@@ -58,8 +64,8 @@ module powerbitests.customVisuals {
 
             it("update", (done) => {
                 visualBuilder.updateRenderTimeout(dataView, () => {
-                    let valuesLength = _.sum(dataView.categorical.values.map(x => x.values.filter(_.isNumber).length));
-                    let categoriesLength = dataView.categorical.values.length + dataView.categorical.categories[0].values.length;
+                    let valuesLength = _.sum(dataView.categorical.values.map(x => x.values.filter(_.isNumber).length)),
+                        categoriesLength = dataView.categorical.values.length + dataView.categorical.categories[0].values.length;
 
                     expect(visualBuilder.mainElement.children("g.chords").children("path").length)
                         .toBe(valuesLength);
@@ -67,8 +73,10 @@ module powerbitests.customVisuals {
                         .toBe(categoriesLength);
                     expect(visualBuilder.mainElement.children("g.slices").children("path.slice").length)
                         .toBe(categoriesLength);
+
                     expect(visualBuilder.element.find('.chordChart').attr('height')).toBe(visualBuilder.viewport.height.toString());
                     expect(visualBuilder.element.find('.chordChart').attr('width')).toBe(visualBuilder.viewport.width.toString());
+
                     done();
                 });
             });
@@ -77,6 +85,7 @@ module powerbitests.customVisuals {
                 settings.axis.show = true;
                 visualBuilder.updateRenderTimeout(dataView, () => {
                     expect(visualBuilder.element.find('.ticks .slice-ticks').length).toBeGreaterThan(0);
+
                     done();
                 });
             });
@@ -85,6 +94,7 @@ module powerbitests.customVisuals {
                 settings.axis.show = false;
                 visualBuilder.updateRenderTimeout(dataView, () => {
                     expect(visualBuilder.element.find('.ticks .slice-ticks').length).toBe(0);
+
                     done();
                 });
             });
@@ -96,10 +106,13 @@ module powerbitests.customVisuals {
 
                 visualBuilder.updateRenderTimeout(dataView, () => {
                     expect(visualBuilder.dataLabels.length).toBeGreaterThan(0);
+
                     let label = visualBuilder.dataLabels.first();
+
                     coreHelpers.assertColorsMatch(label.css('fill'), "#222222");
                     expect(Math.round(parseInt(label.css('font-size'), 10)))
                         .toBe(Math.round(parseInt(PixelConverter.fromPoint(22), 10)));
+
                     done();
                 });
             });
@@ -141,7 +154,7 @@ module powerbitests.customVisuals {
                     expect(helpers.isSomeTextElementInOrOutElement(
                         visualBuilder.mainElement[0],
                         visualBuilder.dataLabels.toArray(),
-                        (v1,v2) => v1 >= v2)).toBeTruthy();
+                        (v1, v2) => v1 >= v2)).toBeTruthy();
                     done();
                 });
             });
@@ -149,8 +162,8 @@ module powerbitests.customVisuals {
             it("labels shouldn't be visible on right side", (done) => {
                 visualBuilder.viewport.height = 500;
                 visualBuilder.viewport.width = 500;
-                
-                defaultDataViewBuilder.valuesCategoryGroup = 
+
+                defaultDataViewBuilder.valuesCategoryGroup =
                     _.range(20).map(x => [x + "xxxxxxxxxxx", x + "yyyyyyyyyyyyyy"]);
                 defaultDataViewBuilder.valuesValue =
                     _.range(1, defaultDataViewBuilder.valuesCategoryGroup.length);
@@ -162,7 +175,7 @@ module powerbitests.customVisuals {
                 settings.labels.fontSize = 40;
 
                 visualBuilder.updateRenderTimeout(dataView, () => {
-                    var rightLabels = visualBuilder.dataLabels.filter((i,x) => parseFloat($(x).attr('x')) > 0);
+                    var rightLabels = visualBuilder.dataLabels.filter((i, x) => parseFloat($(x).attr('x')) > 0);
                     expect(rightLabels).toBeInDOM();
                     done();
                 });
@@ -170,7 +183,7 @@ module powerbitests.customVisuals {
         });
 
         describe('enumerateObjectInstances', () => {
-             it("update data Colors off", (done) => {
+            it("update data Colors off", (done) => {
                 settings.dataPoint.showAllDataPoints = false;
                 visualBuilder.updateEnumerateObjectInstancesRenderTimeout(dataView, { objectName: 'dataPoint' }, result => {
                     expect(result.instances[0].properties['showAllDataPoints']).toBeFalsy();
@@ -212,6 +225,69 @@ module powerbitests.customVisuals {
                 });
             });
         });
+
+        describe("copyArcDescriptorsWithoutNaNValues", () => {
+            it("shouldn't throw any unexpected exceptions when argument is undefined", () => {
+                expect(() => {
+                    VisualClass.copyArcDescriptorsWithoutNaNValues(undefined);
+                }).not.toThrow();
+            });
+
+            it("shouldn't throw any unexpected exceptions when argument is null", () => {
+                expect(() => {
+                    VisualClass.copyArcDescriptorsWithoutNaNValues(null);
+                }).not.toThrow();
+            });
+
+            it("result of removeNaNValues shoudn't contain any NaN values", () => {
+                let arcDescriptors: ArcDescriptor[] = VisualClass.copyArcDescriptorsWithoutNaNValues(createArcDescriptorsWithNaN(5));
+
+                arcDescriptorsShouldntContainNaNValues(arcDescriptors);
+            });
+
+            function createArcDescriptorsWithNaN(length: number) {
+                let valueNaN: number = NaN,
+                    arcDescriptors: ArcDescriptor[] = [];
+
+                for (var i = 0; i < length; i++) {
+                    arcDescriptors.push({
+                        value: valueNaN,
+                        data: valueNaN,
+                        startAngle: valueNaN,
+                        endAngle: valueNaN,
+                        index: valueNaN
+                    });
+                }
+
+                return arcDescriptors;
+            }
+
+            it("groups shouldn't contain any NaN values", () => {
+                let chordChartData: ChordChartDataInterface,
+                    dataColorPalette = new DataColorPalette();
+
+                defaultDataViewBuilder.valuesValue = defaultDataViewBuilder.valuesValue.map(() => {
+                    return 0;
+                });
+
+                chordChartData = VisualClass.converter(
+                    defaultDataViewBuilder.getDataView(),
+                    dataColorPalette,
+                    false);
+
+                arcDescriptorsShouldntContainNaNValues(chordChartData.groups);
+            });
+
+            function arcDescriptorsShouldntContainNaNValues(arcDescriptors: ArcDescriptor[]): void {
+                arcDescriptors.forEach((arcDescriptor: ArcDescriptor) => {
+                    for (let propertyName in arcDescriptor) {
+                        if (_.isNumber(arcDescriptor[propertyName])) {
+                            expect(isNaN(arcDescriptor[propertyName])).toBeFalsy();
+                        }
+                    }
+                });
+            }
+        });
     });
 
     class ChordChartBuilder extends VisualBuilderBase<VisualClass> {
@@ -220,18 +296,22 @@ module powerbitests.customVisuals {
         }
 
         public get mainElement() {
-            return this.element.children("svg.chordChart").children("g");
+            return this.element
+                .children("svg.chordChart")
+                .children("g");
         }
 
         public get dataLabels() {
-            return this.mainElement.children("g.labels").children("text.data-labels");
+            return this.mainElement
+                .children("g.labels")
+                .children("text.data-labels");
         }
 
         protected build() {
             return new VisualClass();
         }
 
-        public enumerateObjectInstances(options: powerbi.EnumerateVisualObjectInstancesOptions) {
+        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions) {
             return this.visual.enumerateObjectInstances(options);
         }
     }

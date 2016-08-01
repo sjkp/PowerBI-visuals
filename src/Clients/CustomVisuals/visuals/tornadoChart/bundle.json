@@ -4,7 +4,7 @@
     "package": {
         "name": "TornadoChart",
         "displayName": "Tornado",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "guid": "TornadoChart1452517688218",
         "description": "A bar chart with category values listed vertically. Use for comparing the relative importance of a variable between two distinct groups.",
         "build": "13.0.1100.210",

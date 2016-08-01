@@ -234,6 +234,9 @@ module powerbi.data {
         Month = 6,
         Week = 7,
         Day = 8,
+        Hour = 9,
+        Minute = 10,
+        Second = 11,
     }
 
     export const enum ConceptualMultiplicity {

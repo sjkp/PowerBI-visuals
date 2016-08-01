@@ -100,6 +100,8 @@ module powerbi.data {
         min?: boolean;
         max?: boolean;
         percentiles?: ProjectionPercentileAggregate[];
+        median?: boolean;
+        average?: boolean;
     }
 
     export interface ProjectionPercentileAggregate {

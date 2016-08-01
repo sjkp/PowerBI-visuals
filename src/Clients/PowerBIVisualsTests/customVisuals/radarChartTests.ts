@@ -98,7 +98,7 @@ module powerbitests.customVisuals {
             });
 
             it("zero segment created", (done) => {
-                dataView.categorical.values[0].values[3] *= (-1);
+                (<number[]>dataView.categorical.values[0].values)[3] *= (-1);
                 visualBuilder.updateRenderTimeout(dataView, () => {
                     expect(visualBuilder.mainElement.find("g.zeroSegment")).toBeInDOM();
                     expect(visualBuilder.mainElement.find("line.zeroSegmentNode").length)
@@ -108,7 +108,7 @@ module powerbitests.customVisuals {
             });
 
             it("zero label created", (done) => {
-                dataView.categorical.values[0].values[3] *= (-1);
+                (<number[]>dataView.categorical.values[0].values)[3] *= (-1);
                 visualBuilder.updateRenderTimeout(dataView, () => {
                     expect(visualBuilder.mainElement.find("text.zeroLabel")).toBeInDOM();
                     done();

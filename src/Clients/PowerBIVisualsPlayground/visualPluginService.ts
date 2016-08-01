@@ -71,6 +71,11 @@ module powerbi.visuals {
          * Advanced logic for line chart labels
          */
         advancedLineLabelsEnabled?: boolean;
+
+        /**
+         * When turned on forecast options will be shown in analytics pane
+         */
+        forecastEnabled?: boolean;
     }
     
     function createPlugin(

@@ -840,7 +840,7 @@ module powerbi.visuals {
                 let keyFormatter: IValueFormatter;
                 if (keySourceColumn.type.numeric) {
                     // use value range, not actual values
-                    let valueRange = Math.abs(matrixRows.root.children[rowChildrenLength - 1].value - matrixRows.root.children[0].value);
+                    let valueRange = Math.abs(<number>matrixRows.root.children[rowChildrenLength - 1].value - <number>matrixRows.root.children[0].value);
                     keyFormatter = valueFormatter.create({
                         format: formatString,
                         value: valueRange,

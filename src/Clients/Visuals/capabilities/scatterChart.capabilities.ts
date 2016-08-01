@@ -103,6 +103,11 @@ module powerbi.visuals {
                 displayName: data.createDisplayNameGetter('Visual_Trend_Line'),
                 properties: {
                     show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Trend_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Trend_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
                     lineColor: {
                         displayName: data.createDisplayNameGetter('Visual_Trend_Line_Color'),
                         description: data.createDisplayNameGetter('Visual_Trend_Line_Color_Description'),
@@ -167,6 +172,11 @@ module powerbi.visuals {
                 description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
                 properties: {
                     show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
                     value: {
                         displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
                         description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),
@@ -193,6 +203,42 @@ module powerbi.visuals {
                 description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
                 properties: {
                     show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
+                    value: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),
+                        type: { numeric: true }
+                    },
+                    lineColor: StandardObjectProperties.lineColor,
+                    transparency: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_Transparency'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_Transparency_Description'),
+                        type: { numeric: true }
+                    },
+                    style: StandardObjectProperties.referenceLineStyle,
+                    position: StandardObjectProperties.referenceLinePosition,
+                    dataLabelShow: StandardObjectProperties.dataLabelShow,
+                    dataLabelColor: StandardObjectProperties.dataLabelColor,
+                    dataLabelDecimalPoints: StandardObjectProperties.dataLabelDecimalPoints,
+                    dataLabelHorizontalPosition: StandardObjectProperties.dataLabelHorizontalPosition,
+                    dataLabelVerticalPosition: StandardObjectProperties.dataLabelVerticalPosition,
+                    dataLabelDisplayUnits: StandardObjectProperties.dataLabelDisplayUnits,
+                },
+            },
+            referenceLine: {
+                displayName: data.createDisplayNameGetter('Visual_Reference_Line'),
+                description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
+                properties: {
+                    show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
                     value: {
                         displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
                         description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),
@@ -298,7 +344,6 @@ module powerbi.visuals {
         }, {
             conditions: [
                 { 'Category': { max: 1 }, 'Series': { max: 1 }, 'X': { max: 1 }, 'Y': { max: 1 }, 'Size': { max: 1 }, 'Gradient': { max: 0 }, 'Play': { min: 1, max: 1 } },
-                { 'Category': { max: 1 }, 'Series': { max: 0 }, 'X': { max: 1 }, 'Y': { max: 1 }, 'Size': { max: 1 }, 'Gradient': { max: 1 }, 'Play': { min: 1, max: 1 } },
             ],
             // Long term: consider adding the 'name' concept and have this be a reference to the other dataViewMapping above.
             // Then we'd also move the splitting logic of Matrix->Categorical[] into DataViewTransform, and other visuals would benefit.

@@ -2,7 +2,7 @@
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -15,17 +15,19 @@
  *  The above copyright notice and this permission notice shall be included in 
  *  all copies or substantial portions of the Software.
  *
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
- /// <reference path="../../../_references.ts"/>
+
+/// <reference path="../../../_references.ts"/>
+
 module powerbi.visuals.samples {
-import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import getAnimationDuration = powerbi.visuals.AnimatorCommon.GetAnimationDuration;
     import CreateClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
     import AxisScale = powerbi.visuals.axisScale;
@@ -74,14 +76,16 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import TextMeasurementService = powerbi.TextMeasurementService;
     import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
     import ISelectionHandler = powerbi.visuals.ISelectionHandler;
+    import LabelTextProperties = powerbi.visuals.dataLabelUtils.LabelTextProperties;
+    import ISize = powerbi.visuals.shapes.ISize;
 
     var MaxXAxisHeight: number = 40;
-    var LabelMargin: number = 15;
     var DefaultRadius: number = 5;
     var DefaultStrokeWidth: number = 1;
-    var DefaultDataPointColor = "#00B8AA";
+    var DefaultDataPointColor: string = "#00B8AA";
     var MinPrecision: number = 0;
     var MaxPrecision: number = 17;
+
     export module DotPlotLabelsOrientation {
         export enum Orientation {
             Horizontal,
@@ -90,7 +94,7 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
         export var type: IEnumType = createEnumType([
             { value: Orientation[0], displayName: "Horizontal" },
             { value: Orientation[1], displayName: "Vertical" }
-       ]);
+        ]);
     }
     export var DotPlotProperties: any = {
         general: {
@@ -182,6 +186,7 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     }
 
     export interface DotPlotSelectors {
+        scrollableContainer: ClassAndSelector;
         svgPlotSelector: ClassAndSelector;
         plotSelector: ClassAndSelector;
         plotGroupSelector: ClassAndSelector;
@@ -193,7 +198,7 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     export interface DotPlotChartCategory {
         value: string;
         selectionId: SelectionId;
-        textWidth:number;
+        textWidth: number;
     }
 
     export interface DotPlotConstructorOptions {
@@ -217,9 +222,9 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
         categorySettings?: DotPlotCategorySettings;
         defaultDataPointColor?: string;
         categoryAxisSettings?: DotPlotCategoryAxisSettings;
-        labelOrientation?:DotPlotLabelsOrientation.Orientation;
-        labelTextMaxSize:number;
-        xAxisLabelTexMaxSize:number;
+        labelOrientation?: DotPlotLabelsOrientation.Orientation;
+        labelTextMaxSize: number;
+        xAxisLabelTexMaxSize: number;
     }
 
     export interface DotPlotCategoryAxisSettings {
@@ -234,7 +239,7 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
         fontSize?: number;
     }
 
-    export interface DotPlotDataGroup extends SelectableDataPoint {
+    export interface DotPlotDataGroup extends SelectableDataPoint, IDataLabelInfo {
         label?: string;
         value?: number;
         color?: string;
@@ -253,28 +258,32 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     }
 
     export class DotPlot implements IVisual {
-        private viewportIn: IViewport;
+        private static DataLabelXOffset: number = 2;
+        private static DataLabelYOffset: number = 1.5;
+
+        private static DataLabelAngle: number = -90;
+        private static DataLabelXOffsetIndex: number = 0.3;
 
         public static capabilities: VisualCapabilities = {
             dataRoles: [
-            {
-                name: 'Category',
-                kind: powerbi.VisualDataRoleKind.Grouping,
-                displayName: 'Category'
-            },
-            {
+                {
+                    name: "Category",
+                    kind: VisualDataRoleKind.Grouping,
+                    displayName: "Category"
+                },
+                {
                     name: "Values",
                     kind: VisualDataRoleKind.Measure,
-                    displayName: 'Values'
-            }
+                    displayName: "Values"
+                }
             ],
             dataViewMappings: [{
                 conditions: [
-                    { 'Category': { max: 1 }, 'Values': { max: 1 } },
+                    { "Category": { max: 1 }, "Values": { max: 1 } },
                 ],
                 categorical: {
                     categories: {
-                        for: { in: 'Category' },
+                        for: { in: "Category" },
                         dataReductionAlgorithm: { top: {} }
                     },
                     values: {
@@ -288,7 +297,7 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
             }],
             objects: {
                 general: {
-                    displayName: 'General',
+                    displayName: "General",
                     properties: {
                         formatString: {
                             type: { formatting: { formatString: true } },
@@ -296,73 +305,69 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                     },
                 },
                 categoryAxis: {
-                    displayName: 'X-Axis',
+                    displayName: "X-Axis",
                     properties: {
                         show: {
-                            displayName: 'Show',
+                            displayName: "Show",
                             type: { bool: true },
                         },
                         showAxisTitle: {
-                            displayName: 'Title',
-                            description: 'Title options',
+                            displayName: "Title",
+                            description: "Title options",
                             type: { bool: true }
-                    },
+                        },
                         labelColor: {
-                            displayName: 'Label color',
+                            displayName: "Label color",
                             type: { fill: { solid: { color: true } } }
                         }
                     }
                 },
                 dataPoint: {
-                    displayName: 'Data colors',
+                    displayName: "Data colors",
                     properties: {
                         fill: {
-                            displayName: 'Fill',
+                            displayName: "Fill",
                             type: { fill: { solid: { color: true } } }
                         }
                     }
                 },
                 labels: {
                     displayName: "Data labels",
-                    description: 'Display data label options',
+                    description: "Display data label options",
                     properties: {
                         show: {
-                            displayName: 'Show',
+                            displayName: "Show",
                             type: { bool: true }
                         },
                         showSeries: {
-                            displayName: 'Show',
+                            displayName: "Show",
                             type: { bool: true }
                         },
                         color: {
-                            displayName: 'Color',
-                            description: 'Select color for data labels',
+                            displayName: "Color",
+                            description: "Select color for data labels",
                             type: { fill: { solid: { color: true } } }
                         },
                         labelDisplayUnits: {
-                            displayName: 'Display units',
-                            description: 'Select the units (millions, billions, etc.)',
+                            displayName: "Display units",
+                            description: "Select the units (millions, billions, etc.)",
                             type: { formatting: { labelDisplayUnits: true } },
                             suppressFormatPainterCopy: true
                         },
                         labelPrecision: {
-                            displayName: 'Decimal places',
-                            description: 'Select the number of decimal places to display',
-                            placeHolderText: 'Auto',
+                            displayName: "Decimal places",
+                            description: "Select the number of decimal places to display",
+                            placeHolderText: "Auto",
                             type: { numeric: true },
                             suppressFormatPainterCopy: true
                         },
                         showAll: {
-                            displayName: 'Customize series',
+                            displayName: "Customize series",
                             type: { bool: true }
                         },
                         fontSize: {
-                            displayName: 'Text Size',
+                            displayName: "Text Size",
                             type: { formatting: { fontSize: true } }
-                        },
-                         orientation: {
-                            displayName: "Orientation",
-                            type: { enumeration: DotPlotLabelsOrientation.type }
                         }
                     }
                 }
@@ -376,6 +381,9 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
             left: 20
         };
 
+        private viewportIn: IViewport;
+
+        private divContainer: D3.Selection;
         private svg: D3.Selection;
         private xAxis: D3.Selection;
         private dotPlot: D3.Selection;
@@ -393,18 +401,19 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
         private interactivityService: IInteractivityService;
         private scaleType: string = AxisScale.linear;
         private textProperties: TextProperties = {
-            fontFamily: 'wf_segoe-ui_normal',
-            fontSize: jsCommon.PixelConverter.toString(9),
+            fontFamily: "wf_segoe-ui_normal",
+            fontSize: PixelConverter.toString(9),
         };
 
         private dotPlotSelectors: DotPlotSelectors =
         {
-            svgPlotSelector: CreateClassAndSelector('dotplot'),
-            plotSelector: CreateClassAndSelector('dotplotSelector'),
-            plotGroupSelector: CreateClassAndSelector('dotplotGroup'),
-            axisSelector: CreateClassAndSelector('axisGraphicsContext'),
-            xAxisSelector: CreateClassAndSelector('x axis'),
-            circleSeletor: CreateClassAndSelector('circleSelector'),
+            scrollableContainer: CreateClassAndSelector("dotPlotScrollableContainer"),
+            svgPlotSelector: CreateClassAndSelector("dotplot"),
+            plotSelector: CreateClassAndSelector("dotplotSelector"),
+            plotGroupSelector: CreateClassAndSelector("dotplotGroup"),
+            axisSelector: CreateClassAndSelector("axisGraphicsContext"),
+            xAxisSelector: CreateClassAndSelector("x axis"),
+            circleSeletor: CreateClassAndSelector("circleSelector"),
         };
 
         private DefaultDotPlotSettings: DotPlotSettings = {
@@ -426,8 +435,8 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 labelColor: { solid: { color: dataLabelUtils.defaultLabelColor } }
             },
             labelOrientation: DotPlotLabelsOrientation.Orientation.Horizontal,
-            labelTextMaxSize:0,
-            xAxisLabelTexMaxSize:0
+            labelTextMaxSize: 0,
+            xAxisLabelTexMaxSize: 0
         };
 
         private static getTooltipData(value: number): TooltipDataItem[] {
@@ -448,83 +457,102 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 value: x,
                 selectionId: SelectionId.createWithId(dataView.categorical.categories[0].identity[i])
             });
-             settings = {
+
+            settings = {
                 categorySettings: this.getCategorySettings(objects, defaultSetting),
                 defaultDataPointColor: defaultColor,
                 labelSettings: this.parseSettings(objects, defaultSetting),
                 categoryAxisSettings: this.parseCategoryAxisSettings(objects, defaultSetting),
-                labelOrientation: ((DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation , DotPlotLabelsOrientation.Orientation.Horizontal)+'') === 'Vertical' ?DotPlotLabelsOrientation.Orientation.Vertical:DotPlotLabelsOrientation.Orientation.Horizontal),
+                labelOrientation: DotPlotLabelsOrientation.Orientation.Horizontal,
                 labelTextMaxSize: 0,
-				xAxisLabelTexMaxSize:0
-				
-                 };
-                 
-            var textPropertiesCat: powerbi.TextProperties = {
+                xAxisLabelTexMaxSize: 0
+
+            };
+
+            var textPropertiesCat: TextProperties = {
                 text: "W",
-                fontFamily: "Segoe UI" ,
+                fontFamily: "Segoe UI",
                 fontSize: settings.labelSettings.fontSize + "px"
             };
-            
-            var maxValue = 0;                
+
+            var maxValue = 0;
             for (var valueId in values) {
                 var value = values[valueId];
-                var max = _.max(value.values);
-                maxValue = max > maxValue? max: maxValue;
+                var max = <number>_.max(value.values);
+                maxValue = max > maxValue ? max : maxValue;
             }
-			
-			var maxXAxisLabelValue = 0;
-            if(settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) 
-            for (var catId in categories) {
-                var category = categories[catId];
-                category.textWidth = powerbi.TextMeasurementService.measureSvgTextWidth(textPropertiesCat) *  category.value.length;
-                maxXAxisLabelValue = category.value.length > maxXAxisLabelValue? category.value.length: maxXAxisLabelValue;
-            }
-                             
-            settings.labelTextMaxSize = powerbi.TextMeasurementService.measureSvgTextWidth(textPropertiesCat) *  (maxValue + ' ').length;
-            settings.xAxisLabelTexMaxSize = powerbi.TextMeasurementService.measureSvgTextWidth(textPropertiesCat) *  maxXAxisLabelValue;
-            if(settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) 
-            MaxXAxisHeight = settings.xAxisLabelTexMaxSize;
-            
-            var categoryColumn = dataView.categorical.categories[0];
-            var diameter: number = 2 * radius + 1;
-            var dotsTotalHeight: number = viewport.height - radius - MaxXAxisHeight - ( settings.labelOrientation  === DotPlotLabelsOrientation.Orientation.Vertical? settings.labelTextMaxSize:0);
-            var maxDots: number = Math.floor((dotsTotalHeight - defaultMargin.top) / diameter) - 1;
-            var fontSizeInPx: string = PixelConverter.fromPoint(settings.labelSettings.fontSize);
+
+            var maxXAxisLabelValue = 0;
+            if (settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical)
+                for (var catId in categories) {
+                    var category: DotPlotChartCategory = categories[catId],
+                        lengthOfValue: number = 0;
+
+                    lengthOfValue = category && category.value
+                        ? category.value.length
+                        : lengthOfValue;
+
+                    category.textWidth = TextMeasurementService.measureSvgTextWidth(textPropertiesCat) * lengthOfValue;
+
+                    maxXAxisLabelValue = lengthOfValue > maxXAxisLabelValue
+                        ? lengthOfValue
+                        : maxXAxisLabelValue;
+                }
+
+            settings.labelTextMaxSize = TextMeasurementService.measureSvgTextWidth(textPropertiesCat) * (maxValue + " ").length;
+            settings.xAxisLabelTexMaxSize = TextMeasurementService.measureSvgTextWidth(textPropertiesCat) * maxXAxisLabelValue;
+
+            if (settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical)
+                MaxXAxisHeight = settings.xAxisLabelTexMaxSize;
+
+            var categoryColumn = dataView.categorical.categories[0],
+                diameter: number = 2 * radius + 1,
+                dotsTotalHeight: number = viewport.height - radius - MaxXAxisHeight - (settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical ? settings.labelTextMaxSize : 0),
+                maxDots: number = Math.floor((dotsTotalHeight - defaultMargin.top) / diameter) - 1,
+                fontSizeInPx: string = PixelConverter.fromPoint(settings.labelSettings.fontSize);
 
             var yScale: D3.Scale.LinearScale = d3.scale.linear()
                 .domain([0, maxDots])
-                .range([dotsTotalHeight - defaultMargin.bottom, defaultMargin.top + defaultMargin.bottom]);
-            
-                
+                .range([
+                    dotsTotalHeight - defaultMargin.bottom,
+                    defaultMargin.top + defaultMargin.bottom
+                ]);
+
             for (var valueId in values) {
                 var value = values[valueId];
-                
-                var min = _.min(value.values);
-                var max = _.max(value.values);
-                var color = DataViewObjects.getFillColor(objects, DotPlotProperties.dataPoint.fill, colors.getColorByIndex(0).value);
-                var length = value && value.values ? value.values.length : 0;
-                var minDots = min / (max / maxDots);
-                var dotsScale = d3.scale.log().domain([min < 0 ? 1 : min, max]).range([minDots <= 0 ? 1 : minDots, maxDots]).clamp(true);
+
+                var min = <number>_.min(value.values),
+                    max = <number>_.max(value.values),
+                    color = DataViewObjects.getFillColor(
+                        objects,
+                        DotPlotProperties.dataPoint.fill,
+                        colors.getColorByIndex(0).value),
+                    length = value && value.values ? value.values.length : 0,
+                    minDots = min / (max / maxDots),
+                    dotsScale = d3.scale.log()
+                        .domain([min < 0 ? 1 : min, max])
+                        .range([minDots <= 0 ? 1 : minDots, maxDots])
+                        .clamp(true);
 
                 for (var k = 0; k < length; k++) {
-                    var y = dotsScale(value.values[k]);
-                    var dataPoints: DotPlotDataPoint[] = [];
+                    var y = dotsScale(value.values[k]),
+                        dataPoints: DotPlotDataPoint[] = [];
 
                     for (var level = 0; level < y; level++) {
                         dataPoints.push({
                             x: scale(categories[k].value) + scale.rangeBand() / 2,
-                            y: yScale(level) + ( settings.labelOrientation  === DotPlotLabelsOrientation.Orientation.Vertical? settings.labelTextMaxSize:0),
-                            tooltipInfo: DotPlot.getTooltipData(value.values[k].toFixed(settings.labelSettings.precision))
+                            y: yScale(level) + (settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical ? settings.labelTextMaxSize : 0),
+                            tooltipInfo: DotPlot.getTooltipData((<any>value.values[k]).toFixed(settings.labelSettings.precision))
                         });
                     }
 
-                    var categorySelectionId = SelectionIdBuilder.builder().withCategory(categoryColumn, k).createSelectionId();
-                    var tooltipInfo = DotPlot.getTooltipData(value.values[k].toFixed(settings.labelSettings.precision));
+                    var categorySelectionId = SelectionIdBuilder.builder().withCategory(categoryColumn, k).createSelectionId(),
+                        tooltipInfo = DotPlot.getTooltipData((<any>value.values[k]).toFixed(settings.labelSettings.precision));
 
                     dataPointsGroup.push({
                         selected: false,
-                        value: value.values[k],
-                        label: value.values[k],
+                        value: <number>value.values[k],
+                        label: <string>value.values[k],
                         color: color,
                         identity: categorySelectionId,
                         tooltipInfo: tooltipInfo,
@@ -566,20 +594,36 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
             this.strokeWidth = DefaultStrokeWidth;
             this.colors = options.style.colorPalette.dataColors;
 
-            this.svg = d3.select(element.get(0)).append('svg').classed(this.dotPlotSelectors.svgPlotSelector.class, true).style('position', 'absolute').style('left', '5px');
+            this.divContainer = d3.select(element.get(0))
+                .append("div")
+                .classed(this.dotPlotSelectors.scrollableContainer.class, true);
+
+            this.svg = this.divContainer
+                .append("svg")
+                .classed(this.dotPlotSelectors.svgPlotSelector.class, true);
+
             this.clearCatcher = appendClearCatcher(this.svg);
 
-            var axisGraphicsContext = this.svg.append('g').classed(this.dotPlotSelectors.axisSelector.class, true);
-            this.dotPlot = this.svg.append('g').classed(this.dotPlotSelectors.plotSelector.class, true);
-            this.xAxis = axisGraphicsContext.append("g").classed(this.dotPlotSelectors.xAxisSelector.class, true);
+            var axisGraphicsContext = this.svg
+                .append("g")
+                .classed(this.dotPlotSelectors.axisSelector.class, true);
+
+            this.dotPlot = this.svg
+                .append("g")
+                .classed(this.dotPlotSelectors.plotSelector.class, true);
+
+            this.xAxis = axisGraphicsContext
+                .append("g")
+                .classed(this.dotPlotSelectors.xAxisSelector.class, true);
         }
 
         public update(options: VisualUpdateOptions): void {
             if (!options.dataViews || !options.dataViews[0]) return;
 
             this.durationAnimations = getAnimationDuration(this.animator, options.suppressAnimations);
-            var dataView = this.dataView = options.dataViews[0];
-            var viewport = options.viewport;
+
+            var dataView = this.dataView = options.dataViews[0],
+                viewport = options.viewport;
 
             if (!dataView ||
                 !dataView.categorical ||
@@ -592,44 +636,117 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 return;
             }
 
-            var viewportIn: IViewport =
-                {
-                    height: (viewport.height - this.DefaultMargin.top),
-                    width: (viewport.width - this.DefaultMargin.left)
-                };
+            var vals = dataView.categorical.categories[0].values,
+                viewPortWidth = viewport.width;
+
+            if (vals.length * this.radius > viewPortWidth) {
+                viewPortWidth = vals.length * (this.radius * 2 + 2);
+
+                this.svg.style({
+                    height: PixelConverter.toString(viewport.height),
+                    width: PixelConverter.toString(vals.length * (this.radius * 2 + 2))
+                });
+            }
+            else {
+                this.svg.style({
+                    height: PixelConverter.toString(viewport.height),
+                    width: PixelConverter.toString(viewport.width)
+                });
+            }
+
+            var viewportIn: IViewport = {
+                height: viewport.height - this.DefaultMargin.top - this.DefaultMargin.bottom,
+                width: (vals.length * this.radius > viewport.width ? vals.length * (this.radius * 2 + 2) : viewport.width - this.DefaultMargin.left)
+            };
+
             this.viewportIn = viewportIn;
 
-            this.svg.style({
-                height: PixelConverter.toString(viewport.height),
-                width: PixelConverter.toString(viewport.width)
+            this.divContainer.style({
+                width: `${viewport.width}px`,
+                height: `${viewport.height}px`
             });
 
-            var objects = DotPlot.getObjectsFromDataView(dataView);
-            var categoryAxisSettings = DotPlot.parseCategoryAxisSettings(objects, this.DefaultDotPlotSettings);
+            var objects = DotPlot.getObjectsFromDataView(dataView),
+                categoryAxisSettings = DotPlot.parseCategoryAxisSettings(
+                    objects,
+                    this.DefaultDotPlotSettings);
 
-            var xAxisProperties = this.calculateAxes(viewportIn, categoryAxisSettings, this.textProperties, objects, false);
-            var data = DotPlot.converter(dataView, objects, <D3.Scale.OrdinalScale>xAxisProperties.scale, this.DefaultMargin, this.DefaultDotPlotSettings, this.colors, viewport, this.radius);
+            var xAxisProperties: IAxisProperties = this.calculateAxes(
+                viewportIn,
+                categoryAxisSettings,
+                this.textProperties,
+                objects,
+                false);
+
+            var data: DotPlotDataView = DotPlot.converter(
+                dataView,
+                objects,
+                <D3.Scale.OrdinalScale>xAxisProperties.scale,
+                this.DefaultMargin,
+                this.DefaultDotPlotSettings,
+                this.colors,
+                this.viewportIn,
+                this.radius);
 
             this.dotPlotDataView = data;
-            var dataPoints = data.dataPoints;
 
-            if (this.interactivityService)
+            var dataPoints: DotPlotDataGroup[] = data.dataPoints;
+
+            if (this.interactivityService) {
                 this.interactivityService.applySelectionStateToData(dataPoints);
+            }
 
-            this.renderAxis(viewportIn.height - MaxXAxisHeight, viewportIn, xAxisProperties, categoryAxisSettings, data, this.durationAnimations);
+            this.renderAxis(
+                viewportIn.height - MaxXAxisHeight,
+                viewportIn,
+                xAxisProperties,
+                categoryAxisSettings,
+                data,
+                this.durationAnimations);
+
             this.drawDotPlot(dataPoints, data.settings);
 
-            var dataLabelsSettings = data.settings.labelSettings;
+            var dataLabelsSettings: VisualDataLabelsSettings = data.settings.labelSettings;
+
             if (dataLabelsSettings.show) {
-                var layout = this.getEnhanchedDotplotLayout(dataLabelsSettings, viewportIn);
-                var labels: D3.UpdateSelection = dataLabelUtils.drawDefaultLabelsForDataPointChart(dataPoints, this.svg, layout, viewportIn, !options.suppressAnimations, this.durationAnimations);
-                if (labels)
-                    labels.attr('transform', (d) => {
-                        if(data.settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) 
-                        return SVGUtil.translateAndRotate(d.size.height/2, 0 - d.size.width/2, d.anchorPoint.x, d.anchorPoint.y, -90);
-                        else
-                        return SVGUtil.translate(0, 0);
+                var layout: ILabelLayout = this.getDotPlotLabelsLayout(
+                    dataLabelsSettings,
+                    viewportIn);
+
+                var labels: D3.UpdateSelection = dataLabelUtils.drawDefaultLabelsForDataPointChart(
+                    dataPoints,
+                    this.svg,
+                    layout,
+                    viewportIn,
+                    !options.suppressAnimations,
+                    this.durationAnimations);
+
+                if (labels) {
+                    labels.attr("transform", (dataGroup: DotPlotDataGroup) => {
+                        var size: ISize = dataGroup.size;
+
+                        if (data.settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) {
+                            var px: number = dataGroup.anchorPoint.x,
+                                py: number = dataGroup.anchorPoint.y,
+                                dx: number,
+                                dy: number;
+
+                            dx = size.width / DotPlot.DataLabelXOffset + size.height * DotPlot.DataLabelXOffsetIndex;
+                            dy = size.height + size.height / DotPlot.DataLabelYOffset;
+
+                            return SVGUtil.translateAndRotate(dx, -dy, px, py, DotPlot.DataLabelAngle);
+                        }
+                        else {
+                            var dx: number,
+                                dy: number;
+
+                            dx = size.width / DotPlot.DataLabelXOffset;
+                            dy = size.height / DotPlot.DataLabelYOffset;
+
+                            return SVGUtil.translate(dx, dy);
+                        }
                     });
+                }
             }
             else {
                 dataLabelUtils.cleanDataLabels(this.svg);
@@ -640,16 +757,16 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
             var enumeration = new ObjectEnumerationBuilder();
 
             switch (options.objectName) {
-                case 'dataPoint':
+                case "dataPoint":
                     this.enumerateDataPoints(enumeration, this.dataView);
                     break;
-                case 'labels':
+                case "labels":
                     this.enumerateDataLabels(enumeration, this.dataView);
                     break;
-                case 'categories':
+                case "categories":
                     this.enumerateCategories(enumeration, this.dataView);
                     break;
-                case 'categoryAxis':
+                case "categoryAxis":
                     this.enumerateCategoryAxisValues(enumeration, this.dataView);
                     break;
             }
@@ -658,7 +775,10 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
         }
 
         private enumerateCategoryAxisValues(enumeration: ObjectEnumerationBuilder, dataView: DataView): void {
-            var objects = dataView && dataView.metadata ? dataView.metadata.objects : undefined;
+            var objects = dataView && dataView.metadata
+                ? dataView.metadata.objects
+                : undefined;
+
             enumeration.pushInstance({
                 objectName: "categoryAxis",
                 displayName: "Category Axis",
@@ -666,8 +786,8 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 properties: {
                     show: DataViewObjects.getValue<boolean>(objects, DotPlotProperties.categoryAxis.show, this.DefaultDotPlotSettings.categoryAxisSettings.show),
                     showAxisTitle: DataViewObjects.getValue<boolean>(objects, DotPlotProperties.categoryAxis.showAxisTitle, this.DefaultDotPlotSettings.categoryAxisSettings.showAxisTitle),
-                    labelColor: objects && objects['categoryAxis'] && objects['categoryAxis']['labelColor'] ?
-                        objects['categoryAxis']['labelColor'] :
+                    labelColor: objects && objects["categoryAxis"] && objects["categoryAxis"]["labelColor"] ?
+                        objects["categoryAxis"]["labelColor"] :
                         this.DefaultDotPlotSettings.categoryAxisSettings.labelColor
                 }
             });
@@ -700,9 +820,9 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
             return {
                 show: DataViewObjects.getValue(objects, DotPlotProperties.categoryAxis.show, defaultDotPlotSettings.categoryAxisSettings.show),
                 showAxisTitle: DataViewObjects.getValue(objects, DotPlotProperties.categoryAxis.showAxisTitle, defaultDotPlotSettings.categoryAxisSettings.showAxisTitle),
-                labelColor: objects && objects['categoryAxis'] && objects['categoryAxis']['labelColor'] ?
-                        objects['categoryAxis']['labelColor'] :
-                        defaultDotPlotSettings.categoryAxisSettings.labelColor
+                labelColor: objects && objects["categoryAxis"] && objects["categoryAxis"]["labelColor"]
+                    ? objects["categoryAxis"]["labelColor"]
+                    : defaultDotPlotSettings.categoryAxisSettings.labelColor
             };
         }
 
@@ -731,17 +851,20 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
 
             selection
                 .enter()
-                .append('g')
+                .append("g")
                 .attr(
                 {
                     stroke: "black",
                     "stroke-width": this.strokeWidth
                 }).
-                style("fill-opacity", (item: DotPlotDataGroup) => ColumnUtil.getFillOpacity(item.selected, item.highlight, hasSelection, false)).
+                style("fill-opacity", (item: DotPlotDataGroup) => dotPlotUtils.getFillOpacity(item.selected, item.highlight, hasSelection, false)).
                 classed(this.dotPlotSelectors.plotGroupSelector.class, true);
 
             var circleSelection = selection.selectAll(this.dotPlotSelectors.circleSeletor.selector).data((d: DotPlotDataGroup) => { return d.dataPoints; });
-            circleSelection.enter().append('circle')
+
+            circleSelection
+                .enter()
+                .append("circle")
                 .classed(this.dotPlotSelectors.circleSeletor.class, true);
 
             circleSelection.attr(
@@ -753,8 +876,14 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 });
 
             this.renderTooltip(selection);
-            circleSelection.exit().remove();
-            selection.exit().remove();
+
+            circleSelection
+                .exit()
+                .remove();
+
+            selection
+                .exit()
+                .remove();
 
             var interactivityService = this.interactivityService;
             if (interactivityService) {
@@ -765,21 +894,25 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                     clearCatcher: this.clearCatcher,
                     interactivityService: this.interactivityService,
                 };
+
                 interactivityService.bind(data, this.behavior, behaviorOptions);
             }
         }
 
-        private getEnhanchedDotplotLayout(labelSettings: VisualDataLabelsSettings, viewport: IViewport): ILabelLayout {
-            var fontSizeInPx = jsCommon.PixelConverter.fromPoint(labelSettings.fontSize);
+        private getDotPlotLabelsLayout(labelSettings: VisualDataLabelsSettings, viewport: IViewport): ILabelLayout {
+            var fontSizeInPx: string = PixelConverter.fromPoint(labelSettings.fontSize),
+                fontFamily: string = LabelTextProperties.fontFamily;
 
             var formatter: IValueFormatter = valueFormatter.create({
-                format: valueFormatter.getFormatString(this.dataView.categorical.categories[0].source, DotPlotProperties.general.formatString),
+                format: valueFormatter.getFormatString(
+                    this.dataView.categorical.categories[0].source,
+                    DotPlotProperties.general.formatString),
                 precision: labelSettings.precision,
                 value: labelSettings.displayUnits
             });
 
             return {
-                labelText: function(d) {
+                labelText: function (d) {
                     return dataLabelUtils.getLabelFormattedText({
                         label: formatter.format(d.label),
                         fontSize: labelSettings.fontSize,
@@ -787,15 +920,32 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                     });
                 },
                 labelLayout: {
-                    x: (d: DotPlotDataGroup) => d.dataPoints[d.dataPoints.length - 1].x - 5,
-                    y: (d: DotPlotDataGroup) => d.dataPoints[d.dataPoints.length - 1].y - LabelMargin - 5
+                    x: (dataGroup: DotPlotDataGroup) => {
+                        var x: number,
+                            dx: number;
+
+                        x = dataGroup.dataPoints[dataGroup.dataPoints.length - 1].x;
+                        dx = dataGroup.size.width / DotPlot.DataLabelXOffset;
+
+                        return x - dx;
+                    },
+                    y: (dataGroup: DotPlotDataGroup) => {
+                        var y: number,
+                            dy: number;
+
+                        y = dataGroup.dataPoints[dataGroup.dataPoints.length - 1].y;
+                        dy = dataGroup.size.height;
+
+                        return y - dy;
+                    }
                 },
-                filter: function (d) {
-                    return (d && d.dataPoints && d.dataPoints[d.dataPoints.length - 1]);
+                filter: (dataGroup: DotPlotDataGroup) => {
+                    return !!(dataGroup && dataGroup.dataPoints && dataGroup.dataPoints[dataGroup.dataPoints.length - 1]);
                 },
                 style: {
-                    'fill': labelSettings.labelColor,
-                    'font-size': fontSizeInPx
+                    "fill": labelSettings.labelColor,
+                    "font-size": fontSizeInPx,
+                    "font-family": fontFamily
                 },
             };
         }
@@ -812,7 +962,7 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                     labelPrecision: DataViewObjects.getValue<number>(objects, DotPlotProperties.labels.labelPrecision, this.DefaultDotPlotSettings.labelSettings.precision),
                     labelDisplayUnits: DataViewObjects.getValue<number>(objects, DotPlotProperties.labels.labelDisplayUnits, this.DefaultDotPlotSettings.labelSettings.displayUnits),
                     color: DataViewObjects.getFillColor(objects, DotPlotProperties.labels.labelColor, this.DefaultDotPlotSettings.labelSettings.labelColor),
-                    orientation: DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation , DotPlotLabelsOrientation.Orientation.Horizontal)
+                    orientation: DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation, DotPlotLabelsOrientation.Orientation.Horizontal)
                 }
             });
         }
@@ -871,7 +1021,7 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                     identity: undefined,
                 };
 
-            var visualOptions: CalculateScaleAndDomainOptions = {
+            var visualOptions: DotPlotCalculateScaleAndDomainOptions = {
                 viewport: viewportIn,
                 margin: this.DefaultMargin,
                 forcedXDomain: this.dataView.categorical.categories[0].values,
@@ -893,21 +1043,27 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 TextMeasurementService.measureSvgTextWidth,
                 textProperties);
 
-             var orientation =   ((DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation , DotPlotLabelsOrientation.Orientation.Horizontal)+'') === 'Vertical' ?DotPlotLabelsOrientation.Orientation.Vertical:DotPlotLabelsOrientation.Orientation.Horizontal);
+            var orientation = ((DataViewObjects.getValue<DotPlotLabelsOrientation.Orientation>(objects, DotPlotProperties.labels.orientation, DotPlotLabelsOrientation.Orientation.Horizontal) + "") === "Vertical" ? DotPlotLabelsOrientation.Orientation.Vertical : DotPlotLabelsOrientation.Orientation.Horizontal);
 
             // If labels do not fit and we are not scrolling, try word breaking
-            if(orientation !== DotPlotLabelsOrientation.Orientation.Vertical)
-            axes.willLabelsWordBreak = (!axes.willLabelsFit && !scrollbarVisible) && AxisHelper.LabelLayoutStrategy.willLabelsWordBreak(
-                axes, this.DefaultMargin, width, TextMeasurementService.measureSvgTextWidth,
-                TextMeasurementService.estimateSvgTextHeight, TextMeasurementService.getTailoredTextOrDefault,
-                textProperties);
-                else
-                 axes.willLabelsWordBreak = false;
+            if (orientation !== DotPlotLabelsOrientation.Orientation.Vertical)
+                axes.willLabelsWordBreak = (!axes.willLabelsFit && !scrollbarVisible) && AxisHelper.LabelLayoutStrategy.willLabelsWordBreak(
+                    axes, this.DefaultMargin, width, TextMeasurementService.measureSvgTextWidth,
+                    TextMeasurementService.estimateSvgTextHeight, TextMeasurementService.getTailoredTextOrDefault,
+                    textProperties);
+            else
+                axes.willLabelsWordBreak = false;
 
             return axes;
         }
 
-        private calculateAxesProperties(viewportIn: IViewport, categoryAxisSettings: DotPlotCategoryAxisSettings, options: CalculateScaleAndDomainOptions, metaDataColumn: DataViewMetadataColumn, objects: DataViewObjects): IAxisProperties {
+        private calculateAxesProperties(
+            viewportIn: IViewport,
+            categoryAxisSettings: DotPlotCategoryAxisSettings,
+            options: DotPlotCalculateScaleAndDomainOptions,
+            metaDataColumn: DataViewMetadataColumn,
+            objects: DataViewObjects): IAxisProperties {
+
             var xAxisProperties = AxisHelper.createAxis({
                 pixelSpan: viewportIn.width,
                 dataDomain: options.forcedXDomain,
@@ -919,14 +1075,14 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 forcedTickCount: options.forcedTickCount,
                 useTickIntervalForDisplayUnits: true,
                 isCategoryAxis: true,
-                getValueFn: (index, type) => categoryAxisSettings.show ? index : '',
+                getValueFn: (index, type) => categoryAxisSettings.show ? index : "",
                 scaleType: options.categoryAxisScaleType,
                 axisDisplayUnits: options.categoryAxisDisplayUnits,
             });
 
             if (categoryAxisSettings.show)
                 // Should handle the label, units of the label and the axis style
-                xAxisProperties.axisLabel = AxisHelper.createAxisLabel(objects, '', ''); //axes.x.axisLabel);
+                xAxisProperties.axisLabel = AxisHelper.createAxisLabel(objects, "", ""); //axes.x.axisLabel);
             return xAxisProperties;
         }
 
@@ -937,45 +1093,61 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
                 });
 
             var xAxis = xAxisProperties.axis;
-            xAxis.orient('bottom');
+            xAxis.orient("bottom");
 
             this.xAxis
                 .transition()
                 .duration(duration)
                 .call(xAxis)
                 .call(DotPlot.setAxisLabelColor, categoryAxisSettings.labelColor);
-                         
-            var xAxisTicks: D3.Selection = this.xAxis.selectAll('.tick text');
+
+            var xAxisTicks: D3.Selection = this.xAxis.selectAll(".tick text");
             xAxisTicks.data(xAxisProperties.values);
-            if(data.settings.labelOrientation !== DotPlotLabelsOrientation.Orientation.Vertical) 
-            xAxisTicks.call(AxisHelper.LabelLayoutStrategy.clip,
-                xAxisProperties.xLabelMaxWidth,
-                TextMeasurementService.svgEllipsis);
-                if(data.settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) 
-                xAxisTicks.attr('transform', (d) => {
+
+            if (data.settings.labelOrientation !== DotPlotLabelsOrientation.Orientation.Vertical) {
+                xAxisTicks.call(AxisHelper.LabelLayoutStrategy.clip,
+                    xAxisProperties.xLabelMaxWidth,
+                    TextMeasurementService.svgEllipsis);
+            }
+
+            if (data.settings.labelOrientation === DotPlotLabelsOrientation.Orientation.Vertical) {
+                xAxisTicks.attr("transform", (d) => {
                     var textHeight = 12;
-                    var textWidth = powerbi.TextMeasurementService.measureSvgTextWidth(d);
+                    var textWidth = TextMeasurementService.measureSvgTextWidth(d);
 
-                        return SVGUtil.translateAndRotate(textHeight/2-2*textHeight, textWidth+20, 0, 0, -90);
-                    });
-                
-            xAxisTicks.append('title').text((d) => d);
+                    return SVGUtil.translateAndRotate(textHeight / 2 - 2 * textHeight, textWidth + 20, 0, 0, -90);
+                });
+            }
+            else {
+                xAxisTicks.attr("transform", null);
+            }
 
-            this.xAxis.selectAll('line').style('opacity', data.settings.categoryAxisSettings.show ? 1 : 0);
+            xAxisTicks
+                .append("title")
+                .text((d) => d);
 
-            this.xAxis.selectAll('.xAxisLabel').remove();
+            this.xAxis
+                .selectAll("line")
+                .style("opacity", data.settings.categoryAxisSettings.show ? 1 : 0);
+
+            this.xAxis
+                .selectAll(".xAxisLabel")
+                .remove();
+
             if (data.settings.categoryAxisSettings.showAxisTitle) {
                 this.xAxis.append("text")
                     .text(this.dataView.categorical.categories[0].source.displayName)
                     .style("text-anchor", "middle")
-                    .attr('class', 'xAxisLabel')
-                    .style('fill', categoryAxisSettings.labelColor.solid.color)
-                    .attr('transform', 'translate(' + (viewportIn.width / 2) + ','+ (data.settings.xAxisLabelTexMaxSize>0?data.settings.xAxisLabelTexMaxSize: 40) +')');
+                    .attr("class", "xAxisLabel")
+                    .style("fill", categoryAxisSettings.labelColor.solid.color)
+                    .attr("transform", "translate(" + (viewportIn.width / 2) + "," + (data.settings.xAxisLabelTexMaxSize > 0 ? data.settings.xAxisLabelTexMaxSize : 40) + ")");
             }
         }
 
-        private static setAxisLabelColor(g: D3.Selection, fill: Fill): void {
-            g.selectAll('g.tick text').style('fill', fill && fill.solid ? fill.solid.color : null);
+        private static setAxisLabelColor(selection: D3.Selection, fill: Fill): void {
+            selection
+                .selectAll("g.tick text")
+                .style("fill", fill && fill.solid ? fill.solid.color : null);
         }
     }
 
@@ -995,16 +1167,16 @@ import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
             this.clearCatcher = options.clearCatcher;
             this.interactivityService = options.interactivityService;
 
-            this.columns.on('click', (d: SelectableDataPoint, i: number) => {
+            this.columns.on("click", (d: SelectableDataPoint, i: number) => {
                 selectionHandler.handleSelection(d, d3.event.ctrlKey);
             });
 
-            options.clearCatcher.on('click', () => {
+            options.clearCatcher.on("click", () => {
                 selectionHandler.handleClearSelection();
             });
         }
 
-      public renderSelection(hasSelection: boolean) {
+        public renderSelection(hasSelection: boolean) {
             var hasHighlights = this.interactivityService.hasSelection();
 
             this.columns.style("fill-opacity", (d: DotPlotDataGroup) => {

@@ -101,7 +101,7 @@ module powerbitests.customVisuals {
 
                 let dataPointsArray: number[] = [];
                 for (let i = 0; i < dataView.categorical.values.length; i++) {
-                    dataPointsArray = dataPointsArray.concat(dataView.categorical.values[i].values);
+                    dataPointsArray = dataPointsArray.concat(<number[]>dataView.categorical.values[i].values);
                 }
 
                 dataView.categorical.values[0].values[0] = 1e+14;

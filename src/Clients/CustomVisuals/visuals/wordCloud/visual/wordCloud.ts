@@ -433,7 +433,7 @@ module powerbi.visuals.samples {
             var categorical = dataView && dataView.categorical;
             var categories = categorical && categorical.categories || [];
             var values = categorical && categorical.values || <DataViewValueColumns>[];
-            var series: string[] = categorical && values.source && this.getSeriesValues(dataView);
+            var series = categorical && values.source && this.getSeriesValues(dataView);
             return categorical && _.mapValues(new this<any[]>(), (n, i) =>
                 (<DataViewCategoricalColumn[]>_.toArray(categories)).concat(_.toArray(values))
                     .filter(x => x.source.roles && x.source.roles[i]).map(x => x.values)[0]

@@ -237,7 +237,7 @@ module powerbi.data {
             
             transformObjects(transformed, transformContext.visualCapabilitiesDataViewKinds, objectDescriptors, transformContext.transforms.objects, selectTransforms, transformContext.colorAllocatorFactory);
 
-            DataViewRemoveSelects.apply(transformed, targetDataViewKinds, selectsToInclude);
+            transformed = DataViewCategoricalProjectionOrder.apply(transformed, transformContext.applicableRoleMappings, projectionOrdering, selectsToInclude);
 
             // Note: Do this step after transformObjects() so that metadata columns in 'transformed' have roles and objects.general.formatString populated
             transformed = DataViewConcatenateCategoricalColumns.detectAndApply(

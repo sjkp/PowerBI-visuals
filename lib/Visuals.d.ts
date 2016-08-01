@@ -185,6 +185,8 @@
 
 
 
+
+
 declare module powerbi.visuals {
     class Point implements IPoint {
         x: number;
@@ -411,6 +413,15 @@ declare module powerbi.visuals {
         const line: string;
         const arrow: string;
         const triangle: string;
+        const type: IEnumType;
+    }
+}
+
+declare module powerbi.visuals {
+    module confidenceBandStyle {
+        const fill: string;
+        const line: string;
+        const none: string;
         const type: IEnumType;
     }
 }
@@ -1171,6 +1182,9 @@ declare module powerbi.visuals {
         };
         scalarKey: {
             scalarKeyMin: DataViewObjectPropertyIdentifier;
+        };
+        forecast: {
+            show: DataViewObjectPropertyIdentifier;
         };
         categoryAxis: {
             axisType: DataViewObjectPropertyIdentifier;
@@ -2024,7 +2038,7 @@ declare module powerbi.visuals {
         function combineDomain(forcedDomain: any[], domain: any[], ensureDomain?: NumberRange): any[];
         function createAxisLabel(properties: DataViewObject, label: string, unitType: string, y2?: boolean): string;
         function scaleShouldClamp(combinedDomain: any[], domain: any[]): boolean;
-        function normalizeNonFiniteNumber(value: number): number;
+        function normalizeNonFiniteNumber(value: PrimitiveValue): number;
         /**
          * Indicates whether the number is power of 10.
          */
@@ -2086,7 +2100,7 @@ declare module powerbi.visuals {
          * If no explicit color or default color has been set then the color is
          * allocated from the color scale for this series.
          */
-        getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.ISQExpr[], value: string): string;
+        getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.ISQExpr[], value: PrimitiveValue): string;
         /**
          * Gets the color scale for the given series.
          */
@@ -2142,7 +2156,7 @@ declare module powerbi.visuals {
     module converterHelper {
         function categoryIsAlsoSeriesRole(dataView: DataViewCategorical, seriesRoleName: string, categoryRoleName: string): boolean;
         function getPivotedCategories(dataView: DataViewCategorical, formatStringProp: DataViewObjectPropertyIdentifier): PivotedCategoryInfo;
-        function getSeriesName(source: DataViewMetadataColumn): string;
+        function getSeriesName(source: DataViewMetadataColumn): PrimitiveValue;
         function getFormattedLegendLabel(source: DataViewMetadataColumn, values: DataViewValueColumns, formatStringProp: DataViewObjectPropertyIdentifier): string;
         function createAxesLabels(categoryAxisProperties: DataViewObject, valueAxisProperties: DataViewObject, category: DataViewMetadataColumn, values: DataViewMetadataColumn[]): {
             xAxisLabel: any;
@@ -2348,8 +2362,8 @@ declare module powerbi.visuals {
             kpiIconClass: string;
             statusValues: string[];
         }
-        function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: string, kpiImageSize?: KpiImageSize): string;
-        function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: string, kpiImageSize?: KpiImageSize): KpiImageMetadata;
+        function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: PrimitiveValue, kpiImageSize?: KpiImageSize): string;
+        function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: PrimitiveValue, kpiImageSize?: KpiImageSize): KpiImageMetadata;
     }
 }
 
@@ -2421,6 +2435,7 @@ declare module powerbi.visuals {
     module ReferenceLineHelper {
         const referenceLineProps: {
             show: string;
+            displayName: string;
             lineColor: string;
             transparency: string;
             value: string;
@@ -2703,6 +2718,7 @@ declare module powerbi.visuals {
             function intersect(rect1: IRect, rect2: IRect): IRect;
             function combine(rect1: IRect, rect2: IRect): IRect;
             function parseRect(value: any, defaultValue?: IRect): IRect;
+            function getCentroid(rect: IRect): IPoint;
         }
         module Thickness {
             function inflate(thickness: IThickness, other: IThickness): IThickness;
@@ -2794,6 +2810,7 @@ declare module powerbi.visuals {
             setSlicerTextStyle(slicerText: D3.Selection, settings: SlicerSettings): void;
             getRowsOutlineWidth(outlineElement: string, outlineWeight: number): number;
             private setSlicerHeaderTextStyle(slicerHeader, headerTextElement, settings, searchEnabled);
+            private calculateSlicerTextHighlightColor(color);
             private getTextProperties(textSize, textProperties);
         }
     }
@@ -3036,6 +3053,7 @@ declare module powerbi.visuals {
     interface TrendLine {
         points: IPoint[];
         show: boolean;
+        displayName: string;
         lineColor: Fill;
         transparency: number;
         style: string;
@@ -3073,6 +3091,34 @@ declare module powerbi {
     module VisualObjectRepetition {
         /** Determines whether two repetitions are equal. */
         function equals(x: VisualObjectRepetition, y: VisualObjectRepetition): boolean;
+    }
+}
+declare module powerbi.visuals {
+    interface PointWithError {
+        point: IPoint;
+        upperBound: IPoint;
+        lowerBound: IPoint;
+    }
+    interface Forecast {
+        id: string;
+        points: PointWithError[];
+        show: boolean;
+        lineColor: Fill;
+        confidenceBandStyle: string;
+        transparency: number;
+        style: string;
+    }
+    module ForecastHelper {
+        const defaults: {
+            lineColor: Fill;
+            confidenceBandStyle: string;
+            transparency: number;
+            style: string;
+        };
+        function enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, forecast: Forecast): void;
+        function isDataViewForForecast(dataView: DataView): boolean;
+        function readDataView(dataView: DataView, sourceDataView: DataView, colors: IDataColorPalette): Forecast;
+        function render(forecastLine: Forecast, graphicsContext: D3.Selection, axes: CartesianAxisProperties, viewport: IViewport, animator: IGenericAnimator, suppressAnimations: boolean): void;
     }
 }
 
@@ -6545,6 +6591,7 @@ declare module powerbi.visuals {
         tooltipBucketEnabled?: boolean;
         trimOrdinalDataOnOverflow?: boolean;
         advancedLineLabelsEnabled?: boolean;
+        forecastEnabled?: boolean;
     }
     interface ICartesianVisual {
         init(options: CartesianVisualInitOptions): void;
@@ -6561,7 +6608,9 @@ declare module powerbi.visuals {
         getPreferredPlotArea?(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport;
         setFilteredData?(startIndex: number, endIndex: number): CartesianData;
         supportsTrendLine?(): boolean;
+        isStacked?(): boolean;
         shouldSuppressAnimation?(): boolean;
+        supportsForecast?(): boolean;
     }
     interface CartesianVisualConstructorOptions {
         isScrollable: boolean;
@@ -6571,6 +6620,7 @@ declare module powerbi.visuals {
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
         advancedLineLabelsEnabled?: boolean;
+        forecastEnabled?: boolean;
     }
     interface CartesianVisualRenderResult {
         dataPoints: SelectableDataPoint[];
@@ -6690,6 +6740,7 @@ declare module powerbi.visuals {
         private valueAxisProperties;
         private xAxisReferenceLines;
         private y1AxisReferenceLines;
+        private referenceLines;
         private cartesianSmallViewPortProperties;
         private interactivityService;
         private behavior;
@@ -6700,7 +6751,9 @@ declare module powerbi.visuals {
         private trimOrdinalDataOnOverflow;
         private isMobileChart;
         private advancedLineLabelsEnabled;
+        private forecastEnabled;
         private trendLines;
+        private forecastLine;
         private xRefLine;
         private y1RefLine;
         animator: IGenericAnimator;
@@ -6728,6 +6781,9 @@ declare module powerbi.visuals {
         scrollTo(position: number): void;
         enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
         private supportsTrendLines(layerIndex?);
+        private supportsForecast(layerIndex?);
+        private supportsDataBoundReferenceLines(layerIndex?);
+        private allLayerSupports(predicate, layerIndex?);
         private shouldShowLegendCard();
         private getAxisScaleOptions(axisType);
         private getCategoryAxisValues(enumeration);
@@ -6740,7 +6796,7 @@ declare module powerbi.visuals {
         private render(suppressAnimations, resizeMode?, operationKind?);
         /**
          * Gets any minimum domain extents.
-         * Reference lines and trend lines may enforce minimum extents on X and/or Y domains.
+         * Reference lines and forecast lines may enforce minimum extents on X and/or Y domains.
          */
         private getMinimumDomainExtents();
         private getPlotAreaRect(axesLayout, legendMargins);
@@ -6749,6 +6805,7 @@ declare module powerbi.visuals {
         private calculateInteractivityRightMargin();
         private renderPlotArea(layers, axesLayout, suppressAnimations, legendMargins, resizeMode?);
         private renderTrendLines(axesLayout);
+        private renderForecast(axesLayout, suppressAnimations);
         private renderReferenceLines(axesLayout);
         private getReferenceLineLabels(axes, plotArea);
         private renderDataLabels(labelDataPointGroups, labelsAreNumeric, plotArea, suppressAnimations, isCombo);
@@ -7058,7 +7115,7 @@ declare module powerbi.visuals {
         getValueBySeriesAndCategory(series: number, category: number): number;
         getMeasureNameByIndex(series: number, category: number): string;
         hasHighlightValues(series: number): boolean;
-        getHighlightBySeriesAndCategory(series: number, category: number): number;
+        getHighlightBySeriesAndCategory(series: number, category: number): PrimitiveValue;
     }
     interface LegendSeriesInfo {
         legend: LegendData;
@@ -7140,6 +7197,7 @@ declare module powerbi.visuals {
         setFilteredData(startIndex: number, endIndex: number): CartesianData;
         static getLabelFill(labelColor: string, isInside: boolean, isCombo: boolean): string;
         supportsTrendLine(): boolean;
+        isStacked(): boolean;
         static isBar(chartType: ColumnChartType): boolean;
         static isColumn(chartType: ColumnChartType): boolean;
         static isClustered(chartType: ColumnChartType): boolean;
@@ -8057,9 +8115,12 @@ declare module powerbi.visuals {
         private static validStackedLabelPositions;
         private overlayRect;
         private isComboChart;
+        private previousCategoryIds;
+        private suppressAnimation;
         private lastDragMoveXPosition;
         private deferDragMoveOperation;
         static customizeQuery(options: CustomizeQueryOptions): void;
+        private static shouldUseScalarKey(dataViewMapping, categoryRoleItems);
         static getSortableRoles(options: VisualSortableOptions): string[];
         static converter(dataView: DataView, blankCategoryValue: string, colors: IDataColorPalette, isScalar: boolean, interactivityService?: IInteractivityService, shouldCalculateStacked?: boolean, isComboChart?: boolean, tooltipsEnabled?: boolean, tooltipBucketEnabled?: boolean): LineChartData;
         static getInteractiveLineChartDomElement(element: JQuery): HTMLElement;
@@ -8076,6 +8137,9 @@ declare module powerbi.visuals {
         private enumerateDataPoints(enumeration);
         private enumerateDataLabels(enumeration);
         supportsTrendLine(): boolean;
+        supportsForecast(): boolean;
+        isStacked(): boolean;
+        shouldSuppressAnimation(): boolean;
         private showLabelPerSeries();
         private getLabelSettingsOptions(enumeration, labelSettings, series?, showAll?);
         overrideXScale(xProperties: IAxisProperties): void;

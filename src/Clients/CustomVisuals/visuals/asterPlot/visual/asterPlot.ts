@@ -292,8 +292,8 @@ module powerbi.visuals.samples {
             element: D3.Selection,
             setTransision: (t: D3.Transition.Transition) => D3.Transition.Transition,
             attrName: string,
-            attrValue: (data: any, index: number) => any | any,
-            attrTransitionValue: (data: any, index: number) => any | any,
+            attrValue: (data: any, index: number) => any,
+            attrTransitionValue: (data: any, index: number) => any,
             viewportChanged: boolean) {
             if(viewportChanged) {
                 element.attr(attrName, attrValue);
@@ -470,7 +470,7 @@ module powerbi.visuals.samples {
             var categorical = dataView && dataView.categorical;
             var categories = categorical && categorical.categories || [];
             var values = categorical && categorical.values || <DataViewValueColumns>[];
-            var series: string[] = categorical && values.source && this.getSeriesValues(dataView);
+            var series = categorical && values.source && this.getSeriesValues(dataView);
             return categorical && _.mapValues(new this<any[]>(), (n, i) =>
                 (<DataViewCategoricalColumn[]>_.toArray(categories)).concat(_.toArray(values))
                     .filter(x => x.source.roles && x.source.roles[i]).map(x => x.values)[0]
@@ -663,8 +663,8 @@ module powerbi.visuals.samples {
 
             var hasHighlights: boolean = !!(categorical.Y[0].highlights);
 
-            var maxValue: number = Math.max(d3.min(categorical.Y[0].values));
-            var minValue: number = Math.min(0, d3.min(categorical.Y[0].values));
+            var maxValue: number = Math.max(d3.min(<number[]>categorical.Y[0].values));
+            var minValue: number = Math.min(0, d3.min(<number[]>categorical.Y[0].values));
             var labelFormatter: IValueFormatter = ValueFormatter.create({
                 format: ValueFormatter.getFormatString(categorical.Y[0].source, properties.general.formatString),
                 precision: settings.labels.precision,
@@ -675,7 +675,7 @@ module powerbi.visuals.samples {
 
             for (var i = 0; i < catValues.Category.length; i++) {
                 var formattedCategoryValue = valueFormatter.format(catValues.Category[i], categorySourceFormatString);
-                var currentValue = categorical.Y[0].values[i];
+                var currentValue = <number>categorical.Y[0].values[i];
 
                 var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(
                     properties.general.formatString,
@@ -698,17 +698,17 @@ module powerbi.visuals.samples {
                     if (toolTip)
                         tooltipInfo.push(toolTip);
 
-                    currentValue += categorical.Y[1].values[i];
+                    currentValue += <number>categorical.Y[1].values[i];
                 }
 
                 var identity: DataViewScopeIdentity = categorical.Category.identity[i];
                 var color: string = colorHelper.getColorForMeasure(categorical.Category.objects && categorical.Category.objects[i], identity.key);
                 var selector: SelectionId = SelectionId.createWithId(identity);
-                var sliceWidth: number = Math.max(0, categorical.Y.length > 1 ? categorical.Y[1].values[i] : 1);
+                var sliceWidth: number = Math.max(0, categorical.Y.length > 1 ? <number>categorical.Y[1].values[i] : 1);
 
                 if(sliceWidth > 0) {
                     dataPoints.push({
-                        sliceHeight: categorical.Y[0].values[i] - minValue,
+                        sliceHeight: <number>categorical.Y[0].values[i] - minValue,
                         sliceWidth: sliceWidth,
                         label: labelFormatter.format(currentValue),
                         color: color,
@@ -735,7 +735,7 @@ module powerbi.visuals.samples {
                 if (hasHighlights) {
                     var highlightIdentity: SelectionId = SelectionId.createWithHighlight(selector);
                     var notNull: boolean = categorical.Y[0].highlights[i] != null;
-                    currentValue = notNull ? categorical.Y[0].highlights[i] : 0;
+                    currentValue = notNull ? <number>categorical.Y[0].highlights[i] : 0;
 
                     tooltipInfo = TooltipBuilder.createTooltipInfo(
                         properties.general.formatString,
@@ -758,12 +758,12 @@ module powerbi.visuals.samples {
                         if (toolTip)
                             tooltipInfo.push(toolTip);
 
-                        currentValue += categorical.Y[1].highlights[i] !== null ? categorical.Y[1].highlights[i] : 0;
+                        currentValue += categorical.Y[1].highlights[i] !== null ? <number>categorical.Y[1].highlights[i] : 0;
                     }
 
                     highlightedDataPoints.push({
-                        sliceHeight: notNull ? categorical.Y[0].highlights[i] - minValue : null,
-                        sliceWidth: Math.max(0, (categorical.Y.length > 1 && categorical.Y[1].highlights[i] !== null) ? categorical.Y[1].highlights[i] : sliceWidth),
+                        sliceHeight: notNull ? <number>categorical.Y[0].highlights[i] - minValue : null,
+                        sliceWidth: Math.max(0, (categorical.Y.length > 1 && categorical.Y[1].highlights[i] !== null) ? <number>categorical.Y[1].highlights[i] : sliceWidth),
                         label: labelFormatter.format(currentValue),
                         color: color,
                         identity: highlightIdentity,
@@ -878,6 +878,7 @@ module powerbi.visuals.samples {
 
             var transformX: number = (this.layout.viewportIn.width + this.layout.margin.right) / 2;
             var transformY: number = (this.layout.viewportIn.height + this.layout.margin.bottom) / 2;
+
             this.mainGroupElement.attr("transform", SVGUtil.translate(transformX, transformY));
             this.mainLabelsElement.attr("transform", SVGUtil.translate(transformX, transformY));
 
@@ -887,6 +888,7 @@ module powerbi.visuals.samples {
             dataLabelUtils.cleanDataLabels(this.mainLabelsElement, true);
 
             this.renderArcsAndLabels(duration);
+
             if(this.data.hasHighlights) {
                 this.renderArcsAndLabels(duration, true);
             } else {
@@ -900,54 +902,99 @@ module powerbi.visuals.samples {
                     interactivityService: this.interactivityService,
                     hasHighlights: this.data.hasHighlights
                 };
-                this.interactivityService.bind(this.data.dataPoints.concat(this.data.highlightedDataPoints), this.behavior, behaviorOptions);
+
+                this.interactivityService.bind(
+                    this.data.dataPoints.concat(this.data.highlightedDataPoints),
+                    this.behavior,
+                    behaviorOptions);
             }
         }
 
         private renderArcsAndLabels(duration: number, isHighlight: boolean = false): D3.UpdateSelection {
-            var radius: number = Math.min(this.layout.viewportIn.width, this.layout.viewportIn.height) / 2;
-            var innerRadius: number = 0.3 * (this.settings.labels.show ? radius * AsterRadiusRatio : radius);
-            var maxScore: number = d3.max(this.data.dataPoints, d => d.sliceHeight);
-            var totalWeight: number = d3.sum(this.data.dataPoints, d => d.sliceWidth);
+            var viewportRadius: number = Math.min(this.layout.viewportIn.width, this.layout.viewportIn.height) / 2,
+                innerRadius: number = 0.3 * (this.settings.labels.show ? viewportRadius * AsterRadiusRatio : viewportRadius),
+                maxScore: number = d3.max(this.data.dataPoints, d => d.sliceHeight),
+                totalWeight: number = d3.sum(this.data.dataPoints, d => d.sliceWidth);
 
             var pie: D3.Layout.PieLayout = d3.layout.pie()
                 .sort(null)
-                .value(d => (d && !isNaN(d.sliceWidth) ? d.sliceWidth : 0) / totalWeight);
+                .value((dataPoint: AsterDataPoint) => {
+                    if (!totalWeight || !dataPoint || isNaN(dataPoint.sliceWidth)) {
+                        return 0;
+                    }
+
+                    return dataPoint.sliceWidth / totalWeight;
+                });
 
             var arc: D3.Svg.Arc = d3.svg.arc()
                 .innerRadius(innerRadius)
-                .outerRadius(d => {
-                    var height: number = (radius - innerRadius) * (d && d.data && !isNaN(d.data.sliceHeight) ? d.data.sliceHeight : 1) / maxScore;
+                .outerRadius((arcDescriptor: AsterArcDescriptor) => {
+                    var height: number = 0;
+
+                    if (maxScore) {
+                        var radius: number = viewportRadius - innerRadius,
+                            sliceHeight: number = 1;
+
+                        sliceHeight = arcDescriptor
+                            && arcDescriptor.data
+                            && !isNaN(arcDescriptor.data.sliceHeight)
+                                ? arcDescriptor.data.sliceHeight
+                                : sliceHeight;
+
+                        height = radius * sliceHeight / maxScore;
+                    }
+
                     //The chart should shrink if data labels are on
                     var heightIsLabelsOn = innerRadius + (this.settings.labels.show ? height * AsterRadiusRatio : height);
+
                     // Prevent from data to be inside the inner radius
                     return Math.max(heightIsLabelsOn, innerRadius);
                 });
 
             var arcDescriptorDataPoints: AsterArcDescriptor[] = pie(isHighlight ? this.data.highlightedDataPoints : this.data.dataPoints);
-            var classSelector: ClassAndSelector = isHighlight ? AsterPlot.AsterHighlightedSlice : AsterPlot.AsterSlice;
 
-            var selection = this.slicesElement.selectAll(classSelector.selector)
-                .data(arcDescriptorDataPoints, (d: AsterArcDescriptor, i: number) => d.data ? d.data.identity.getKey() : i);
+            var classSelector: ClassAndSelector = isHighlight
+                ? AsterPlot.AsterHighlightedSlice
+                : AsterPlot.AsterSlice;
 
-            selection.enter()
+            var selection = this.slicesElement
+                .selectAll(classSelector.selector)
+                .data(
+                    arcDescriptorDataPoints,
+                    (d: AsterArcDescriptor, i: number) => {
+                        return d.data
+                            ? d.data.identity.getKey()
+                            : i;
+                    });
+
+            selection
+                .enter()
                 .append("path")
                 .classed(classSelector.class, true)
                 .attr("stroke", "#333");
 
             selection
                 .attr("fill", d => d.data.color)
-                .call(selection => Helpers.setAttrThroughTransitionIfNotResized(
-                    selection, s => s.duration(duration), 'd', arc, Helpers.interpolateArc(arc), this.layout.viewportChanged));
+                .call(selection => {
+                    return Helpers.setAttrThroughTransitionIfNotResized(
+                        selection,
+                        s => s.duration(duration),
+                        "d",
+                        arc,
+                        Helpers.interpolateArc(arc),
+                        this.layout.viewportChanged);
+                });
 
-            selection.exit().remove();
+            selection
+                .exit()
+                .remove();
 
             TooltipManager.addTooltip(selection, (tooltipEvent: TooltipEvent) => tooltipEvent.data.data.tooltipInfo);
 
             // Draw data labels only if they are on and there are no highlights or there are highlights and this is the highlighted data labels
             if (this.settings.labels.show && (!this.data.hasHighlights || (this.data.hasHighlights && isHighlight))) {
                 var labelRadCalc = (d: AsterDataPoint) => {
-                    var height: number = radius * (d && !isNaN(d.sliceHeight) ? d.sliceHeight : 1) / maxScore + innerRadius;
+                    var height: number = viewportRadius * (d && !isNaN(d.sliceHeight) ? d.sliceHeight : 1) / maxScore + innerRadius;
                     return Math.max(height, innerRadius);
                 };
                 var labelArc = d3.svg.arc()
@@ -955,7 +1002,7 @@ module powerbi.visuals.samples {
                     .outerRadius(d => labelRadCalc(d.data));
 
                 var lineRadCalc = (d: AsterDataPoint) => {
-                    var height: number = (radius - innerRadius) * (d && !isNaN(d.sliceHeight) ? d.sliceHeight : 1) / maxScore;
+                    var height: number = (viewportRadius - innerRadius) * (d && !isNaN(d.sliceHeight) ? d.sliceHeight : 1) / maxScore;
                     height = innerRadius + height * AsterRadiusRatio;
                     return Math.max(height, innerRadius);
                 };

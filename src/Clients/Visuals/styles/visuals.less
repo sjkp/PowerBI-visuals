@@ -172,10 +172,6 @@
             }
 
             &:hover {
-                .slicerText, .slicerCountText {
-                    color: @neutralDarkColor !important;
-                }
-
                 .slicerCheckbox {
                     span.checkbox {
                         border-color: @neutralSecondaryColor;
@@ -215,10 +211,6 @@
 
             &.selected {
                 border: none !important;
-
-                & + .slicerText, + .slicerCountText {
-                    color: @neutralDarkColor !important;
-                }
 
                 span.checkbox {
                     border-color: @neutralDarkColor;
@@ -503,6 +495,10 @@
         .trend-line {
             stroke-width: 2px;
             pointer-events: none;
+        }
+
+        .forecast-line {
+            stroke-width: 1px;
         }
     }
 

@@ -88,14 +88,6 @@ module powerbi {
                         return reshapeTable(dataView, dataViewMapping.table);
                 }
             }
-            else if (ScriptResultUtil.findScriptResult(dataViewMappings)) {
-                // Currently, PBI Service treats R Script Visuals as static images.
-                // This causes validation to fail, since in PBI service no DataView is generated, but there are DataViewMappings,
-                // to support the PBI Desktop scenario.
-                // This code will be removed once PBI Service fully supports R Script Visuals.
-                // VSTS: 6217994 - [R Viz] Remove temporary DataViewAnalysis validation workaround of static R Script Visual mappings
-                return { dataView: dataView, isValid: true };
-            }
 
             return { isValid: false };
         }

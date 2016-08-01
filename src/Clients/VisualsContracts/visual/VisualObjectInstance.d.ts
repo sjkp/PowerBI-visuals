@@ -76,6 +76,9 @@ declare module powerbi {
 
         /** Instances which should be deleted from the existing instances. */
         remove?: VisualObjectInstance[];
+
+        /** Instances which should be deleted from the existing objects. */
+        removeObject?: VisualObjectInstance[];
     }
     
     export interface EnumerateVisualObjectInstancesOptions {

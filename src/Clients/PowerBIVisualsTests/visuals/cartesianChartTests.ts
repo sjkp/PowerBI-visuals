@@ -86,16 +86,16 @@ module powerbitests {
                 expect(CartesianChart.detectScalarMapping(null)).toBe(false);
 
                 expect(CartesianChart.detectScalarMapping({
-                    metadata: {}
+                    metadata: { columns: [] }
                 })).toBe(false);
 
                 expect(CartesianChart.detectScalarMapping({
-                    metadata: {},
+                    metadata: { columns: [] },
                     categorical: {}
                 })).toBe(false);
 
                 expect(CartesianChart.detectScalarMapping({
-                    metadata: {},
+                    metadata: { columns: [] },
                     categorical: {
                         categories: {
                             for: {
@@ -111,7 +111,7 @@ module powerbitests {
 
             it('ordinal value type', () => {
                 expect(CartesianChart.detectScalarMapping({
-                    metadata: {},
+                    metadata: { columns: [] },
                     categorical: {
                         categories: {
                             for: {
@@ -130,7 +130,7 @@ module powerbitests {
 
             it('scalar value type', () => {
                 expect(CartesianChart.detectScalarMapping({
-                    metadata: {},
+                    metadata: { columns: [] },
                     categorical: {
                         categories: {
                             for: {
@@ -154,7 +154,8 @@ module powerbitests {
                             ['categoryAxis']: {
                                 axisType: visuals.axisType.scalar
                             }
-                        }
+                        },
+                        columns: [],
                     },
                     categorical: {
                         categories: {
@@ -179,7 +180,8 @@ module powerbitests {
                             ['categoryAxis']: {
                                 axisType: visuals.axisType.categorical
                             }
-                        }
+                        },
+                        columns: [],
                     },
                     categorical: {
                         categories: {

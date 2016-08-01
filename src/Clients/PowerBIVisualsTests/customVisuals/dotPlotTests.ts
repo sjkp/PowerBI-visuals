@@ -136,7 +136,7 @@ module powerbitests.customVisuals {
         }
 
         public get mainElement() {
-            return this.element.children("svg");
+            return this.element.find(".dotplot");
         }
 
         public get dataLabels() {

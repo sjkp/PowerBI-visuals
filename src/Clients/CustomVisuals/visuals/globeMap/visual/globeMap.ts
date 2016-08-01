@@ -294,7 +294,7 @@ module powerbi.visuals.samples {
             var categorical = dataView && dataView.categorical;
             var categories = categorical && categorical.categories || [];
             var values = categorical && categorical.values || <DataViewValueColumns>[];
-            var series: string[] = categorical && values.source && this.getSeriesValues(dataView);
+            var series = categorical && values.source && this.getSeriesValues(dataView);
             return categorical && _.mapValues(new this<any[]>(), (n, i) =>
                 (<DataViewCategoricalColumn[]>_.toArray(categories)).concat(_.toArray(values))
                     .filter(x => x.source.roles && x.source.roles[i]).map(x => x.values)[0]
@@ -564,7 +564,7 @@ module powerbi.visuals.samples {
                         var values = groupedColumns[i].Height.values;
                         for (var j = 0; j < values.length; j++) { 
                             //calculating relative size of series
-                            heightsBySeries[j][i] = values[j] / heights[j];
+                            heightsBySeries[j][i] = <number>values[j] / heights[j];
                         }
                     }
                 } else {
@@ -616,7 +616,7 @@ module powerbi.visuals.samples {
                     var placeKey = place + "/" + locationType;
                     var location: ILocation = (_.isEmpty(categorical.X) || _.isEmpty(categorical.Y))
                         ? globeMapLocationCache[placeKey]
-                        : { longitude: categorical.X[0].values[i] || 0, latitude: categorical.Y[0].values[i] || 0 };
+                        : { longitude: <number>categorical.X[0].values[i] || 0, latitude: <number>categorical.Y[0].values[i] || 0 };
 
                     var height = heights[i] / maxHeight;
                     var heat = heats[i] / maxHeat;
@@ -666,7 +666,7 @@ module powerbi.visuals.samples {
             let columns = dataView.categorical.values.grouped()[seriesIndex];
             let label = converterHelper.getFormattedLegendLabel(source, <DataViewValueColumns>columns.values, null);
             let identity = SelectionId.createWithId(columns.identity);
-            let category = converterHelper.getSeriesName(source);
+            let category = <string>converterHelper.getSeriesName(source);
             let objects = <any>columns.objects;
             let color = objects && objects.dataPoint ? objects.dataPoint.fill.solid.color : metaData && metaData.objects
                 ? colorHelper.getColorForMeasure(metaData.objects,"")

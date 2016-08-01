@@ -186,6 +186,9 @@ module powerbi.visuals {
         private overlayRect: D3.Selection;
         private isComboChart: boolean;
 
+        private previousCategoryIds: SelectionId[];
+        private suppressAnimation: boolean;
+
         private lastDragMoveXPosition: number;
         private deferDragMoveOperation = jsCommon.DeferUtility.deferUntilNextFrame(() => {
             if (this.lastDragMoveXPosition) {
@@ -204,12 +207,10 @@ module powerbi.visuals {
 
                 let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
 
-            // Opt in to scalar key if the axis type isn't explicitly not scalar and there is a scalar key.
+            // Opt in to scalar key
             let usingScalarKey = false;
-            let axisTypeValue = DataViewObjects.getValue(dataViewMapping.metadata.objects, lineChartProps.categoryAxis.axisType);
-            if (axisTypeValue !== axisType.categorical) {
                 let roleItems = dataViewCategories.for.in.items;
-                if (roleItems) {
+            if (roleItems && LineChart.shouldUseScalarKey(dataViewMapping, roleItems)) {
                     for (let item of roleItems) {
                         if (item.hasScalarKey) {
                             item.scalarKeyMinProperty = lineChartProps.scalarKey.scalarKeyMin;
@@ -218,7 +219,6 @@ module powerbi.visuals {
                         }
                     }
                 }
-            }
 
             if (CartesianChart.detectScalarMapping(dataViewMapping) || usingScalarKey) {
                 dataViewCategories.dataReductionAlgorithm = { sample: {} };
@@ -230,8 +230,34 @@ module powerbi.visuals {
                 }
             }
             else {
+                _.remove(options.dataViewMappings, (dataViewMapping) => dataViewMapping.usage && dataViewMapping.usage.forecast);
                 CartesianChart.expandCategoryWindow([dataViewMapping]);
             }
+        }
+
+        private static shouldUseScalarKey(dataViewMapping: data.CompiledDataViewMapping, categoryRoleItems: data.CompiledDataViewRoleItem[]): boolean {
+
+            // If explicitly categorical axis, no scalar keys
+            let axisTypeValue = DataViewObjects.getValue(dataViewMapping.metadata.objects, lineChartProps.categoryAxis.axisType);
+            if (axisTypeValue === axisType.categorical)
+                return false;
+
+            // If we are sorting by something other than this group, the scalar key is of no value
+            let columns = dataViewMapping.metadata && dataViewMapping.metadata.columns;
+            let sortedColumns: DataViewMetadataColumn[];
+            if (columns)
+                sortedColumns = _.filter(columns, (c) => c.sort !== undefined);
+            if (!_.isEmpty(sortedColumns)) {
+                // If we are sorting by something other than category, we won't be positioning by scalar key
+                if (_.any(sortedColumns, (c) => !_.find(categoryRoleItems, (ri) => c.queryName === ri.queryName)))
+                    return false;
+
+                // Make sure all of the sorted items are in the same direction, otherwise a scalar key won't make sense
+                if (_.any(sortedColumns, (c) => c.sort !== sortedColumns[0].sort))
+                    return false;
+            }
+
+            return true;
         }
 
         public static getSortableRoles(options: VisualSortableOptions): string[] {
@@ -332,153 +358,155 @@ module powerbi.visuals {
                 stackedValues = categorical.values && categorical.values.length > 0 ? _.times(categorical.values[0].values.length, () => 0) : [];
             }
 
-            for (let seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
-                let column = reader.getValueColumn(valueRoleName, seriesIndex);
-                let valuesMetadata = column.source;
-                let dataPoints: LineChartDataPoint[] = [];
-                let groupedIdentity = grouped[seriesIndex];
-                let identity = SelectionIdBuilder.builder()
-                    .withSeries(categorical.values, column)
-                    .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
-                    .createSelectionId();
-                let key = identity.getKey();
-                let color = this.getColor(colorHelper, hasDynamicSeries, values, grouped, seriesIndex, groupedIdentity);
-                let seriesLabelSettings: LineChartDataLabelsSettings;
-
-                if (!hasDynamicSeries) {
-                    let labelsSeriesGroup = grouped && grouped.length > 0 && grouped[0].values ? grouped[0].values[seriesIndex] : null;
-                    let labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject>labelsSeriesGroup.source.objects['labels'] : null;
-                    if (labelObjects) {
-                        seriesLabelSettings = Prototype.inherit(defaultLabelSettings);
-                        dataLabelUtils.updateLineChartLabelSettingsFromLabelsObject(labelObjects, seriesLabelSettings);
-                    }
-                }
-
-                let dataPointLabelSettings = (seriesLabelSettings) ? seriesLabelSettings : defaultLabelSettings;
-
-                let useHighlightValues = column.highlights && column.highlights.length > 0;
-                let categoryCount = reader.hasCategories() ? reader.getCategoryCount() : 1;
-                // NOTE: line capabilities don't allow highlights, but comboChart does - so only use highlight values if we are in "combo" mode
-                for (let categoryIndex = 0; categoryIndex < categoryCount; categoryIndex++) {
-                    let categoryValue = categoryValues[categoryIndex];
-                    let xAxisValue = useScalarKeys ? scalarKeys.values[categoryIndex].min : categoryValue;
-                    let value = AxisHelper.normalizeNonFiniteNumber(useHighlightValues ? reader.getHighlight(valueRoleName, categoryIndex, seriesIndex) : reader.getValue(valueRoleName, categoryIndex, seriesIndex));
-
-                    // When Scalar, skip null categories and null values so we draw connected lines and never draw isolated dots.
-                    if (isScalar && (categoryValue == null || value == null))
-                        continue;
-
-                    // ignore variant measures
-                    if (isDateTime && categoryValue != null && !(categoryValue instanceof Date))
-                        continue;
-
-                    let categorical: DataViewCategorical = dataView.categorical;
-                    let tooltipInfo: TooltipDataItem[];
-                    let extraTooltipInfo: TooltipDataItem[];
-
-                    if (tooltipsEnabled) {
-                        // This tooltip is using in combo chart and mobile tooltip.
-                        tooltipInfo = [];
-
-                        if (category.source) {
-                            tooltipInfo.push({
-                                displayName: category.source.displayName,
-                                value: converterHelper.formatFromMetadataColumn(categoryValue, category.source, formatStringProp),
-                            });
-                        }
-
-                        // This dynamicSeries tooltip is only using in mobile tooltip.
-                        if (hasDynamicSeries) {
-                            if (!category.source || category.source !== categorical.values.source) {
-                                // Category/series on the same column -- don't repeat its value in the tooltip.
-                                tooltipInfo.push({
-                                    displayName: categorical.values.source.displayName,
-                                    value: converterHelper.formatFromMetadataColumn(grouped[seriesIndex].name, categorical.values.source, formatStringProp),
-                                });
-                            }
-                        }
-                        if (value != null) {
-                            tooltipInfo.push({
-                                displayName: valuesMetadata.displayName,
-                                value: converterHelper.formatFromMetadataColumn(value, valuesMetadata, formatStringProp),
-                            });
-                        }
-
-                        if (tooltipBucketEnabled) {
-                            extraTooltipInfo = [];
-                            TooltipBuilder.addTooltipBucketItem(reader, extraTooltipInfo, categoryIndex, hasDynamicSeries ? seriesIndex : undefined);
-                        }
-                    }
-
-                    let idBuilder = new SelectionIdBuilder();
-                    if (reader.hasCategories()) {
-                        idBuilder = idBuilder.withCategory(reader.getCategoryColumn("Category"), categoryIndex);
-                    }
-                    if (hasDynamicSeries) {
-                        idBuilder = idBuilder.withSeries(dataView.categorical.values, reader.getValueColumn(valueRoleName, seriesIndex)); 
-                    }
-                    let specificIdentity = idBuilder
+            if (reader.hasValues(valueRoleName)) {
+                for (let seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+                    let column = reader.getValueColumn(valueRoleName, seriesIndex);
+                    let valuesMetadata = column.source;
+                    let dataPoints: LineChartDataPoint[] = [];
+                    let groupedIdentity = grouped[seriesIndex];
+                    let identity = SelectionIdBuilder.builder()
+                        .withSeries(categorical.values, column)
                         .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
                         .createSelectionId();
-                    let categoryKey = category && !_.isEmpty(category.identity) && category.identity[categoryIndex] ? category.identity[categoryIndex].key : categoryIndex;
+                    let key = identity.getKey();
+                    let color = this.getColor(colorHelper, hasDynamicSeries, values, grouped, seriesIndex, groupedIdentity);
+                    let seriesLabelSettings: LineChartDataLabelsSettings;
 
-                    let dataPoint: LineChartDataPoint = {
-                        categoryValue: ((isDateTime || useScalarKeys) && xAxisValue) ? xAxisValue.getTime() : xAxisValue,
-                        value: value,
-                        categoryIndex: categoryIndex,
-                        seriesIndex: seriesIndex,
-                        tooltipInfo: tooltipInfo,
-                        selected: false,
-                        identity: identity,
-                        specificIdentity: specificIdentity,
-                        key: JSON.stringify({ series: key, category: categoryKey }),
-                        labelFill: dataPointLabelSettings.labelColor,
-                        labelFormatString: valuesMetadata.format,
-                        labelSettings: dataPointLabelSettings,
-                        extraTooltipInfo: extraTooltipInfo,
-                    };
-
-                    if (shouldCalculateStacked) {
-                        stackedValues[categoryIndex] += value;
-                        dataPoint.stackedValue = stackedValues[categoryIndex];
+                    if (!hasDynamicSeries) {
+                        let labelsSeriesGroup = grouped && grouped.length > 0 && grouped[0].values ? grouped[0].values[seriesIndex] : null;
+                        let labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject>labelsSeriesGroup.source.objects['labels'] : null;
+                        if (labelObjects) {
+                            seriesLabelSettings = Prototype.inherit(defaultLabelSettings);
+                            dataLabelUtils.updateLineChartLabelSettingsFromLabelsObject(labelObjects, seriesLabelSettings);
+                        }
                     }
 
-                    if (category.objects && category.objects[categoryIndex]) {
-                        dataPoint['pointColor'] = DataViewObjects.getFillColor(category.objects[categoryIndex], lineChartProps.dataPoint.fill);
-                    }
+                    let dataPointLabelSettings = (seriesLabelSettings) ? seriesLabelSettings : defaultLabelSettings;
 
-                    dataPoints.push(dataPoint);
+                    let useHighlightValues = column.highlights && column.highlights.length > 0;
+                    let categoryCount = reader.hasCategories() ? reader.getCategoryCount() : 1;
+                    // NOTE: line capabilities don't allow highlights, but comboChart does - so only use highlight values if we are in "combo" mode
+                    for (let categoryIndex = 0; categoryIndex < categoryCount; categoryIndex++) {
+                        let categoryValue = categoryValues[categoryIndex];
+                        let xAxisValue = useScalarKeys ? scalarKeys.values[categoryIndex].min : categoryValue;
+                        let value = AxisHelper.normalizeNonFiniteNumber(useHighlightValues ? reader.getHighlight(valueRoleName, categoryIndex, seriesIndex) : reader.getValue(valueRoleName, categoryIndex, seriesIndex));
 
-                    if (!categoryData[categoryIndex]) {
-                        categoryData[categoryIndex] = dataPoint;
-                    }
-                    if (!categoryIdentities[categoryIndex] && reader.hasCategories()) {
-                        let categoryIdBuilder = new SelectionIdBuilder();
-                        categoryIdentities[categoryIndex] = categoryIdBuilder
-                            .withCategory(reader.getCategoryColumn("Category"), categoryIndex)
+                        // When Scalar, skip null categories and null values so we draw connected lines and never draw isolated dots.
+                        if (isScalar && (xAxisValue == null || value == null))
+                            continue;
+
+                        // ignore variant measures
+                        if (isDateTime && categoryValue != null && !(categoryValue instanceof Date))
+                            continue;
+
+                        let categorical: DataViewCategorical = dataView.categorical;
+                        let tooltipInfo: TooltipDataItem[];
+                        let extraTooltipInfo: TooltipDataItem[];
+
+                        if (tooltipsEnabled) {
+                            // This tooltip is using in combo chart and mobile tooltip.
+                            tooltipInfo = [];
+
+                            if (category.source) {
+                                tooltipInfo.push({
+                                    displayName: category.source.displayName,
+                                    value: converterHelper.formatFromMetadataColumn(categoryValue, category.source, formatStringProp),
+                                });
+                            }
+
+                            // This dynamicSeries tooltip is only using in mobile tooltip.
+                            if (hasDynamicSeries) {
+                                if (!category.source || category.source !== categorical.values.source) {
+                                    // Category/series on the same column -- don't repeat its value in the tooltip.
+                                    tooltipInfo.push({
+                                        displayName: categorical.values.source.displayName,
+                                        value: converterHelper.formatFromMetadataColumn(grouped[seriesIndex].name, categorical.values.source, formatStringProp),
+                                    });
+                                }
+                            }
+                            if (value != null) {
+                                tooltipInfo.push({
+                                    displayName: valuesMetadata.displayName,
+                                    value: converterHelper.formatFromMetadataColumn(value, valuesMetadata, formatStringProp),
+                                });
+                            }
+
+                            if (tooltipBucketEnabled) {
+                                extraTooltipInfo = [];
+                                TooltipBuilder.addTooltipBucketItem(reader, extraTooltipInfo, categoryIndex, hasDynamicSeries ? seriesIndex : undefined);
+                            }
+                        }
+
+                        let idBuilder = new SelectionIdBuilder();
+                        if (reader.hasCategories()) {
+                            idBuilder = idBuilder.withCategory(reader.getCategoryColumn("Category"), categoryIndex);
+                        }
+                        if (hasDynamicSeries) {
+                            idBuilder = idBuilder.withSeries(dataView.categorical.values, reader.getValueColumn(valueRoleName, seriesIndex));
+                        }
+                        let specificIdentity = idBuilder
                             .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
                             .createSelectionId();
+                        let categoryKey = category && !_.isEmpty(category.identity) && category.identity[categoryIndex] ? category.identity[categoryIndex].key : categoryIndex;
+
+                        let dataPoint: LineChartDataPoint = {
+                            categoryValue: ((isDateTime || useScalarKeys) && xAxisValue) ? (<Date>xAxisValue).getTime() : xAxisValue,
+                            value: value,
+                            categoryIndex: categoryIndex,
+                            seriesIndex: seriesIndex,
+                            tooltipInfo: tooltipInfo,
+                            selected: false,
+                            identity: identity,
+                            specificIdentity: specificIdentity,
+                            key: JSON.stringify({ series: key, category: categoryKey }),
+                            labelFill: dataPointLabelSettings.labelColor,
+                            labelFormatString: valuesMetadata.format,
+                            labelSettings: dataPointLabelSettings,
+                            extraTooltipInfo: extraTooltipInfo,
+                        };
+
+                        if (shouldCalculateStacked) {
+                            stackedValues[categoryIndex] += value;
+                            dataPoint.stackedValue = stackedValues[categoryIndex];
+                        }
+
+                        if (category.objects && category.objects[categoryIndex]) {
+                            dataPoint['pointColor'] = DataViewObjects.getFillColor(category.objects[categoryIndex], lineChartProps.dataPoint.fill);
+                        }
+
+                        dataPoints.push(dataPoint);
+
+                        if (!categoryData[categoryIndex]) {
+                            categoryData[categoryIndex] = dataPoint;
+                        }
+                        if (!categoryIdentities[categoryIndex] && reader.hasCategories()) {
+                            let categoryIdBuilder = new SelectionIdBuilder();
+                            categoryIdentities[categoryIndex] = categoryIdBuilder
+                                .withCategory(reader.getCategoryColumn("Category"), categoryIndex)
+                                .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
+                                .createSelectionId();
+                        }
                     }
-                }
 
-                if (interactivityService) {
-                    interactivityService.applySelectionStateToData(dataPoints);
-                }
+                    if (interactivityService) {
+                        interactivityService.applySelectionStateToData(dataPoints);
+                    }
 
-                if (dataPoints.length > 0) {
-                    series.push({
-                        displayName: converterHelper.formatFromMetadataColumn(reader.getValueDisplayName(valueRoleName, seriesIndex), reader.getValueMetadataColumn(valueRoleName, seriesIndex), formatStringProp),
-                        dynamicDisplayName: hasDynamicSeries ? converterHelper.formatFromMetadataColumn(reader.getSeriesName(seriesIndex), reader.getSeriesMetadataColumn(), formatStringProp) : undefined,
-                        key: key,
-                        lineIndex: seriesIndex,
-                        color: color,
-                        xCol: useScalarKeys ? scalarMetadataColumn : category.source,
-                        yCol: reader.getValueMetadataColumn(valueRoleName, seriesIndex),
-                        data: dataPoints,
-                        identity: identity,
-                        selected: false,
-                        labelSettings: seriesLabelSettings,
-                    });
+                    if (dataPoints.length > 0) {
+                        series.push({
+                            displayName: converterHelper.formatFromMetadataColumn(reader.getValueDisplayName(valueRoleName, seriesIndex), reader.getValueMetadataColumn(valueRoleName, seriesIndex), formatStringProp),
+                            dynamicDisplayName: hasDynamicSeries ? converterHelper.formatFromMetadataColumn(reader.getSeriesName(seriesIndex), reader.getSeriesMetadataColumn(), formatStringProp) : undefined,
+                            key: key,
+                            lineIndex: seriesIndex,
+                            color: color,
+                            xCol: useScalarKeys ? scalarMetadataColumn : category.source,
+                            yCol: reader.getValueMetadataColumn(valueRoleName, seriesIndex),
+                            data: dataPoints,
+                            identity: identity,
+                            selected: false,
+                            labelSettings: seriesLabelSettings,
+                        });
+                    }
                 }
             }
 
@@ -512,7 +540,7 @@ module powerbi.visuals {
                 scalarKeyCount: useScalarKeys ? scalarKeys.values.length : undefined,
                 categories: categoryValues,
                 categoryData: categoryData,
-                seriesDisplayName: hasDynamicSeries ? converterHelper.formatFromMetadataColumn(reader.getSeriesDisplayName(), reader.getSeriesMetadataColumn(), formatStringProp) : undefined,
+                seriesDisplayName: hasDynamicSeries && reader.hasValues(valueRoleName) ? converterHelper.formatFromMetadataColumn(reader.getSeriesDisplayName(), reader.getSeriesMetadataColumn(), formatStringProp) : undefined,
                 hasValues: reader.hasValues(valueRoleName),
                 categoryIdentities: categoryIdentities,
             };
@@ -688,6 +716,21 @@ module powerbi.visuals {
                             this.tooltipsEnabled,
                             this.tooltipBucketEnabled);
                         this.data = convertedData;
+                        
+                        let previousCategoryIds = this.previousCategoryIds;
+                        let currentCategoryIds = convertedData.categoryIdentities;
+                        if (previousCategoryIds != null && !(previousCategoryIds.length > AnimatorCommon.MaxDataPointsToAnimate || currentCategoryIds.length > AnimatorCommon.MaxDataPointsToAnimate)) {
+                            this.suppressAnimation = false;
+
+                            for (let categoryIndex = 0, categoryCount = Math.min(previousCategoryIds.length, currentCategoryIds.length); categoryIndex < categoryCount; categoryIndex++) {
+                                if (!previousCategoryIds[categoryIndex].equals(currentCategoryIds[categoryIndex])) {
+                                    this.suppressAnimation = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        this.previousCategoryIds = currentCategoryIds;
                     }
                 }
             }
@@ -858,6 +901,19 @@ module powerbi.visuals {
             return !EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea) && isScalar && this.data.hasValues;
         }
 
+        public supportsForecast(): boolean {
+            let isScalar = this.data ? this.data.isScalar : false;
+            return !EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea) && isScalar && this.data.hasValues && this.data.series.length === 1;
+        }
+	
+        public isStacked(): boolean {
+            return EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea);
+        }
+
+        public shouldSuppressAnimation(): boolean {
+            return !!this.suppressAnimation;
+        }
+
         private showLabelPerSeries(): boolean {
             let data = this.data;
             return !data.hasDynamicSeries && (data.series.length > 1 || !data.categoryMetadata);
@@ -888,7 +944,7 @@ module powerbi.visuals {
 
         public render(suppressAnimations: boolean): CartesianVisualRenderResult {
             let duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
-            if (this.data.categoryData.length !== this.previousCategoryCount) {
+            if (this.suppressAnimation) {
                 duration = 0;
             }
             this.previousCategoryCount = this.data.categoryData.length;

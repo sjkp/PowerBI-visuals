@@ -32,24 +32,25 @@ module jasmine {
 
     export interface Matchers {
         /** Performs a deep comparison of all enumerable properties, including those defined by object prototypes. */
-        toEqualDeep(expected: {}): void;
-        toEqualDeep(expected: any[]): void;
+        toEqualDeep(expected: {}, failureMessage?: string): void;
+        toEqualDeep(expected: any[], failureMessage?: string): void;
     }
 
     beforeEach(() => {
         addMatchers({
             toEqualDeep: (util: MatchersUtil, customEqualityTesters: CustomEqualityTester[]): CustomMatcher => {
                 return {
-                    compare: (actual, expected) => toEqualDeep(util, actual, expected, []),
+                    compare: (actual, expected, failureMessage) => toEqualDeep(util, actual, expected, failureMessage, []),
                 };
             }
         });
     });
 
-    function toEqualDeep(util: MatchersUtil, actual: any, expected: any, path: ObjectKey[]): CustomMatcherResult {
+    function toEqualDeep(util: MatchersUtil, actual: any, expected: any, failureMessage: string, path: ObjectKey[]): CustomMatcherResult {
         debug.assertValue(util, 'util');
         debug.assertAnyValue(actual, 'actual');
         debug.assertAnyValue(expected, 'expected');
+        debug.assertAnyValue(failureMessage, 'failureMessage');
         debug.assertValue(path, 'path');
 
         if (path.length > 1000) {
@@ -65,19 +66,19 @@ module jasmine {
             if (type !== typeof actual) {
                 matcherResult = {
                     pass: false,
-                    message: util.buildFailureMessage('to be same type as', false, actual, expected),
+                    message: buildFailureMessage('to be same type as', util, actual, expected, failureMessage, path),
                 };
             }
             else if (type === 'function') {
                 matcherResult = { pass: true };
             }
             else if (type === 'object' && actual != null && expected != null) {
-                matcherResult = deepCompareObj(util, actual, expected, path);
+                matcherResult = deepCompareObj(util, actual, expected, failureMessage, path);
             }
             else {
                 matcherResult = {
                     pass: false,
-                    message: util.buildFailureMessage('to equal', false, actual, expected),
+                    message: buildFailureMessage('to equal', util, actual, expected, failureMessage, path),
                 };
             }
 
@@ -85,7 +86,7 @@ module jasmine {
                 // Finally, if all previous checks indicates that expected != actual, we will check for the case
                 // where either 'actual' and/or 'expected' is created by jasmine.any(...)...
                 // See comments inside compareJasmineAny(...) for unfortunate details.
-                let jasmineAnyResult = fallbackCompareForJasmineAny(util, actual, expected);
+                let jasmineAnyResult = fallbackCompareForJasmineAny(util, actual, expected, failureMessage, path);
                 if (jasmineAnyResult)
                     matcherResult = jasmineAnyResult;
             }
@@ -94,10 +95,11 @@ module jasmine {
         return matcherResult;
     }
 
-    function deepCompareObj(util: MatchersUtil, actual: ObjectOrArray, expected: ObjectOrArray, path: ObjectKey[]): CustomMatcherResult {
+    function deepCompareObj(util: MatchersUtil, actual: ObjectOrArray, expected: ObjectOrArray, failureMessage: string, path: ObjectKey[]): CustomMatcherResult {
         debug.assertValue(util, 'util');
         debug.assert(_.isObject(actual), '_.isObject(actual)');
         debug.assert(_.isObject(expected), '_.isObject(expected)');
+        debug.assertAnyValue(failureMessage, 'failureMessage');
         debug.assertValue(path, 'path');
 
         let actualKeys: ObjectKey[];
@@ -122,10 +124,10 @@ module jasmine {
             if (_.isEqual(actualKeys, expectedKeys)) {
                 for (let key of actualKeys) {
                     path.push(key);
-                    let itemResult = toEqualDeep(util, actual[key], expected[key], path);
+                    let itemResult = toEqualDeep(util, actual[key], expected[key], failureMessage, path);
 
                     if (!itemResult.pass) {
-                        itemResult.message = 'at: [' + path.join('].[') + ']: ' + util.buildFailureMessage('to equal deep', false, actual, expected);
+                        itemResult.message = buildFailureMessage('to equal deep', util, actual, expected, failureMessage, path);
                         return itemResult;
                     }
 
@@ -145,8 +147,25 @@ module jasmine {
 
         return {
             pass: false,
-            message: util.buildFailureMessage('to equal deep', false, actual, expected),
+            message: buildFailureMessage('to equal deep', util, actual, expected, failureMessage, path),
         };
+    }
+
+    function buildFailureMessage(
+        message: string,
+        util: MatchersUtil,
+        actual: ObjectOrArray,
+        expected: ObjectOrArray,
+        failureMessage: string,
+        path: ObjectKey[]): string {
+        debug.assertValue(message, 'message');
+        debug.assertValue(util, 'util');
+        debug.assertAnyValue(actual, 'actual');
+        debug.assertAnyValue(expected, 'expected');
+        debug.assertAnyValue(failureMessage, 'failureMessage');
+        debug.assertValue(path, 'path');
+
+        return 'at: [' + path.join('].[') + ']: ' + util.buildFailureMessage(message, false, actual, expected, failureMessage);
     }
 
     function getKeys(obj: {}): string[] {
@@ -187,7 +206,7 @@ module jasmine {
         return false;
     }
 
-    function fallbackCompareForJasmineAny(util: MatchersUtil, actual: any, expected: any): CustomMatcherResult {
+    function fallbackCompareForJasmineAny(util: MatchersUtil, actual: any, expected: any, failureMessage: string, path: ObjectKey[]): CustomMatcherResult {
         if (isJasmine24()) {
             // For handling jasmine.any(aClass: any): if 'actual' and/or 'expected' are created by jasmine.any()...
             let asymmetricResult = asymmetricMatch(actual, expected);
@@ -196,7 +215,7 @@ module jasmine {
                     pass: asymmetricResult
                 };
                 if (!matchResult.pass) {
-                    matchResult.message = util.buildFailureMessage('to be an object that is compatible with the type specified in jasmine.any(...)', false, actual, expected);
+                    matchResult.message = buildFailureMessage('to be an object that is compatible with the type specified in jasmine.any(...)', util, actual, expected, failureMessage, path);
                 }
 
                 return matchResult;

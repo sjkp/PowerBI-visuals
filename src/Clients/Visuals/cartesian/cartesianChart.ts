@@ -116,6 +116,7 @@ module powerbi.visuals {
         tooltipBucketEnabled?: boolean;
         trimOrdinalDataOnOverflow?: boolean;
         advancedLineLabelsEnabled?: boolean;
+        forecastEnabled?: boolean;
     }
 
     export interface ICartesianVisual {
@@ -133,7 +134,9 @@ module powerbi.visuals {
         getPreferredPlotArea?(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport;
         setFilteredData?(startIndex: number, endIndex: number): CartesianData;
         supportsTrendLine?(): boolean;
+        isStacked?(): boolean;
         shouldSuppressAnimation?(): boolean;
+        supportsForecast?(): boolean;
     }
 
     export interface CartesianVisualConstructorOptions {
@@ -144,6 +147,7 @@ module powerbi.visuals {
         tooltipsEnabled?: boolean;
         tooltipBucketEnabled?: boolean;
         advancedLineLabelsEnabled?: boolean;
+        forecastEnabled?: boolean;
     }
 
     export interface CartesianVisualRenderResult {
@@ -290,6 +294,7 @@ module powerbi.visuals {
         private valueAxisProperties: DataViewObject;
         private xAxisReferenceLines: DataViewObjectMap;
         private y1AxisReferenceLines: DataViewObjectMap;
+        private referenceLines: DataViewObjectMap;
         private cartesianSmallViewPortProperties: CartesianSmallViewPortProperties;
         private interactivityService: IInteractivityService;
         private behavior: IInteractiveBehavior;
@@ -300,8 +305,10 @@ module powerbi.visuals {
         private trimOrdinalDataOnOverflow: boolean;
         private isMobileChart: boolean;
         private advancedLineLabelsEnabled: boolean;
+        private forecastEnabled: boolean;
 
         private trendLines: TrendLine[];
+        private forecastLine: Forecast;
 
         private xRefLine: ClassAndSelector = createClassAndSelector('x-ref-line');
         private y1RefLine: ClassAndSelector = createClassAndSelector('y1-ref-line');
@@ -340,6 +347,7 @@ module powerbi.visuals {
             if (options) {
                 this.tooltipsEnabled = options.tooltipsEnabled;
                 this.tooltipBucketEnabled = options.tooltipBucketEnabled;
+                this.forecastEnabled = options.forecastEnabled;
                 this.type = options.chartType;
                 this.isLabelInteractivityEnabled = options.isLabelInteractivityEnabled;
                 this.advancedLineLabelsEnabled = options.advancedLineLabelsEnabled;
@@ -479,6 +487,7 @@ module powerbi.visuals {
                     this.legendObjectProperties = DataViewObjects.getObject(dataViewMetadata.objects, 'legend', {});
                     this.xAxisReferenceLines = DataViewObjects.getUserDefinedObjects(dataViewMetadata.objects, 'xAxisReferenceLine');
                     this.y1AxisReferenceLines = DataViewObjects.getUserDefinedObjects(dataViewMetadata.objects, 'y1AxisReferenceLine');
+                    this.referenceLines = DataViewObjects.getUserDefinedObjects(dataViewMetadata.objects, 'referenceLine');
                 }
                 else {
                     this.legendObjectProperties = {};
@@ -537,8 +546,10 @@ module powerbi.visuals {
 
                 this.sharedColorPalette.clearPreferredScale();
                 let layerDataViews = getLayerDataViews(dataViews);
-                let trendLineDataViews = _.filter(dataViews, (dataView) => TrendLineHelper.isDataViewForRegression(dataView));
+                let trendLineDataViews = _.filter(dataViews, TrendLineHelper.isDataViewForRegression);
                 this.trendLines = [];
+                let forecastDataViews = _.filter(dataViews, ForecastHelper.isDataViewForForecast);
+                this.forecastLine = null;
 
                 for (let i = 0, layerCount = layers.length; i < layerCount; i++) {
                     let layerDataView = layerDataViews[i];
@@ -550,6 +561,14 @@ module powerbi.visuals {
                             let y2 = (i > 0);
                             let trendLines = TrendLineHelper.readDataView(trendLineDataView, layerDataView, y2, this.sharedColorPalette);
                             this.trendLines.push(...trendLines);
+                        }
+                    }
+
+                    if (this.supportsForecast(i)) {
+                        let forecastDataView = forecastDataViews[i];
+                        if (forecastDataView) {
+                            let forecastLine = ForecastHelper.readDataView(forecastDataView, layerDataView, this.sharedColorPalette);
+                            this.forecastLine = forecastLine;
                         }
                     }
 
@@ -618,12 +637,13 @@ module powerbi.visuals {
                 let titleText = DataViewObject.getValue(this.legendObjectProperties, legendProps.titleText, this.layerLegendData ? this.layerLegendData.title : '');
                 let labelColor = DataViewObject.getValue(this.legendObjectProperties, legendProps.labelColor, LegendData.DefaultLegendLabelFillColor);
                 let fontSize = DataViewObject.getValue(this.legendObjectProperties, legendProps.fontSize, this.layerLegendData && this.layerLegendData.fontSize ? this.layerLegendData.fontSize : SVGLegend.DefaultFontSizeInPt);
+                let position = DataViewObject.getValue(this.legendObjectProperties, legendProps.position, legendPosition.top);
 
                 enumeration.pushInstance({
                     selector: null,
                     properties: {
                         show: show,
-                        position: LegendPosition[this.legend.getOrientation()],
+                        position: position,
                         showTitle: showTitle,
                         titleText: titleText,
                         labelColor: labelColor,
@@ -646,9 +666,20 @@ module powerbi.visuals {
                 let refLinedefaultColor = this.sharedColorPalette.getColorByIndex(0).value;
                 ReferenceLineHelper.enumerateObjectInstances(enumeration, this.xAxisReferenceLines, refLinedefaultColor, options.objectName);
             }
+            else if (options.objectName === 'referenceLine') {
+                if (this.supportsDataBoundReferenceLines()) {
+                    let refLinedefaultColor = this.sharedColorPalette.getColorByIndex(0).value;
+                    ReferenceLineHelper.enumerateObjectInstances(enumeration, this.referenceLines, refLinedefaultColor, options.objectName);
+                }
+            }
             else if (options.objectName === 'trend') {
                 if (this.supportsTrendLines()) {
                     TrendLineHelper.enumerateObjectInstances(enumeration, this.trendLines);
+                }
+            }
+            else if (options.objectName === 'forecast' && this.forecastEnabled) {
+                if (this.supportsForecast()) {
+                    ForecastHelper.enumerateObjectInstances(enumeration, this.forecastLine);
                 }
             }
             else if (options.objectName === 'plotArea') {
@@ -672,6 +703,18 @@ module powerbi.visuals {
         }
 
         private supportsTrendLines(layerIndex?: number): boolean {
+            return this.allLayerSupports((layer) => layer.supportsTrendLine && layer.supportsTrendLine(), layerIndex);
+        }
+
+        private supportsForecast(layerIndex?: number): boolean {
+            return this.allLayerSupports((layer) => layer.supportsForecast && layer.supportsForecast(), layerIndex);
+        }
+
+        private supportsDataBoundReferenceLines(layerIndex?: number): boolean {
+            return this.allLayerSupports((layer) => !layer.isStacked || !layer.isStacked(), layerIndex);
+        }
+
+        private allLayerSupports(predicate: (layer: ICartesianVisual) => boolean, layerIndex?: number): boolean {
             let layerDataViews = getLayerDataViews(this.dataViews);
 
             if (_.isEmpty(this.layers))
@@ -683,7 +726,7 @@ module powerbi.visuals {
             return _.all(layers, (layer, index) => {
                 if (!layerDataViews[index])
                     return true;
-                return layer.supportsTrendLine && layer.supportsTrendLine();
+                return predicate(layer);
             });
         }
 
@@ -981,6 +1024,14 @@ module powerbi.visuals {
 
             let [ensureXDomain, ensureYDomain] = this.getMinimumDomainExtents();
 
+            // Even if the caller thinks animations are ok, now that we've laid out the axes and legend we should disable animations
+            // if the plot area changed. Animations for property changes like legend on/off are not desired.
+            let plotAreaHasChanged: boolean =
+                !this.renderedPlotArea
+                || (this.renderedPlotArea.height !== plotAreaViewport.height ||
+                    this.renderedPlotArea.width !== plotAreaViewport.width);
+            suppressAnimations = suppressAnimations || plotAreaHasChanged;
+
             let axesLayout = this.axes.negotiateAxes(
                 this.layers,
                 plotAreaViewport,
@@ -997,14 +1048,6 @@ module powerbi.visuals {
             if (this.loadMoreDataHandler) {
                 this.loadMoreDataHandler.setScale(categoryAxis.scale);
             }
-
-            // Even if the caller thinks animations are ok, now that we've laid out the axes and legend we should disable animations
-            // if the plot area changed. Animations for property changes like legend on/off are not desired.
-            let plotAreaHasChanged: boolean =
-                !this.renderedPlotArea
-                || (this.renderedPlotArea.height !== axesLayout.plotArea.height ||
-                    this.renderedPlotArea.width !== axesLayout.plotArea.width);
-            suppressAnimations = suppressAnimations || plotAreaHasChanged;
 
             this.scrollableAxes.render(
                 axesLayout,
@@ -1024,12 +1067,12 @@ module powerbi.visuals {
                 (<MouseWheelEvent>wheelEvent).preventDefault();
             });
 
-            this.renderedPlotArea = axesLayout.plotArea;
+            this.renderedPlotArea = plotAreaViewport;
         }
 
         /**
          * Gets any minimum domain extents.
-         * Reference lines and trend lines may enforce minimum extents on X and/or Y domains.
+         * Reference lines and forecast lines may enforce minimum extents on X and/or Y domains.
          */
         private getMinimumDomainExtents(): NumberRange[] {
             let xs: number[] = [];
@@ -1045,6 +1088,15 @@ module powerbi.visuals {
                 let y1AxisReferenceLineProperties: DataViewObject = this.y1AxisReferenceLines[0].object;
                 let value = ReferenceLineHelper.extractReferenceLineValue(y1AxisReferenceLineProperties);
                 ys.push(value);
+            }
+
+            if (this.forecastLine && !_.isEmpty(this.forecastLine.points)) {
+                xs.push(..._.map(this.forecastLine.points, p => p.point.x));
+                ys.push(..._.map(this.forecastLine.points, p => p.point.y));
+                xs.push(..._.map(this.forecastLine.points, p => p.upperBound.x));
+                ys.push(..._.map(this.forecastLine.points, p => p.upperBound.y));
+                xs.push(..._.map(this.forecastLine.points, p => p.lowerBound.x));
+                ys.push(..._.map(this.forecastLine.points, p => p.lowerBound.y));
             }
 
             let ensureXDomain: NumberRange = {
@@ -1116,6 +1168,9 @@ module powerbi.visuals {
             resizeMode?: ResizeMode): void {
             debug.assertValue(layers, 'layers');
 
+            // some layer (e.g. scatterChart) may want to suppress animations. if any does, suppress for all.
+            suppressAnimations = suppressAnimations || _.any(layers, (layer: ICartesianVisual) => layer.shouldSuppressAnimation && layer.shouldSuppressAnimation());
+
             let axes = axesLayout.axes;
             let plotArea = axesLayout.plotArea;
             let plotAreaRect = this.getPlotAreaRect(axesLayout, legendMargins);
@@ -1134,11 +1189,18 @@ module powerbi.visuals {
             this.renderLayers(layers, plotArea, axes, suppressAnimations, resizeMode);
 
             this.renderTrendLines(axesLayout);
+
+            this.renderForecast(axesLayout, suppressAnimations);
         }
 
         private renderTrendLines(axesLayout: CartesianAxesLayout): void {
             let scrollableRegion = this.svgAxes.getScrollableRegion();
             TrendLineHelper.render(this.trendLines, scrollableRegion, axesLayout.axes, axesLayout.plotArea);
+        }
+
+        private renderForecast(axesLayout: CartesianAxesLayout, suppressAnimations: boolean): void {
+            let scrollableRegion = this.svgAxes.getScrollableRegion();
+            ForecastHelper.render(this.forecastLine, scrollableRegion, axesLayout.axes, axesLayout.plotArea, this.animator, suppressAnimations);
         }
 
         private renderReferenceLines(axesLayout: CartesianAxesLayout): void {
@@ -1315,14 +1377,7 @@ module powerbi.visuals {
             let labelsAreNumeric: boolean = true;
 
             // some layer (e.g. scatterChart) may want to suppress animations. if any does, suppress for all.
-            if (!suppressAnimations) {
-                for (let layer of layers) {
-                    if (layer.shouldSuppressAnimation && layer.shouldSuppressAnimation()) {
-                        suppressAnimations = true;
-                        break;
-                    }
-                }
-            }
+            suppressAnimations = suppressAnimations || _.any(layers, (layer: ICartesianVisual) => layer.shouldSuppressAnimation && layer.shouldSuppressAnimation());
 
             for (let layer of layers) {
                 let result = layer.render(suppressAnimations, resizeMode);
@@ -1583,7 +1638,7 @@ module powerbi.visuals {
             return [];
 
         // TODO: figure out a more general way to correlate between layers and input data views.
-        return _.filter(dataViews, (dataView) => !TrendLineHelper.isDataViewForRegression(dataView));
+        return _.filter(dataViews, (dataView) => !TrendLineHelper.isDataViewForRegression(dataView) && !ForecastHelper.isDataViewForForecast(dataView));
     }
 
     function hasMultipleYAxes(layers: ICartesianVisual[]): boolean {

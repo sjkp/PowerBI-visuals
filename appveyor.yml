@@ -33,10 +33,6 @@ environment:
 # build platform, i.e. x86, x64, Any CPU. This setting is optional.
 platform: Any CPU
 
-# build cache to preserve files/folders between builds
-cache:
-  #- node_modules # local npm modules
-
 # scripts that run after cloning repository
 install:
   - npm install -g gulp

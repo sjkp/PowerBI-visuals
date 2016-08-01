@@ -17,6 +17,7 @@ require("./typedefs/typedefs.ts");
 require("./common.ts");
 require("./mocks.ts");
 require("./helpers/helpers.ts");
+require("./helpers/forecastTestHelpers.ts");
 require("./helpers/performanceTestsHelpers.ts");
 require("./helpers/slicerHelper.ts");
 require("./helpers/tableDataViewHelper.ts");

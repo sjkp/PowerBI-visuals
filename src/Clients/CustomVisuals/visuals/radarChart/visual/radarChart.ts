@@ -382,12 +382,12 @@ module powerbi.visuals.samples {
 
                     dataPoints.push({
                         x: k,
-                        y: values[i].values[k],
+                        y: <number>values[i].values[k],
                         color: color,
                         identity: dataPointIdentity,
                         selected: false,
                         tooltipInfo: tooltipInfo,
-                        value: values[i].values[k],
+                        value: <number>values[i].values[k],
                         labelFormatString: labelFormatString,
                         labelFontSize: fontSizeInPx,
                     });

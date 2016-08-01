@@ -51,6 +51,8 @@ declare module powerbi.data {
     }
 
     export interface CompiledDataViewMappingMetadata {
+        columns: DataViewMetadataColumn[];
+
         /** The metadata repetition objects. */
         objects?: DataViewObjects;
     }

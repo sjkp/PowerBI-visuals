@@ -203,9 +203,10 @@ declare module powerbi {
 
     /** Defines how the mapping will be used. The set of objects in this interface can modify the usage. */
     export interface DataViewMappingUsage {
-        regression: {
+        regression?: {
             [propertyName: string]: DataViewObjectPropertyIdentifier;
         };
+        forecast?: {};
     }
 
     export interface DataViewMappingRoleProjectionAggregates {

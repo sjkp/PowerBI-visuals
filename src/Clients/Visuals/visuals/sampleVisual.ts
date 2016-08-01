@@ -131,9 +131,9 @@ export const cheerMeterProps = {
             if (!dataView.categorical || !dataView.categorical.categories) return null;
             let cat = dataView.categorical.categories[0];
             if (!cat) return null;
-            let catValues = cat.values;
+            let catValues = <string[]>cat.values;
             if (!catValues || _.isEmpty(dataView.categorical.values)) return null;
-            let values = dataView.categorical.values[0].values;
+            let values = <number[]>dataView.categorical.values[0].values;
             let objects = dataView.categorical.categories[0].objects;
             let object1 = objects && objects.length > 0 ? objects[0] : undefined;
             let object2 = objects && objects.length > 1 ? objects[1] : undefined;
@@ -166,7 +166,7 @@ export const cheerMeterProps = {
                 .withCategory(cat, 1)
                 .createSelectionId();
 
-            let data = {
+            let data: CheerData = {
                 teamA: {
                     name: catValues[0],
                     value: values[0],

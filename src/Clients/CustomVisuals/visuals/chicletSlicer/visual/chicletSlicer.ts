@@ -1511,7 +1511,7 @@ module powerbi.visuals.samples {
                             for (var seriesIndex: number = 0; seriesIndex < this.dataViewCategorical.values.length; seriesIndex++) {
                                 var seriesData = dataViewCategorical.values[seriesIndex];
                                 if (seriesData.values[categoryIndex] != null) {
-                                    value = seriesData.values[categoryIndex];
+                                    value = <number>seriesData.values[categoryIndex];
                                     if (seriesData.highlights) {
                                         selectable = !(seriesData.highlights[categoryIndex] === null);
                                     }

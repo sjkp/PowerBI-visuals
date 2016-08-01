@@ -702,7 +702,7 @@ module powerbi.visuals.samples {
             if (dataView.categorical.values &&
                 dataView.categorical.values[0] &&
                 dataView.categorical.values[0].values) {
-                frequencies = dataView.categorical.values[0].values;
+                frequencies = <number[]>dataView.categorical.values[0].values;
             }
 
             if (dataView.categorical.categories[0].identity
@@ -717,7 +717,7 @@ module powerbi.visuals.samples {
             }
 
             values = Histogram.getValuesByFrequencies(
-                dataView.categorical.categories[0].values,
+                <number[]>dataView.categorical.categories[0].values,
                 frequencies,
                 identities);
 

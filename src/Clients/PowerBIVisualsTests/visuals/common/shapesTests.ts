@@ -1052,6 +1052,14 @@ module powerbitests {
             expect(rectA.height).toBe(defaultValue.height);
         });
 
+        it("getCentroid", () => {
+            let rect: IRect = { left: 70, top: 110, width: 130, height: 270 };
+
+            expect(Rect.getCentroid(rect)).toEqual({
+                x: 135,
+                y: 245
+            });
+        });
     });
 
     describe("Thickness tests", () => {

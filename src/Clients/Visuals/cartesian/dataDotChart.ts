@@ -488,8 +488,8 @@ module powerbi.visuals {
                         continue;
 
                     dataPoints.push({
-                        categoryValue: isDateTime && categoryValue ? categoryValue.getTime() : categoryValue,
-                        value: measure.values[categoryIndex],
+                        categoryValue: isDateTime && categoryValue ? (<Date>categoryValue).getTime() : categoryValue,
+                        value: <number>measure.values[categoryIndex],
                         categoryIndex: categoryIndex,
                         seriesIndex: 0,
                         selected: false,
@@ -500,10 +500,10 @@ module powerbi.visuals {
                     if (hasHighlights) {
 
                         let highlightIdentity = SelectionId.createWithHighlight(identity);
-                        let highlightValue = measure.highlights[categoryIndex];
+                        let highlightValue = <number>measure.highlights[categoryIndex];
 
                         dataPoints.push({
-                            categoryValue: isDateTime && categoryValue ? categoryValue.getTime() : categoryValue,
+                            categoryValue: isDateTime && categoryValue ? (<Date>categoryValue).getTime() : categoryValue,
                             value: highlightValue,
                             categoryIndex: categoryIndex,
                             seriesIndex: 0,

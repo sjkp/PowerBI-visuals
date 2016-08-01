@@ -474,13 +474,14 @@ module powerbi.visuals {
             let titleText = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.titleText, this.data.legendData.title);
             let labelColor = DataViewObject.getValue(legendObjectProperties, legendProps.labelColor, this.data.legendData.labelColor);
             let labelFontSize = DataViewObject.getValue(legendObjectProperties, legendProps.fontSize, this.data.legendData.fontSize);
+            let position = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.position, legendPosition.top);
 
             enumeration.pushInstance({
                 selector: null,
                 objectName: 'legend',
                 properties: {
                     show: show,
-                    position: LegendPosition[this.legend.getOrientation()],
+                    position: position,
                     showTitle: showTitle,
                     titleText: titleText,
                     labelColor: labelColor,

@@ -126,6 +126,42 @@ module powerbi.visuals {
                     description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
                     properties: {
                         show: StandardObjectProperties.show,
+                        displayName: {
+                            displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                            description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                            type: { text: true } 
+                        },
+                        value: {
+                            displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
+                            description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),
+                            type: { numeric: true }
+                        },
+                        lineColor: StandardObjectProperties.lineColor,
+                        transparency: {
+                            displayName: data.createDisplayNameGetter('Visual_Reference_Line_Transparency'),
+                            description: data.createDisplayNameGetter('Visual_Reference_Line_Transparency_Description'),
+                            type: { numeric: true }
+                        },
+                        style: StandardObjectProperties.referenceLineStyle,
+                        position: StandardObjectProperties.referenceLinePosition,
+                        dataLabelShow: StandardObjectProperties.dataLabelShow,
+                        dataLabelColor: StandardObjectProperties.dataLabelColor,
+                        dataLabelDecimalPoints: StandardObjectProperties.dataLabelDecimalPoints,
+                        dataLabelHorizontalPosition: StandardObjectProperties.dataLabelHorizontalPosition,
+                        dataLabelVerticalPosition: StandardObjectProperties.dataLabelVerticalPosition,
+                        dataLabelDisplayUnits: StandardObjectProperties.dataLabelDisplayUnits,
+                    },
+                },
+                referenceLine: {
+                    displayName: data.createDisplayNameGetter('Visual_Reference_Line'),
+                    description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
+                    properties: {
+                        show: StandardObjectProperties.show,
+                        displayName: {
+                            displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                            description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                            type: { text: true } 
+                        },
                         value: {
                             displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
                             description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),
@@ -172,6 +208,11 @@ module powerbi.visuals {
                     properties: {
                         show: {
                             type: { bool: true }
+                        },
+                        displayName: {
+                            displayName: data.createDisplayNameGetter('Visual_Trend_Line_DisplayName'),
+                            description: data.createDisplayNameGetter('Visual_Trend_Line_DisplayName_Description'),
+                            type: { text: true } 
                         },
                         lineColor: {
                             displayName: data.createDisplayNameGetter('Visual_Trend_Line_Color'),

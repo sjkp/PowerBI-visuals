@@ -23,6 +23,7 @@
 /// <reference path="./formatting/numericSequence.ts"/>
 /// <reference path="./formatting/numericSequenceRange.ts"/>
 /// <reference path="./formatting/valueFormatter.ts"/>
+/// <reference path="./dataView/utils/dataViewCategoricalUtils.ts"/>
 /// <reference path="./dataView/utils/dataViewMatrixUtils.ts"/>
 /// <reference path="./dataView/utils/dataViewMetadataColumnUtils.ts"/>
 /// <reference path="./dataView/colorAllocator.ts"/>
@@ -44,8 +45,8 @@
 /// <reference path="./dataView/dataViewPivotMatrix.ts"/>
 /// <reference path="./dataView/dataViewSelfCrossJoin.ts"/>
 /// <reference path="./dataView/dataViewPivotCategoricalToPrimaryGroups.ts"/>
-/// <reference path="./dataView/dataViewRemoveSelects.ts"/>
 /// <reference path="./dataView/dataViewTransformContext.ts"/>
+/// <reference path="./dataView/dataViewCategoricalProjectionOrder.ts"/>
 /// <reference path="./dataView/dataViewTransform.ts"/>
 /// <reference path="./displayNameGetter.ts"/>
 /// <reference path="./dataReader/dataReader.ts"/>

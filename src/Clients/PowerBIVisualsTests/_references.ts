@@ -10,6 +10,7 @@
 /// <reference path="./common.ts"/>
 /// <reference path="./mocks.ts"/>
 /// <reference path="./helpers/helpers.ts"/>
+/// <reference path="./helpers/forecastTestHelpers.ts"/>
 /// <reference path="./helpers/kpiHelper.ts"/>
 /// <reference path="./helpers/performanceTestsHelpers.ts"/>
 /// <reference path="./helpers/referenceLineHelper.ts"/>
@@ -24,6 +25,7 @@
 /// <reference path="./common/arrayExtensionsTests.ts"/>
 /// <reference path="./common/colorTests.ts"/>
 /// <reference path="./common/doubleTests.ts"/>
+/// <reference path="./common/forecastHelperTests.ts"/>
 /// <reference path="./common/labelDataPointSorterTests.ts"/>
 /// <reference path="./common/prototypeTests.ts"/>
 /// <reference path="./common/referenceLineHelperTests.ts"/>

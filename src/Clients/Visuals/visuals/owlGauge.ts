@@ -91,7 +91,7 @@ module powerbi.visuals {
 
                 for (var i = 0; i < values.length; i++) {
                     var col = metadataColumns[i],
-                        value = values[i].values[0] || 0;
+                        value = <number>values[i].values[0] || 0;
                     if (col && col.roles) {
                         if (col.roles[gaugeRoleNames.y]) {
                             settings.value = value;

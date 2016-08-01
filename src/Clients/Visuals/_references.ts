@@ -13,6 +13,7 @@
 /// <reference path="./types/axisStyle.ts"/>
 /// <reference path="./types/axisType.ts"/>
 /// <reference path="./types/basicShapeType.ts"/>
+/// <reference path="./types/confidenceBandStyle.ts"/>
 /// <reference path="./types/imageScalingType.ts"/>
 /// <reference path="./types/labelPosition.ts"/>
 /// <reference path="./types/labelStyle.ts"/>
@@ -105,6 +106,7 @@
 /// <reference path="./common/trendLineHelper.ts"/>
 /// <reference path="./common/visibilityUtil.ts"/>
 /// <reference path="./common/visualObjectRepetition.ts"/>
+/// <reference path="./common/forecastHelper.ts"/>
 /// <reference path="./converter/slicer.converter.ts"/>
 /// <reference path="./formatting/dataLabelManager.ts"/>
 /// <reference path="./formatting/labelLayout.ts"/>

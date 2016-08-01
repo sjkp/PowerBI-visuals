@@ -236,10 +236,10 @@ module powerbi.visuals.samples {
             }
 
             var selectionId = pathIdentity.length === 0 ? null : new SelectionId(selector, false);
-            var valueToSet = originParentNode.values ? originParentNode.values[0].value : 0;
+            var valueToSet = <number>(originParentNode.values ? originParentNode.values[0].value : 0);
 
             var newSunNode: SunburstSlice = {
-                name: originParentNode.name,
+                name: <string>originParentNode.name,
                 value: Math.max(valueToSet, 0),
                 selector: selectionId,
                 total: valueToSet
@@ -250,7 +250,7 @@ module powerbi.visuals.samples {
             this.total += newSunNode.value;
             if (originParentNode.children && originParentNode.children.length > 0) {
 
-                newSunNode.tooltipInfo = Sunburst.getTooltipData(originParentNode.value, -1);
+                newSunNode.tooltipInfo = Sunburst.getTooltipData(<string>originParentNode.value, -1);
 
                 newSunNode.children = [];
                 for (var i = 0; i < originParentNode.children.length; i++) {
@@ -259,7 +259,7 @@ module powerbi.visuals.samples {
                     newSunNode.total += newChild.total;
                 }
             } else {
-                newSunNode.tooltipInfo = Sunburst.getTooltipData(originParentNode.value, valueToSet);
+                newSunNode.tooltipInfo = Sunburst.getTooltipData(<string>originParentNode.value, valueToSet);
             }
             if (sunburstParentNode) {
                 newSunNode.parent = sunburstParentNode;

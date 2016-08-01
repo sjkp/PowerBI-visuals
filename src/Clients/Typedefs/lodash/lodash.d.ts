@@ -5558,7 +5558,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a boolean value, else false.
         **/
-        isBoolean(value: any): boolean;
+        isBoolean(value: any): value is boolean;
     }
 
     //_.isDate
@@ -5568,7 +5568,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a date, else false.
         **/
-        isDate(value: any): boolean;
+        isDate(value: any): value is Date;
     }
 
     //_.isElement
@@ -5578,7 +5578,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a DOM element, else false.
         **/
-        isElement(value: any): boolean;
+        isElement(value: any): value is HTMLElement;
     }
 
     //_.isEmpty
@@ -5647,7 +5647,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a function, else false.
         **/
-        isFunction(value: any): boolean;
+        isFunction(value: any): value is Function;
     }
 
     //_.isNaN
@@ -5672,7 +5672,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a number, else false.
         **/
-        isNumber(value: any): boolean;
+        isNumber(value: any): value is Number;
     }
 
     //_.isObject
@@ -5683,7 +5683,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is an object, else false.
         **/
-        isObject(value: any): boolean;
+        isObject(value: any): value is Object;
     }
 
     //_.isPlainObject
@@ -5693,7 +5693,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if value is a plain object, else false.
         **/
-        isPlainObject(value: any): boolean;
+        isPlainObject(value: any): value is Object;
     }
 
     //_.isRegExp
@@ -5703,7 +5703,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a regular expression, else false.
         **/
-        isRegExp(value: any): boolean;
+        isRegExp(value: any): value is RegExp;
     }
 
     //_.isString
@@ -5713,7 +5713,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a string, else false.
         **/
-        isString(value: any): boolean;
+        isString(value: any): value is string;
     }
 
     //_.keys

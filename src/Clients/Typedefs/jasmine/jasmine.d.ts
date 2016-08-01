@@ -115,8 +115,8 @@ declare module jasmine {
     }
 
     interface CustomMatcher {
-        compare<T>(actual: T, expected: T): CustomMatcherResult;
-        compare(actual: any, expected: any): CustomMatcherResult;
+        compare<T>(actual: T, expected: T, failureMessage?: string): CustomMatcherResult;
+        compare(actual: any, expected: any, failureMessage?: string): CustomMatcherResult;
     }
 
     interface CustomMatcherFactory {

@@ -224,7 +224,7 @@ module powerbitests.customVisuals {
                     expect(visualBuilder.linksElements.length)
                         .toBe(dataView.categorical.categories[0].values.length);
 
-                    let allCountries: string[] = dataView.categorical.categories[0].values.concat(dataView.categorical.categories[1].values);
+                    let allCountries = <string[]>dataView.categorical.categories[0].values.concat(dataView.categorical.categories[1].values);
                     let uniqueCountries = allCountries.sort().filter((value, index, array) => !index || value !== array[index - 1]);
 
                     expect(visualBuilder.nodesElement).toBeInDOM();

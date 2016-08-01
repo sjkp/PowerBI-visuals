@@ -1320,12 +1320,12 @@ module powerbi.visuals {
         export function getRangeForColumn(sizeColumn: DataViewValueColumn): NumberRange {
             let result: NumberRange = {};
             if (sizeColumn) {
-                result.min = sizeColumn.min == null
+                result.min = <number>(sizeColumn.min == null
                     ? sizeColumn.minLocal == null ? d3.min(sizeColumn.values) : sizeColumn.minLocal
-                    : sizeColumn.min;
-                result.max = sizeColumn.max == null
+                    : sizeColumn.min);
+                result.max = <number>(sizeColumn.max == null
                     ? sizeColumn.maxLocal == null ? d3.max(sizeColumn.values) : sizeColumn.maxLocal
-                    : sizeColumn.max;
+                    : sizeColumn.max);
             }
             return result;
         }
@@ -1420,15 +1420,15 @@ module powerbi.visuals {
             return combinedDomain[0] !== domain[0] || combinedDomain[1] !== domain[1];
         }
 
-        export function normalizeNonFiniteNumber(value: number): number {
-            if (isNaN(value))
+        export function normalizeNonFiniteNumber(value: PrimitiveValue): number {
+            if (isNaN(<number>value))
                 return null;
             else if (value === Number.POSITIVE_INFINITY)
                 return Number.MAX_VALUE;
             else if (value === Number.NEGATIVE_INFINITY)
                 return -Number.MAX_VALUE;
 
-            return value;
+            return <number>value;
         }
 
         /**

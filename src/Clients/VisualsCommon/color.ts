@@ -308,6 +308,32 @@ module jsCommon {
                 ((1 - opacity) * backChannel));
         }
 
+        /**
+         * Calculate the highlight color from the rgbColor based on the lumianceThreshold and delta.
+         * @param {RgbColor} rgbColor The original color.
+         * @param {number} lumianceThreshold The lumiance threshold used, the highlight color will be brighter when the lumiance is smaller the threshold, otherwise the highlight color will be darker. Will be enforced to be between 0 and 1.
+         * @param {number} delta the highlight color will be calculated based on the delta. Will be enforced to be between 0 and 1. lumianceThreshold + delta cannot greater than 1.
+         * @returns result highlight color value
+         */
+        export function calculateHighlightColor(rgbColor: RgbColor, lumianceThreshold: number, delta: number): string {
+            let hsvColor = rgbToHsv(rgbColor);
+
+            // For invalid lumianceThreshold and delta value, use default.
+            if (lumianceThreshold + delta > 1 || lumianceThreshold <= 0 || delta <= 0) {
+                debug.assert(false, 'Invalid lumianceThreshold and highlightColor adjusting delta.');
+                lumianceThreshold = 0.8;
+                delta = 0.2;
+            }
+
+            // Make it lighter when the lumianceValue is less than 200, otherwise make it darker.
+            if (hsvColor.V < lumianceThreshold)
+                hsvColor.V = hsvColor.V + delta;
+            else
+                hsvColor.V = hsvColor.V - delta;
+
+            return hexString(hsvToRgb(hsvColor));
+        }
+
         function componentToHex(hexComponent: number): string {
             let clamped = Double.ensureInRange(hexComponent, 0, 255);
             let hex = clamped.toString(16).toUpperCase();

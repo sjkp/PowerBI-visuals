@@ -645,7 +645,7 @@ module powerbi.visuals.samples {
 
                 for (let i = 0; i < values.length; i++) {
                     let col = values[i].source;
-                    let currentVal = values[i].values[idx] || 0;
+                    let currentVal = <number>values[i].values[idx] || 0;
 
                     if (col && col.roles) {
                         if (col.roles[bulletChartRoleNames.value]) {

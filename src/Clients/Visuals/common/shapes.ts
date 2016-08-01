@@ -632,6 +632,13 @@ module powerbi.visuals {
                     }
                 }
             }
+
+            export function getCentroid(rect: IRect): IPoint {
+                return {
+                    x: rect.left + (rect.width / 2),
+                    y: rect.top + (rect.height / 2)
+                };
+            }
         }
 
         export module Thickness {

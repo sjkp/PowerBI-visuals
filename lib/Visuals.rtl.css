@@ -1893,10 +1893,6 @@ body {
   max-width: 100px;
   width: 100%;
 }
-.visual .slicerContainer .slicerItemContainer:hover .slicerText,
-.visual .slicerContainer .slicerItemContainer:hover .slicerCountText {
-  color: #212121 !important;
-}
 .visual .slicerContainer .slicerItemContainer:hover .slicerCheckbox span.checkbox {
   border-color: #666666;
 }
@@ -1927,10 +1923,6 @@ body {
 }
 .visual .slicerContainer .slicerCheckbox.selected {
   border: none !important;
-}
-.visual .slicerContainer .slicerCheckbox.selected + .slicerText,
-.visual .slicerContainer .slicerCheckbox.selected + .slicerCountText {
-  color: #212121 !important;
 }
 .visual .slicerContainer .slicerCheckbox.selected span.checkbox {
   border-color: #212121;
@@ -2158,6 +2150,9 @@ body {
 .visual .cartesianChart .trend-line {
   stroke-width: 2px;
   pointer-events: none;
+}
+.visual .cartesianChart .forecast-line {
+  stroke-width: 1px;
 }
 .visual .animatedNumber .mainText,
 .visual .card .mainText {

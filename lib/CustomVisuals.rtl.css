@@ -328,6 +328,10 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
+.dotPlotScrollableContainer {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
 .dotplot .axis path,
 .dotplot .axis line {
   fill: none;
@@ -432,7 +436,6 @@
   fill: none;
   stroke: #bbb;
   cursor: pointer;
-  /*stroke-width: 1.5px;*/
 }
 .forceGraph circle {
   fill: #ccc;
@@ -714,6 +717,9 @@
  */
 .pulseChart {
   font-family: 'Segoe UI', 'wf_segoe-ui_normal', helvetica, arial, sans-serif;
+  stroke: none;
+  stroke-width: 1px;
+  outline: none;
 }
 .pulseChart .axisGraphicsContext {
   font-family: 'Segoe UI', 'wf_segoe-ui_normal', helvetica, arial, sans-serif;

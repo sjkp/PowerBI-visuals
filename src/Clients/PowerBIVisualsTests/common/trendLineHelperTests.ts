@@ -70,6 +70,7 @@ module powerbitests {
                 let trendLine: TrendLine = {
                     points: samplePoints,
                     show: true,
+                    displayName: 'test display name',
                     lineColor: { solid: { color: 'red' } },
                     style: lineStyle.dotted,
                     transparency: 20,
@@ -85,6 +86,7 @@ module powerbitests {
                     selector: null,
                     properties: {
                         show: true,
+                        displayName: 'test display name',
                         lineColor: { solid: { color: 'red' } },
                         style: lineStyle.dotted,
                         transparency: 20,
@@ -176,6 +178,7 @@ module powerbitests {
                 expect(TrendLineHelper.readDataView(dataViews[1], dataViews[0], false, defaultColors)).toEqual([{
                     points: [{ x: 1, y: 10 }, { x: 6, y: 60 }],
                     show: true,
+                    displayName: 'trend',
                     lineColor: { solid: { color: '#000' } },
                     transparency: TrendLineHelper.defaults.transparency,
                     style: TrendLineHelper.defaults.lineStyle,
@@ -200,6 +203,7 @@ module powerbitests {
                     {
                         points: [{ x: 1, y: 10 }, { x: 6, y: 60 }],
                         show: true,
+                        displayName: 'trend',
                         lineColor: { solid: { color: TrendLineHelper.darkenTrendLineColor(colorHelper.getColorForSeriesValue(null, sourceDataView.categorical.values.identityFields, groups[0].name)) } },
                         transparency: TrendLineHelper.defaults.transparency,
                         style: TrendLineHelper.defaults.lineStyle,
@@ -209,6 +213,7 @@ module powerbitests {
                     }, {
                         points: [{ x: 1, y: 15 }, { x: 6, y: 65 }],
                         show: true,
+                        displayName: 'trend',
                         lineColor: { solid: { color: TrendLineHelper.darkenTrendLineColor(colorHelper.getColorForSeriesValue(null, sourceDataView.categorical.values.identityFields, groups[1].name)) } },
                         transparency: TrendLineHelper.defaults.transparency,
                         style: TrendLineHelper.defaults.lineStyle,
@@ -240,6 +245,7 @@ module powerbitests {
                         {
                             points: [{ x: 1, y: 10 }, { x: 6, y: 60 }],
                             show: true,
+                            displayName: 'trend',
                             lineColor: { solid: { color: TrendLineHelper.darkenTrendLineColor(colorHelper.getColorForSeriesValue(groups[0].objects, sourceDataView.categorical.values.identityFields, groups[0].name)) } },
                             transparency: TrendLineHelper.defaults.transparency,
                             style: TrendLineHelper.defaults.lineStyle,
@@ -249,6 +255,7 @@ module powerbitests {
                         }, {
                             points: [{ x: 1, y: 15 }, { x: 6, y: 65 }],
                             show: true,
+                            displayName: 'trend',
                             lineColor: { solid: { color: TrendLineHelper.darkenTrendLineColor('#123') } },
                             transparency: TrendLineHelper.defaults.transparency,
                             style: TrendLineHelper.defaults.lineStyle,
@@ -277,6 +284,7 @@ module powerbitests {
                         {
                             points: [{ x: 1, y: 10 }, { x: 6, y: 60 }],
                             show: true,
+                            displayName: 'trend',
                             lineColor: { solid: { color: TrendLineHelper.darkenTrendLineColor(colorHelper.getColorForMeasure(sourceDataView.categorical.values[0].source.objects, sourceDataView.categorical.values[0].source.queryName)) } },
                             transparency: TrendLineHelper.defaults.transparency,
                             style: TrendLineHelper.defaults.lineStyle,
@@ -286,6 +294,7 @@ module powerbitests {
                         }, {
                             points: [{ x: 1, y: 15 }, { x: 6, y: 65 }],
                             show: true,
+                            displayName: 'trend',
                             lineColor: { solid: { color: TrendLineHelper.darkenTrendLineColor('#123') } },
                             transparency: TrendLineHelper.defaults.transparency,
                             style: TrendLineHelper.defaults.lineStyle,
@@ -310,6 +319,7 @@ module powerbitests {
                 expect(TrendLineHelper.readDataView(dataViews[1], dataViews[0], false, defaultColors)).toEqual([{
                     points: [{ x: 1, y: 10 }, { x: 6, y: 60 }],
                     show: true,
+                    displayName: 'trend',
                     lineColor: { solid: { color: '#123' } },
                     transparency: TrendLineHelper.defaults.transparency,
                     style: TrendLineHelper.defaults.lineStyle,
@@ -322,6 +332,7 @@ module powerbitests {
                 dataViews[1].metadata.objects = {
                     trend: {
                         show: true,
+                        displayName: 'legacy',
                         lineColor: { solid: { color: '#456' } }
                     },
                     dataPoint: {
@@ -332,6 +343,7 @@ module powerbitests {
                 expect(TrendLineHelper.readDataView(dataViews[1], dataViews[0], false, defaultColors)).toEqual([{
                     points: [{ x: 1, y: 10 }, { x: 6, y: 60 }],
                     show: true,
+                    displayName: 'legacy',
                     lineColor: { solid: { color: '#123' } },
                     transparency: TrendLineHelper.defaults.transparency,
                     style: TrendLineHelper.defaults.lineStyle,
@@ -352,6 +364,7 @@ module powerbitests {
                 expect(TrendLineHelper.readDataView(dataViews[1], dataViews[0], false, defaultColors)).toEqual([{
                     points: [],
                     show: true,
+                    displayName: 'trend',
                     lineColor: TrendLineHelper.defaults.lineColor,
                     transparency: TrendLineHelper.defaults.transparency,
                     style: TrendLineHelper.defaults.lineStyle,
@@ -367,6 +380,7 @@ module powerbitests {
                 expect(TrendLineHelper.readDataView(dataViews[1], dataViews[0], true, defaultColors)).toEqual([{
                     points: [{ x: 1, y: 10 }, { x: 6, y: 60 }],
                     show: true,
+                    displayName: 'trend',
                     lineColor: { solid: { color: '#000' } },
                     transparency: TrendLineHelper.defaults.transparency,
                     style: TrendLineHelper.defaults.lineStyle,
@@ -384,6 +398,7 @@ module powerbitests {
                 expect(TrendLineHelper.readDataView(dataViews[1], dataViews[0], false, defaultColors)).toEqual([{
                     points: [{ x: 1, y: 3 }, { x: 6, y: 6 }],
                     show: true,
+                    displayName: 'trend',
                     lineColor: { solid: { color: '#000' } },
                     transparency: TrendLineHelper.defaults.transparency,
                     style: TrendLineHelper.defaults.lineStyle,

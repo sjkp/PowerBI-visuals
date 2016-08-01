@@ -93,6 +93,7 @@
 
 
 
+
 declare module powerbi.data {
     /** Allows generic traversal and type discovery for a SQExpr tree. */
     interface ISQExprVisitorWithArg<T, TArg> {
@@ -510,7 +511,7 @@ declare module powerbi.data {
     interface DataShapeBindingLimitTarget {
         Primary?: number;
     }
-    enum DataShapeBindingLimitType {
+    const enum DataShapeBindingLimitType {
         Top = 0,
         First = 1,
         Last = 2,
@@ -561,7 +562,7 @@ declare module powerbi.data {
     interface DataShapeBindingAxis {
         Groupings: DataShapeBindingAxisGrouping[];
     }
-    enum SubtotalType {
+    const enum SubtotalType {
         None = 0,
         Before = 1,
         After = 2,
@@ -575,18 +576,14 @@ declare module powerbi.data {
     }
     interface DataShapeBindingAggregate {
         Select: number;
-        Kind?: DataShapeBindingAggregateKind;
-        Aggregations?: DataShapeBindingSelectAggregateContainer[];
-    }
-    const enum DataShapeBindingAggregateKind {
-        None = 0,
-        Min = 1,
-        Max = 2,
+        Aggregations: DataShapeBindingSelectAggregateContainer[];
     }
     interface DataShapeBindingSelectAggregateContainer {
         Percentile?: DataShapeBindingSelectPercentileAggregate;
         Min?: DataShapeBindingSelectMinAggregate;
         Max?: DataShapeBindingSelectMaxAggregate;
+        Median?: DataShapeBindingSelectMedianAggregate;
+        Average?: DataShapeBindingSelectAverageAggregate;
     }
     interface DataShapeBindingSelectPercentileAggregate {
         Exclusive?: boolean;
@@ -595,6 +592,10 @@ declare module powerbi.data {
     interface DataShapeBindingSelectMaxAggregate {
     }
     interface DataShapeBindingSelectMinAggregate {
+    }
+    interface DataShapeBindingSelectMedianAggregate {
+    }
+    interface DataShapeBindingSelectAverageAggregate {
     }
 }
 
@@ -1340,6 +1341,22 @@ declare module powerbi.visuals {
 }
 
 declare module powerbi.data {
+    module DataViewCategoricalUtils {
+        function getCategoriesDataViewObjects(categories: DataViewCategoryColumn[]): DataViewObjects[];
+        /**
+         * In DataViewCategorical.categories, all columns have the same identity array, but any applicable DataViewObjects would be added to the first column only.
+         *
+         * If prototypeCategories is non-empty and is not an inherited object, returns the inherited version of prototypeCategories that has the objects set on its first column.
+         * Else, if prototypeCategories is non-empty and is already an inherited object, returns prototypeCategories that has the objects set on its first column.
+         * Else, if prototypeCategories is an empty array, returns undefined.
+         *
+         * Related code: DataViewTransform.findSelectedCategoricalColumn(...)
+         */
+        function setCategoriesDataViewObjects(prototypeCategories: DataViewCategoryColumn[], objects: DataViewObjects[]): DataViewCategoryColumn[];
+    }
+}
+
+declare module powerbi.data {
     module DataViewMatrixUtils {
         const enum DepthFirstTraversalCallbackResult {
             stop = 0,
@@ -1595,6 +1612,18 @@ declare module powerbi {
          * Returns dataViewMapping.usage.regression if defined.  Else, returns undefined.
          */
         function getRegressionUsage(dataViewMapping: DataViewMapping): _.Dictionary<DataViewObjectPropertyIdentifier>;
+        /**
+         * Returns the role names returned by the specified rolesGetter if they are the same for all specified roleMappings.
+         * Else, returns undefined.
+         *
+         * @rolesGetter returns all the roles in one of the grouping hierarchy axes (categories or series) or in the measures.
+         */
+        function getRolesIfSameInAllCategoricalMappings(categoricalRoleMappings: DataViewCategoricalMapping[], rolesGetter: (DataViewCategoricalMapping) => string[]): string[];
+        /**
+         * Returns the array of role names that are mapped to categorical categories.
+         * Returns an empty array if none exists.
+         */
+        function getAllRolesInCategories(categoricalRoleMapping: DataViewCategoricalMapping): string[];
     }
 }
 
@@ -1702,6 +1731,13 @@ declare module powerbi.data {
     module DataViewObjectDefinitions {
         /** Creates or reuses a DataViewObjectDefinition for matching the given objectName and selector within the defns. */
         function ensure(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): DataViewObjectDefinition;
+        /**
+         * Delete a object definition from Defns if it matches objName + selector
+         * @param {DataViewObjectDefinitions} defns
+         * @param {string} objectName
+         * @param {Selector} selector
+         */
+        function deleteObjectDefinition(defns: DataViewObjectDefinitions, objectName: string, selector: Selector): boolean;
         /**
          * Removes every property defined in targetDefns from sourceDefns if exists.
          * Properties are matches using ObjectName, Selector, and PropertyName.
@@ -1866,13 +1902,6 @@ declare module powerbi.data {
     }
 }
 declare module powerbi.data {
-    import INumberDictionary = jsCommon.INumberDictionary;
-    /** Responsible for removing selects from the DataView. */
-    module DataViewRemoveSelects {
-        function apply(dataView: DataView, targetDataViewKinds: StandardDataViewKinds, selectsToInclude: INumberDictionary<boolean>): void;
-    }
-}
-declare module powerbi.data {
     import RoleKindByQueryRef = powerbi.DataViewAnalysis.RoleKindByQueryRef;
     /**
      * A property bag containing information about a DataViewTransform session, including input arguments and some values derived from the input arguments.
@@ -1992,6 +2021,17 @@ declare module powerbi.data {
          * @param colorAllocatorFactory
          */
         function create(queryDataViewMetadata: DataViewMetadata, objectDescriptors: DataViewObjectDescriptors, dataViewMappings: DataViewMapping[], dataRoles: VisualDataRole[], transforms: DataViewTransformActions, colorAllocatorFactory: IColorAllocatorFactory): DataViewTransformContext;
+    }
+}
+declare module powerbi.data {
+    import INumberDictionary = jsCommon.INumberDictionary;
+    /**
+     * Responsible for applying projection order and split selects to DataViewCategorical.
+     * If the specified prototype DataView needs to get transformed, the transformed DataView will be returned.
+     * Else, the prototype DataView itself will be returned.
+     */
+    module DataViewCategoricalProjectionOrder {
+        function apply(prototype: DataView, applicableRoleMappings: DataViewMapping[], projectionOrdering: DataViewProjectionOrdering, splitSelects: INumberDictionary<boolean>): DataView;
     }
 }
 declare module powerbi.data {
@@ -2121,6 +2161,8 @@ declare module powerbi.data {
         min?: boolean;
         max?: boolean;
         percentiles?: ProjectionPercentileAggregate[];
+        median?: boolean;
+        average?: boolean;
     }
     interface ProjectionPercentileAggregate {
         exclusive?: boolean;
@@ -2682,6 +2724,9 @@ declare module powerbi.data {
         Month = 6,
         Week = 7,
         Day = 8,
+        Hour = 9,
+        Minute = 10,
+        Second = 11,
     }
     const enum ConceptualMultiplicity {
         ZeroOrOne = 0,
@@ -2931,6 +2976,10 @@ declare module powerbi.data {
         static isHierarchy(expr: SQExpr): expr is SQHierarchyExpr;
         static isHierarchyLevel(expr: SQExpr): expr is SQHierarchyLevelExpr;
         static isAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMinAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMaxAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isAvgAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMedianAggregation(expr: SQExpr): expr is SQAggregationExpr;
         static isMeasure(expr: SQExpr): expr is SQMeasureRefExpr;
         static isPercentile(expr: SQExpr): expr is SQPercentileExpr;
         static isSelectRef(expr: SQExpr): expr is SQSelectRefExpr;

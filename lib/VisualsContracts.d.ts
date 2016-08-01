@@ -722,6 +722,8 @@ declare module powerbi.data {
     }
 
     export interface CompiledDataViewMappingMetadata {
+        columns: DataViewMetadataColumn[];
+
         /** The metadata repetition objects. */
         objects?: DataViewObjects;
     }
@@ -931,7 +933,7 @@ declare module powerbi {
         objects?: DataViewObjects;
 
         /** The name of the containing group. */
-        groupName?: string;
+        groupName?: PrimitiveValue;
 
         /** The sort direction of this column. */
         sort?: SortDirection;
@@ -956,6 +958,8 @@ declare module powerbi {
         subtotal?: PrimitiveValue;
         max?: PrimitiveValue;
         min?: PrimitiveValue;
+        average?: PrimitiveValue;
+        median?: PrimitiveValue;
         count?: number;
         percentiles?: DataViewColumnPercentileAggregate[];
 
@@ -979,7 +983,7 @@ declare module powerbi {
 
     export interface DataViewCategoricalColumn {
         source: DataViewMetadataColumn;
-        values: any[];
+        values: PrimitiveValue[];
 
         /** The data repetition objects. */
         objects?: DataViewObjects[];
@@ -1002,11 +1006,11 @@ declare module powerbi {
         /** The data repetition objects. */
         objects?: DataViewObjects;
 
-        name?: string;
+        name?: PrimitiveValue;
     }
 
     export interface DataViewValueColumn extends DataViewCategoricalColumn {
-        highlights?: any[];
+        highlights?: PrimitiveValue[];
         identity?: DataViewScopeIdentity;
     }
 
@@ -1023,7 +1027,7 @@ declare module powerbi {
     }
 
     export interface DataViewSingle {
-        value: any;
+        value: PrimitiveValue;
     }
 
     export interface DataViewTree {
@@ -1031,7 +1035,7 @@ declare module powerbi {
     }
 
     export interface DataViewTreeNode {
-        name?: string;
+        name?: PrimitiveValue;
 
         /**
          * When used under the context of DataView.tree, this value is one of the elements in the values property.
@@ -1044,7 +1048,7 @@ declare module powerbi {
          * New visuals code should consume the new property levelValues on DataViewMatrixNode instead.
          * If this node represents a composite group node in matrix, this property will be undefined.
          */
-        value?: any;
+        value?: PrimitiveValue;
       
         /** 
          * This property contains all the values in this node. 
@@ -1064,15 +1068,15 @@ declare module powerbi {
     }
 
     export interface DataViewTreeNodeValue {
-        value?: any;
+        value?: PrimitiveValue;
     }
 
     export interface DataViewTreeNodeMeasureValue extends DataViewTreeNodeValue, DataViewColumnAggregates {
-        highlight?: any;
+        highlight?: PrimitiveValue;
     }
 
     export interface DataViewTreeNodeGroupValue extends DataViewTreeNodeValue {
-        count?: any;
+        count?: PrimitiveValue;
     }
 
     export interface DataViewTable {
@@ -1085,10 +1089,10 @@ declare module powerbi {
 
         rows?: DataViewTableRow[];
 
-        totals?: any[];
+        totals?: PrimitiveValue[];
     }
 
-    export interface DataViewTableRow extends Array<any> {
+    export interface DataViewTableRow extends Array<PrimitiveValue> {
         /** The metadata repetition objects. */
         objects?: DataViewObjects[];
     }
@@ -1159,7 +1163,7 @@ declare module powerbi {
 
     /** Represents a value at the matrix intersection, used in the values property on DataViewMatrixNode (inherited from DataViewTreeNode). */
     export interface DataViewMatrixNodeValue extends DataViewTreeNodeValue {
-        highlight?: any;
+        highlight?: PrimitiveValue;
 
         /** Indicates the index of the corresponding measure (held by DataViewMatrix.valueSources). Its value is 0 if omitted. */
         valueSourceIndex?: number;
@@ -1390,9 +1394,10 @@ declare module powerbi {
 
     /** Defines how the mapping will be used. The set of objects in this interface can modify the usage. */
     export interface DataViewMappingUsage {
-        regression: {
+        regression?: {
             [propertyName: string]: DataViewObjectPropertyIdentifier;
         };
+        forecast?: {};
     }
 
     export interface DataViewMappingRoleProjectionAggregates {
@@ -3113,6 +3118,9 @@ declare module powerbi {
 
         /** Instances which should be deleted from the existing instances. */
         remove?: VisualObjectInstance[];
+
+        /** Instances which should be deleted from the existing objects. */
+        removeObject?: VisualObjectInstance[];
     }
     
     export interface EnumerateVisualObjectInstancesOptions {

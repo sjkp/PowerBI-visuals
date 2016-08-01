@@ -119,6 +119,7 @@ module powerbitests {
     module referenceLineObjects {
         export const redLine: DataViewObject = {
             show: true,
+            displayName: 'red',
             value: '1',
             lineColor: { solid: { color: 'red' } },
             transparency: 10,
@@ -134,6 +135,7 @@ module powerbitests {
 
         export const blueLine: DataViewObject = {
             show: true,
+            displayName: 'blue',
             value: '2',
             lineColor: { solid: { color: 'blue' } },
             transparency: 20,

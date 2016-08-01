@@ -43,7 +43,7 @@ module powerbi.data {
         Primary?: number;
     }
 
-    export enum DataShapeBindingLimitType {
+    export const enum DataShapeBindingLimitType {
         Top = 0,
         First = 1,
         Last = 2,
@@ -104,7 +104,7 @@ module powerbi.data {
         Groupings: DataShapeBindingAxisGrouping[];
     }
 
-    export enum SubtotalType {
+    export const enum SubtotalType {
         None = 0,
         Before = 1,
         After = 2
@@ -120,20 +120,15 @@ module powerbi.data {
 
     export interface DataShapeBindingAggregate {
         Select: number;
-        Kind?: DataShapeBindingAggregateKind;
-        Aggregations?: DataShapeBindingSelectAggregateContainer[];
-    }
-
-    export const enum DataShapeBindingAggregateKind {
-        None = 0,
-        Min = 1,
-        Max = 1 << 1,
+        Aggregations: DataShapeBindingSelectAggregateContainer[];
     }
 
     export interface DataShapeBindingSelectAggregateContainer {
         Percentile?: DataShapeBindingSelectPercentileAggregate;
         Min?: DataShapeBindingSelectMinAggregate;
         Max?: DataShapeBindingSelectMaxAggregate;
+        Median?: DataShapeBindingSelectMedianAggregate;
+        Average?: DataShapeBindingSelectAverageAggregate;
     }
 
     export interface DataShapeBindingSelectPercentileAggregate {
@@ -145,5 +140,11 @@ module powerbi.data {
     }
 
     export interface DataShapeBindingSelectMinAggregate {
+    }
+
+    export interface DataShapeBindingSelectMedianAggregate {
+    }
+
+    export interface DataShapeBindingSelectAverageAggregate {
     }
 } 

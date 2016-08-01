@@ -74,6 +74,30 @@ module powerbi.data {
         }
 
         /**
+         * Delete a object definition from Defns if it matches objName + selector
+         * @param {DataViewObjectDefinitions} defns
+         * @param {string} objectName
+         * @param {Selector} selector
+         */
+        export function deleteObjectDefinition(
+            defns: DataViewObjectDefinitions,
+            objectName: string,
+            selector: Selector): boolean {
+            debug.assertValue(defns, 'defns');
+
+            let defnsForObject = defns[objectName];
+            if (!defnsForObject)
+                return false;
+
+            let wasObjectDeleted = _.remove(defnsForObject, (defn) => Selector.equals(defn.selector, selector)).length > 0;
+
+            if (_.isEmpty(defnsForObject))
+                delete defns[objectName];
+
+            return wasObjectDeleted;
+        }
+
+        /**
          * Removes every property defined in targetDefns from sourceDefns if exists.
          * Properties are matches using ObjectName, Selector, and PropertyName.
          * @param {DataViewObjectDefinition} targetDefns Defenitions to remove properties from

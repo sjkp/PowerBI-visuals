@@ -30,6 +30,67 @@ module powerbi.visuals.samples {
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import PixelConverter = jsCommon.PixelConverter;
+    import IGenericAnimator = powerbi.visuals.IGenericAnimator;
+    import IMargin = powerbi.visuals.IMargin;
+    import SelectionId = powerbi.visuals.SelectionId;
+    import VisualDataLabelsSettings = powerbi.visuals.VisualDataLabelsSettings;
+    import IValueFormatter = powerbi.visuals.IValueFormatter;
+    import LegendData = powerbi.visuals.LegendData;
+    import DataViewObject = powerbi.DataViewObject;
+    import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
+    import TooltipDataItem = powerbi.visuals.TooltipDataItem;
+    import TextProperties = powerbi.TextProperties;
+    import IInteractivityService = powerbi.visuals.IInteractivityService;
+    import IInteractiveBehavior = powerbi.visuals.IInteractiveBehavior;
+    import ISelectionHandler = powerbi.visuals.ISelectionHandler;
+    import SVGUtil = powerbi.visuals.SVGUtil;
+    import IViewport = powerbi.IViewport;
+    import IVisualWarning = powerbi.IVisualWarning;
+    import IVisualErrorMessage = powerbi.IVisualErrorMessage;
+    import IVisual = powerbi.IVisual;
+    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
+    import VisualCapabilities = powerbi.VisualCapabilities;
+    import createDisplayNameGetter = powerbi.data.createDisplayNameGetter;
+    import legendPosition = powerbi.visuals.legendPosition;
+    import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+    import dataLabelUtils = powerbi.visuals.dataLabelUtils;
+    import DataView = powerbi.DataView;
+    import DataViewCategorical = powerbi.DataViewCategorical;
+    import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
+    import DataViewValueColumns = powerbi.DataViewValueColumns;
+    import DataViewCategoricalColumn = powerbi.DataViewCategoricalColumn;
+    import TextMeasurementService = powerbi.TextMeasurementService;
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import DataViewValueColumnGroup = powerbi.DataViewValueColumnGroup;
+    import IDataColorPalette = powerbi.IDataColorPalette;
+    import SelectionIdBuilder = powerbi.visuals.SelectionIdBuilder;
+    import TooltipBuilder = powerbi.visuals.TooltipBuilder;
+    import DataViewObjects = powerbi.DataViewObjects;
+    import DataViewValueColumn = powerbi.DataViewValueColumn;
+    import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+    import DataViewScopeIdentity = powerbi.DataViewScopeIdentity;
+    import DataViewObjectWithId = powerbi.DataViewObjectWithId;
+    import ColorHelper = powerbi.visuals.ColorHelper;
+    import ILegend = powerbi.visuals.ILegend;
+    import IVisualHostServices = powerbi.IVisualHostServices;
+    import VisualInitOptions = powerbi.VisualInitOptions;
+    import IVisualStyle = powerbi.IVisualStyle;
+    import createInteractivityService = powerbi.visuals.createInteractivityService;
+    import appendClearCatcher = powerbi.visuals.appendClearCatcher;
+    import createLegend = powerbi.visuals.createLegend;
+    import VisualUpdateOptions = powerbi.VisualUpdateOptions;
+    import GetAnimationDuration = powerbi.visuals.AnimatorCommon.GetAnimationDuration;
+    import LegendDataPoint = powerbi.visuals.LegendDataPoint;
+    import LegendIcon = powerbi.visuals.LegendIcon;
+    import LegendPosition = powerbi.visuals.LegendPosition;
+    import legendProps = powerbi.visuals.legendProps;
+    import TooltipManager = powerbi.visuals.TooltipManager;
+    import TooltipEvent = powerbi.visuals.TooltipEvent;
+    import Legend = powerbi.visuals.Legend;
+    import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+    import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
+    import ObjectEnumerationBuilder = powerbi.visuals.ObjectEnumerationBuilder;
+    import VisualObjectInstance = powerbi.VisualObjectInstance;
 
     export interface TornadoChartTextOptions {
         fontFamily?: string;
@@ -143,7 +204,7 @@ module powerbi.visuals.samples {
 
         public renderSelection(hasSelection: boolean) {
             var hasHighlights = this.interactivityService.hasSelection();
-            this.columns.style("fill-opacity", (d: TornadoChartPoint) => ColumnUtil.getFillOpacity(d.selected,
+            this.columns.style("fill-opacity", (d: TornadoChartPoint) => tornadoChartUtils.getFillOpacity(d.selected,
                 d.highlight,
                 !d.highlight && hasSelection,
                 !d.selected && hasHighlights));
@@ -268,7 +329,7 @@ module powerbi.visuals.samples {
             });
 
             brushGraphicsContext.attr({
-                "transform": visuals.SVGUtil.translate(brushX, 0),
+                "transform": SVGUtil.translate(brushX, 0),
                 "drag-resize-disabled": "true" /*disables resizing of the visual when dragging the scrollbar in edit mode*/
             });
 
@@ -349,15 +410,15 @@ module powerbi.visuals.samples {
             dataRoles: [{
                 name: "Category",
                 kind: VisualDataRoleKind.Grouping,
-                displayName: data.createDisplayNameGetter("Role_DisplayName_Group")
+                displayName: createDisplayNameGetter("Role_DisplayName_Group")
             }, {
                 name: "Series",
                 kind: VisualDataRoleKind.Grouping,
-                displayName: data.createDisplayNameGetter('Role_DisplayName_Legend')
+                displayName: createDisplayNameGetter('Role_DisplayName_Legend')
             }, {
                 name: "Values",
                 kind: VisualDataRoleKind.Measure,
-                displayName: data.createDisplayNameGetter("Role_DisplayName_Values")
+                displayName: createDisplayNameGetter("Role_DisplayName_Values")
             }],
             dataViewMappings: [{
                 conditions: [
@@ -396,7 +457,7 @@ module powerbi.visuals.samples {
                     displayName: 'Data Colors',
                     properties: {
                         fill: {
-                            displayName: data.createDisplayNameGetter('Visual_Fill'),
+                            displayName: createDisplayNameGetter('Visual_Fill'),
                             type: { fill: { solid: { color: true } } }
                         }
                     }
@@ -424,7 +485,7 @@ module powerbi.visuals.samples {
                             type: { numeric: true }
                         },
                         fontSize: {
-                            displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                            displayName: createDisplayNameGetter('Visual_TextSize'),
                             type: { formatting: { fontSize: true } }
                         },
                         labelDisplayUnits: {
@@ -450,17 +511,17 @@ module powerbi.visuals.samples {
                         },
                         position: {
                             displayName: 'Position',
-                            description: data.createDisplayNameGetter('Visual_LegendPositionDescription'),
+                            description: createDisplayNameGetter('Visual_LegendPositionDescription'),
                             type: { enumeration: legendPosition.type }
                         },
                         showTitle: {
                             displayName: 'Title',
-                            description: data.createDisplayNameGetter('Visual_LegendShowTitleDescription'),
+                            description: createDisplayNameGetter('Visual_LegendShowTitleDescription'),
                             type: { bool: true }
                         },
                         titleText: {
                             displayName: 'Legend Name',
-                            description: data.createDisplayNameGetter('Visual_LegendNameDescription'),
+                            description: createDisplayNameGetter('Visual_LegendNameDescription'),
                             type: { text: true }
                         },
                         labelColor: {
@@ -610,7 +671,7 @@ module powerbi.visuals.samples {
 
             var category: DataViewCategoricalColumn = categories[0];
             var formatStringProp: DataViewObjectPropertyIdentifier = TornadoChart.Properties.general.formatString;
-            var maxValue: number = d3.max(values[0].values);
+            var maxValue: number = d3.max(<number[]>values[0].values);
             var settings: TornadoChartSettings = TornadoChart.parseSettings(dataView.metadata.objects, maxValue, colors);
             var hasDynamicSeries = !!values.source;
             var hasHighlights: boolean = !!(values.length > 0 && values[0].highlights);
@@ -631,10 +692,10 @@ module powerbi.visuals.samples {
 
             var groupedValues: DataViewValueColumnGroup[] = values.grouped ? values.grouped() : null;
 
-            var minValue: number = Math.min(d3.min(values[0].values), 0);
+            var minValue: number = Math.min(d3.min(<number[]>values[0].values), 0);
             if (values.length === TornadoChart.MaxSeries) {
-                minValue = d3.min([minValue, d3.min(values[1].values)]);
-                maxValue = d3.max([maxValue, d3.max(values[1].values)]);
+                minValue = d3.min([minValue, d3.min(<number[]>values[1].values)]);
+                maxValue = d3.max([maxValue, d3.max(<number[]>values[1].values)]);
             }
 
             for (var seriesIndex = 0; seriesIndex < values.length; seriesIndex++) {
@@ -649,7 +710,7 @@ module powerbi.visuals.samples {
                 var measureName = currentSeries.source.queryName;
 
                 for (var i = 0; i < category.values.length; i++) {
-                    var value = currentSeries.values[i] == null || isNaN(currentSeries.values[i]) ? 0 : currentSeries.values[i];
+                    var value = currentSeries.values[i] == null || isNaN(<number>currentSeries.values[i]) ? 0 : <number>currentSeries.values[i];
 
                     var identity = SelectionIdBuilder.builder()
                         .withCategory(category, i)
@@ -679,7 +740,7 @@ module powerbi.visuals.samples {
 
                     if (hasHighlights) {
                         var highlightIdentity = SelectionId.createWithHighlight(identity);
-                        var highlight = currentSeries.highlights[i];
+                        var highlight = <number>currentSeries.highlights[i];
                         var highlightedValue = highlight != null ? highlight : 0;
                         tooltipInfo = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, formattedCategoryValue, value, null, null, seriesIndex, i, highlightedValue);
 
@@ -735,7 +796,7 @@ module powerbi.visuals.samples {
 
             var objects: DataViewObjects,
                 categoryAxisObject: DataViewObject | DataViewObjectWithId[],
-                displayName: string = source ? source.groupName
+                displayName = source ? source.groupName
                     ? source.groupName : source.displayName
                     : null;
 
@@ -937,7 +998,7 @@ module powerbi.visuals.samples {
             };
 
             if (this.animator)
-                this.durationAnimations = AnimatorCommon.GetAnimationDuration(this.animator, visualUpdateOptions.suppressAnimations);
+                this.durationAnimations = GetAnimationDuration(this.animator, visualUpdateOptions.suppressAnimations);
             else
                 this.durationAnimations = visualUpdateOptions.suppressAnimations ? 0 : 250;
 
@@ -1208,7 +1269,7 @@ module powerbi.visuals.samples {
 
             columnsSelection
                 .style("fill", (p: TornadoChartPoint) => p.color)
-                .style("fill-opacity", (p: TornadoChartPoint) => ColumnUtil.getFillOpacity(
+                .style("fill-opacity", (p: TornadoChartPoint) => tornadoChartUtils.getFillOpacity(
                     p.selected,
                     p.highlight,
                     hasSelection,
@@ -1630,6 +1691,17 @@ module powerbi.visuals.samples {
 
         public destroy(): void {
             this.root = null;
+        }
+    }
+
+    export module tornadoChartUtils {
+        export var DimmedOpacity: number = 0.4;
+        export var DefaultOpacity: number = 1.0;
+
+        export function getFillOpacity(selected: boolean, highlight: boolean, hasSelection: boolean, hasPartialHighlights: boolean): number {
+            if ((hasPartialHighlights && !highlight) || (hasSelection && !selected))
+                return DimmedOpacity;
+            return DefaultOpacity;
         }
     }
 }

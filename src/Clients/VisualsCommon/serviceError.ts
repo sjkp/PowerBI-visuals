@@ -31,6 +31,8 @@ module powerbi {
 
     export const RS_AccessDeniedDueToRLSGroup = 'rsAccessDeniedDueToRLSGroup';
     export const RS_CannotRetrieveModel = 'rsCannotRetrieveModel';
+    export const DMTS_NoGatewayWithAllDatasourcesToBindError = 'DMTS_NoGatewayWithAllDatasourcesToBindError';
+    export const DM_GWPipeline_UnknownError = 'DM_GWPipeline_UnknownError';
 
     export interface ServiceError {
         statusCode: number;
@@ -186,6 +188,18 @@ module powerbi {
                     message = localize.get('ServiceError_ModelCannotLoad');
                     key = localize.get('ServiceError_ModelFetchingFailureKey');
                     val = localize.get('DsrError_CanNotRetrieveModelMessage');
+                    errorCodeHandled = true;
+                    break;
+                case DMTS_NoGatewayWithAllDatasourcesToBindError:
+                    message = localize.get('ServiceError_ModelCannotLoad');
+                    key = localize.get('ServiceError_ModelFetchingFailureKey');
+                    val = localize.get('ServerError_DM_GWPipeline_Gateway_DataSourceConnectionError');
+                    errorCodeHandled = true;
+                    break;
+                case DM_GWPipeline_UnknownError:
+                    message = localize.get('ServiceError_ModelCannotLoad');
+                    key = localize.get('ServiceError_ModelFetchingFailureKey');
+                    val = localize.get('ServerError_DM_GWPipeline_Client_GatewayUnreachable');
                     errorCodeHandled = true;
                     break;
             }

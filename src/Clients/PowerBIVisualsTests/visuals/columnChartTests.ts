@@ -270,7 +270,8 @@ module powerbitests {
 
             return {
                 metadata: {
-                    objects: objects
+                    objects: objects,
+                    columns: [],
                 },
                 categorical: {
                     categories: {

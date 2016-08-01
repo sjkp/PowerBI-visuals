@@ -82,6 +82,11 @@ module powerbi.visuals {
                 displayName: data.createDisplayNameGetter('Visual_Trend_Line'),
                 properties: {
                     show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Trend_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Trend_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
                     lineColor: {
                         displayName: data.createDisplayNameGetter('Visual_Trend_Line_Color'),
                         description: data.createDisplayNameGetter('Visual_Trend_Line_Color_Description'),
@@ -114,6 +119,24 @@ module powerbi.visuals {
                     min: {
                         type: { dateTime: true }
                     },
+                }
+            },
+            forecast: {
+                displayName: data.createDisplayNameGetter('Visual_Forecast'),
+                properties: {
+                    show: StandardObjectProperties.show,
+                    confidenceBandStyle: {
+                        displayName: data.createDisplayNameGetter('Visual_Forecast_Confidence_Band_Style'),
+                        description: data.createDisplayNameGetter('Visual_Forecast_Confidence_Band_Style_Description'),
+                        type: { enumeration: confidenceBandStyle.type }
+                    },
+                    lineColor: {
+                        displayName: data.createDisplayNameGetter('Visual_Forecast_Line_Color'),
+                        description: data.createDisplayNameGetter('Visual_Forecast_Line_Color_Description'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                    transparency: StandardObjectProperties.transparency,
+                    style: StandardObjectProperties.referenceLineStyle
                 }
             },
             categoryAxis: {
@@ -159,6 +182,42 @@ module powerbi.visuals {
                 description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
                 properties: {
                     show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
+                    value: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),
+                        type: { numeric: true }
+                    },
+                    lineColor: StandardObjectProperties.lineColor,
+                    transparency: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_Transparency'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_Transparency_Description'),
+                        type: { numeric: true }
+                    },
+                    style: StandardObjectProperties.referenceLineStyle,
+                    position: StandardObjectProperties.referenceLinePosition,
+                    dataLabelShow: StandardObjectProperties.dataLabelShow,
+                    dataLabelColor: StandardObjectProperties.dataLabelColor,
+                    dataLabelDecimalPoints: StandardObjectProperties.dataLabelDecimalPoints,
+                    dataLabelHorizontalPosition: StandardObjectProperties.dataLabelHorizontalPosition,
+                    dataLabelVerticalPosition: StandardObjectProperties.dataLabelVerticalPosition,
+                    dataLabelDisplayUnits: StandardObjectProperties.dataLabelDisplayUnits,
+                },
+            },
+            referenceLine: {
+                displayName: data.createDisplayNameGetter('Visual_Reference_Line'),
+                description: data.createDisplayNameGetter('Visual_Reference_Line_Description'),
+                properties: {
+                    show: StandardObjectProperties.show,
+                    displayName: {
+                        displayName: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName'),
+                        description: data.createDisplayNameGetter('Visual_Reference_Line_DisplayName_Description'),
+                        type: { text: true } 
+                    },
                     value: {
                         displayName: data.createDisplayNameGetter('Visual_Reference_Line_Value'),
                         description: data.createDisplayNameGetter('Visual_Reference_Line_Value_Description'),
@@ -254,6 +313,25 @@ module powerbi.visuals {
                     },
                 }
             }
+        }, {
+            conditions: [
+                { 'Category': { max: 1 }, 'Series': { max: 0 }, 'Y': { max: 1 } },
+            ],
+            requiredProperties: [{ objectName: 'forecast', propertyName: 'show' }],
+            usage: {
+                forecast: {},
+            },
+            categorical: {
+                categories: {
+                    for: { in: 'Category' },
+                },
+                values: {
+                    group: {
+                        by: 'Series',
+                        select: [{ for: { in: 'forecast.ForecastValue' } }, { for: { in: 'forecast.ConfidenceHighBound' } }, { for: { in: 'forecast.ConfidenceLowBound' } }],
+                    },
+                }
+            }
         }],
         sorting: {
             default: {},
@@ -273,6 +351,9 @@ module powerbi.visuals {
         },
         scalarKey: {
             scalarKeyMin: <DataViewObjectPropertyIdentifier>{ objectName: 'scalarKey', propertyName: 'min' },
+        },
+        forecast: {
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'forecast', propertyName: 'show' },
         },
         categoryAxis: {
             axisType: <DataViewObjectPropertyIdentifier>{ objectName: 'categoryAxis', propertyName: 'axisType' },

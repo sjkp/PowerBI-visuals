@@ -885,13 +885,14 @@ module powerbi.visuals {
             let titleText = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.titleText, this.data.legendData.title);
             let labelColor = DataViewObject.getValue(legendObjectProperties, legendProps.labelColor, this.data.legendData ? this.data.legendData.labelColor : LegendData.DefaultLegendLabelFillColor);
             let labelFontSize = DataViewObject.getValue(legendObjectProperties, legendProps.fontSize, this.data.legendData && this.data.legendData.fontSize ? this.data.legendData.fontSize : SVGLegend.DefaultFontSizeInPt);
+            let position = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.position, legendPosition.top);
 
             return [{
                 selector: null,
                 objectName: 'legend',
                 properties: {
                     show: show,
-                    position: LegendPosition[this.legend.getOrientation()],
+                    position: position,
                     showTitle: showTitle,
                     titleText: titleText,
                     labelColor: labelColor,

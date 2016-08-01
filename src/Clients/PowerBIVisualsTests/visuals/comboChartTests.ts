@@ -291,6 +291,7 @@ module powerbitests {
             
             let result: CompiledDataViewMapping[] = [{
                 metadata: {
+                    columns: [],
                 },
                 categorical: {
                     categories: {
@@ -311,6 +312,7 @@ module powerbitests {
                 }
             }, {
                 metadata: {
+                    columns: [],
                 },
                 categorical: {
                     categories: {

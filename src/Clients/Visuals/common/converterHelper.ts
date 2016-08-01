@@ -79,7 +79,7 @@ module powerbi.visuals {
             return defaultCategories();
         }
 
-        export function getSeriesName(source: DataViewMetadataColumn): string {
+        export function getSeriesName(source: DataViewMetadataColumn): PrimitiveValue {
             debug.assertValue(source, 'source');
 
             return (source.groupName !== undefined)
@@ -92,7 +92,7 @@ module powerbi.visuals {
             debug.assertValue(values, 'values');
 
             let sourceForFormat = source;
-            let nameForFormat = source.displayName;
+            let nameForFormat: PrimitiveValue = source.displayName;
             if (source.groupName !== undefined) {
                 sourceForFormat = values.source;
                 nameForFormat = source.groupName;

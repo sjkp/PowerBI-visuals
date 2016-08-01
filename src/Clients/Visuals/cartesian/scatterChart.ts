@@ -618,7 +618,7 @@ module powerbi.visuals {
             bubblePixelAreaSizeRange = ScatterChart.getBubblePixelAreaSizeRange(viewport, ScatterChart.MinSizeRange, ScatterChart.MaxSizeRange);
 
             if (measureSize.values) {
-                let sizeValue = measureSize.values[radiusData.index];
+                let sizeValue = <number>measureSize.values[radiusData.index];
                 if (sizeValue != null) {
                     return ScatterChart.projectSizeToPixels(sizeValue, actualSizeDataRange, bubblePixelAreaSizeRange) / 2;
                 }
@@ -1230,7 +1230,7 @@ module powerbi.visuals {
         }
 
         public static sortBubbles(a: ScatterChartDataPoint, b: ScatterChartDataPoint): number {
-            let diff = (b.radius.sizeMeasure.values[b.radius.index] - a.radius.sizeMeasure.values[a.radius.index]);
+            let diff = (<number>b.radius.sizeMeasure.values[b.radius.index] - <number>a.radius.sizeMeasure.values[a.radius.index]);
             if (diff !== 0)
                 return diff;
 
