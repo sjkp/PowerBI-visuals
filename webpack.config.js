@@ -26,6 +26,7 @@ if (!options.buildWithoutTests) {
     buildEntries[path.join(testFolder, "testsInfra")] = path.join(__dirname, './src/Clients/PowerBIVisualsTests/testsInfra.ts');
 }
 
+buildEntries["DataViewCreator"] = ["./src/Clients/DataViewCreator/module.ts"];
 buildEntries["CustomVisuals"] = ['./src/Clients/CustomVisuals/module.ts'];
 buildEntries["VisualsCommon"] = ['./src/Clients/VisualsCommon/module.ts'];
 buildEntries["VisualsData"] = ['./src/Clients/VisualsData/module.ts'];
@@ -144,6 +145,7 @@ module.exports = {
         new ConcatDtsPlugin(
             {
                 chunks: [
+                    "DataViewCreator",
                     "CustomVisuals",
                     "VisualsCommon",
                     "VisualsData",

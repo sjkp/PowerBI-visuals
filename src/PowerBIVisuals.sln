@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "PowerBI", "Clients\PowerBI\", "{128051AF-7A0C-45B1-90CF-D576FB369ADF}"
 	ProjectSection(WebsiteProperties) = preProject
@@ -220,6 +220,27 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "VisualsExtensibility", "Cli
 		SlnRelativePath = "Clients\VisualsExtensibility\"
 	EndProjectSection
 EndProject
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "DataViewCreator", "Clients\DataViewCreator\", "{A9D601C9-F60B-460E-998F-4BDA0CDB6FA4}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
+		Debug.AspNetCompiler.VirtualPath = "/localhost_50791"
+		Debug.AspNetCompiler.PhysicalPath = "Clients\DataViewCreator\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_50791\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/localhost_50791"
+		Release.AspNetCompiler.PhysicalPath = "Clients\DataViewCreator\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_50791\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "50791"
+		SlnRelativePath = "Clients\DataViewCreator\"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -259,6 +280,10 @@ Global
 		{35466DB2-AEC7-4BB5-B06E-10012DE63812}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35466DB2-AEC7-4BB5-B06E-10012DE63812}.Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{35466DB2-AEC7-4BB5-B06E-10012DE63812}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{A9D601C9-F60B-460E-998F-4BDA0CDB6FA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9D601C9-F60B-460E-998F-4BDA0CDB6FA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9D601C9-F60B-460E-998F-4BDA0CDB6FA4}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9D601C9-F60B-460E-998F-4BDA0CDB6FA4}.Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

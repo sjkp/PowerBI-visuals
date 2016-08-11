@@ -92,7 +92,7 @@ PackageBuilder.prototype.createTasks = function () {
         var tsResult = gulp.src([
             "lib/powerbi-externals.d.ts",
             "lib/powerbi-visuals.d.ts",
-            pathModule.join(visualPath, "visual/*.ts")])
+            pathModule.join(visualPath, "visual/**/*.ts")])
             .pipe(ts({
                 typescript: require('typescript'),
                 module: "amd",

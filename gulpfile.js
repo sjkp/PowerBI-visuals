@@ -190,6 +190,17 @@ gulp.task("build", buildTaskInfo, ["build:copy-externals"], function () {
     });
 }, commonArgs);
 
+var buildDataViewCreator = gutil.colors.green("Build DataViewCreator project without other project.");
+
+gulp.task("build:dataViewCreator", buildDataViewCreator, [], function () {
+    var entry = {
+        "DataViewCreator": ["./src/Clients/DataViewCreator/module.ts"]
+    };
+
+    // build DataViewCreator project
+    return runBuild(true, entry);
+}, commonArgs);
+
 function runBuild(withoutTests, entry) {
 
     var deferred = Q.defer(),

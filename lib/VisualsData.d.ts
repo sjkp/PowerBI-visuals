@@ -1,99 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 declare module powerbi.data {
     /** Allows generic traversal and type discovery for a SQExpr tree. */
     interface ISQExprVisitorWithArg<T, TArg> {
@@ -206,96 +111,6 @@ declare module powerbi.data {
         visitTransformOutputRoleRef(expr: SQTransformOutputRoleRefExpr): void;
         visitDefault(expr: SQExpr): void;
         private visitFillRuleStop(stop);
-    }
-}
-
-declare module powerbi {
-    /** Defines a custom enumeration data type, and its values. */
-    interface IEnumType {
-        /** Gets the members of the enumeration, limited to the validMembers, if appropriate. */
-        members(validMembers?: EnumMemberValue[]): IEnumMember[];
-    }
-    function createEnumType(members: IEnumMember[]): IEnumType;
-}
-
-declare module powerbi {
-    import SQExpr = powerbi.data.SQExpr;
-    interface FillDefinition {
-        solid?: {
-            color?: SQExpr;
-        };
-        gradient?: {
-            startColor?: SQExpr;
-            endColor?: SQExpr;
-        };
-        pattern?: {
-            patternKind?: SQExpr;
-            color?: SQExpr;
-        };
-    }
-    module FillDefinitionHelpers {
-        function createSolidFillDefinition(color: string): FillDefinition;
-        function createSolidFillSQExpr(color: string): SQExpr | StructuralObjectDefinition;
-    }
-    module FillSolidColorTypeDescriptor {
-        /** Gets a value indicating whether the descriptor is nullable or not. */
-        function nullable(descriptor: FillSolidColorTypeDescriptor): boolean;
-    }
-}
-
-declare module powerbi {
-    import SQExpr = powerbi.data.SQExpr;
-    interface FillRuleTypeDescriptor {
-    }
-    interface FillRuleDefinition extends FillRuleGeneric<SQExpr, SQExpr> {
-    }
-    interface FillRule extends FillRuleGeneric<string, number> {
-    }
-    type LinearGradient2 = LinearGradient2Generic<string, number>;
-    type LinearGradient3 = LinearGradient3Generic<string, number>;
-    type LinearGradient2Definition = LinearGradient2Generic<SQExpr, SQExpr>;
-    type LinearGradient3Definition = LinearGradient3Generic<SQExpr, SQExpr>;
-    type RuleColorStopDefinition = RuleColorStopGeneric<SQExpr, SQExpr>;
-    type RuleColorStop = RuleColorStopGeneric<string, number>;
-    interface IFillRuleDefinitionVisitor<T2, T3> {
-        visitLinearGradient2(linearGradient2: LinearGradient2Definition, arg?: any): T2;
-        visitLinearGradient3(linearGradient3: LinearGradient3Definition, arg?: any): T3;
-    }
-}
-
-declare module powerbi {
-    import SQExpr = powerbi.data.SQExpr;
-    interface ImageTypeDescriptor {
-    }
-    type ImageDefinition = ImageDefinitionGeneric<SQExpr>;
-    module ImageDefinition {
-        const urlType: ValueTypeDescriptor;
-    }
-}
-
-declare module powerbi {
-    import SQExpr = powerbi.data.SQExpr;
-    interface ParagraphsTypeDescriptor {
-    }
-    type ParagraphsDefinition = ParagraphDefinition[];
-    type ParagraphDefinition = ParagraphDefinitionGeneric<SQExpr>;
-    type TextRunDefinition = TextRunDefinitionGeneric<SQExpr>;
-    interface ParagraphDefinitionGeneric<TExpr> {
-        horizontalTextAlignment?: string;
-        textRuns: TextRunDefinitionGeneric<TExpr>[];
-    }
-    interface TextRunDefinitionGeneric<TExpr> {
-        textStyle?: TextRunStyle;
-        url?: string;
-        value: string | TExpr;
-    }
-}
-
-declare module powerbi {
-    import SemanticFilter = powerbi.data.SemanticFilter;
-    type StructuralObjectDefinition = FillDefinition | FillRuleDefinition | SemanticFilter | DefaultValueDefinition | ImageDefinition | ParagraphsDefinition;
-    module StructuralTypeDescriptor {
-        function isValid(type: StructuralTypeDescriptor): boolean;
     }
 }
 
@@ -493,149 +308,6 @@ declare module powerbi {
         Enumeration = 26214401,
         ScriptSource = 32776193,
         SearchEnabled = 65541,
-    }
-}
-
-declare module powerbi.data {
-    /**
-     * Represents the versions of the data shape binding structure.
-     * NOTE Keep this file in sync with the Sql\InfoNav\src\Data\Contracts\DsqGeneration\DataShapeBindingVersions.cs
-     * file in the TFS Dev branch.
-     */
-    const enum DataShapeBindingVersions {
-        /** The initial version of data shape binding */
-        Version0 = 0,
-        /** Explicit subtotal support for axis groupings. */
-        Version1 = 1,
-    }
-    interface DataShapeBindingLimitTarget {
-        Primary?: number;
-    }
-    const enum DataShapeBindingLimitType {
-        Top = 0,
-        First = 1,
-        Last = 2,
-        Sample = 3,
-        Bottom = 4,
-    }
-    interface DataShapeBindingLimit {
-        Count?: number;
-        Target: DataShapeBindingLimitTarget;
-        Type: DataShapeBindingLimitType;
-    }
-    interface DataShapeBinding {
-        Version?: number;
-        Primary: DataShapeBindingAxis;
-        Secondary?: DataShapeBindingAxis;
-        Aggregates?: DataShapeBindingAggregate[];
-        Projections?: number[];
-        Limits?: DataShapeBindingLimit[];
-        Highlights?: FilterDefinition[];
-        DataReduction?: DataShapeBindingDataReduction;
-        IncludeEmptyGroups?: boolean;
-        SuppressedJoinPredicates?: number[];
-    }
-    interface DataShapeBindingDataReduction {
-        Primary?: DataShapeBindingDataReductionAlgorithm;
-        Secondary?: DataShapeBindingDataReductionAlgorithm;
-        DataVolume?: number;
-    }
-    interface DataShapeBindingDataReductionAlgorithm {
-        Top?: DataShapeBindingDataReductionTopLimit;
-        Sample?: DataShapeBindingDataReductionSampleLimit;
-        Bottom?: DataShapeBindingDataReductionBottomLimit;
-        Window?: DataShapeBindingDataReductionDataWindow;
-    }
-    interface DataShapeBindingDataReductionTopLimit {
-        Count?: number;
-    }
-    interface DataShapeBindingDataReductionSampleLimit {
-        Count?: number;
-    }
-    interface DataShapeBindingDataReductionBottomLimit {
-        Count?: number;
-    }
-    interface DataShapeBindingDataReductionDataWindow {
-        Count?: number;
-        RestartTokens?: RestartToken;
-    }
-    interface DataShapeBindingAxis {
-        Groupings: DataShapeBindingAxisGrouping[];
-    }
-    const enum SubtotalType {
-        None = 0,
-        Before = 1,
-        After = 2,
-    }
-    interface DataShapeBindingAxisGrouping {
-        Projections: number[];
-        GroupBy?: number[];
-        SuppressedProjections?: number[];
-        Subtotal?: SubtotalType;
-        ShowItemsWithNoData?: number[];
-    }
-    interface DataShapeBindingAggregate {
-        Select: number;
-        Aggregations: DataShapeBindingSelectAggregateContainer[];
-    }
-    interface DataShapeBindingSelectAggregateContainer {
-        Percentile?: DataShapeBindingSelectPercentileAggregate;
-        Min?: DataShapeBindingSelectMinAggregate;
-        Max?: DataShapeBindingSelectMaxAggregate;
-        Median?: DataShapeBindingSelectMedianAggregate;
-        Average?: DataShapeBindingSelectAverageAggregate;
-    }
-    interface DataShapeBindingSelectPercentileAggregate {
-        Exclusive?: boolean;
-        K: number;
-    }
-    interface DataShapeBindingSelectMaxAggregate {
-    }
-    interface DataShapeBindingSelectMinAggregate {
-    }
-    interface DataShapeBindingSelectMedianAggregate {
-    }
-    interface DataShapeBindingSelectAverageAggregate {
-    }
-}
-
-declare module powerbi.data {
-    module DataShapeBindingDataReduction {
-        function createFrom(reduction: ReductionAlgorithm): DataShapeBindingDataReductionAlgorithm;
-    }
-}
-
-declare module powerbi.data {
-    interface FederatedConceptualSchemaInitOptions {
-        schemas: {
-            [name: string]: ConceptualSchema;
-        };
-        links?: ConceptualSchemaLink[];
-    }
-    /** Represents a federated conceptual schema. */
-    class FederatedConceptualSchema {
-        private schemas;
-        private links;
-        constructor(options: FederatedConceptualSchemaInitOptions);
-        schema(name: string): ConceptualSchema;
-    }
-    /** Describes a semantic relationship between ConceptualSchemas. */
-    interface ConceptualSchemaLink {
-    }
-}
-
-declare module powerbi.data {
-    module Selector {
-        function filterFromSelector(selectors: Selector[], isNot?: boolean): SemanticFilter;
-        function matchesData(selector: Selector, identities: DataViewScopeIdentity[]): boolean;
-        function matchesKeys(selector: Selector, keysList: SQExpr[][]): boolean;
-        /** Determines whether two selectors are equal. */
-        function equals(x: Selector, y: Selector): boolean;
-        function getKey(selector: Selector): string;
-        function containsWildcard(selector: Selector): boolean;
-        function hasRoleWildcard(selector: Selector): boolean;
-        function isRoleWildcard(dataItem: DataRepetitionSelector): dataItem is DataViewRoleWildcard;
-        function convertSelectorsByColumnToSelector(selectorsByColumn: SelectorsByColumn): Selector;
     }
 }
 
@@ -947,6 +619,897 @@ declare module powerbi.data {
     interface QueryTransformTableColumn {
         Role?: string;
         Expression: QueryExpressionContainer;
+    }
+}
+declare module powerbi.data {
+    import INumberDictionary = jsCommon.INumberDictionary;
+    interface DataViewTransformApplyOptions {
+        prototype: DataView;
+        objectDescriptors: DataViewObjectDescriptors;
+        dataViewMappings?: DataViewMapping[];
+        transforms: DataViewTransformActions;
+        colorAllocatorFactory: IColorAllocatorFactory;
+        dataRoles: VisualDataRole[];
+    }
+    /** Describes the Transform actions to be done to a prototype DataView. */
+    interface DataViewTransformActions {
+        /** Describes transform metadata for each semantic query select item, as the arrays align, by index. */
+        selects?: DataViewSelectTransform[];
+        /** Describes the DataViewObject definitions. */
+        objects?: DataViewObjectDefinitions;
+        /** Describes the splitting of a single input DataView into multiple DataViews. */
+        splits?: DataViewSplitTransform[];
+        /** Describes the projection metadata which includes projection ordering and active items. */
+        roles?: DataViewRoleTransformMetadata;
+    }
+    interface DataViewSplitTransform {
+        selects: INumberDictionary<boolean>;
+    }
+    interface DataViewProjectionOrdering {
+        [roleName: string]: number[];
+    }
+    interface DataViewProjectionActiveItemInfo {
+        queryRef: string;
+        /** Describes if the active item should be ignored in concatenation.
+            If the active item has a drill filter, it will not be used in concatenation.
+            If the value of suppressConcat is true, the activeItem will be ommitted from concatenation. */
+        suppressConcat?: boolean;
+    }
+    interface DataViewProjectionActiveItems {
+        [roleName: string]: DataViewProjectionActiveItemInfo[];
+    }
+    interface DataViewRoleTransformMetadata {
+        /** Describes the order of selects (referenced by query index) in each role. */
+        ordering?: DataViewProjectionOrdering;
+        /** Describes the active items in each role. */
+        activeItems?: DataViewProjectionActiveItems;
+    }
+    interface MatrixTransformationContext {
+        rowHierarchyRewritten: boolean;
+        columnHierarchyRewritten: boolean;
+        hierarchyTreesRewritten: boolean;
+    }
+    const enum StandardDataViewKinds {
+        None = 0,
+        Categorical = 1,
+        Matrix = 2,
+        Single = 4,
+        Table = 8,
+        Tree = 16,
+    }
+    module DataViewTransform {
+        function apply(options: DataViewTransformApplyOptions): DataView[];
+        function transformObjects(dataView: DataView, targetDataViewKinds: StandardDataViewKinds, objectDescriptors: DataViewObjectDescriptors, objectDefinitions: DataViewObjectDefinitions, selectTransforms: DataViewSelectTransform[], colorAllocatorFactory: IColorAllocatorFactory): void;
+        function createValueColumns(values?: DataViewValueColumn[], valueIdentityFields?: SQExpr[], source?: DataViewMetadataColumn): DataViewValueColumns;
+        function setGrouped(values: DataViewValueColumns, groupedResult?: DataViewValueColumnGroup[]): void;
+    }
+}
+
+declare module powerbi {
+    module DataViewScopeIdentity {
+        /** Compares the two DataViewScopeIdentity values for equality. */
+        function equals(x: DataViewScopeIdentity, y: DataViewScopeIdentity, ignoreCase?: boolean): boolean;
+        function filterFromIdentity(identities: DataViewScopeIdentity[], isNot?: boolean): data.SemanticFilter;
+        function filterFromExprs(orExprs: data.SQExpr[], isNot?: boolean): data.SemanticFilter;
+    }
+    module data {
+        function createDataViewScopeIdentity(expr: SQExpr): DataViewScopeIdentity;
+    }
+}
+
+declare module powerbi.data {
+    module PrimitiveValueEncoding {
+        function decimal(value: number): string;
+        function double(value: number): string;
+        function integer(value: number): string;
+        function dateTime(value: Date): string;
+        function text(value: string): string;
+        function nullEncoding(): string;
+        function boolean(value: boolean): string;
+    }
+}
+
+declare module powerbi.data {
+    /** Rewrites an expression tree, including all descendant nodes. */
+    class SQExprRewriter implements ISQExprVisitor<SQExpr>, IFillRuleDefinitionVisitor<LinearGradient2Definition, LinearGradient3Definition> {
+        visitColumnRef(expr: SQColumnRefExpr): SQExpr;
+        visitMeasureRef(expr: SQMeasureRefExpr): SQExpr;
+        visitAggr(expr: SQAggregationExpr): SQExpr;
+        visitSelectRef(expr: SQSelectRefExpr): SQExpr;
+        visitPercentile(expr: SQPercentileExpr): SQExpr;
+        visitHierarchy(expr: SQHierarchyExpr): SQExpr;
+        visitHierarchyLevel(expr: SQHierarchyLevelExpr): SQExpr;
+        visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr): SQExpr;
+        visitEntity(expr: SQEntityExpr): SQExpr;
+        visitAnd(orig: SQAndExpr): SQExpr;
+        visitBetween(orig: SQBetweenExpr): SQExpr;
+        visitIn(orig: SQInExpr): SQExpr;
+        private rewriteAll(origExprs);
+        visitOr(orig: SQOrExpr): SQExpr;
+        visitCompare(orig: SQCompareExpr): SQExpr;
+        visitContains(orig: SQContainsExpr): SQExpr;
+        visitExists(orig: SQExistsExpr): SQExpr;
+        visitNot(orig: SQNotExpr): SQExpr;
+        visitStartsWith(orig: SQStartsWithExpr): SQExpr;
+        visitConstant(expr: SQConstantExpr): SQExpr;
+        visitDateSpan(orig: SQDateSpanExpr): SQExpr;
+        visitDateAdd(orig: SQDateAddExpr): SQExpr;
+        visitNow(orig: SQNowExpr): SQExpr;
+        visitDefaultValue(orig: SQDefaultValueExpr): SQExpr;
+        visitAnyValue(orig: SQAnyValueExpr): SQExpr;
+        visitArithmetic(orig: SQArithmeticExpr): SQExpr;
+        visitScopedEval(orig: SQScopedEvalExpr): SQExpr;
+        visitWithRef(orig: SQWithRefExpr): SQExpr;
+        visitTransformTableRef(orig: SQTransformTableRefExpr): SQExpr;
+        visitTransformOutputRoleRef(orig: SQTransformOutputRoleRefExpr): SQExpr;
+        visitFillRule(orig: SQFillRuleExpr): SQExpr;
+        visitLinearGradient2(origGradient2: LinearGradient2Definition): LinearGradient2Definition;
+        visitLinearGradient3(origGradient3: LinearGradient3Definition): LinearGradient3Definition;
+        private visitFillRuleStop(stop);
+        visitResourcePackageItem(orig: SQResourcePackageItemExpr): SQExpr;
+    }
+}
+
+declare module powerbi.data {
+    /** Represents an immutable expression within a SemanticQuery. */
+    abstract class SQExpr implements ISQExpr {
+        private _kind;
+        constructor(kind: SQExprKind);
+        static equals(x: SQExpr, y: SQExpr, ignoreCase?: boolean): boolean;
+        validate(schema: FederatedConceptualSchema, aggrUtils: ISQAggregationOperations, errors?: SQExprValidationError[]): SQExprValidationError[];
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+        kind: SQExprKind;
+        static isArithmetic(expr: SQExpr): expr is SQArithmeticExpr;
+        static isColumn(expr: SQExpr): expr is SQColumnRefExpr;
+        static isConstant(expr: SQExpr): expr is SQConstantExpr;
+        static isEntity(expr: SQExpr): expr is SQEntityExpr;
+        static isHierarchy(expr: SQExpr): expr is SQHierarchyExpr;
+        static isHierarchyLevel(expr: SQExpr): expr is SQHierarchyLevelExpr;
+        static isAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMinAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMaxAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isAvgAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMedianAggregation(expr: SQExpr): expr is SQAggregationExpr;
+        static isMeasure(expr: SQExpr): expr is SQMeasureRefExpr;
+        static isPercentile(expr: SQExpr): expr is SQPercentileExpr;
+        static isSelectRef(expr: SQExpr): expr is SQSelectRefExpr;
+        static isScopedEval(expr: SQExpr): expr is SQScopedEvalExpr;
+        static isWithRef(expr: SQExpr): expr is SQWithRefExpr;
+        static isTransformTableRef(expr: SQExpr): expr is SQTransformTableRefExpr;
+        static isTransformOutputRoleRef(expr: SQExpr): expr is SQTransformOutputRoleRefExpr;
+        static isResourcePackageItem(expr: SQExpr): expr is SQResourcePackageItemExpr;
+        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
+        getDefaultAggregate(federatedSchema: FederatedConceptualSchema, forceAggregation?: boolean): QueryAggregateFunction;
+        /** Return the SQExpr[] of group on columns if it has group on keys otherwise return the SQExpr of the column.*/
+        getKeyColumns(schema: FederatedConceptualSchema): SQExpr[];
+        /** Returns a value indicating whether the expression would group on keys other than itself.*/
+        hasGroupOnKeys(schema: FederatedConceptualSchema): boolean;
+        private getPropertyKeys(schema);
+        getConceptualProperty(federatedSchema: FederatedConceptualSchema): ConceptualProperty;
+        getTargetEntityForVariation(federatedSchema: FederatedConceptualSchema, variationName: string): string;
+        getTargetEntity(federatedSchema: FederatedConceptualSchema): SQEntityExpr;
+        private getHierarchyLevelConceptualProperty(federatedSchema);
+        private getMetadataForVariation(field, federatedSchema);
+        private getMetadataForHierarchyLevel(field, federatedSchema);
+        private getMetadataForPercentOfGrandTotal();
+        private getPropertyMetadata(field, property);
+        private getMetadataForProperty(field, federatedSchema);
+        private static getMetadataForEntity(field, federatedSchema);
+    }
+    const enum SQExprKind {
+        Entity = 0,
+        ColumnRef = 1,
+        MeasureRef = 2,
+        Aggregation = 3,
+        PropertyVariationSource = 4,
+        Hierarchy = 5,
+        HierarchyLevel = 6,
+        And = 7,
+        Between = 8,
+        In = 9,
+        Or = 10,
+        Contains = 11,
+        Compare = 12,
+        StartsWith = 13,
+        Exists = 14,
+        Not = 15,
+        Constant = 16,
+        DateSpan = 17,
+        DateAdd = 18,
+        Now = 19,
+        AnyValue = 20,
+        DefaultValue = 21,
+        Arithmetic = 22,
+        FillRule = 23,
+        ResourcePackageItem = 24,
+        ScopedEval = 25,
+        WithRef = 26,
+        Percentile = 27,
+        SelectRef = 28,
+        TransformTableRef = 29,
+        TransformOutputRoleRef = 30,
+    }
+    interface SQExprMetadata {
+        kind: FieldKind;
+        type: ValueType;
+        format?: string;
+        idOnEntityKey?: boolean;
+        aggregate?: QueryAggregateFunction;
+        defaultAggregate?: ConceptualDefaultAggregate;
+    }
+    const enum FieldKind {
+        /** Indicates the field references a column, which evaluates to a distinct set of values (e.g., Year, Name, SalesQuantity, etc.). */
+        Column = 0,
+        /** Indicates the field references a measure, which evaluates to a single value (e.g., SalesYTD, Sum(Sales), etc.). */
+        Measure = 1,
+    }
+    /** Note: Exported for testability */
+    function defaultAggregateForDataType(type: ValueType): QueryAggregateFunction;
+    /** Note: Exported for testability */
+    function defaultAggregateToQueryAggregateFunction(aggregate: ConceptualDefaultAggregate): QueryAggregateFunction;
+    class SQEntityExpr extends SQExpr {
+        schema: string;
+        entity: string;
+        variable: string;
+        constructor(schema: string, entity: string, variable?: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQArithmeticExpr extends SQExpr {
+        left: SQExpr;
+        right: SQExpr;
+        operator: ArithmeticOperatorKind;
+        constructor(left: SQExpr, right: SQExpr, operator: ArithmeticOperatorKind);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQScopedEvalExpr extends SQExpr {
+        expression: SQExpr;
+        scope: SQExpr[];
+        constructor(expression: SQExpr, scope: SQExpr[]);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
+    }
+    class SQWithRefExpr extends SQExpr {
+        expressionName: string;
+        constructor(expressionName: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    abstract class SQPropRefExpr extends SQExpr {
+        ref: string;
+        source: SQExpr;
+        constructor(kind: SQExprKind, source: SQExpr, ref: string);
+    }
+    class SQColumnRefExpr extends SQPropRefExpr {
+        constructor(source: SQExpr, ref: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQMeasureRefExpr extends SQPropRefExpr {
+        constructor(source: SQExpr, ref: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQAggregationExpr extends SQExpr {
+        arg: SQExpr;
+        func: QueryAggregateFunction;
+        constructor(arg: SQExpr, func: QueryAggregateFunction);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQPercentileExpr extends SQExpr {
+        arg: SQExpr;
+        k: number;
+        exclusive: boolean;
+        constructor(arg: SQExpr, k: number, exclusive: boolean);
+        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQPropertyVariationSourceExpr extends SQExpr {
+        arg: SQExpr;
+        name: string;
+        property: string;
+        constructor(arg: SQExpr, name: string, property: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQHierarchyExpr extends SQExpr {
+        arg: SQExpr;
+        hierarchy: string;
+        constructor(arg: SQExpr, hierarchy: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQHierarchyLevelExpr extends SQExpr {
+        arg: SQExpr;
+        level: string;
+        constructor(arg: SQExpr, level: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQSelectRefExpr extends SQExpr {
+        expressionName: string;
+        constructor(expressionName: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQAndExpr extends SQExpr {
+        left: SQExpr;
+        right: SQExpr;
+        constructor(left: SQExpr, right: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQBetweenExpr extends SQExpr {
+        arg: SQExpr;
+        lower: SQExpr;
+        upper: SQExpr;
+        constructor(arg: SQExpr, lower: SQExpr, upper: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQInExpr extends SQExpr {
+        args: SQExpr[];
+        values: SQExpr[][];
+        constructor(args: SQExpr[], values: SQExpr[][]);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQOrExpr extends SQExpr {
+        left: SQExpr;
+        right: SQExpr;
+        constructor(left: SQExpr, right: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQCompareExpr extends SQExpr {
+        comparison: QueryComparisonKind;
+        left: SQExpr;
+        right: SQExpr;
+        constructor(comparison: QueryComparisonKind, left: SQExpr, right: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQContainsExpr extends SQExpr {
+        left: SQExpr;
+        right: SQExpr;
+        constructor(left: SQExpr, right: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQStartsWithExpr extends SQExpr {
+        left: SQExpr;
+        right: SQExpr;
+        constructor(left: SQExpr, right: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQExistsExpr extends SQExpr {
+        arg: SQExpr;
+        constructor(arg: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQNotExpr extends SQExpr {
+        arg: SQExpr;
+        constructor(arg: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQConstantExpr extends SQExpr implements ISQConstantExpr {
+        type: ValueType;
+        /** The native JavaScript representation of the value. */
+        value: any;
+        /** The string encoded, lossless representation of the value. */
+        valueEncoded: string;
+        constructor(type: ValueType, value: any, valueEncoded: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
+    }
+    class SQDateSpanExpr extends SQExpr {
+        unit: TimeUnit;
+        arg: SQExpr;
+        constructor(unit: TimeUnit, arg: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQDateAddExpr extends SQExpr {
+        unit: TimeUnit;
+        amount: number;
+        arg: SQExpr;
+        constructor(unit: TimeUnit, amount: number, arg: SQExpr);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQNowExpr extends SQExpr {
+        constructor();
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQDefaultValueExpr extends SQExpr {
+        constructor();
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQAnyValueExpr extends SQExpr {
+        constructor();
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQFillRuleExpr extends SQExpr {
+        input: SQExpr;
+        rule: FillRuleDefinition;
+        constructor(input: SQExpr, fillRule: FillRuleDefinition);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQResourcePackageItemExpr extends SQExpr {
+        packageName: string;
+        packageType: number;
+        itemName: string;
+        constructor(packageName: string, packageType: number, itemName: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQTransformTableRefExpr extends SQExpr {
+        source: string;
+        constructor(source: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    class SQTransformOutputRoleRefExpr extends SQExpr {
+        role: string;
+        transform: string;
+        constructor(role: string, transform?: string);
+        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
+    }
+    /** Provides utilities for creating & manipulating expressions. */
+    module SQExprBuilder {
+        function entity(schema: string, entity: string, variable?: string): SQEntityExpr;
+        function columnRef(source: SQExpr, prop: string): SQColumnRefExpr;
+        function measureRef(source: SQExpr, prop: string): SQMeasureRefExpr;
+        function aggregate(source: SQExpr, aggregate: QueryAggregateFunction): SQAggregationExpr;
+        function selectRef(expressionName: string): SQSelectRefExpr;
+        function percentile(source: SQExpr, k: number, exclusive: boolean): SQPercentileExpr;
+        function arithmetic(left: SQExpr, right: SQExpr, operator: ArithmeticOperatorKind): SQArithmeticExpr;
+        function scopedEval(expression: SQExpr, scope: SQExpr[]): SQScopedEvalExpr;
+        function withRef(expressionName: string): SQWithRefExpr;
+        function hierarchy(source: SQExpr, hierarchy: string): SQHierarchyExpr;
+        function propertyVariationSource(source: SQExpr, name: string, property: string): SQPropertyVariationSourceExpr;
+        function hierarchyLevel(source: SQExpr, level: string): SQHierarchyLevelExpr;
+        function transformTableRef(source: string): SQTransformTableRefExpr;
+        function transformOutputRoleRef(role: string, transform?: string): SQTransformOutputRoleRefExpr;
+        function and(left: SQExpr, right: SQExpr): SQExpr;
+        function between(arg: SQExpr, lower: SQExpr, upper: SQExpr): SQBetweenExpr;
+        function inExpr(args: SQExpr[], values: SQExpr[][]): SQInExpr;
+        function or(left: SQExpr, right: SQExpr): SQExpr;
+        function compare(kind: QueryComparisonKind, left: SQExpr, right: SQExpr): SQCompareExpr;
+        function contains(left: SQExpr, right: SQExpr): SQContainsExpr;
+        function exists(arg: SQExpr): SQExistsExpr;
+        function equal(left: SQExpr, right: SQExpr): SQCompareExpr;
+        function not(arg: SQExpr): SQNotExpr;
+        function startsWith(left: SQExpr, right: SQExpr): SQStartsWithExpr;
+        function nullConstant(): SQConstantExpr;
+        function now(): SQNowExpr;
+        function defaultValue(): SQDefaultValueExpr;
+        function anyValue(): SQAnyValueExpr;
+        function boolean(value: boolean): SQConstantExpr;
+        function dateAdd(unit: TimeUnit, amount: number, arg: SQExpr): SQDateAddExpr;
+        function dateTime(value: Date, valueEncoded?: string): SQConstantExpr;
+        function dateSpan(unit: TimeUnit, arg: SQExpr): SQDateSpanExpr;
+        function decimal(value: number, valueEncoded?: string): SQConstantExpr;
+        function double(value: number, valueEncoded?: string): SQConstantExpr;
+        function integer(value: number, valueEncoded?: string): SQConstantExpr;
+        function text(value: string, valueEncoded?: string): SQConstantExpr;
+        /** Returns an SQExpr that evaluates to the constant value. */
+        function typedConstant(value: PrimitiveValue, type: ValueTypeDescriptor): SQConstantExpr;
+        function setAggregate(expr: SQExpr, aggregate: QueryAggregateFunction): SQExpr;
+        function removeAggregate(expr: SQExpr): SQExpr;
+        function setPercentOfGrandTotal(expr: SQExpr): SQExpr;
+        function removePercentOfGrandTotal(expr: SQExpr): SQExpr;
+        function removeEntityVariables(expr: SQExpr): SQExpr;
+        function fillRule(expr: SQExpr, rule: FillRuleDefinition): SQFillRuleExpr;
+        function resourcePackageItem(packageName: string, packageType: number, itemName: string): SQResourcePackageItemExpr;
+    }
+    /** Provides utilities for obtaining information about expressions. */
+    module SQExprInfo {
+        function getAggregate(expr: SQExpr): QueryAggregateFunction;
+    }
+    const enum SQExprValidationError {
+        invalidAggregateFunction = 0,
+        invalidSchemaReference = 1,
+        invalidEntityReference = 2,
+        invalidColumnReference = 3,
+        invalidMeasureReference = 4,
+        invalidHierarchyReference = 5,
+        invalidHierarchyLevelReference = 6,
+        invalidLeftOperandType = 7,
+        invalidRightOperandType = 8,
+        invalidValueType = 9,
+        invalidPercentileArgument = 10,
+        invalidScopeArgument = 11,
+    }
+    class SQExprValidationVisitor extends SQExprRewriter {
+        errors: SQExprValidationError[];
+        private schema;
+        private aggrUtils;
+        constructor(schema: FederatedConceptualSchema, aggrUtils: ISQAggregationOperations, errors?: SQExprValidationError[]);
+        visitIn(expr: SQInExpr): SQExpr;
+        visitCompare(expr: SQCompareExpr): SQExpr;
+        visitColumnRef(expr: SQColumnRefExpr): SQExpr;
+        visitMeasureRef(expr: SQMeasureRefExpr): SQExpr;
+        visitAggr(expr: SQAggregationExpr): SQExpr;
+        visitHierarchy(expr: SQHierarchyExpr): SQExpr;
+        visitHierarchyLevel(expr: SQHierarchyLevelExpr): SQExpr;
+        visitPercentile(expr: SQPercentileExpr): SQExpr;
+        visitEntity(expr: SQEntityExpr): SQExpr;
+        visitContains(expr: SQContainsExpr): SQExpr;
+        visitStartsWith(expr: SQContainsExpr): SQExpr;
+        visitArithmetic(expr: SQArithmeticExpr): SQExpr;
+        visitScopedEval(expr: SQScopedEvalExpr): SQExpr;
+        visitWithRef(expr: SQWithRefExpr): SQExpr;
+        visitTransformTableRef(expr: SQTransformTableRefExpr): SQExpr;
+        visitTransformOutputRoleRef(expr: SQTransformOutputRoleRefExpr): SQExpr;
+        private validateOperandsAndTypeForStartOrContains(left, right);
+        private validateArithmeticTypes(left, right);
+        private validateCompatibleType(left, right);
+        private validateEntity(schemaName, entityName);
+        private validateHierarchy(schemaName, entityName, hierarchyName);
+        private validateHierarchyLevel(schemaName, entityName, hierarchyName, levelName);
+        private register(error);
+        private isQueryable(fieldExpr);
+    }
+}
+
+declare module powerbi.data {
+    /** Utility for creating a DataView from columns of data. */
+    interface IDataViewBuilderCategorical {
+        withCategory(options: DataViewBuilderCategoryColumnOptions): IDataViewBuilderCategorical;
+        withCategories(categories: DataViewCategoryColumn[]): IDataViewBuilderCategorical;
+        withValues(options: DataViewBuilderValuesOptions): IDataViewBuilderCategorical;
+        withGroupedValues(options: DataViewBuilderGroupedValuesOptions): IDataViewBuilderCategorical;
+        build(): DataView;
+    }
+    interface DataViewBuilderColumnOptions {
+        source: DataViewMetadataColumn;
+    }
+    interface DataViewBuilderCategoryColumnOptions extends DataViewBuilderColumnOptions {
+        values: PrimitiveValue[];
+        identityFrom: DataViewBuilderColumnIdentitySource;
+    }
+    interface DataViewBuilderValuesOptions {
+        columns: DataViewBuilderValuesColumnOptions[];
+    }
+    interface DataViewBuilderGroupedValuesOptions {
+        groupColumn: DataViewBuilderCategoryColumnOptions;
+        valueColumns: DataViewBuilderColumnOptions[];
+        data: DataViewBuilderSeriesData[][];
+    }
+    /** Indicates the source set of identities. */
+    interface DataViewBuilderColumnIdentitySource {
+        fields: SQExpr[];
+        identities?: DataViewScopeIdentity[];
+    }
+    interface DataViewBuilderValuesColumnOptions extends DataViewBuilderColumnOptions, DataViewBuilderSeriesData {
+    }
+    interface DataViewBuilderSeriesData {
+        values: PrimitiveValue[];
+        highlights?: PrimitiveValue[];
+        /** Client-computed maximum value for a column. */
+        maxLocal?: any;
+        /** Client-computed maximum value for a column. */
+        minLocal?: any;
+    }
+    function createCategoricalDataViewBuilder(): IDataViewBuilderCategorical;
+}
+
+declare module powerbi.data {
+    /** Serializes SQExpr in a form optimized in-memory comparison, but not intended for storage on disk. */
+    module SQExprShortSerializer {
+        function serialize(expr: SQExpr): string;
+        function serializeArray(exprs: SQExpr[]): string;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+declare module powerbi {
+    /** Defines a custom enumeration data type, and its values. */
+    interface IEnumType {
+        /** Gets the members of the enumeration, limited to the validMembers, if appropriate. */
+        members(validMembers?: EnumMemberValue[]): IEnumMember[];
+    }
+    function createEnumType(members: IEnumMember[]): IEnumType;
+}
+
+declare module powerbi {
+    import SQExpr = powerbi.data.SQExpr;
+    interface FillDefinition {
+        solid?: {
+            color?: SQExpr;
+        };
+        gradient?: {
+            startColor?: SQExpr;
+            endColor?: SQExpr;
+        };
+        pattern?: {
+            patternKind?: SQExpr;
+            color?: SQExpr;
+        };
+    }
+    module FillDefinitionHelpers {
+        function createSolidFillDefinition(color: string): FillDefinition;
+        function createSolidFillSQExpr(color: string): SQExpr | StructuralObjectDefinition;
+    }
+    module FillSolidColorTypeDescriptor {
+        /** Gets a value indicating whether the descriptor is nullable or not. */
+        function nullable(descriptor: FillSolidColorTypeDescriptor): boolean;
+    }
+}
+
+declare module powerbi {
+    import SQExpr = powerbi.data.SQExpr;
+    interface FillRuleTypeDescriptor {
+    }
+    interface FillRuleDefinition extends FillRuleGeneric<SQExpr, SQExpr> {
+    }
+    interface FillRule extends FillRuleGeneric<string, number> {
+    }
+    type LinearGradient2 = LinearGradient2Generic<string, number>;
+    type LinearGradient3 = LinearGradient3Generic<string, number>;
+    type LinearGradient2Definition = LinearGradient2Generic<SQExpr, SQExpr>;
+    type LinearGradient3Definition = LinearGradient3Generic<SQExpr, SQExpr>;
+    type RuleColorStopDefinition = RuleColorStopGeneric<SQExpr, SQExpr>;
+    type RuleColorStop = RuleColorStopGeneric<string, number>;
+    interface IFillRuleDefinitionVisitor<T2, T3> {
+        visitLinearGradient2(linearGradient2: LinearGradient2Definition, arg?: any): T2;
+        visitLinearGradient3(linearGradient3: LinearGradient3Definition, arg?: any): T3;
+    }
+}
+
+declare module powerbi {
+    import SQExpr = powerbi.data.SQExpr;
+    interface ImageTypeDescriptor {
+    }
+    type ImageDefinition = ImageDefinitionGeneric<SQExpr>;
+    module ImageDefinition {
+        const urlType: ValueTypeDescriptor;
+    }
+}
+
+declare module powerbi {
+    import SQExpr = powerbi.data.SQExpr;
+    interface ParagraphsTypeDescriptor {
+    }
+    type ParagraphsDefinition = ParagraphDefinition[];
+    type ParagraphDefinition = ParagraphDefinitionGeneric<SQExpr>;
+    type TextRunDefinition = TextRunDefinitionGeneric<SQExpr>;
+    interface ParagraphDefinitionGeneric<TExpr> {
+        horizontalTextAlignment?: string;
+        textRuns: TextRunDefinitionGeneric<TExpr>[];
+    }
+    interface TextRunDefinitionGeneric<TExpr> {
+        textStyle?: TextRunStyle;
+        url?: string;
+        value: string | TExpr;
+    }
+}
+
+declare module powerbi {
+    import SemanticFilter = powerbi.data.SemanticFilter;
+    type StructuralObjectDefinition = FillDefinition | FillRuleDefinition | SemanticFilter | DefaultValueDefinition | ImageDefinition | ParagraphsDefinition;
+    module StructuralTypeDescriptor {
+        function isValid(type: StructuralTypeDescriptor): boolean;
+    }
+}
+
+declare module powerbi.data {
+    /**
+     * Represents the versions of the data shape binding structure.
+     * NOTE Keep this file in sync with the Sql\InfoNav\src\Data\Contracts\DsqGeneration\DataShapeBindingVersions.cs
+     * file in the TFS Dev branch.
+     */
+    const enum DataShapeBindingVersions {
+        /** The initial version of data shape binding */
+        Version0 = 0,
+        /** Explicit subtotal support for axis groupings. */
+        Version1 = 1,
+    }
+    interface DataShapeBindingLimitTarget {
+        Primary?: number;
+    }
+    const enum DataShapeBindingLimitType {
+        Top = 0,
+        First = 1,
+        Last = 2,
+        Sample = 3,
+        Bottom = 4,
+    }
+    interface DataShapeBindingLimit {
+        Count?: number;
+        Target: DataShapeBindingLimitTarget;
+        Type: DataShapeBindingLimitType;
+    }
+    interface DataShapeBinding {
+        Version?: number;
+        Primary: DataShapeBindingAxis;
+        Secondary?: DataShapeBindingAxis;
+        Aggregates?: DataShapeBindingAggregate[];
+        Projections?: number[];
+        Limits?: DataShapeBindingLimit[];
+        Highlights?: FilterDefinition[];
+        DataReduction?: DataShapeBindingDataReduction;
+        IncludeEmptyGroups?: boolean;
+        SuppressedJoinPredicates?: number[];
+    }
+    interface DataShapeBindingDataReduction {
+        Primary?: DataShapeBindingDataReductionAlgorithm;
+        Secondary?: DataShapeBindingDataReductionAlgorithm;
+        DataVolume?: number;
+    }
+    interface DataShapeBindingDataReductionAlgorithm {
+        Top?: DataShapeBindingDataReductionTopLimit;
+        Sample?: DataShapeBindingDataReductionSampleLimit;
+        Bottom?: DataShapeBindingDataReductionBottomLimit;
+        Window?: DataShapeBindingDataReductionDataWindow;
+    }
+    interface DataShapeBindingDataReductionTopLimit {
+        Count?: number;
+    }
+    interface DataShapeBindingDataReductionSampleLimit {
+        Count?: number;
+    }
+    interface DataShapeBindingDataReductionBottomLimit {
+        Count?: number;
+    }
+    interface DataShapeBindingDataReductionDataWindow {
+        Count?: number;
+        RestartTokens?: RestartToken;
+    }
+    interface DataShapeBindingAxis {
+        Groupings: DataShapeBindingAxisGrouping[];
+    }
+    const enum SubtotalType {
+        None = 0,
+        Before = 1,
+        After = 2,
+    }
+    interface DataShapeBindingAxisGrouping {
+        Projections: number[];
+        GroupBy?: number[];
+        SuppressedProjections?: number[];
+        Subtotal?: SubtotalType;
+        ShowItemsWithNoData?: number[];
+    }
+    interface DataShapeBindingAggregate {
+        Select: number;
+        Aggregations: DataShapeBindingSelectAggregateContainer[];
+    }
+    interface DataShapeBindingSelectAggregateContainer {
+        Percentile?: DataShapeBindingSelectPercentileAggregate;
+        Min?: DataShapeBindingSelectMinAggregate;
+        Max?: DataShapeBindingSelectMaxAggregate;
+        Median?: DataShapeBindingSelectMedianAggregate;
+        Average?: DataShapeBindingSelectAverageAggregate;
+    }
+    interface DataShapeBindingSelectPercentileAggregate {
+        Exclusive?: boolean;
+        K: number;
+    }
+    interface DataShapeBindingSelectMaxAggregate {
+    }
+    interface DataShapeBindingSelectMinAggregate {
+    }
+    interface DataShapeBindingSelectMedianAggregate {
+    }
+    interface DataShapeBindingSelectAverageAggregate {
+    }
+}
+
+declare module powerbi.data {
+    module DataShapeBindingDataReduction {
+        function createFrom(reduction: ReductionAlgorithm): DataShapeBindingDataReductionAlgorithm;
+    }
+}
+
+declare module powerbi.data {
+    interface FederatedConceptualSchemaInitOptions {
+        schemas: {
+            [name: string]: ConceptualSchema;
+        };
+        links?: ConceptualSchemaLink[];
+    }
+    /** Represents a federated conceptual schema. */
+    class FederatedConceptualSchema {
+        private schemas;
+        private links;
+        constructor(options: FederatedConceptualSchemaInitOptions);
+        schema(name: string): ConceptualSchema;
+    }
+    /** Describes a semantic relationship between ConceptualSchemas. */
+    interface ConceptualSchemaLink {
+    }
+}
+
+declare module powerbi.data {
+    module Selector {
+        function filterFromSelector(selectors: Selector[], isNot?: boolean): SemanticFilter;
+        function matchesData(selector: Selector, identities: DataViewScopeIdentity[]): boolean;
+        function matchesKeys(selector: Selector, keysList: SQExpr[][]): boolean;
+        /** Determines whether two selectors are equal. */
+        function equals(x: Selector, y: Selector): boolean;
+        function getKey(selector: Selector): string;
+        function containsWildcard(selector: Selector): boolean;
+        function hasRoleWildcard(selector: Selector): boolean;
+        function isRoleWildcard(dataItem: DataRepetitionSelector): dataItem is DataViewRoleWildcard;
+        function convertSelectorsByColumnToSelector(selectorsByColumn: SelectorsByColumn): Selector;
     }
 }
 
@@ -2034,69 +2597,6 @@ declare module powerbi.data {
         function apply(prototype: DataView, applicableRoleMappings: DataViewMapping[], projectionOrdering: DataViewProjectionOrdering, splitSelects: INumberDictionary<boolean>): DataView;
     }
 }
-declare module powerbi.data {
-    import INumberDictionary = jsCommon.INumberDictionary;
-    interface DataViewTransformApplyOptions {
-        prototype: DataView;
-        objectDescriptors: DataViewObjectDescriptors;
-        dataViewMappings?: DataViewMapping[];
-        transforms: DataViewTransformActions;
-        colorAllocatorFactory: IColorAllocatorFactory;
-        dataRoles: VisualDataRole[];
-    }
-    /** Describes the Transform actions to be done to a prototype DataView. */
-    interface DataViewTransformActions {
-        /** Describes transform metadata for each semantic query select item, as the arrays align, by index. */
-        selects?: DataViewSelectTransform[];
-        /** Describes the DataViewObject definitions. */
-        objects?: DataViewObjectDefinitions;
-        /** Describes the splitting of a single input DataView into multiple DataViews. */
-        splits?: DataViewSplitTransform[];
-        /** Describes the projection metadata which includes projection ordering and active items. */
-        roles?: DataViewRoleTransformMetadata;
-    }
-    interface DataViewSplitTransform {
-        selects: INumberDictionary<boolean>;
-    }
-    interface DataViewProjectionOrdering {
-        [roleName: string]: number[];
-    }
-    interface DataViewProjectionActiveItemInfo {
-        queryRef: string;
-        /** Describes if the active item should be ignored in concatenation.
-            If the active item has a drill filter, it will not be used in concatenation.
-            If the value of suppressConcat is true, the activeItem will be ommitted from concatenation. */
-        suppressConcat?: boolean;
-    }
-    interface DataViewProjectionActiveItems {
-        [roleName: string]: DataViewProjectionActiveItemInfo[];
-    }
-    interface DataViewRoleTransformMetadata {
-        /** Describes the order of selects (referenced by query index) in each role. */
-        ordering?: DataViewProjectionOrdering;
-        /** Describes the active items in each role. */
-        activeItems?: DataViewProjectionActiveItems;
-    }
-    interface MatrixTransformationContext {
-        rowHierarchyRewritten: boolean;
-        columnHierarchyRewritten: boolean;
-        hierarchyTreesRewritten: boolean;
-    }
-    const enum StandardDataViewKinds {
-        None = 0,
-        Categorical = 1,
-        Matrix = 2,
-        Single = 4,
-        Table = 8,
-        Tree = 16,
-    }
-    module DataViewTransform {
-        function apply(options: DataViewTransformApplyOptions): DataView[];
-        function transformObjects(dataView: DataView, targetDataViewKinds: StandardDataViewKinds, objectDescriptors: DataViewObjectDescriptors, objectDefinitions: DataViewObjectDefinitions, selectTransforms: DataViewSelectTransform[], colorAllocatorFactory: IColorAllocatorFactory): void;
-        function createValueColumns(values?: DataViewValueColumn[], valueIdentityFields?: SQExpr[], source?: DataViewMetadataColumn): DataViewValueColumns;
-        function setGrouped(values: DataViewValueColumns, groupedResult?: DataViewValueColumnGroup[]): void;
-    }
-}
 
 declare module powerbi.data {
     function createDisplayNameGetter(displayNameKey: string): (IStringResourceProvider) => string;
@@ -2471,18 +2971,6 @@ declare module powerbi.data {
     }
 }
 
-declare module powerbi {
-    module DataViewScopeIdentity {
-        /** Compares the two DataViewScopeIdentity values for equality. */
-        function equals(x: DataViewScopeIdentity, y: DataViewScopeIdentity, ignoreCase?: boolean): boolean;
-        function filterFromIdentity(identities: DataViewScopeIdentity[], isNot?: boolean): data.SemanticFilter;
-        function filterFromExprs(orExprs: data.SQExpr[], isNot?: boolean): data.SemanticFilter;
-    }
-    module data {
-        function createDataViewScopeIdentity(expr: SQExpr): DataViewScopeIdentity;
-    }
-}
-
 declare module powerbi.data {
     module DataViewScopeWildcard {
         function matches(wildcard: DataViewScopeWildcard, instance: DataViewScopeIdentity): boolean;
@@ -2832,47 +3320,6 @@ declare module powerbi.data.segmentation {
 }
 
 declare module powerbi.data {
-    /** Rewrites an expression tree, including all descendant nodes. */
-    class SQExprRewriter implements ISQExprVisitor<SQExpr>, IFillRuleDefinitionVisitor<LinearGradient2Definition, LinearGradient3Definition> {
-        visitColumnRef(expr: SQColumnRefExpr): SQExpr;
-        visitMeasureRef(expr: SQMeasureRefExpr): SQExpr;
-        visitAggr(expr: SQAggregationExpr): SQExpr;
-        visitSelectRef(expr: SQSelectRefExpr): SQExpr;
-        visitPercentile(expr: SQPercentileExpr): SQExpr;
-        visitHierarchy(expr: SQHierarchyExpr): SQExpr;
-        visitHierarchyLevel(expr: SQHierarchyLevelExpr): SQExpr;
-        visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr): SQExpr;
-        visitEntity(expr: SQEntityExpr): SQExpr;
-        visitAnd(orig: SQAndExpr): SQExpr;
-        visitBetween(orig: SQBetweenExpr): SQExpr;
-        visitIn(orig: SQInExpr): SQExpr;
-        private rewriteAll(origExprs);
-        visitOr(orig: SQOrExpr): SQExpr;
-        visitCompare(orig: SQCompareExpr): SQExpr;
-        visitContains(orig: SQContainsExpr): SQExpr;
-        visitExists(orig: SQExistsExpr): SQExpr;
-        visitNot(orig: SQNotExpr): SQExpr;
-        visitStartsWith(orig: SQStartsWithExpr): SQExpr;
-        visitConstant(expr: SQConstantExpr): SQExpr;
-        visitDateSpan(orig: SQDateSpanExpr): SQExpr;
-        visitDateAdd(orig: SQDateAddExpr): SQExpr;
-        visitNow(orig: SQNowExpr): SQExpr;
-        visitDefaultValue(orig: SQDefaultValueExpr): SQExpr;
-        visitAnyValue(orig: SQAnyValueExpr): SQExpr;
-        visitArithmetic(orig: SQArithmeticExpr): SQExpr;
-        visitScopedEval(orig: SQScopedEvalExpr): SQExpr;
-        visitWithRef(orig: SQWithRefExpr): SQExpr;
-        visitTransformTableRef(orig: SQTransformTableRefExpr): SQExpr;
-        visitTransformOutputRoleRef(orig: SQTransformOutputRoleRefExpr): SQExpr;
-        visitFillRule(orig: SQFillRuleExpr): SQExpr;
-        visitLinearGradient2(origGradient2: LinearGradient2Definition): LinearGradient2Definition;
-        visitLinearGradient3(origGradient3: LinearGradient3Definition): LinearGradient3Definition;
-        private visitFillRuleStop(stop);
-        visitResourcePackageItem(orig: SQResourcePackageItemExpr): SQExpr;
-    }
-}
-
-declare module powerbi.data {
     /** Responsible for writing equality comparisons against a field to an SQInExpr. */
     module EqualsToInRewriter {
         function run(expr: SQExpr): SQExpr;
@@ -2897,18 +3344,6 @@ declare module powerbi.data {
         function getKeys(expr: SQExpr): SQExpr[];
         function getValues(expr: SQExpr): SQExpr[];
         function getInExpr(expr: SQExpr): SQInExpr;
-    }
-}
-
-declare module powerbi.data {
-    module PrimitiveValueEncoding {
-        function decimal(value: number): string;
-        function double(value: number): string;
-        function integer(value: number): string;
-        function dateTime(value: Date): string;
-        function text(value: string): string;
-        function nullEncoding(): string;
-        function boolean(value: boolean): string;
     }
 }
 
@@ -2957,391 +3392,6 @@ declare module powerbi.data {
     module SQExprGroupUtils {
         /** Group all projections. Eacch group can consist of either a single property, or a collection of hierarchy items. */
         function groupExprs(schema: FederatedConceptualSchema, exprs: SQExpr[]): SQExprGroup[];
-    }
-}
-
-declare module powerbi.data {
-    /** Represents an immutable expression within a SemanticQuery. */
-    abstract class SQExpr implements ISQExpr {
-        private _kind;
-        constructor(kind: SQExprKind);
-        static equals(x: SQExpr, y: SQExpr, ignoreCase?: boolean): boolean;
-        validate(schema: FederatedConceptualSchema, aggrUtils: ISQAggregationOperations, errors?: SQExprValidationError[]): SQExprValidationError[];
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-        kind: SQExprKind;
-        static isArithmetic(expr: SQExpr): expr is SQArithmeticExpr;
-        static isColumn(expr: SQExpr): expr is SQColumnRefExpr;
-        static isConstant(expr: SQExpr): expr is SQConstantExpr;
-        static isEntity(expr: SQExpr): expr is SQEntityExpr;
-        static isHierarchy(expr: SQExpr): expr is SQHierarchyExpr;
-        static isHierarchyLevel(expr: SQExpr): expr is SQHierarchyLevelExpr;
-        static isAggregation(expr: SQExpr): expr is SQAggregationExpr;
-        static isMinAggregation(expr: SQExpr): expr is SQAggregationExpr;
-        static isMaxAggregation(expr: SQExpr): expr is SQAggregationExpr;
-        static isAvgAggregation(expr: SQExpr): expr is SQAggregationExpr;
-        static isMedianAggregation(expr: SQExpr): expr is SQAggregationExpr;
-        static isMeasure(expr: SQExpr): expr is SQMeasureRefExpr;
-        static isPercentile(expr: SQExpr): expr is SQPercentileExpr;
-        static isSelectRef(expr: SQExpr): expr is SQSelectRefExpr;
-        static isScopedEval(expr: SQExpr): expr is SQScopedEvalExpr;
-        static isWithRef(expr: SQExpr): expr is SQWithRefExpr;
-        static isTransformTableRef(expr: SQExpr): expr is SQTransformTableRefExpr;
-        static isTransformOutputRoleRef(expr: SQExpr): expr is SQTransformOutputRoleRefExpr;
-        static isResourcePackageItem(expr: SQExpr): expr is SQResourcePackageItemExpr;
-        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
-        getDefaultAggregate(federatedSchema: FederatedConceptualSchema, forceAggregation?: boolean): QueryAggregateFunction;
-        /** Return the SQExpr[] of group on columns if it has group on keys otherwise return the SQExpr of the column.*/
-        getKeyColumns(schema: FederatedConceptualSchema): SQExpr[];
-        /** Returns a value indicating whether the expression would group on keys other than itself.*/
-        hasGroupOnKeys(schema: FederatedConceptualSchema): boolean;
-        private getPropertyKeys(schema);
-        getConceptualProperty(federatedSchema: FederatedConceptualSchema): ConceptualProperty;
-        getTargetEntityForVariation(federatedSchema: FederatedConceptualSchema, variationName: string): string;
-        getTargetEntity(federatedSchema: FederatedConceptualSchema): SQEntityExpr;
-        private getHierarchyLevelConceptualProperty(federatedSchema);
-        private getMetadataForVariation(field, federatedSchema);
-        private getMetadataForHierarchyLevel(field, federatedSchema);
-        private getMetadataForPercentOfGrandTotal();
-        private getPropertyMetadata(field, property);
-        private getMetadataForProperty(field, federatedSchema);
-        private static getMetadataForEntity(field, federatedSchema);
-    }
-    const enum SQExprKind {
-        Entity = 0,
-        ColumnRef = 1,
-        MeasureRef = 2,
-        Aggregation = 3,
-        PropertyVariationSource = 4,
-        Hierarchy = 5,
-        HierarchyLevel = 6,
-        And = 7,
-        Between = 8,
-        In = 9,
-        Or = 10,
-        Contains = 11,
-        Compare = 12,
-        StartsWith = 13,
-        Exists = 14,
-        Not = 15,
-        Constant = 16,
-        DateSpan = 17,
-        DateAdd = 18,
-        Now = 19,
-        AnyValue = 20,
-        DefaultValue = 21,
-        Arithmetic = 22,
-        FillRule = 23,
-        ResourcePackageItem = 24,
-        ScopedEval = 25,
-        WithRef = 26,
-        Percentile = 27,
-        SelectRef = 28,
-        TransformTableRef = 29,
-        TransformOutputRoleRef = 30,
-    }
-    interface SQExprMetadata {
-        kind: FieldKind;
-        type: ValueType;
-        format?: string;
-        idOnEntityKey?: boolean;
-        aggregate?: QueryAggregateFunction;
-        defaultAggregate?: ConceptualDefaultAggregate;
-    }
-    const enum FieldKind {
-        /** Indicates the field references a column, which evaluates to a distinct set of values (e.g., Year, Name, SalesQuantity, etc.). */
-        Column = 0,
-        /** Indicates the field references a measure, which evaluates to a single value (e.g., SalesYTD, Sum(Sales), etc.). */
-        Measure = 1,
-    }
-    /** Note: Exported for testability */
-    function defaultAggregateForDataType(type: ValueType): QueryAggregateFunction;
-    /** Note: Exported for testability */
-    function defaultAggregateToQueryAggregateFunction(aggregate: ConceptualDefaultAggregate): QueryAggregateFunction;
-    class SQEntityExpr extends SQExpr {
-        schema: string;
-        entity: string;
-        variable: string;
-        constructor(schema: string, entity: string, variable?: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQArithmeticExpr extends SQExpr {
-        left: SQExpr;
-        right: SQExpr;
-        operator: ArithmeticOperatorKind;
-        constructor(left: SQExpr, right: SQExpr, operator: ArithmeticOperatorKind);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQScopedEvalExpr extends SQExpr {
-        expression: SQExpr;
-        scope: SQExpr[];
-        constructor(expression: SQExpr, scope: SQExpr[]);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
-    }
-    class SQWithRefExpr extends SQExpr {
-        expressionName: string;
-        constructor(expressionName: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    abstract class SQPropRefExpr extends SQExpr {
-        ref: string;
-        source: SQExpr;
-        constructor(kind: SQExprKind, source: SQExpr, ref: string);
-    }
-    class SQColumnRefExpr extends SQPropRefExpr {
-        constructor(source: SQExpr, ref: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQMeasureRefExpr extends SQPropRefExpr {
-        constructor(source: SQExpr, ref: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQAggregationExpr extends SQExpr {
-        arg: SQExpr;
-        func: QueryAggregateFunction;
-        constructor(arg: SQExpr, func: QueryAggregateFunction);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQPercentileExpr extends SQExpr {
-        arg: SQExpr;
-        k: number;
-        exclusive: boolean;
-        constructor(arg: SQExpr, k: number, exclusive: boolean);
-        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQPropertyVariationSourceExpr extends SQExpr {
-        arg: SQExpr;
-        name: string;
-        property: string;
-        constructor(arg: SQExpr, name: string, property: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQHierarchyExpr extends SQExpr {
-        arg: SQExpr;
-        hierarchy: string;
-        constructor(arg: SQExpr, hierarchy: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQHierarchyLevelExpr extends SQExpr {
-        arg: SQExpr;
-        level: string;
-        constructor(arg: SQExpr, level: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQSelectRefExpr extends SQExpr {
-        expressionName: string;
-        constructor(expressionName: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQAndExpr extends SQExpr {
-        left: SQExpr;
-        right: SQExpr;
-        constructor(left: SQExpr, right: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQBetweenExpr extends SQExpr {
-        arg: SQExpr;
-        lower: SQExpr;
-        upper: SQExpr;
-        constructor(arg: SQExpr, lower: SQExpr, upper: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQInExpr extends SQExpr {
-        args: SQExpr[];
-        values: SQExpr[][];
-        constructor(args: SQExpr[], values: SQExpr[][]);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQOrExpr extends SQExpr {
-        left: SQExpr;
-        right: SQExpr;
-        constructor(left: SQExpr, right: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQCompareExpr extends SQExpr {
-        comparison: QueryComparisonKind;
-        left: SQExpr;
-        right: SQExpr;
-        constructor(comparison: QueryComparisonKind, left: SQExpr, right: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQContainsExpr extends SQExpr {
-        left: SQExpr;
-        right: SQExpr;
-        constructor(left: SQExpr, right: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQStartsWithExpr extends SQExpr {
-        left: SQExpr;
-        right: SQExpr;
-        constructor(left: SQExpr, right: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQExistsExpr extends SQExpr {
-        arg: SQExpr;
-        constructor(arg: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQNotExpr extends SQExpr {
-        arg: SQExpr;
-        constructor(arg: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQConstantExpr extends SQExpr implements ISQConstantExpr {
-        type: ValueType;
-        /** The native JavaScript representation of the value. */
-        value: any;
-        /** The string encoded, lossless representation of the value. */
-        valueEncoded: string;
-        constructor(type: ValueType, value: any, valueEncoded: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-        getMetadata(federatedSchema: FederatedConceptualSchema): SQExprMetadata;
-    }
-    class SQDateSpanExpr extends SQExpr {
-        unit: TimeUnit;
-        arg: SQExpr;
-        constructor(unit: TimeUnit, arg: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQDateAddExpr extends SQExpr {
-        unit: TimeUnit;
-        amount: number;
-        arg: SQExpr;
-        constructor(unit: TimeUnit, amount: number, arg: SQExpr);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQNowExpr extends SQExpr {
-        constructor();
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQDefaultValueExpr extends SQExpr {
-        constructor();
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQAnyValueExpr extends SQExpr {
-        constructor();
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQFillRuleExpr extends SQExpr {
-        input: SQExpr;
-        rule: FillRuleDefinition;
-        constructor(input: SQExpr, fillRule: FillRuleDefinition);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQResourcePackageItemExpr extends SQExpr {
-        packageName: string;
-        packageType: number;
-        itemName: string;
-        constructor(packageName: string, packageType: number, itemName: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQTransformTableRefExpr extends SQExpr {
-        source: string;
-        constructor(source: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    class SQTransformOutputRoleRefExpr extends SQExpr {
-        role: string;
-        transform: string;
-        constructor(role: string, transform?: string);
-        accept<T, TArg>(visitor: ISQExprVisitorWithArg<T, TArg>, arg?: TArg): T;
-    }
-    /** Provides utilities for creating & manipulating expressions. */
-    module SQExprBuilder {
-        function entity(schema: string, entity: string, variable?: string): SQEntityExpr;
-        function columnRef(source: SQExpr, prop: string): SQColumnRefExpr;
-        function measureRef(source: SQExpr, prop: string): SQMeasureRefExpr;
-        function aggregate(source: SQExpr, aggregate: QueryAggregateFunction): SQAggregationExpr;
-        function selectRef(expressionName: string): SQSelectRefExpr;
-        function percentile(source: SQExpr, k: number, exclusive: boolean): SQPercentileExpr;
-        function arithmetic(left: SQExpr, right: SQExpr, operator: ArithmeticOperatorKind): SQArithmeticExpr;
-        function scopedEval(expression: SQExpr, scope: SQExpr[]): SQScopedEvalExpr;
-        function withRef(expressionName: string): SQWithRefExpr;
-        function hierarchy(source: SQExpr, hierarchy: string): SQHierarchyExpr;
-        function propertyVariationSource(source: SQExpr, name: string, property: string): SQPropertyVariationSourceExpr;
-        function hierarchyLevel(source: SQExpr, level: string): SQHierarchyLevelExpr;
-        function transformTableRef(source: string): SQTransformTableRefExpr;
-        function transformOutputRoleRef(role: string, transform?: string): SQTransformOutputRoleRefExpr;
-        function and(left: SQExpr, right: SQExpr): SQExpr;
-        function between(arg: SQExpr, lower: SQExpr, upper: SQExpr): SQBetweenExpr;
-        function inExpr(args: SQExpr[], values: SQExpr[][]): SQInExpr;
-        function or(left: SQExpr, right: SQExpr): SQExpr;
-        function compare(kind: QueryComparisonKind, left: SQExpr, right: SQExpr): SQCompareExpr;
-        function contains(left: SQExpr, right: SQExpr): SQContainsExpr;
-        function exists(arg: SQExpr): SQExistsExpr;
-        function equal(left: SQExpr, right: SQExpr): SQCompareExpr;
-        function not(arg: SQExpr): SQNotExpr;
-        function startsWith(left: SQExpr, right: SQExpr): SQStartsWithExpr;
-        function nullConstant(): SQConstantExpr;
-        function now(): SQNowExpr;
-        function defaultValue(): SQDefaultValueExpr;
-        function anyValue(): SQAnyValueExpr;
-        function boolean(value: boolean): SQConstantExpr;
-        function dateAdd(unit: TimeUnit, amount: number, arg: SQExpr): SQDateAddExpr;
-        function dateTime(value: Date, valueEncoded?: string): SQConstantExpr;
-        function dateSpan(unit: TimeUnit, arg: SQExpr): SQDateSpanExpr;
-        function decimal(value: number, valueEncoded?: string): SQConstantExpr;
-        function double(value: number, valueEncoded?: string): SQConstantExpr;
-        function integer(value: number, valueEncoded?: string): SQConstantExpr;
-        function text(value: string, valueEncoded?: string): SQConstantExpr;
-        /** Returns an SQExpr that evaluates to the constant value. */
-        function typedConstant(value: PrimitiveValue, type: ValueTypeDescriptor): SQConstantExpr;
-        function setAggregate(expr: SQExpr, aggregate: QueryAggregateFunction): SQExpr;
-        function removeAggregate(expr: SQExpr): SQExpr;
-        function setPercentOfGrandTotal(expr: SQExpr): SQExpr;
-        function removePercentOfGrandTotal(expr: SQExpr): SQExpr;
-        function removeEntityVariables(expr: SQExpr): SQExpr;
-        function fillRule(expr: SQExpr, rule: FillRuleDefinition): SQFillRuleExpr;
-        function resourcePackageItem(packageName: string, packageType: number, itemName: string): SQResourcePackageItemExpr;
-    }
-    /** Provides utilities for obtaining information about expressions. */
-    module SQExprInfo {
-        function getAggregate(expr: SQExpr): QueryAggregateFunction;
-    }
-    const enum SQExprValidationError {
-        invalidAggregateFunction = 0,
-        invalidSchemaReference = 1,
-        invalidEntityReference = 2,
-        invalidColumnReference = 3,
-        invalidMeasureReference = 4,
-        invalidHierarchyReference = 5,
-        invalidHierarchyLevelReference = 6,
-        invalidLeftOperandType = 7,
-        invalidRightOperandType = 8,
-        invalidValueType = 9,
-        invalidPercentileArgument = 10,
-        invalidScopeArgument = 11,
-    }
-    class SQExprValidationVisitor extends SQExprRewriter {
-        errors: SQExprValidationError[];
-        private schema;
-        private aggrUtils;
-        constructor(schema: FederatedConceptualSchema, aggrUtils: ISQAggregationOperations, errors?: SQExprValidationError[]);
-        visitIn(expr: SQInExpr): SQExpr;
-        visitCompare(expr: SQCompareExpr): SQExpr;
-        visitColumnRef(expr: SQColumnRefExpr): SQExpr;
-        visitMeasureRef(expr: SQMeasureRefExpr): SQExpr;
-        visitAggr(expr: SQAggregationExpr): SQExpr;
-        visitHierarchy(expr: SQHierarchyExpr): SQExpr;
-        visitHierarchyLevel(expr: SQHierarchyLevelExpr): SQExpr;
-        visitPercentile(expr: SQPercentileExpr): SQExpr;
-        visitEntity(expr: SQEntityExpr): SQExpr;
-        visitContains(expr: SQContainsExpr): SQExpr;
-        visitStartsWith(expr: SQContainsExpr): SQExpr;
-        visitArithmetic(expr: SQArithmeticExpr): SQExpr;
-        visitScopedEval(expr: SQScopedEvalExpr): SQExpr;
-        visitWithRef(expr: SQWithRefExpr): SQExpr;
-        visitTransformTableRef(expr: SQTransformTableRefExpr): SQExpr;
-        visitTransformOutputRoleRef(expr: SQTransformOutputRoleRefExpr): SQExpr;
-        private validateOperandsAndTypeForStartOrContains(left, right);
-        private validateArithmeticTypes(left, right);
-        private validateCompatibleType(left, right);
-        private validateEntity(schemaName, entityName);
-        private validateHierarchy(schemaName, entityName, hierarchyName);
-        private validateHierarchyLevel(schemaName, entityName, hierarchyName, levelName);
-        private register(error);
-        private isQueryable(fieldExpr);
     }
 }
 
@@ -3616,48 +3666,6 @@ declare module powerbi.data {
 }
 
 declare module powerbi.data {
-    /** Utility for creating a DataView from columns of data. */
-    interface IDataViewBuilderCategorical {
-        withCategory(options: DataViewBuilderCategoryColumnOptions): IDataViewBuilderCategorical;
-        withCategories(categories: DataViewCategoryColumn[]): IDataViewBuilderCategorical;
-        withValues(options: DataViewBuilderValuesOptions): IDataViewBuilderCategorical;
-        withGroupedValues(options: DataViewBuilderGroupedValuesOptions): IDataViewBuilderCategorical;
-        build(): DataView;
-    }
-    interface DataViewBuilderColumnOptions {
-        source: DataViewMetadataColumn;
-    }
-    interface DataViewBuilderCategoryColumnOptions extends DataViewBuilderColumnOptions {
-        values: PrimitiveValue[];
-        identityFrom: DataViewBuilderColumnIdentitySource;
-    }
-    interface DataViewBuilderValuesOptions {
-        columns: DataViewBuilderValuesColumnOptions[];
-    }
-    interface DataViewBuilderGroupedValuesOptions {
-        groupColumn: DataViewBuilderCategoryColumnOptions;
-        valueColumns: DataViewBuilderColumnOptions[];
-        data: DataViewBuilderSeriesData[][];
-    }
-    /** Indicates the source set of identities. */
-    interface DataViewBuilderColumnIdentitySource {
-        fields: SQExpr[];
-        identities?: DataViewScopeIdentity[];
-    }
-    interface DataViewBuilderValuesColumnOptions extends DataViewBuilderColumnOptions, DataViewBuilderSeriesData {
-    }
-    interface DataViewBuilderSeriesData {
-        values: PrimitiveValue[];
-        highlights?: PrimitiveValue[];
-        /** Client-computed maximum value for a column. */
-        maxLocal?: any;
-        /** Client-computed maximum value for a column. */
-        minLocal?: any;
-    }
-    function createCategoricalDataViewBuilder(): IDataViewBuilderCategorical;
-}
-
-declare module powerbi.data {
     import SQExpr = powerbi.data.SQExpr;
     function createStaticEvalContext(colorAllocatorCache?: IColorAllocatorCache): IEvalContext;
     function createStaticEvalContext(colorAllocatorCache: IColorAllocatorCache, dataView: DataView, selectTransforms: DataViewSelectTransform[]): IEvalContext;
@@ -3736,14 +3744,6 @@ declare module powerbi {
         function getCustomFormatMetadata(format: string, calculatePrecision?: boolean, calculateScale?: boolean): NumericFormatMetadata;
     }
     var formattingService: IFormattingService;
-}
-
-declare module powerbi.data {
-    /** Serializes SQExpr in a form optimized in-memory comparison, but not intended for storage on disk. */
-    module SQExprShortSerializer {
-        function serialize(expr: SQExpr): string;
-        function serializeArray(exprs: SQExpr[]): string;
-    }
 }
 
 declare module powerbi.visuals {

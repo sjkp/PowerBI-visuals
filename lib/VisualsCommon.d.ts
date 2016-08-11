@@ -1,4 +1,610 @@
 
+/**
+ * Defines a Debug object. Calls to any functions in this object removed by the minifier.
+ * The functions within this class are not minified away, so we use the preprocessor-style
+ * comments to have the minifier remove those as well.
+ */
+declare module debug {
+    let assertFailFunction: {
+        (message: string): void;
+    };
+    /**
+     * Asserts that the condition is true, fails otherwise.
+     */
+    function assert(condition: boolean, message: string): void;
+    /**
+     * Asserts that the value is neither null nor undefined, fails otherwise.
+     */
+    function assertValue<T>(value: T, message: string): void;
+    /**
+     * Asserts that the value is neither null nor undefined, and has a length property that returns greater than zero, fails otherwise.
+     */
+    function assertNonEmpty<T>(value: T[], message: string): void;
+    /**
+     * Makes no assertion on the given value.
+     * This is documentation/placeholder that a value is possibly null or undefined (unlike assertValue).
+     */
+    function assertAnyValue<T>(value: T, message: string): void;
+    function assertFail(message: string): void;
+}
+
+declare module jsCommon {
+    interface IError extends Error {
+        stack?: string;
+        argument?: string;
+    }
+    module Errors {
+        function infoNavAppAlreadyPresent(): IError;
+        function invalidOperation(message: string): IError;
+        function argument(argumentName: string, message: string): IError;
+        function argumentNull(argumentName: string): IError;
+        function argumentUndefined(argumentName: string): IError;
+        function argumentOutOfRange(argumentName: string): IError;
+        function pureVirtualMethodException(className: string, methodName: string): IError;
+        function notImplementedException(message: string): IError;
+    }
+    /**
+     * Captures the stack trace, if available.
+     * It optionally takes the number of frames to remove from the stack trace.
+     * By default, it removes the last frame to consider the calling type's
+     * constructor and the temporary error used to capture the stack trace (below).
+     * More levels can be requested as needed e..g. when an error is created
+     * from a helper method. <Min requirement: IE10, Chrome, Firefox, Opera>.
+     */
+    function getStackTrace(leadingFramesToRemove?: number): string;
+}
+
+declare module jsCommon {
+    /**
+     * Represents a lazily instantiated value.
+     */
+    class Lazy<T> {
+        private value;
+        private factoryMethod;
+        constructor(factoryMethod: () => T);
+        getValue(): T;
+    }
+}
+
+declare module powerbi {
+    module Prototype {
+        /**
+         * Returns a new object with the provided obj as its prototype.
+         */
+        function inherit<T>(obj: T, extension?: (inherited: T) => void): T;
+        /**
+         * Returns a new object with the provided obj as its prototype
+         * if, and only if, the prototype has not been previously set
+         */
+        function inheritSingle<T>(obj: T): T;
+        /**
+         * Uses the provided callback function to selectively replace contents in the provided array.
+         * @return A new array with those values overriden
+         * or undefined if no overrides are necessary.
+         */
+        function overrideArray<T, TArray>(prototype: TArray, override: (T) => T): TArray;
+    }
+}
+/**
+ * Defined in host.
+ */
+declare var clusterUri: string;
+declare module jsCommon {
+    /**
+     * Http Status code we are interested.
+     */
+    enum HttpStatusCode {
+        OK = 200,
+        BadRequest = 400,
+        Unauthorized = 401,
+        Forbidden = 403,
+        RequestEntityTooLarge = 413,
+    }
+    /**
+     * Other HTTP Constants.
+     */
+    module HttpConstants {
+        const ApplicationOctetStream: string;
+        const MultiPartFormData: string;
+    }
+    /**
+     * Extensions to String class.
+     */
+    module StringExtensions {
+        function format(...args: string[]): string;
+        /**
+         * Compares two strings for equality, ignoring case.
+         */
+        function equalIgnoreCase(a: string, b: string): boolean;
+        function startsWithIgnoreCase(a: string, b: string): boolean;
+        function startsWith(a: string, b: string): boolean;
+        /** Determines whether a string contains a specified substring (by case-sensitive comparison). */
+        function contains(source: string, substring: string): boolean;
+        /** Determines whether a string contains a specified substring (while ignoring case). */
+        function containsIgnoreCase(source: string, substring: string): boolean;
+        /**
+         * Normalizes case for a string.
+         * Used by equalIgnoreCase method.
+         */
+        function normalizeCase(value: string): string;
+        /**
+         * Is string null or empty or undefined?
+         * @return True if the value is null or undefined or empty string,
+         * otherwise false.
+         */
+        function isNullOrEmpty(value: string): boolean;
+        /**
+         * Returns true if the string is null, undefined, empty, or only includes white spaces.
+         * @return True if the str is null, undefined, empty, or only includes white spaces,
+         * otherwise false.
+         */
+        function isNullOrUndefinedOrWhiteSpaceString(str: string): boolean;
+        /**
+         * Returns a value indicating whether the str contains any whitespace.
+         */
+        function containsWhitespace(str: string): boolean;
+        /**
+         * Returns a value indicating whether the str is a whitespace string.
+         */
+        function isWhitespace(str: string): boolean;
+        /**
+         * Returns the string with any trailing whitespace from str removed.
+         */
+        function trimTrailingWhitespace(str: string): string;
+        /**
+         * Returns the string with any leading and trailing whitespace from str removed.
+         */
+        function trimWhitespace(str: string): string;
+        /**
+         * Returns length difference between the two provided strings.
+         */
+        function getLengthDifference(left: string, right: string): number;
+        /**
+         * Repeat char or string several times.
+         * @param char The string to repeat.
+         * @param count How many times to repeat the string.
+         */
+        function repeat(char: string, count: number): string;
+        /**
+         * Replace all the occurrences of the textToFind in the text with the textToReplace.
+         * @param text The original string.
+         * @param textToFind Text to find in the original string.
+         * @param textToReplace New text replacing the textToFind.
+         */
+        function replaceAll(text: string, textToFind: string, textToReplace: string): string;
+        function ensureUniqueNames(names: string[]): string[];
+        /**
+         * Returns a name that is not specified in the values.
+         */
+        function findUniqueName(usedNames: {
+            [name: string]: boolean;
+        }, baseName: string): string;
+        function constructCommaSeparatedList(list: string[], resourceProvider: IStringResourceProvider, maxValue?: number): string;
+        function escapeStringForRegex(s: string): string;
+        /**
+         * Remove file name reserved characters <>:"/\|?* from input string.
+         */
+        function normalizeFileName(fileName: string): string;
+        /**
+         * Similar to JSON.stringify, but strips away escape sequences so that the resulting
+         * string is human-readable (and parsable by JSON formatting/validating tools).
+         */
+        function stringifyAsPrettyJSON(object: any): string;
+        /**
+         * Derive a CLS-compliant name from a specified string.  If no allowed characters are present, return a fallback string instead.
+         * TODO (6708134): this should have a fully Unicode-aware implementation
+         */
+        function deriveClsCompliantName(input: string, fallback: string): string;
+        /** Performs cheap sanitization by stripping away HTML tag (<>) characters. */
+        function stripTagDelimiters(s: string): string;
+    }
+    /**
+     * Interface used for interacting with WCF typed objects.
+     */
+    interface TypedObject {
+        __type: string;
+    }
+    interface TextMatch {
+        start: number;
+        end: number;
+        text: string;
+    }
+    /**
+     * The general utility class.
+     */
+    class Utility {
+        private static TypeNamespace;
+        static JsonContentType: string;
+        static JpegContentType: string;
+        static XJavascriptContentType: string;
+        static JsonDataType: string;
+        static BlobDataType: string;
+        static HttpGetMethod: string;
+        static HttpPostMethod: string;
+        static HttpPutMethod: string;
+        static HttpDeleteMethod: string;
+        static HttpContentTypeHeader: string;
+        static HttpAcceptHeader: string;
+        static Undefined: string;
+        private static staticContentLocation;
+        /**
+         * Ensures the specified value is not null or undefined. Throws a relevent exception if it is.
+         * @param value The value to check.
+         * @param context The context from which the check originated.
+         * @param methodName The name of the method that initiated the check.
+         * @param parameterName The parameter name of the value to check.
+         */
+        static throwIfNullOrUndefined(value: any, context: any, methodName: any, parameterName: any): void;
+        /**
+         * Ensures the specified value is not null, undefined or empty. Throws a relevent exception if it is.
+         * @param value The value to check.
+         * @param context The context from which the check originated.
+         * @param methodName The name of the method that initiated the check.
+         * @param parameterName The parameter name of the value to check.
+         */
+        static throwIfNullOrEmpty(value: any, context: any, methodName: string, parameterName: string): void;
+        /**
+         * Ensures the specified string is not null, undefined or empty. Throws a relevent exception if it is.
+         * @param value The value to check.
+         * @param context The context from which the check originated.
+         * @param methodName The name of the method that initiated the check.
+         * @param parameterName The parameter name of the value to check.
+         */
+        static throwIfNullOrEmptyString(value: string, context: any, methodName: string, parameterName: string): void;
+        /**
+         * Ensures the specified value is not null, undefined, whitespace or empty. Throws a relevent exception if it is.
+         * @param value The value to check.
+         * @param context The context from which the check originated.
+         * @param methodName The name of the method that initiated the check.
+         * @param parameterName The parameter name of the value to check.
+         */
+        static throwIfNullEmptyOrWhitespaceString(value: string, context: any, methodName: string, parameterName: string): void;
+        /**
+         * Ensures the specified condition is true. Throws relevant exception if it isn't.
+         * @param condition The condition to check.
+         * @param context The context from which the check originated.
+         * @param methodName The name of the method that initiated the check.
+         * @param parameterName The parameter name against which the condition is checked.
+         */
+        static throwIfNotTrue(condition: boolean, context: any, methodName: string, parameterName: string): void;
+        /**
+         * Checks whether the provided value is a 'string'.
+         * @param value The value to test.
+         */
+        static isString(value: any): boolean;
+        /**
+         * Checks whether the provided value is a 'boolean'.
+         * @param value The value to test.
+         */
+        static isBoolean(value: any): boolean;
+        /**
+         * Checks whether the provided value is a 'number'.
+         * @param value The value to test.
+         */
+        static isNumber(value: any): boolean;
+        /**
+         * Checks whether the provided value is a Date instance.
+         * @param value The value to test.
+         */
+        static isDate(value: any): boolean;
+        /**
+         * Checks whether the provided value is an 'object'.
+         * @param value The value to test.
+         */
+        static isObject(value: any): boolean;
+        /**
+         * Checks whether the provided value is null or undefined.
+         * @param value The value to test.
+         */
+        static isNullOrUndefined(value: any): boolean;
+        /**
+         * Checks if the value is defined and returns it, else, returns undefined
+         * @param {T} value Value to check
+         * @param {T} defaultValue Default value to return if value is undefined
+         * @returns value if defined, else defaultValue
+         */
+        static valueOrDefault<T>(value: T, defaultValue: T): T;
+        /**
+         * Combine a base url and a path.
+         * @param baseUrl The base url.
+         * @param path The path to add on to the base url.
+         * @returns The combined url.
+         */
+        static urlCombine(baseUrl: string, path: string): string;
+        static getAbsoluteUri(path: string): string;
+        static getStaticResourceUri(path: string): string;
+        static getComponentName(context: any): string;
+        static throwException(e: any): void;
+        static createClassSelector(className: string): string;
+        static createIdSelector(id: string): string;
+        /**
+         * Creates a client-side Guid string.
+         * @returns A string representation of a Guid.
+         */
+        static generateGuid(): string;
+        /**
+         * Try extract a cookie from {@link document.cookie} identified by key.
+         */
+        static getCookieValue(key: string): string;
+        /**
+         * Extracts the protocol://hostname section of a url.
+         * @param url The URL from which to extract the section.
+         * @returns The protocol://hostname portion of the given URL.
+         */
+        static getDomainForUrl(url: string): string;
+        /**
+         * Extracts the hostname and absolute path sections of a url.
+         * @param url The URL from which to extract the section.
+         * @returns The hostname and absolute path portion of the given URL.
+         */
+        static getHostNameForUrl(url: string): string;
+        /**
+         * Return the original url with query string stripped.
+         * @param url The URL from which to extract the section.
+         * @returns the original url with query string stripped.
+         */
+        static getUrlWithoutQueryString(url: string): string;
+        /**
+         * Extracts the protocol section of a url.
+         * @param url The URL from which to extract the section.
+         * @returns The protocol for the current URL.
+         */
+        static getProtocolFromUrl(url: string): string;
+        /**
+         * Returns a formatted href object from a URL.
+         * @param url The URL used to generate the object.
+         * @returns A jQuery object with the url.
+         */
+        static getHrefObjectFromUrl(url: string): JQuery;
+        /**
+         * Converts a WCF representation of a dictionary to a JavaScript dictionary.
+         * @param wcfDictionary The WCF dictionary to convert.
+         * @returns The native JavaScript representation of this dictionary.
+         */
+        static convertWcfToJsDictionary(wcfDictionary: any[]): {
+            [index: string]: any;
+        };
+        static getDateFromWcfJsonString(jsonDate: string, fromUtcMilliseconds: boolean): Date;
+        /**
+         * Get the outer html of the given jquery object.
+         * @param content The jquery object.
+         * @returns The entire html representation of the object.
+         */
+        static getOuterHtml(content: JQuery): string;
+        /**
+         * Comparison Method: Compares two integer numbers.
+         * @param a An integer value.
+         * @param b An integer value.
+         * @returns The comparison result.
+         */
+        static compareInt(a: number, b: number): number;
+        /**
+         * Return the index of the smallest value in a numerical array.
+         * @param a A numeric array.
+         * @returns The index of the smallest value in the array.
+         */
+        static getIndexOfMinValue(a: number[]): number;
+        /**
+         * Extracts a url from a background image attribute in the format of: url('www.foobar.com/image.png').
+         * @param input The value of the background-image attribute.
+         * @returns The extracted url.
+         */
+        static extractUrlFromCssBackgroundImage(input: string): string;
+        /**
+         * Verifies image data url of images.
+         */
+        static isValidImageDataUrl(url: string): boolean;
+        static isLocalUrl(url: string): boolean;
+        /**
+         * Downloads a content string as a file.
+         * @param content Content stream.
+         * @param fileName File name to use.
+         */
+        static saveAsFile(content: any, fileName: string): void;
+        /**
+         * Helper method to get the simple type name from a typed object.
+         * @param obj The typed object.
+         * @returns The simple type name for the object.
+         */
+        static getType(obj: TypedObject): string;
+        /**
+         * Check if an element supports a specific event type.
+         * @param eventName The name of the event.
+         * @param element The element to test for event support.
+         * @returns Whether the even is supported on the provided element.
+         */
+        static isEventSupported(eventName: string, element: Element): boolean;
+        static toPixel(pixelAmount: number): string;
+        static getPropertyCount(object: any): number;
+        /**
+         * Check if an element supports a specific event type.
+         * @param filePath File path.
+         * @returns File extension.
+         */
+        static getFileExtension(filePath: string): string;
+        /**
+         * Extract the filename out of a full path delimited by '\' or '/'.
+         * @param filePath File path.
+         * @returns filename File name.
+         */
+        static extractFileNameFromPath(filePath: string): string;
+        /**
+         * This method indicates whether window.clipboardData is supported.
+         * For example, clipboard support for Windows Store apps is currently disabled
+         * since window.clipboardData is unsupported (it raises access denied error)
+         * since clipboard in Windows Store is being
+         * achieved through Windows.ApplicationModel.DataTransfer.Clipboard class.
+         */
+        static canUseClipboard(): boolean;
+        static is64BitOperatingSystem(): boolean;
+        static parseNumber(value: any, defaultValue?: number): number;
+        static getURLParamValue(name: string): string | number;
+        /**
+         * Return local timezone.
+         * This function uses summer and winter offset to determine local time zone.
+         * The result localTimeZoneString must be a subset of the strings used by server,
+         * as documented here: https://msdn.microsoft.com/en-us/library/gg154758.aspx (Dynamic Daylight Savings Time (Compact 2013)).
+         * @return Local timezone string or UTC if timezone cannot be found.
+         */
+        static getLocalTimeZoneString(): string;
+    }
+    class VersionUtility {
+        /**
+         * Compares 2 version strings.
+         * @param versionA The first version string.
+         * @param versionB The second version string.
+         * @returns A result for the comparison.
+         */
+        static compareVersions(versionA: string, versionB: string): number;
+    }
+    module PerformanceUtil {
+        class PerfMarker {
+            private _name;
+            private _start;
+            constructor(name: string);
+            private static begin(name);
+            end(): void;
+        }
+        function create(name: string): PerfMarker;
+    }
+    module DeferUtility {
+        /**
+         * Wraps a callback and returns a new function.
+         * The function can be called many times but the callback
+         * will only be executed once on the next frame.
+         * Use this to throttle big UI updates and access to DOM.
+         */
+        function deferUntilNextFrame(callback: Function): Function;
+    }
+}
+
+declare module jsCommon {
+    class TraceItem {
+        type: TraceType;
+        sessionId: string;
+        requestId: string;
+        text: string;
+        timeStamp: Date;
+        /**
+         * Note: DO NOT USE for backward compability only.
+         */
+        _activityId: string;
+        private static traceTypeStrings;
+        constructor(text: string, type: TraceType, sessionId: string, requestId?: string);
+        toString(): string;
+    }
+}
+
+declare module jsCommon {
+    /**
+     * Interface to help define objects indexed by number to a particular type.
+     */
+    interface INumberDictionary<T> {
+        [key: number]: T;
+    }
+    /**
+     * Interface to help define objects indexed by name to a particular type.
+     */
+    interface IStringDictionary<T> {
+        [key: string]: T;
+    }
+    /**
+     * Extensions for Enumerations.
+     */
+    module EnumExtensions {
+        /**
+         * Gets a value indicating whether the value has the bit flags set.
+         */
+        function hasFlag(value: number, flag: number): boolean;
+        /**
+         * Sets a value of a flag without modifying any other flags.
+         */
+        function setFlag(value: number, flag: number): number;
+        /**
+         * Resets a value of a flag without modifying any other flags.
+         */
+        function resetFlag(value: number, flag: number): number;
+        /**
+         * According to the TypeScript Handbook, this is safe to do.
+         */
+        function toString(enumType: any, value: number): string;
+    }
+    /**
+     * Extensions to String class.
+     */
+    module StringExtensions {
+        /**
+         * Checks if a string ends with a sub-string.
+         */
+        function endsWith(str: string, suffix: string): boolean;
+    }
+    module LogicExtensions {
+        function XOR(a: boolean, b: boolean): boolean;
+    }
+    module JsonComparer {
+        /**
+         * Performs JSON-style comparison of two objects.
+         */
+        function equals<T>(x: T, y: T): boolean;
+    }
+    /**
+     * Values are in terms of 'pt'
+     * Convert to pixels using PixelConverter.fromPoint
+     */
+    module TextSizeDefaults {
+        /**
+         * Stored in terms of 'pt'
+         * Convert to pixels using PixelConverter.fromPoint
+         */
+        const TextSizeMin: number;
+        /**
+         * Stored in terms of 'pt'
+         * Convert to pixels using PixelConverter.fromPoint
+         */
+        const TextSizeMax: number;
+        /**
+         * Returns the percentage of this value relative to the TextSizeMax
+         * @param textSize - should be given in terms of 'pt'
+         */
+        function getScale(textSize: number): number;
+    }
+    module PixelConverter {
+        /**
+         * Appends 'px' to the end of number value for use as pixel string in styles
+         */
+        function toString(px: number): string;
+        /**
+         * Converts point value (pt) to pixels
+         * Returns a string for font-size property
+         * e.g. fromPoint(8) => '24px'
+         */
+        function fromPoint(pt: number): string;
+        /**
+         * Converts point value (pt) to pixels
+         * Returns a number for font-size property
+         * e.g. fromPoint(8) => 24px
+         */
+        function fromPointToPixel(pt: number): number;
+        /**
+         * Converts pixel value (px) to pt
+         * e.g. toPoint(24) => 8
+         */
+        function toPoint(px: number): number;
+    }
+    module RegExpExtensions {
+        /**
+         * Runs exec on regex starting from 0 index
+         * This is the expected behavior but RegExp actually remember
+         * the last index they stopped at (found match at) and will
+         * return unexpected results when run in sequence.
+         * @param regex - regular expression object
+         * @param value - string to search wiht regex
+         * @param start - index within value to start regex
+         */
+        function run(regex: RegExp, value: string, start?: number): RegExpExecArray;
+    }
+}
+
 
 
 
@@ -791,61 +1397,6 @@ declare module jsCommon {
         webkitTransform: string;
     }
 }
-
-/**
- * Defines a Debug object. Calls to any functions in this object removed by the minifier.
- * The functions within this class are not minified away, so we use the preprocessor-style
- * comments to have the minifier remove those as well.
- */
-declare module debug {
-    let assertFailFunction: {
-        (message: string): void;
-    };
-    /**
-     * Asserts that the condition is true, fails otherwise.
-     */
-    function assert(condition: boolean, message: string): void;
-    /**
-     * Asserts that the value is neither null nor undefined, fails otherwise.
-     */
-    function assertValue<T>(value: T, message: string): void;
-    /**
-     * Asserts that the value is neither null nor undefined, and has a length property that returns greater than zero, fails otherwise.
-     */
-    function assertNonEmpty<T>(value: T[], message: string): void;
-    /**
-     * Makes no assertion on the given value.
-     * This is documentation/placeholder that a value is possibly null or undefined (unlike assertValue).
-     */
-    function assertAnyValue<T>(value: T, message: string): void;
-    function assertFail(message: string): void;
-}
-
-declare module jsCommon {
-    interface IError extends Error {
-        stack?: string;
-        argument?: string;
-    }
-    module Errors {
-        function infoNavAppAlreadyPresent(): IError;
-        function invalidOperation(message: string): IError;
-        function argument(argumentName: string, message: string): IError;
-        function argumentNull(argumentName: string): IError;
-        function argumentUndefined(argumentName: string): IError;
-        function argumentOutOfRange(argumentName: string): IError;
-        function pureVirtualMethodException(className: string, methodName: string): IError;
-        function notImplementedException(message: string): IError;
-    }
-    /**
-     * Captures the stack trace, if available.
-     * It optionally takes the number of frames to remove from the stack trace.
-     * By default, it removes the last frame to consider the calling type's
-     * constructor and the temporary error used to capture the stack trace (below).
-     * More levels can be requested as needed e..g. when an error is created
-     * from a helper method. <Min requirement: IE10, Chrome, Firefox, Opera>.
-     */
-    function getStackTrace(leadingFramesToRemove?: number): string;
-}
 declare module jsCommon {
     /**
      * Represents a promise that may be rejected by its consumer.
@@ -855,38 +1406,6 @@ declare module jsCommon {
     }
     module JQueryConstants {
         const VisibleSelector: string;
-    }
-}
-
-declare module jsCommon {
-    /**
-     * Represents a lazily instantiated value.
-     */
-    class Lazy<T> {
-        private value;
-        private factoryMethod;
-        constructor(factoryMethod: () => T);
-        getValue(): T;
-    }
-}
-
-declare module powerbi {
-    module Prototype {
-        /**
-         * Returns a new object with the provided obj as its prototype.
-         */
-        function inherit<T>(obj: T, extension?: (inherited: T) => void): T;
-        /**
-         * Returns a new object with the provided obj as its prototype
-         * if, and only if, the prototype has not been previously set
-         */
-        function inheritSingle<T>(obj: T): T;
-        /**
-         * Uses the provided callback function to selectively replace contents in the provided array.
-         * @return A new array with those values overriden
-         * or undefined if no overrides are necessary.
-         */
-        function overrideArray<T, TArray>(prototype: TArray, override: (T) => T): TArray;
     }
 }
 
@@ -1192,415 +1711,6 @@ declare module jsCommon {
         create(delayInMs: number): IRejectablePromise;
     }
 }
-/**
- * Defined in host.
- */
-declare var clusterUri: string;
-declare module jsCommon {
-    /**
-     * Http Status code we are interested.
-     */
-    enum HttpStatusCode {
-        OK = 200,
-        BadRequest = 400,
-        Unauthorized = 401,
-        Forbidden = 403,
-        RequestEntityTooLarge = 413,
-    }
-    /**
-     * Other HTTP Constants.
-     */
-    module HttpConstants {
-        const ApplicationOctetStream: string;
-        const MultiPartFormData: string;
-    }
-    /**
-     * Extensions to String class.
-     */
-    module StringExtensions {
-        function format(...args: string[]): string;
-        /**
-         * Compares two strings for equality, ignoring case.
-         */
-        function equalIgnoreCase(a: string, b: string): boolean;
-        function startsWithIgnoreCase(a: string, b: string): boolean;
-        function startsWith(a: string, b: string): boolean;
-        /** Determines whether a string contains a specified substring (by case-sensitive comparison). */
-        function contains(source: string, substring: string): boolean;
-        /** Determines whether a string contains a specified substring (while ignoring case). */
-        function containsIgnoreCase(source: string, substring: string): boolean;
-        /**
-         * Normalizes case for a string.
-         * Used by equalIgnoreCase method.
-         */
-        function normalizeCase(value: string): string;
-        /**
-         * Is string null or empty or undefined?
-         * @return True if the value is null or undefined or empty string,
-         * otherwise false.
-         */
-        function isNullOrEmpty(value: string): boolean;
-        /**
-         * Returns true if the string is null, undefined, empty, or only includes white spaces.
-         * @return True if the str is null, undefined, empty, or only includes white spaces,
-         * otherwise false.
-         */
-        function isNullOrUndefinedOrWhiteSpaceString(str: string): boolean;
-        /**
-         * Returns a value indicating whether the str contains any whitespace.
-         */
-        function containsWhitespace(str: string): boolean;
-        /**
-         * Returns a value indicating whether the str is a whitespace string.
-         */
-        function isWhitespace(str: string): boolean;
-        /**
-         * Returns the string with any trailing whitespace from str removed.
-         */
-        function trimTrailingWhitespace(str: string): string;
-        /**
-         * Returns the string with any leading and trailing whitespace from str removed.
-         */
-        function trimWhitespace(str: string): string;
-        /**
-         * Returns length difference between the two provided strings.
-         */
-        function getLengthDifference(left: string, right: string): number;
-        /**
-         * Repeat char or string several times.
-         * @param char The string to repeat.
-         * @param count How many times to repeat the string.
-         */
-        function repeat(char: string, count: number): string;
-        /**
-         * Replace all the occurrences of the textToFind in the text with the textToReplace.
-         * @param text The original string.
-         * @param textToFind Text to find in the original string.
-         * @param textToReplace New text replacing the textToFind.
-         */
-        function replaceAll(text: string, textToFind: string, textToReplace: string): string;
-        function ensureUniqueNames(names: string[]): string[];
-        /**
-         * Returns a name that is not specified in the values.
-         */
-        function findUniqueName(usedNames: {
-            [name: string]: boolean;
-        }, baseName: string): string;
-        function constructCommaSeparatedList(list: string[], resourceProvider: IStringResourceProvider, maxValue?: number): string;
-        function escapeStringForRegex(s: string): string;
-        /**
-         * Remove file name reserved characters <>:"/\|?* from input string.
-         */
-        function normalizeFileName(fileName: string): string;
-        /**
-         * Similar to JSON.stringify, but strips away escape sequences so that the resulting
-         * string is human-readable (and parsable by JSON formatting/validating tools).
-         */
-        function stringifyAsPrettyJSON(object: any): string;
-        /**
-         * Derive a CLS-compliant name from a specified string.  If no allowed characters are present, return a fallback string instead.
-         * TODO (6708134): this should have a fully Unicode-aware implementation
-         */
-        function deriveClsCompliantName(input: string, fallback: string): string;
-        /** Performs cheap sanitization by stripping away HTML tag (<>) characters. */
-        function stripTagDelimiters(s: string): string;
-    }
-    /**
-     * Interface used for interacting with WCF typed objects.
-     */
-    interface TypedObject {
-        __type: string;
-    }
-    interface TextMatch {
-        start: number;
-        end: number;
-        text: string;
-    }
-    /**
-     * The general utility class.
-     */
-    class Utility {
-        private static TypeNamespace;
-        static JsonContentType: string;
-        static JpegContentType: string;
-        static XJavascriptContentType: string;
-        static JsonDataType: string;
-        static BlobDataType: string;
-        static HttpGetMethod: string;
-        static HttpPostMethod: string;
-        static HttpPutMethod: string;
-        static HttpDeleteMethod: string;
-        static HttpContentTypeHeader: string;
-        static HttpAcceptHeader: string;
-        static Undefined: string;
-        private static staticContentLocation;
-        /**
-         * Ensures the specified value is not null or undefined. Throws a relevent exception if it is.
-         * @param value The value to check.
-         * @param context The context from which the check originated.
-         * @param methodName The name of the method that initiated the check.
-         * @param parameterName The parameter name of the value to check.
-         */
-        static throwIfNullOrUndefined(value: any, context: any, methodName: any, parameterName: any): void;
-        /**
-         * Ensures the specified value is not null, undefined or empty. Throws a relevent exception if it is.
-         * @param value The value to check.
-         * @param context The context from which the check originated.
-         * @param methodName The name of the method that initiated the check.
-         * @param parameterName The parameter name of the value to check.
-         */
-        static throwIfNullOrEmpty(value: any, context: any, methodName: string, parameterName: string): void;
-        /**
-         * Ensures the specified string is not null, undefined or empty. Throws a relevent exception if it is.
-         * @param value The value to check.
-         * @param context The context from which the check originated.
-         * @param methodName The name of the method that initiated the check.
-         * @param parameterName The parameter name of the value to check.
-         */
-        static throwIfNullOrEmptyString(value: string, context: any, methodName: string, parameterName: string): void;
-        /**
-         * Ensures the specified value is not null, undefined, whitespace or empty. Throws a relevent exception if it is.
-         * @param value The value to check.
-         * @param context The context from which the check originated.
-         * @param methodName The name of the method that initiated the check.
-         * @param parameterName The parameter name of the value to check.
-         */
-        static throwIfNullEmptyOrWhitespaceString(value: string, context: any, methodName: string, parameterName: string): void;
-        /**
-         * Ensures the specified condition is true. Throws relevant exception if it isn't.
-         * @param condition The condition to check.
-         * @param context The context from which the check originated.
-         * @param methodName The name of the method that initiated the check.
-         * @param parameterName The parameter name against which the condition is checked.
-         */
-        static throwIfNotTrue(condition: boolean, context: any, methodName: string, parameterName: string): void;
-        /**
-         * Checks whether the provided value is a 'string'.
-         * @param value The value to test.
-         */
-        static isString(value: any): boolean;
-        /**
-         * Checks whether the provided value is a 'boolean'.
-         * @param value The value to test.
-         */
-        static isBoolean(value: any): boolean;
-        /**
-         * Checks whether the provided value is a 'number'.
-         * @param value The value to test.
-         */
-        static isNumber(value: any): boolean;
-        /**
-         * Checks whether the provided value is a Date instance.
-         * @param value The value to test.
-         */
-        static isDate(value: any): boolean;
-        /**
-         * Checks whether the provided value is an 'object'.
-         * @param value The value to test.
-         */
-        static isObject(value: any): boolean;
-        /**
-         * Checks whether the provided value is null or undefined.
-         * @param value The value to test.
-         */
-        static isNullOrUndefined(value: any): boolean;
-        /**
-         * Checks if the value is defined and returns it, else, returns undefined
-         * @param {T} value Value to check
-         * @param {T} defaultValue Default value to return if value is undefined
-         * @returns value if defined, else defaultValue
-         */
-        static valueOrDefault<T>(value: T, defaultValue: T): T;
-        /**
-         * Combine a base url and a path.
-         * @param baseUrl The base url.
-         * @param path The path to add on to the base url.
-         * @returns The combined url.
-         */
-        static urlCombine(baseUrl: string, path: string): string;
-        static getAbsoluteUri(path: string): string;
-        static getStaticResourceUri(path: string): string;
-        static getComponentName(context: any): string;
-        static throwException(e: any): void;
-        static createClassSelector(className: string): string;
-        static createIdSelector(id: string): string;
-        /**
-         * Creates a client-side Guid string.
-         * @returns A string representation of a Guid.
-         */
-        static generateGuid(): string;
-        /**
-         * Try extract a cookie from {@link document.cookie} identified by key.
-         */
-        static getCookieValue(key: string): string;
-        /**
-         * Extracts the protocol://hostname section of a url.
-         * @param url The URL from which to extract the section.
-         * @returns The protocol://hostname portion of the given URL.
-         */
-        static getDomainForUrl(url: string): string;
-        /**
-         * Extracts the hostname and absolute path sections of a url.
-         * @param url The URL from which to extract the section.
-         * @returns The hostname and absolute path portion of the given URL.
-         */
-        static getHostNameForUrl(url: string): string;
-        /**
-         * Return the original url with query string stripped.
-         * @param url The URL from which to extract the section.
-         * @returns the original url with query string stripped.
-         */
-        static getUrlWithoutQueryString(url: string): string;
-        /**
-         * Extracts the protocol section of a url.
-         * @param url The URL from which to extract the section.
-         * @returns The protocol for the current URL.
-         */
-        static getProtocolFromUrl(url: string): string;
-        /**
-         * Returns a formatted href object from a URL.
-         * @param url The URL used to generate the object.
-         * @returns A jQuery object with the url.
-         */
-        static getHrefObjectFromUrl(url: string): JQuery;
-        /**
-         * Converts a WCF representation of a dictionary to a JavaScript dictionary.
-         * @param wcfDictionary The WCF dictionary to convert.
-         * @returns The native JavaScript representation of this dictionary.
-         */
-        static convertWcfToJsDictionary(wcfDictionary: any[]): {
-            [index: string]: any;
-        };
-        static getDateFromWcfJsonString(jsonDate: string, fromUtcMilliseconds: boolean): Date;
-        /**
-         * Get the outer html of the given jquery object.
-         * @param content The jquery object.
-         * @returns The entire html representation of the object.
-         */
-        static getOuterHtml(content: JQuery): string;
-        /**
-         * Comparison Method: Compares two integer numbers.
-         * @param a An integer value.
-         * @param b An integer value.
-         * @returns The comparison result.
-         */
-        static compareInt(a: number, b: number): number;
-        /**
-         * Return the index of the smallest value in a numerical array.
-         * @param a A numeric array.
-         * @returns The index of the smallest value in the array.
-         */
-        static getIndexOfMinValue(a: number[]): number;
-        /**
-         * Extracts a url from a background image attribute in the format of: url('www.foobar.com/image.png').
-         * @param input The value of the background-image attribute.
-         * @returns The extracted url.
-         */
-        static extractUrlFromCssBackgroundImage(input: string): string;
-        /**
-         * Verifies image data url of images.
-         */
-        static isValidImageDataUrl(url: string): boolean;
-        static isLocalUrl(url: string): boolean;
-        /**
-         * Downloads a content string as a file.
-         * @param content Content stream.
-         * @param fileName File name to use.
-         */
-        static saveAsFile(content: any, fileName: string): void;
-        /**
-         * Helper method to get the simple type name from a typed object.
-         * @param obj The typed object.
-         * @returns The simple type name for the object.
-         */
-        static getType(obj: TypedObject): string;
-        /**
-         * Check if an element supports a specific event type.
-         * @param eventName The name of the event.
-         * @param element The element to test for event support.
-         * @returns Whether the even is supported on the provided element.
-         */
-        static isEventSupported(eventName: string, element: Element): boolean;
-        static toPixel(pixelAmount: number): string;
-        static getPropertyCount(object: any): number;
-        /**
-         * Check if an element supports a specific event type.
-         * @param filePath File path.
-         * @returns File extension.
-         */
-        static getFileExtension(filePath: string): string;
-        /**
-         * Extract the filename out of a full path delimited by '\' or '/'.
-         * @param filePath File path.
-         * @returns filename File name.
-         */
-        static extractFileNameFromPath(filePath: string): string;
-        /**
-         * This method indicates whether window.clipboardData is supported.
-         * For example, clipboard support for Windows Store apps is currently disabled
-         * since window.clipboardData is unsupported (it raises access denied error)
-         * since clipboard in Windows Store is being
-         * achieved through Windows.ApplicationModel.DataTransfer.Clipboard class.
-         */
-        static canUseClipboard(): boolean;
-        static is64BitOperatingSystem(): boolean;
-        static parseNumber(value: any, defaultValue?: number): number;
-        static getURLParamValue(name: string): string | number;
-        /**
-         * Return local timezone.
-         * This function uses summer and winter offset to determine local time zone.
-         * The result localTimeZoneString must be a subset of the strings used by server,
-         * as documented here: https://msdn.microsoft.com/en-us/library/gg154758.aspx (Dynamic Daylight Savings Time (Compact 2013)).
-         * @return Local timezone string or UTC if timezone cannot be found.
-         */
-        static getLocalTimeZoneString(): string;
-    }
-    class VersionUtility {
-        /**
-         * Compares 2 version strings.
-         * @param versionA The first version string.
-         * @param versionB The second version string.
-         * @returns A result for the comparison.
-         */
-        static compareVersions(versionA: string, versionB: string): number;
-    }
-    module PerformanceUtil {
-        class PerfMarker {
-            private _name;
-            private _start;
-            constructor(name: string);
-            private static begin(name);
-            end(): void;
-        }
-        function create(name: string): PerfMarker;
-    }
-    module DeferUtility {
-        /**
-         * Wraps a callback and returns a new function.
-         * The function can be called many times but the callback
-         * will only be executed once on the next frame.
-         * Use this to throttle big UI updates and access to DOM.
-         */
-        function deferUntilNextFrame(callback: Function): Function;
-    }
-}
-
-declare module jsCommon {
-    class TraceItem {
-        type: TraceType;
-        sessionId: string;
-        requestId: string;
-        text: string;
-        timeStamp: Date;
-        /**
-         * Note: DO NOT USE for backward compability only.
-         */
-        _activityId: string;
-        private static traceTypeStrings;
-        constructor(text: string, type: TraceType, sessionId: string, requestId?: string);
-        toString(): string;
-    }
-}
 
 declare module jsCommon {
     module UrlUtils {
@@ -1621,116 +1731,6 @@ declare module jsCommon {
          */
         function getInternetExplorerVersion(): number;
         function isFirefox(): boolean;
-    }
-}
-
-declare module jsCommon {
-    /**
-     * Interface to help define objects indexed by number to a particular type.
-     */
-    interface INumberDictionary<T> {
-        [key: number]: T;
-    }
-    /**
-     * Interface to help define objects indexed by name to a particular type.
-     */
-    interface IStringDictionary<T> {
-        [key: string]: T;
-    }
-    /**
-     * Extensions for Enumerations.
-     */
-    module EnumExtensions {
-        /**
-         * Gets a value indicating whether the value has the bit flags set.
-         */
-        function hasFlag(value: number, flag: number): boolean;
-        /**
-         * Sets a value of a flag without modifying any other flags.
-         */
-        function setFlag(value: number, flag: number): number;
-        /**
-         * Resets a value of a flag without modifying any other flags.
-         */
-        function resetFlag(value: number, flag: number): number;
-        /**
-         * According to the TypeScript Handbook, this is safe to do.
-         */
-        function toString(enumType: any, value: number): string;
-    }
-    /**
-     * Extensions to String class.
-     */
-    module StringExtensions {
-        /**
-         * Checks if a string ends with a sub-string.
-         */
-        function endsWith(str: string, suffix: string): boolean;
-    }
-    module LogicExtensions {
-        function XOR(a: boolean, b: boolean): boolean;
-    }
-    module JsonComparer {
-        /**
-         * Performs JSON-style comparison of two objects.
-         */
-        function equals<T>(x: T, y: T): boolean;
-    }
-    /**
-     * Values are in terms of 'pt'
-     * Convert to pixels using PixelConverter.fromPoint
-     */
-    module TextSizeDefaults {
-        /**
-         * Stored in terms of 'pt'
-         * Convert to pixels using PixelConverter.fromPoint
-         */
-        const TextSizeMin: number;
-        /**
-         * Stored in terms of 'pt'
-         * Convert to pixels using PixelConverter.fromPoint
-         */
-        const TextSizeMax: number;
-        /**
-         * Returns the percentage of this value relative to the TextSizeMax
-         * @param textSize - should be given in terms of 'pt'
-         */
-        function getScale(textSize: number): number;
-    }
-    module PixelConverter {
-        /**
-         * Appends 'px' to the end of number value for use as pixel string in styles
-         */
-        function toString(px: number): string;
-        /**
-         * Converts point value (pt) to pixels
-         * Returns a string for font-size property
-         * e.g. fromPoint(8) => '24px'
-         */
-        function fromPoint(pt: number): string;
-        /**
-         * Converts point value (pt) to pixels
-         * Returns a number for font-size property
-         * e.g. fromPoint(8) => 24px
-         */
-        function fromPointToPixel(pt: number): number;
-        /**
-         * Converts pixel value (px) to pt
-         * e.g. toPoint(24) => 8
-         */
-        function toPoint(px: number): number;
-    }
-    module RegExpExtensions {
-        /**
-         * Runs exec on regex starting from 0 index
-         * This is the expected behavior but RegExp actually remember
-         * the last index they stopped at (found match at) and will
-         * return unexpected results when run in sequence.
-         * @param regex - regular expression object
-         * @param value - string to search wiht regex
-         * @param start - index within value to start regex
-         */
-        function run(regex: RegExp, value: string, start?: number): RegExpExecArray;
     }
 }
 
