@@ -1,0 +1,30 @@
+{
+    "dateAdded": "2015-10-19T03:16:19.000Z",
+    "dateLastUpdated": "2016-02-24T20:54:49.000Z",
+    "package": {
+        "name": "TornadoChart",
+        "displayName": "Tornado",
+        "version": "0.4.1",
+        "guid": "TornadoChart1452517688218",
+        "description": "A bar chart with category values listed vertically. Use for comparing the relative importance of a variable between two distinct groups.",
+        "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["screenshot.png"],
+            "thumbnail": "thumbnail.png"
+        },
+        "code": {
+            "typeScript": "TornadoChart.ts",
+            "javaScript": "TornadoChart.js",
+            "css": "TornadoChart.css"
+        }
+    }
+}

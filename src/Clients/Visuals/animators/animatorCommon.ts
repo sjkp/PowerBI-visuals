@@ -1,4 +1,4 @@
-﻿ /*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -29,6 +29,9 @@
 module powerbi.visuals {
     export module AnimatorCommon {
         export const MinervaAnimationDuration = 250;
+        
+        // The maximum number of data points we can performantly animate with SVG. If we have more, turn off animations.
+        export const MaxDataPointsToAnimate = 1000;
 
         export function GetAnimationDuration(animator: IGenericAnimator, suppressAnimations: boolean) {
             return (suppressAnimations || !animator) ? 0 : animator.getDuration();
@@ -49,6 +52,8 @@ module powerbi.visuals {
 
     export interface IAnimator<T extends IAnimatorOptions, U extends IAnimationOptions, V extends IAnimationResult> {
         getDuration(): number;
+        getEasing(): string;
+
         animate(options: U): V;
     }
 
@@ -75,6 +80,10 @@ module powerbi.visuals {
 
         public animate(options: U): V {
             return null;
+        }
+
+        public getEasing(): string {
+            return 'cubic-in-out';
         }
     }
 }

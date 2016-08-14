@@ -55,6 +55,7 @@ declare module D3 {
         keyCode: number;
         altKey: any;
         ctrlKey: any;
+        shiftKey: any;
         type: string;
     }
 
@@ -795,6 +796,12 @@ declare module D3 {
         * except operators animate smoothly over time rather than applying instantaneously.
         */
         transition(): Transition.Transition;
+
+        /**
+         * Interrupts the active transition of the provided name. Does not cancel scheduled transitions.
+         * @param name the transition name (defaults to "")
+         */
+        interrupt(name?: string): Selection;
 
         /**
         * Sorts the elements in the current selection according to the specified comparator

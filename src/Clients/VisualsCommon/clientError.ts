@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module powerbi {
     import IStringResourceProvider = jsCommon.IStringResourceProvider;
@@ -41,21 +41,47 @@ module powerbi {
     }
 
     export interface IClientWarning extends ILocalizableError {
+        code: string;
         columnNameFromIndex: (index: number) => string;
     }
 
-    export class UnknownClientError implements IClientError {
+    /**
+     * Unlocalized strings to be used for error reporting.
+     */
+    export module ClientErrorStrings {
+        export const ClientErrorCode = 'Client Error Code';
+        export const ErrorCode = 'Error Code';
+        export const ErrorDetails = 'Error Details';
+        export const HttpRequestId = 'HTTP Request Id';
+        export const JobId = 'Job Id';
+        export const ODataErrorMessage = 'OData Error Message';
+        export const StackTrace = 'Stack Trace';
+    }
+
+    /**
+     this base class should be derived to give a generic error message but with a unique error code.
+     */
+    export abstract class UnknownClientError implements IClientError {
+        private errorCode: string;
+
         public get code(): string {
-            return 'UnknownClientError';
+            return this.errorCode;
         }
         public get ignorable(): boolean {
             return false;
         }
 
+        constructor(code: string) {
+            debug.assertValue(code, 'code');
+
+            this.errorCode = code;
+        }
+
         public getDetails(resourceProvider: IStringResourceProvider): ErrorDetails {
             let details: ErrorDetails = {
                 message: resourceProvider.get('ClientError_UnknownClientErrorValue'),
-                additionalErrorInfo: [{ errorInfoKey: resourceProvider.get('ClientError_UnknownClientErrorKey'), errorInfoValue: resourceProvider.get('ClientError_UnknownClientErrorValue'), }],
+                displayableErrorInfo: [{ errorInfoKey: resourceProvider.get('ClientError_UnknownClientErrorKey'), errorInfoValue: resourceProvider.get('ClientError_UnknownClientErrorValue'), }],
+                debugErrorInfo: [{ errorInfoKey: ClientErrorStrings.ClientErrorCode, errorInfoValue: this.code, }],
             };
 
             return details;
@@ -89,9 +115,13 @@ module powerbi {
             // Use a general error message for a HTTP request failure, since we currently do not know of any specifc error cases at this point in time.
             let details: ErrorDetails = {
                 message: null,
-                additionalErrorInfo: [
-                    { errorInfoKey: resourceProvider.get('DsrError_Key'), errorInfoValue: resourceProvider.get('DsrError_UnknownErrorValue')},
+                displayableErrorInfo: [
+                    { errorInfoKey: resourceProvider.get('DsrError_Key'), errorInfoValue: resourceProvider.get('DsrError_UnknownErrorValue') },
                     { errorInfoKey: resourceProvider.get('ClientError_HttpResponseStatusCodeKey'), errorInfoValue: this.httpStatusCode.toString() }],
+                debugErrorInfo: [
+                    { errorInfoKey: ClientErrorStrings.HttpRequestId, errorInfoValue: this.httpRequestId },
+                    { errorInfoKey: ClientErrorStrings.ClientErrorCode, errorInfoValue: this.code }
+                ],
             };
 
             return details;
@@ -109,7 +139,7 @@ module powerbi {
         public getDetails(resourceProvider: IStringResourceProvider): ErrorDetails {
             let details: ErrorDetails = {
                 message: '',
-                additionalErrorInfo: [],
+                displayableErrorInfo: [],
             };
 
             return details;

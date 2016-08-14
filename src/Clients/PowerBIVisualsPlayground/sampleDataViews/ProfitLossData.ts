@@ -61,7 +61,8 @@ module powerbi.visuals.sampleDataViews {
                         displayName: 'Country',
                         groupName: 'Country',
                         queryName: 'Country',
-                        type: powerbi.ValueType.fromDescriptor({ text: true })
+                        type: powerbi.ValueType.fromDescriptor({ text: true }),
+                        roles: { Category: true }
                     },
                     {
                         displayName: 'Sales Amount (2014)',
@@ -70,6 +71,7 @@ module powerbi.visuals.sampleDataViews {
                         format: "$0,000.00",
                         type: powerbi.ValueType.fromDescriptor({ numeric: true }),
                         objects: { dataPoint: { fill: { solid: { color: 'purple' } } } },
+                        roles: { Y: true }
                     }
                 ]
             };

@@ -27,7 +27,7 @@
 /// <reference path="../../_references.ts"/>
 
 module powerbitests {
-    import DataRoleHelper = powerbi.visuals.DataRoleHelper;
+    import DataRoleHelper = powerbi.data.DataRoleHelper;
     import DataViewTransform = powerbi.data.DataViewTransform;
 
     describe("dataRoleHelper tests", () => {
@@ -59,13 +59,13 @@ module powerbitests {
             let result = DataRoleHelper.getMeasureIndexOfRole(grouped, "InvalidRoleName");
             expect(result).toBe(-1);
 
-            result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
+            result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
             expect(result).toBe(0);
 
-            result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "X");
+            result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "X");
             expect(result).toBe(1);
 
-            result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Y");
+            result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "Y");
             expect(result).toBe(2);
         });
 
@@ -84,13 +84,13 @@ module powerbitests {
             let result = DataRoleHelper.getMeasureIndexOfRole(grouped, "InvalidRoleName");
             expect(result).toBe(-1);
 
-            result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
+            result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
             expect(result).toBe(-1);
 
-            result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "X");
+            result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "X");
             expect(result).toBe(-1);
 
-            result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Y");
+            result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "Y");
             expect(result).toBe(-1);
         });
 
@@ -106,7 +106,7 @@ module powerbitests {
 
             let grouped = dataView.categorical.values.grouped();
 
-            let result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
+            let result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "Size");
             expect(result).toBe(-1);
         });
 
@@ -122,7 +122,7 @@ module powerbitests {
 
             let grouped = dataView.categorical.values.grouped();
 
-            let result = powerbi.visuals.DataRoleHelper.getMeasureIndexOfRole(grouped, "2nd measure");
+            let result = powerbi.data.DataRoleHelper.getMeasureIndexOfRole(grouped, "2nd measure");
             expect(result).toBe(-1);
         });
 

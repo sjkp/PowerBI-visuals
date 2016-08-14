@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -86,6 +86,19 @@ module powerbi.visuals {
             debug.assertValue(scale, 'scale');
 
             return `scale(${scale})`;
+        }
+
+        /**
+         * Creates a translate + scale string for use with the SVG transform call.
+         */
+        export function translateAndScale(x: number, y: number, ratio: number): string {
+            debug.assertValue(x, 'x');
+            debug.assertValue(y, 'y');
+            debug.assertValue(ratio, 'ratio');
+
+            return 'transform', "translate("
+                + x + "," + y + ")"
+                + " scale(" + ratio + ")";
         }
 
         /**
@@ -208,8 +221,11 @@ module powerbi.visuals {
 
         /**
          * Use the ratio of the scaled bounding rect and the SVG DOM bounding box to get the x and y transform scale values
+         * @deprecated This function is unreliable across browser implementations, prefer to use SVGScaleDetector if needed.
          */
         export function getTransformScaleRatios(svgElement: SVGSVGElement): Point {
+            debug.assertFail('deprecated');
+
             if (svgElement != null) {
                 let scaledRect = svgElement.getBoundingClientRect();
                 let domRect = svgElement.getBBox();
@@ -221,6 +237,39 @@ module powerbi.visuals {
                 }
             }
             return { x: 1, y: 1 };
+        }
+    }
+
+    export class SVGScaleDetector {
+        private scaleDetectorElement: SVGRectElement;
+
+        constructor(svgElement: D3.Selection) {
+            this.scaleDetectorElement = <SVGRectElement>svgElement
+                .append('rect')  // Using a <rect> which should have a reliable bounding box across browser implementations.
+                .classed('scale-detector', true)
+                .attr({
+                    width: 1,
+                    height: 1,
+                    'stroke-width': '0px',
+                    fill: 'none',
+                })
+                .node();
+        }
+
+        public getScale(): Point {
+            let scaledRect = this.scaleDetectorElement.getBoundingClientRect();
+            let domRect = this.scaleDetectorElement.getBBox();
+            if (domRect.height > 0 && domRect.width > 0) {
+                return {
+                    x: scaledRect.width / domRect.width,
+                    y: scaledRect.height / domRect.height
+                };
+            }
+
+            return {
+                x: 1,
+                y: 1
+            };
         }
     }
 }

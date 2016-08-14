@@ -29,6 +29,7 @@
 module powerbitests {
     import LabelArrangeGrid = powerbi.LabelArrangeGrid;
     import LabelDataPoint = powerbi.LabelDataPoint;
+    
     //import Label = powerbi.Label;
     import LabelParentRect = powerbi.LabelParentRect;
     import LabelParentPoint = powerbi.LabelParentPoint;
@@ -40,6 +41,7 @@ module powerbitests {
     import DataLabelRectPositioner = powerbi.DataLabelRectPositioner;
     import DataLabelPointPositioner = powerbi.DataLabelPointPositioner;
     import LabelLayout = powerbi.LabelLayout;
+    import LabelDataPointParentType = powerbi.LabelDataPointParentType;
 
     let testOutsideFillColor = "#000000";
     let testInsideFillColor = "#FFFFFF";
@@ -54,7 +56,7 @@ module powerbitests {
                 createLabelDataPoint("12345"),
                 createLabelDataPoint("1234567"),
             ];
-            labelArrangeGrid = new LabelArrangeGrid(labelDataPoints, viewport);
+            labelArrangeGrid = new LabelArrangeGrid([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
         });
 
         it("Constructor creates correct grid system", () => {
@@ -92,6 +94,24 @@ module powerbitests {
             expect(labelArrangeGrid.hasConflict(createRect(150, 100, 100, 100))).toBe(true);
             expect(labelArrangeGrid.hasConflict(createRect(425, 35, 50, 50))).toBe(true);
         });
+
+        it("Grid tryPositionInViewport", () => {
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(-5, 0, 50, 50))).toEqual(createRect(0, 0, 50, 50));
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(10, -10, 50, 50))).toEqual(createRect(10, 0, 50, 50));
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(-5, -5, 50, 50))).toEqual(createRect(0, 0, 50, 50));
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(510, 10, 50, 50))).toEqual(createRect(450, 10, 50, 50));
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(10, 510, 50, 50))).toEqual(createRect(10, 450, 50, 50));
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(510, 510, 50, 50))).toEqual(createRect(450, 450, 50, 50));
+        });
+
+        it("Grid tryPositionInViewport returns null when movement causes a collision", () => {
+            labelArrangeGrid.add(createRect(10, 10, 30, 30));
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(10, -10, 20, 20))).toBeUndefined();
+        });
+
+        it("Grid tryPositionInViewport returns null for rects too far outside viewport", () => {
+            expect(labelArrangeGrid.tryPositionInViewport(createRect(-100, 20, 30, 30))).toBeUndefined();
+        });
     });
 
     describe("LabelLayout tests", () => {
@@ -102,8 +122,8 @@ module powerbitests {
             labelLayout = new LabelLayout({
                 startingOffset: 5,
                 maximumOffset: 20,
-                labelPadding: 2,
-                labelOffsetIterationDelta: 2,
+                horizontalPadding:2,
+                verticalPadding:2
             });
         });
 
@@ -115,7 +135,7 @@ module powerbitests {
                     validPositions: [RectLabelPosition.OutsideEnd],
                 }),
             ];
-            let labels = labelLayout.layout(labelDataPoints, viewport);
+            let labels = labelLayout.layout([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
             expect(labels.length).toBe(1);
             expect(labels[0].boundingBox).toEqual(createRect(105, 85, 40, 10));
             expect(labels[0].isVisible).toBe(true);
@@ -129,7 +149,7 @@ module powerbitests {
                     validPositions: [RectLabelPosition.OutsideEnd],
                 }),
             ];
-            let labels = labelLayout.layout(labelDataPoints, viewport);
+            let labels = labelLayout.layout([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
             expect(labels[0].text).toBe("text");
         });
 
@@ -141,7 +161,7 @@ module powerbitests {
                     validPositions: [RectLabelPosition.OutsideEnd],
                 }),
             ];
-            let labels = labelLayout.layout(labelDataPoints, viewport);
+            let labels = labelLayout.layout([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
             helpers.assertColorsMatch(labels[0].fill, testOutsideFillColor);
         });
 
@@ -153,7 +173,7 @@ module powerbitests {
                     validPositions: [RectLabelPosition.InsideEnd],
                 }),
             ];
-            let labels = labelLayout.layout(labelDataPoints, viewport);
+            let labels = labelLayout.layout([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
             expect(labels[0].fill).toBe(testInsideFillColor);
         });
 
@@ -170,7 +190,7 @@ module powerbitests {
                     validPositions: [RectLabelPosition.OutsideEnd, RectLabelPosition.InsideEnd],
                 }),
             ];
-            let labels = labelLayout.layout(labelDataPoints, viewport);
+            let labels = labelLayout.layout([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
             expect(labels.length).toBe(2);
             expect(labels[0].boundingBox).toEqual(createRect(105, 85, 40, 10));
             expect(labels[0].isVisible).toBe(true);
@@ -193,7 +213,7 @@ module powerbitests {
                     validPositions: [RectLabelPosition.OutsideEnd],
                 }),
             ];
-            let labels = labelLayout.layout(labelDataPoints, viewport);
+            let labels = labelLayout.layout([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
             expect(labels.length).toBe(2);
             expect(labels[0].boundingBox).toEqual(createRect(105, 85, 40, 10));
             expect(labels[0].isVisible).toBe(true);
@@ -219,7 +239,7 @@ module powerbitests {
                     validPositions: [RectLabelPosition.OutsideEnd],
                 }),
             ];
-            let labels = labelLayout.layout(labelDataPoints, viewport);
+            let labels = labelLayout.layout([{ labelDataPoints: labelDataPoints, maxNumberOfLabels: labelDataPoints.length }], viewport);
             expect(labels.length).toBe(2);
         });
     });
@@ -309,27 +329,27 @@ module powerbitests {
         });
 
         it("Above positioning", () => {
-            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.Above, offset)).toEqual(createRect(30, 30, 40, 10));
+            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.Above, offset)).toEqual(createRect(30, 30, 40, 10));
         });
 
         it("Below positioning", () => {
-            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.Below, offset)).toEqual(createRect(30, 60, 40, 10));
+            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.Below, offset)).toEqual(createRect(30, 60, 40, 10));
         });
 
         it("Left positioning", () => {
-            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.Left, offset)).toEqual(createRect(0, 45, 40, 10));
+            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.Left, offset)).toEqual(createRect(0, 45, 40, 10));
         });
 
         it("Right positioning", () => {
-            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.Right, offset)).toEqual(createRect(60, 45, 40, 10));
+            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.Right, offset)).toEqual(createRect(60, 45, 40, 10));
         });
 
         it("Center positioning", () => {
-            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.Center, offset)).toEqual(createRect(30, 45, 40, 10));
+            expect(DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.Center, offset)).toEqual(createRect(30, 45, 40, 10));
         });
 
         it("Above Left positioning", () => {
-            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.AboveLeft, offset);
+            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.AboveLeft, offset);
             expect(labelRect.left).toBeCloseTo(1, 0);
             expect(labelRect.top).toBeCloseTo(35, 0);
             expect(labelRect.width).toBe(40);
@@ -337,7 +357,7 @@ module powerbitests {
         });
 
         it("Below Left positioning", () => {
-            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.BelowLeft, offset);
+            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.BelowLeft, offset);
             expect(labelRect.left).toBeCloseTo(1, 0);
             expect(labelRect.top).toBeCloseTo(55, 0);
             expect(labelRect.width).toBe(40);
@@ -345,15 +365,15 @@ module powerbitests {
         });
 
         it("Above Right positioning", () => {
-            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.AboveRight, offset);
+            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.AboveRight, offset);
             expect(labelRect.left).toBeCloseTo(59, 0);
             expect(labelRect.top).toBeCloseTo(35, 0);
             expect(labelRect.width).toBe(40);
             expect(labelRect.height).toBe(10);
         });
-    
+
         it("Below Right positioning", () => {
-            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint, PointLabelPosition.BelowRight, offset);
+            let labelRect = DataLabelPointPositioner.getLabelRect(pointLabelDataPoint.textSize, <LabelParentPoint>pointLabelDataPoint.parentShape, PointLabelPosition.BelowRight, offset);
             expect(labelRect.left).toBeCloseTo(59, 0);
             expect(labelRect.top).toBeCloseTo(55, 0);
             expect(labelRect.width).toBe(40);
@@ -364,13 +384,20 @@ module powerbitests {
     function createLabelDataPoint(text: string, isParentRect?: boolean, parentRect?: LabelParentRect, parentPoint?: LabelParentPoint): LabelDataPoint {
         return {
             text: text,
-            textSize: { width: text.length * 10, height: 10 },
+            textSize: {
+                width: text.length * 10,
+                height: 10
+            },
+            labelSize: {
+                width: text.length * 10,
+                height: 10
+            },
             isPreferred: true,
             insideFill: testInsideFillColor,
             outsideFill: testOutsideFillColor,
-            isParentRect: !!isParentRect,
+            parentType: !!isParentRect ? LabelDataPointParentType.Rectangle : LabelDataPointParentType.Point,
             parentShape: isParentRect ? parentRect : parentPoint,
-            identity:null,
+            identity: null,
         };
     }
 

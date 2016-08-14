@@ -3,8 +3,11 @@
     "editor.insertSpaces": true,
     "files.exclude": {
         "**/node_modules": true,
-        "build": true,
         "VisualsTests": true,
         "**/obj": true
-    }
+    },
+    "search.exclude": {
+        "**/lib": true
+    },
+    "tslint.configFile": "build/tsLint/tslint.json"
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,115 +27,9 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.data {
-    export interface CompiledDataViewMapping {
-        metadata: CompiledDataViewMappingMetadata;
-        categorical?: CompiledDataViewCategoricalMapping;
-        table?: CompiledDataViewTableMapping;
-        single?: CompiledDataViewSingleMapping;
-        tree?: CompiledDataViewTreeMapping;
-        matrix?: CompiledDataViewMatrixMapping;
-        scriptResult?: CompiledDataViewScriptResultMapping;
-    }
-
-    export interface CompiledDataViewMappingScriptDefinition {
-        source: DataViewObjectPropertyIdentifier;
-        provider: DataViewObjectPropertyIdentifier;
-        imageFormat: string;
-    }
-
-    export interface CompiledDataViewScriptResultMapping {
-        dataInput: CompiledDataViewMapping;
-        script: CompiledDataViewMappingScriptDefinition;
-    }
-
-    export interface CompiledDataViewMappingMetadata {
-        /** The metadata repetition objects. */
-        objects?: DataViewObjects;
-    }
-
-    export interface CompiledDataViewCategoricalMapping extends HasDataVolume, HasReductionAlgorithm {
-        categories?: CompiledDataViewRoleMappingWithReduction | CompiledDataViewListRoleMappingWithReduction;
-        values?: CompiledDataViewRoleMapping | CompiledDataViewGroupedRoleMapping | CompiledDataViewListRoleMapping;
-        includeEmptyGroups?: boolean;
-    }
-
-    export interface CompiledDataViewGroupingRoleMapping {
-        role: CompiledDataViewRole;
-    }
-
-    export interface CompiledDataViewSingleMapping {
-        role: CompiledDataViewRole;
-    }
-
-    export interface CompiledDataViewTableMapping extends HasDataVolume {
-        rows: CompiledDataViewRoleMappingWithReduction | CompiledDataViewListRoleMappingWithReduction;
-    }
-
-    export interface CompiledDataViewTreeMapping extends HasDataVolume {
-        nodes?: CompiledDataViewRoleForMappingWithReduction;
-        values?: CompiledDataViewRoleForMapping;
-    }
-
-    export interface CompiledDataViewMatrixMapping extends HasDataVolume {
-        rows?: CompiledDataViewRoleForMappingWithReduction | CompiledDataViewListRoleMappingWithReduction;
-        columns?: CompiledDataViewRoleForMappingWithReduction;
-        values?: CompiledDataViewRoleForMapping | CompiledDataViewListRoleMapping;
-    }
-
-    export type CompiledDataViewRoleMapping = CompiledDataViewRoleBindMapping | CompiledDataViewRoleForMapping;
-
-    export interface CompiledDataViewRoleBindMapping {
-        bind: {
-            to: CompiledDataViewRole;
-        };
-    }
-
-    export interface CompiledDataViewRoleForMapping {
-        for: {
-            in: CompiledDataViewRole;
-        };
-    }
-
-    export type CompiledDataViewRoleMappingWithReduction = CompiledDataViewRoleBindMappingWithReduction | CompiledDataViewRoleForMappingWithReduction;
-
     export interface CompiledDataViewRoleBindMappingWithReduction extends CompiledDataViewRoleBindMapping, HasReductionAlgorithm {
     }
 
     export interface CompiledDataViewRoleForMappingWithReduction extends CompiledDataViewRoleForMapping, HasReductionAlgorithm {
-    }
-
-    export interface CompiledDataViewGroupedRoleMapping {
-        group: CompiledDataViewGroupedRoleGroupItemMapping;
-    }
-
-    export interface CompiledDataViewGroupedRoleGroupItemMapping extends HasReductionAlgorithm {
-        by: CompiledDataViewRole;
-        select: CompiledDataViewRoleMapping[];
-    }
-
-    export interface CompiledDataViewListRoleMapping {
-        select: CompiledDataViewRoleMapping[];
-    }
-
-    export interface CompiledDataViewListRoleMappingWithReduction extends CompiledDataViewListRoleMapping, HasReductionAlgorithm {
-    }
-
-    export const enum CompiledSubtotalType {
-        None = 0,
-        Before = 1,
-        After = 2
-    }
-
-    export interface CompiledDataViewRole {
-        role: string;
-        items: CompiledDataViewRoleItem[];
-        subtotalType?: CompiledSubtotalType;
-        showAll?: boolean;
-        activeItem?: string;
-    }
-
-    export interface CompiledDataViewRoleItem {
-        queryName: string;
-        type?: ValueType;
     }
 } 

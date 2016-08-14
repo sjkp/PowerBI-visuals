@@ -1,0 +1,535 @@
+/*
+ *  Power BI Visualizations
+ *
+ *  Copyright (c) Microsoft Corporation
+ *  All rights reserved. 
+ *  MIT License
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files (the ""Software""), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *  copies of the Software, and to permit persons to whom the Software is
+ *  furnished to do so, subject to the following conditions:
+ *   
+ *  The above copyright notice and this permission notice shall be included in 
+ *  all copies or substantial portions of the Software.
+ *   
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *  THE SOFTWARE.
+ */
+
+* {
+    -webkit-tap-highlight-color: white; /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+    -webkit-tap-highlight-color: transparent; /* For some Androids */
+}
+
+body {
+    -webkit-touch-callout: none;
+    -webkit-text-size-adjust: none;
+    -moz-text-size-adjust: none;
+    -ms-text-size-adjust: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    background-color: #f2f2f2;
+
+    h4 {
+        margin-bottom: 12px;
+        line-height: 16px;
+        font-size: 18px;
+        font-weight: bold;
+        color: #353535;
+        margin-top: 20px;
+    }
+
+    .left-margin {
+        margin-left: 184px;
+    }
+
+    button, select, input[type=checkbox], input[type=radio], input[type=text] {
+        &:active, &:checked, &:focus, &:hover {
+            outline: none;
+        }
+    }
+
+    span.subtitle {
+        display: block;
+        font-size: 12px;
+        font-weight: bolder;
+        color: #353535;
+    }
+
+    header {
+        background-color: #f2c811;
+        height: 66px;
+
+        img {
+            margin-top: 17px;
+        }
+    }
+
+    nav {
+        background-color: #ffffff;
+        height: 50px;
+        margin-bottom: 33px;
+
+        .nav-tab {
+            display: inline-block;
+            vertical-align: top;
+            margin: 17px 0px 0px 0px;
+            padding: 0px;
+            border: none;
+            background: none;
+
+            &:hover {
+                background: none;
+                border: none;
+            }
+
+            div img {
+                margin-right: 4px;
+                vertical-align: middle;
+            }
+
+            div span {
+                line-height: 15px;
+                vertical-align: middle;
+            }
+        }
+
+        .first-nav-tab {
+            .nav-tab;
+            .left-margin;
+            margin-top: 18px;
+        }
+
+        .selected-nav-tab {
+            border-top: none;
+            border-right: none;
+            border-left: none;
+            border-bottom: 3px solid #CCC;
+            padding-bottom: 12px;
+        }
+
+        #tabSeparator {
+            display: inline-block;
+            vertical-align: top;
+            border-right: 1px solid #CCC;
+            margin: 19px 15px 0px 15px;
+            height: 17px;
+        }
+    }
+
+    section#sample, section#controls {
+        display: inline-block;
+        float: left;
+    }
+
+    section#controls {
+        width: 287px;
+
+        select {
+            height: 30px;
+        }
+
+        button {
+            background-color: #f2c811;
+            border: none;
+            color: #000;
+            height: 34px;
+            font-weight: 600;
+
+            &:hover, &:focus {
+                border: solid 2px #000;
+            }
+
+            &:active {
+                background-color: #CDA521;
+            }
+        }
+
+        #visualTypes, #dataViewsSelect {
+            width: 100%;
+        }
+
+        #dataViewsSelect {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .optionsInnerSection {
+            border-bottom: 1px solid #CCC;
+        }
+
+        #visualType {
+            padding-bottom: 18px;
+        }
+
+        #orientation {
+            padding-bottom: 11px;
+        }
+
+        #dataViewSelection {
+            margin-top: 9px;
+
+            button {
+                margin-top: 2px;
+            }
+        }
+
+        #randomize {
+            width: 120px;
+        }
+
+        #capabilities {
+            margin-top: 26px;
+
+            span.subtitle {
+                margin-bottom: 9px;
+            }
+
+            div {
+                margin-bottom: 7px;
+
+                span {
+                    font-size: 12px;
+                    font-weight: normal;
+                    padding-left: 21px;
+                    padding-right: 4px;
+                }
+
+                input[name="animation_duration"] {
+                    width: 40px;
+                    height: 13px;
+                }
+            }
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 7px;
+
+            input[type=checkbox],  input[type=radio] {
+                opacity: 0;
+                position: absolute;
+                left: -20px;
+                z-index: 12;
+                width: 100%;
+                height: 18px;
+                color: #C8C8C8;
+            }
+
+            input + label {
+                position: relative;
+                z-index: 11;
+                display: inline-block;
+                margin: 0px;
+                min-width: 14px;
+                font-weight: normal;
+                padding-left: 20px;
+                font-size: 12px;
+
+                &:before, &:after {
+                    margin-left: -20px;
+                    margin-right: 4px;
+                    padding: 0;
+                    position: absolute;
+                    margin-top: 0;
+                    text-align: center;
+                }
+
+                &:before {
+                    border-radius: 50%;
+                    width: 13px;
+                    height: 13px;
+                    border: 2px solid #C8C8C8;
+                    content: "";
+                    top: 0px;
+                }
+    
+
+                &:after {
+                    font-size: 6px;
+                    font-weight: 900;
+                    content: "";
+                }
+            }
+
+            input[type=radio]:checked + label {
+                &:after {
+                    content: "";
+                    font-size: 5px;
+                    top: 4px;
+                    left: 24px;
+                    border-radius: 50%;
+                    border: 0;
+                    width: 5px;
+                    height: 5px;
+                    background-color: #000;
+                }
+
+                &:before {
+                    border-color: #F2C811;
+                }
+            }
+
+            input[type=radio] + label {
+                &:before {
+                    box-sizing: border-box;
+                }
+            }
+
+            input[type=checkbox] + label {
+                &:before {
+                    border-radius: 0;
+                    content: "";
+                    width: 10px;
+                    height: 10px;
+                }
+            }
+
+            input[type=checkbox]:checked + label {
+                &:before {
+                    border-color: #F2C811;
+                    background-color: #F2C811;
+                }
+    
+                &:after {
+                    content: "\2713";
+                    font-size: 11px;
+                    left: 21.5px;
+                    top: 0px;
+                    color: #000;
+                }
+            }
+        }
+    }
+
+    section#sample {
+        padding-left: 119px;
+        padding-top: 20px;
+
+        .container {
+            display: block;
+            border: 1px solid #CCC;
+            overflow: hidden;
+            background-color: white;
+            position: relative;
+
+            .visual {
+                overflow: hidden;
+                padding: 10px;
+                width: 100%;
+                height: 100%;
+            
+                .legend {
+                    top: 8px !important;
+                }
+
+                .legendText {
+                    fill: black;
+                }
+            }
+        }
+
+        .scaled-container {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        #webContainer {
+            height: 500px;
+            width: 700px;
+        }
+
+        .mobile-portrait-image-container {
+            display: inline-block;
+            width: 230px;
+            margin-right: 40px;
+        }
+
+        .mobile-landscape-image-container {
+            display: block;
+            width: 421px;
+            margin-bottom: 45px;
+        }
+
+        .mobile-portrait-image-container,
+        .mobile-landscape-image-container {
+            .mobile-view-title {
+                margin-bottom: 10px;
+            }
+
+            .mobile-image {
+                position: absolute;
+                z-index: -1;
+            }
+        }
+
+        .mobile-portrait-container {
+            position: absolute;
+            width: 188px;
+            height: 317px;
+        }
+
+        .mobile-portrait-dashboard-container {
+            .mobile-portrait-container;
+            padding-top: 72px;
+            padding-left: 31px;
+        }
+
+        .mobile-portrait-in-focus-container {
+            .mobile-portrait-container;
+            padding-top: 52px;
+            padding-left: 20px;
+        }
+
+        .dashboard-portrait-tile {
+            .container;
+            height: 88px;
+            width: 160px;
+            margin-bottom: 4px;
+        }
+
+        .in-focus-portrait-tile {
+            .container;
+            height: 315px;
+            width: 185px;
+            border: 0px;
+        }
+
+        .mobile-landscape-dashboard-container {
+            padding-top: 25px;
+            padding-left: 58px;
+        }
+
+        .mobile-landscape-dashboard-column {
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .dashboard-landscape-tile {
+            .container;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .dashboard-landscape-tile-2x2 {
+            .dashboard-landscape-tile;
+            width: 110px;
+            height: 70px;
+        }
+
+        .dashboard-landscape-tile-2x2-first-column-last-tile {
+            .dashboard-landscape-tile-2x2;
+            height: 22px;
+        }
+
+        .dashboard-landscape-tile-3x3 {
+            width: 185px;
+            height: 100px;
+            .dashboard-landscape-tile;
+        }
+
+        .dashboard-landscape-tile-2x2-second-column-last-tile {
+            .dashboard-landscape-tile-2x2;
+            width: 68px;
+        }
+
+        .mobile-landscape-dashboard-last-line {
+            vertical-align: top;
+
+            .dashboard-landscape-tile-2x2, .dashboard-landscape-tile-2x2-second-column-last-tile {
+                display: inline-block;
+                height: 68px;
+            }
+        }
+
+        .mobile-landscape-in-focus-container {
+            padding-top: 19px;
+            padding-left: 51px;
+        }
+
+        .in-focus-landscape-tile {
+            .container;
+            height: 185px;
+            width: 315px;
+            border: 0px;
+        }
+    }
+
+    .visual-tile svg {
+        width: inherit;
+        height: inherit;
+    }
+
+    div.chart-content {
+        position: relative; 
+        top: 0; 
+        height: 100%; 
+        width: 100%;
+        background-repeat: no-repeat;
+        -ms-background-size: contain;
+        background-size: contain;
+    }
+
+    /*  creating donutChart slices classes, to disable the hover defined by the web */
+    .donutChart path.slice.selected:hover {
+        opacity: 1;
+    }
+
+    .donutChart path.slice.not-selected:hover {
+        opacity: 0.6;
+    }
+
+    #userData {
+        background-color: gray;
+        display: none;
+        padding-bottom: 2px;
+        padding-top: 5px;
+    }
+
+    #userData input {
+        display: block;
+        margin: 1px 2px;
+        padding: 0 3px;
+    }
+
+    #userData input.inline {
+        display: inline-block;
+    }
+
+    li.slicerItemContainer {
+        list-style-type: none;
+    }
+
+    .slicerContainer label.slicerCheckbox input:checked + span::before,
+    .slicerContainer label.slicerCheckbox span::before {
+        background-image: url(../../Visuals/images/visuals.sprites.png) !important;
+    }
+
+    .wrongVisualWarning {
+        margin: 0 auto;
+        text-align:center;
+        width:700px;
+        color:red;
+        font-size:24px;
+        margin-top:50px;
+    }
+
+    .wrongVisualWarning span {
+        color:blue;
+    }
+}

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -47,13 +47,8 @@ module powerbi.visuals {
 
             this.hasHighlights = options.hasHighlights;
 
-            bars.on('click', (d: SelectableDataPoint, i: number) => {
-                selectionHandler.handleSelection(d, d3.event.ctrlKey);
-            });
-
-            interactors.on('click', (d: SelectableDataPoint, i: number) => {
-                selectionHandler.handleSelection(d, d3.event.ctrlKey);
-            });
+            InteractivityUtils.registerStandardInteractivityHandlers(bars, selectionHandler);
+            InteractivityUtils.registerStandardInteractivityHandlers(interactors, selectionHandler);
 
             clearCatcher.on('click', () => {
                 selectionHandler.handleClearSelection();
@@ -62,7 +57,7 @@ module powerbi.visuals {
 
         public renderSelection(hasSelection: boolean): void {
             let hasHighlights = this.hasHighlights;
-            this.bars.style("fill-opacity", (d: FunnelSlice) => ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights));
+            this.bars.style("fill-opacity", (d: FunnelDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && hasHighlights));
         }
     }
 }

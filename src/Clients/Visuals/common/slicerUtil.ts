@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,7 +27,11 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import Color = jsCommon.Color;
     import PixelConverter = jsCommon.PixelConverter;
+    import SQExpr = powerbi.data.SQExpr;
+    import SQExprBuilder = powerbi.data.SQExprBuilder;
+    import SemanticFilter = powerbi.data.SemanticFilter;
 
     /** Utility class for slicer*/
     export module SlicerUtil {
@@ -37,10 +41,18 @@ module powerbi.visuals {
 
             export const HeaderContainer = createClassAndSelector('headerContainer');
             export const Header = createClassAndSelector('slicerHeader');
+            export const TitleHeader = createClassAndSelector('titleHeader');
             export const HeaderText = createClassAndSelector('headerText');
             export const Body = createClassAndSelector('slicerBody');
+            export const Label = createClassAndSelector('slicerLabel');
             export const LabelText = createClassAndSelector('slicerText');
+            export const LabelImage = createClassAndSelector('slicerImage');
+            export const CountText = createClassAndSelector('slicerCountText');
             export const Clear = createClassAndSelector('clear');
+            export const SearchHeader = createClassAndSelector('searchHeader');
+            export const SearchInput = createClassAndSelector('searchInput');
+            export const SearchHeaderCollapsed = createClassAndSelector('collapsed');
+            export const SearchHeaderShow = createClassAndSelector('show');
             export const MultiSelectEnabled = createClassAndSelector('isMultiSelectEnabled');
         }
 
@@ -48,26 +60,97 @@ module powerbi.visuals {
         export module DisplayNameKeys {
             export const Clear = 'Slicer_Clear';
             export const SelectAll = 'Slicer_SelectAll';
+            export const Search = 'SearchBox_Text';
+        }
+
+        /** Helper class for slicer settings  */
+        export module SettingsHelper {
+            export function areSettingsDefined(data: SlicerData): boolean {
+                return data != null && data.slicerSettings != null;
+            }
+        }
+
+        /** Helper class for handling slicer default value  */
+        export module DefaultValueHandler {
+            export function getIdentityFields(dataView: DataView): SQExpr[] {
+                if (!dataView)
+                    return;
+
+                let dataViewCategorical = dataView.categorical;
+                if (!dataViewCategorical || _.isEmpty(dataViewCategorical.categories))
+                    return;
+
+                return <SQExpr[]>dataViewCategorical.categories[0].identityFields;
+            }
+        }
+
+        export function getContainsFilter(expr: SQExpr, containsText: string): SemanticFilter {
+            let containsTextExpr = SQExprBuilder.text(containsText);
+            let filterExpr = SQExprBuilder.contains(expr, containsTextExpr);
+            return SemanticFilter.fromSQExpr(filterExpr);
+        }
+
+        // Compare the sqExpr of the scopeId with sqExprs of the retained values. 
+        // If match found, remove the item from the retainedValues list, and return true, 
+        // otherwise return false.
+        export function tryRemoveValueFromRetainedList(value: DataViewScopeIdentity, selectedScopeIds: DataViewScopeIdentity[], caseInsensitive?: boolean): boolean {
+            if (!value || _.isEmpty(selectedScopeIds))
+                return false;
+
+            for (let i = 0, len = selectedScopeIds.length; i < len; i++) {
+                let retainedValueScopeId = selectedScopeIds[i];
+                if (DataViewScopeIdentity.equals(value, retainedValueScopeId, caseInsensitive)) {
+                    selectedScopeIds.splice(i, 1);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        export function getUpdatedSelfFilter(searchKey: string, metaData: DataViewMetadata): data.SemanticFilter {
+            if (!metaData || _.isEmpty(searchKey))
+                return;
+
+            debug.assert(_.size(metaData.columns) === 1, 'slicer should not have more than one column based on the capability');
+            let column = _.first(metaData.columns);
+            if (column && column.expr)
+                return SlicerUtil.getContainsFilter(<SQExpr>column.expr, searchKey);
         }
 
         /** Helper class for creating and measuring slicer DOM elements  */
-        export module DOMHelper {
-            export function createSlicerHeader(hostServices: IVisualHostServices): HTMLElement {
+        export class DOMHelper {
+            private static SearchInputHeight = 20;
+
+            public createSlicerHeader(hostServices: IVisualHostServices): HTMLElement {
                 let slicerHeaderDiv = document.createElement('div');
                 slicerHeaderDiv.className = Selectors.Header.class;
 
                 let slicerHeader: D3.Selection = d3.select(slicerHeaderDiv);
-                slicerHeader.append('span')
+                let slicerTitle = slicerHeader.append('h2')
+                    .classed(Selectors.TitleHeader.class, true);
+                slicerTitle.append('span')
                     .classed(Selectors.Clear.class, true)
                     .attr('title', hostServices.getLocalizedString(DisplayNameKeys.Clear));
-                slicerHeader.append('div').classed(Selectors.HeaderText.class, true);
+                slicerTitle.append('div').classed(Selectors.HeaderText.class, true);
+                let slicerSearch = slicerHeader.append('div')
+                    .classed(Selectors.SearchHeader.class, true)
+                    .classed(Selectors.SearchHeaderCollapsed.class, true);
+                slicerSearch.append('span')
+                    .classed('powervisuals-glyph search', true)
+                    .attr('title', hostServices.getLocalizedString(DisplayNameKeys.Search));
 
+                slicerSearch.append('input')
+                    .attr('type', 'text')
+                    .classed(Selectors.SearchInput.class, true)
+                    .attr('drag-resize-disabled', 'true');
+                
                 return slicerHeaderDiv;
             }
 
-            export function getHeaderTextProperties(settings: SlicerSettings): TextProperties {
+            public getHeaderTextProperties(settings: SlicerSettings): TextProperties {
                 let headerTextProperties: TextProperties = {
-                    fontFamily: 'wf_segoe-ui_normal',
+                    fontFamily: Font.Family.regular.css,
                     fontSize: '10px'
                 };
                 if (settings.header.show) {
@@ -76,116 +159,135 @@ module powerbi.visuals {
                 return headerTextProperties;
             }
 
-            export function getSlicerBodyViewport(currentViewport: IViewport, settings: SlicerSettings, headerTextProperties: TextProperties): IViewport {
-                let headerHeight = (settings.header.show) ? getHeaderHeight(settings, headerTextProperties) : 0;
-                let slicerBodyHeight = currentViewport.height - (headerHeight + settings.header.borderBottomWidth);
+            public getSlicerBodyViewport(currentViewport: IViewport, settings: SlicerSettings, headerTextProperties: TextProperties): IViewport {
+                let headerHeight = (settings.header.show) ? this.getHeaderHeight(settings, headerTextProperties) : 0;
+                let searchHeaderHight = settings.search.enabled ? DOMHelper.SearchInputHeight : 0;
+                let slicerBodyHeight = currentViewport.height - (headerHeight + settings.header.borderBottomWidth + searchHeaderHight);
                 return {
                     height: slicerBodyHeight,
                     width: currentViewport.width
                 };
             }
 
-            export function updateSlicerBodyDimensions(currentViewport: IViewport, slicerBody: D3.Selection, settings: SlicerSettings): void {
-                let slicerViewport = getSlicerBodyViewport(currentViewport, settings, getHeaderTextProperties(settings));
+            // TODO: Slicer body height and width update should be done through less file
+            public updateSlicerBodyDimensions(currentViewport: IViewport, slicerBody: D3.Selection, settings: SlicerSettings): void {
+                let slicerViewport = this.getSlicerBodyViewport(currentViewport, settings, this.getHeaderTextProperties(settings));
                 slicerBody.style({
                     'height': PixelConverter.toString(slicerViewport.height),
                     'width': PixelConverter.toString(slicerViewport.width),
                 });
             }
 
-            export function getHeaderHeight(settings: SlicerSettings, textProperties: TextProperties): number {
-                return TextMeasurementService.estimateSvgTextHeight(getTextProperties(settings.header.textSize, textProperties)) + settings.general.outlineWeight;
+            public getHeaderHeight(settings: SlicerSettings, textProperties: TextProperties): number {
+                return TextMeasurementService.estimateSvgTextHeight(this.getTextProperties(settings.header.textSize, textProperties)) + settings.general.outlineWeight;
             }
 
-            export function getRowHeight(settings: SlicerSettings, textProperties: TextProperties): number {
-                return TextMeasurementService.estimateSvgTextHeight(getTextProperties(settings.slicerText.textSize, textProperties)) + getRowsOutlineWidth(settings.slicerText.outline, settings.general.outlineWeight);
+            public getRowHeight(settings: SlicerSettings, textProperties: TextProperties): number {
+                return TextMeasurementService.estimateSvgTextHeight(this.getTextProperties(settings.slicerText.textSize, textProperties)) + this.getRowsOutlineWidth(settings.slicerText.outline, settings.general.outlineWeight);
             }
 
-            export function styleSlicerHeader(slicerHeader: D3.Selection, settings: SlicerSettings, headerText: string): void {
+            public styleSlicerHeader(slicerHeader: D3.Selection, settings: SlicerSettings, headerText: string): void {
+                let titleHeader = slicerHeader.select(SlicerUtil.Selectors.TitleHeader.selector);
+                let searchHeader = slicerHeader.select(SlicerUtil.Selectors.SearchHeader.selector);
                 if (settings.header.show) {
-                    slicerHeader.style('display', 'block');
+                    titleHeader.style('display', 'block');
                     let headerTextElement = slicerHeader.select(Selectors.HeaderText.selector)
                         .text(headerText);
-                    setSlicerHeaderTextStyle(headerTextElement, settings);
+                    this.setSlicerHeaderTextStyle(titleHeader, headerTextElement, settings, settings.search.enabled);
+                } else {
+                    titleHeader.style('display', 'none');
                 }
-                else {
-                    slicerHeader.style('display', 'none');
+
+                if (settings.search.enabled) {
+                    searchHeader.classed(Selectors.SearchHeaderShow.class, true);
+                    searchHeader.classed(Selectors.SearchHeaderCollapsed.class, false);
+                } else {
+                    searchHeader.classed(Selectors.SearchHeaderShow.class, false);
+                    searchHeader.classed(Selectors.SearchHeaderCollapsed.class, true);
                 }
             }
 
-            export function setSlicerTextStyle(slicerText: D3.Selection, settings: SlicerSettings): void {
+            public setSlicerTextStyle(slicerText: D3.Selection, settings: SlicerSettings): void {
                 slicerText
                     .style({
                         'color': settings.slicerText.color,
                         'background-color': settings.slicerText.background,
-                        'border-style': getBorderStyle(settings.slicerText.outline),
+                        'border-style': 'solid',
                         'border-color': settings.general.outlineColor,
-                        'border-width': getBorderWidth(settings.slicerText.outline, settings.general.outlineWeight),
+                        'border-width': VisualBorderUtil.getBorderWidth(settings.slicerText.outline, settings.general.outlineWeight),
                         'font-size': PixelConverter.fromPoint(settings.slicerText.textSize),
+                         // Makes height consistent between browsers. 1.79 was found by aproximating current chrome line-height: normal calculation.
+                        "line-height": Math.floor(1.79 * settings.slicerText.textSize) + "px"
                     });
+                let color = this.calculateSlicerTextHighlightColor(settings.slicerText.color);
+                slicerText.on('mouseover', function (d) {
+                    d3.select(this).style({
+                        'color': color,
+                    });
+                });
+
+                slicerText.on('mouseout', function (d) {
+                    d3.select(this).style({
+                        'color': settings.slicerText.color,
+                    });
+                });
             }
 
-            export function getBorderStyle(outlineElement: string): string {
-                return outlineElement === '0px' ? 'none' : 'solid';
-            }
-
-            export function getBorderWidth(outlineElement: string, outlineWeight: number): string {
+            public getRowsOutlineWidth(outlineElement: string, outlineWeight: number): number {
                 switch (outlineElement) {
-                    case 'None':
-                        return '0px';
-                    case 'BottomOnly':
-                        return '0px 0px ' + outlineWeight + 'px 0px';
-                    case 'TopOnly':
-                        return outlineWeight + 'px 0px 0px 0px';
-                    case 'TopBottom':
-                        return outlineWeight + 'px 0px ' + outlineWeight + 'px 0px';
-                    case 'LeftRight':
-                        return '0px ' + outlineWeight + 'px 0px ' + outlineWeight + 'px';
-                    case 'Frame':
-                        return outlineWeight + 'px';
-                    default:
-                        return outlineElement.replace("1", outlineWeight.toString());
-                }
-            }
-
-            export function getRowsOutlineWidth(outlineElement: string, outlineWeight: number): number {
-                switch (outlineElement) {
-                    case 'None':
-                    case 'LeftRight':
+                    case outline.none:
+                    case outline.leftRight:
                         return 0;
-                    case 'BottomOnly':
-                    case 'TopOnly':
+                    case outline.bottomOnly:
+                    case outline.topOnly:
                         return outlineWeight;
-                    case 'TopBottom':
-                    case 'Frame':
+                    case outline.topBottom:
+                    case outline.frame:
                         return outlineWeight * 2;
                     default:
                         return 0;
                 }
             }
 
-            function setSlicerHeaderTextStyle(slicerHeader: D3.Selection, settings: SlicerSettings): void {
+            private setSlicerHeaderTextStyle(slicerHeader: D3.Selection, headerTextElement: D3.Selection, settings: SlicerSettings, searchEnabled: boolean): void {
+                let hideOutline = false;
+
+                // When search is enabled, we will hide the default outline if the outline properties haven't been customized by user.
+                if (searchEnabled) {
+                    let defaultSetting = Slicer.DefaultStyleProperties();
+                    hideOutline = (settings.header.outline === defaultSetting.header.outline
+                        && settings.general.outlineWeight === defaultSetting.general.outlineWeight
+                        && settings.general.outlineColor === defaultSetting.general.outlineColor);
+                }
+
                 slicerHeader
                     .style({
-                        'border-style': getBorderStyle(settings.header.outline),
+                        'border-style': hideOutline ? 'none': 'solid',
                         'border-color': settings.general.outlineColor,
-                        'border-width': getBorderWidth(settings.header.outline, settings.general.outlineWeight),
+                        'border-width': VisualBorderUtil.getBorderWidth(settings.header.outline, settings.general.outlineWeight),
+                    });
+
+                headerTextElement
+                    .style({
                         'color': settings.header.fontColor,
                         'background-color': settings.header.background,
                         'font-size': PixelConverter.fromPoint(settings.header.textSize),
                     });
             }
 
-            function getTextProperties(textSize: number, textProperties: TextProperties): TextProperties {
+            private calculateSlicerTextHighlightColor(color: string): string {
+                let rgbColor = Color.parseColorString(color);
+
+                // If it's white, use the @neutralTertiaryAltColor
+                if (rgbColor.R === 255 && rgbColor.G === 255 && rgbColor.B === 255)
+                    return '#C8C8C8';
+
+                return Color.calculateHighlightColor(rgbColor, 0.8, 0.2);
+            }
+
+            private getTextProperties(textSize: number, textProperties: TextProperties): TextProperties {
                 textProperties.fontSize = PixelConverter.fromPoint(textSize);
                 return textProperties;
-            }
-        }
-
-        /** Helper class for slicer settings  */
-        export module SettingsHelper {
-            export function areSettingsDefined(data: SlicerData): boolean {
-                return data != null && data.slicerSettings != null;
             }
         }
     }

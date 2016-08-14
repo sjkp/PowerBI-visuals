@@ -60,8 +60,6 @@ module powerbitests.performanceTestsHelpers {
                             roles: { "TargetValue": true },
                             isMeasure: true
                         }],
-                    groups: [],
-                    measures: [0]
                 };
 
                 return {
@@ -347,7 +345,7 @@ module powerbitests.performanceTestsHelpers {
                             {
                                 displayName: "Year",
                                 queryName: "year",
-                                type: ValueType.fromDescriptor({ number: true })
+                                type: powerbi.ValueType.fromDescriptor({ numeric: true })
                             }, {
                                 displayName: "Population of USA",
                                 isMeasure: true,
@@ -363,129 +361,6 @@ module powerbitests.performanceTestsHelpers {
                         ]
                     }
                 };
-            case "dotPlot":
-                let dotPlotValues: number[] = [
-                    1, 2, 3, 4, 5, 6, 7, 8, 9,
-                    2, 3, 3, 4, 4, 4, 5, 5, 5, 5,
-                    6, 6, 6, 7, 7, 8
-                ],
-                dotPlotDataViewMetadata: powerbi.DataViewMetadata = {
-                    columns: [{
-                        displayName: "Observations",
-                        queryName: "Observations",
-                        type: ValueType.fromDescriptor({
-                            text: true
-                        }),
-                        objects: {
-                            dataPoint: {
-                                fill: {
-                                    solid: {
-                                        color: "rgb(1, 184, 170)"
-                                    }
-                                }
-                            }
-                        }
-                    }]
-                },
-                dotPlotColumns = [{
-                    source: dotPlotDataViewMetadata.columns[0],
-                    values: dotPlotValues
-                }],
-                dotPlotDataValues: DataViewValueColumns =
-                    DataViewTransform.createValueColumns(dotPlotColumns);
-
-                return {
-                    metadata: dotPlotDataViewMetadata,
-                    categorical: {
-                        values: dotPlotDataValues
-                    }
-                };
-
-            case "radarChart":
-                let radarChartValues: number[] = [59, 56, 42, 34, 48, 14, 11, 5, 7, 78, 85, 90, 18, 7, 8, 9, 10],
-                    radarChartDataViewMetadata: powerbi.DataViewMetadata = {
-                        columns: [
-                            {
-                                displayName: 'Devices',
-                                queryName: 'Devices',
-                                type: powerbi.ValueType.fromDescriptor({ text: true })
-                            },
-                            {
-                                displayName: 'Smartphone',
-                                isMeasure: true,
-                                format: "0.00",
-                                queryName: 'smartphone',
-                                type: powerbi.ValueType.fromDescriptor({ numeric: true }),
-                                objects: { dataPoint: { fill: { solid: { color: '#1F77B4' } } } },
-                            },
-                            {
-                                displayName: 'Tablet',
-                                isMeasure: true,
-                                format: "0.00",
-                                queryName: 'Tablet',
-                                type: powerbi.ValueType.fromDescriptor({ numeric: true }),
-                                objects: { dataPoint: { fill: { solid: { color: '#FF7F0E' } } } }
-                            }
-                        ]
-                    },
-                    radarChartColumns = [{
-                        source: radarChartDataViewMetadata.columns[1],
-                        values: radarChartValues
-                    }],
-                    radarChartDataValues: DataViewValueColumns =
-                        DataViewTransform.createValueColumns(radarChartColumns);
-
-                return {
-                    metadata: radarChartDataViewMetadata,
-                    categorical: {
-                        categories: [{
-                            source: radarChartDataViewMetadata.columns[0],
-                            values: radarChartDataValues,
-                            identity: categoryIdentities,
-                        }],
-                        values: radarChartDataValues
-                    }
-                };
-
-            case "histogram":
-                let histogramValues: number[] = [
-                        36, 25, 38, 46, 55, 68, 72, 55, 36, 38,
-                        67, 45, 22, 48, 91, 46, 52, 61, 58, 55,
-                        25, 30, 34, 35, 33, 32, 8, 10, 1, 4, 3,
-                        96, 86, 35, 22, 23, 21, 20, 19, 16, 89,
-                        100, 105, 103, 101, 101, 100, 5, 6, 5,
-                        11, 19, 18, 18, 17, 14, 3, 2, 1, 6, 75,
-                        31, 31, 32, 33, 34, 30, 29, 45, 42, 43,
-                        27, 28, 29, 26, 25, 24, 23, 30, 31, 32
-                    ],
-                    histogramDataViewMetadata: powerbi.DataViewMetadata = {
-                    columns: [{
-                        displayName: "Age",
-                        queryName: "Age",
-                        type: ValueType.fromDescriptor({
-                            text: true
-                        }),
-                        objects: {
-                            dataPoint: {
-                                fill: {
-                                    solid: {
-                                        color: "rgb(1, 184, 170)"
-                                    }
-                                }
-                            }
-                        }
-                    }]
-                };
-
-                return {
-                    metadata: histogramDataViewMetadata,
-                    categorical: {
-                        categories: [{
-                            source: histogramDataViewMetadata.columns[0],
-                            values: histogramValues
-                        }]
-                    }
-                };
 
             default:
                 var fieldExpr = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: "s", entity: "table1", name: "country" } });
@@ -494,12 +369,13 @@ module powerbitests.performanceTestsHelpers {
                     return powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(fieldExpr, powerbi.data.SQExprBuilder.text(String(value))));
                 });
 
-                var columns = [
+                var columns: powerbi.DataViewValueColumn[] = [
                     {
                         source: {
                             displayName: "Population of USA",
                             queryName: "usa",
-                            type: powerbi.ValueType.fromDescriptor({ numeric: true })
+                            type: powerbi.ValueType.fromDescriptor({ numeric: true }),
+                            roles: { Y: true, Values: true },
                         },
                         values: getPopulationUSA()
                     },
@@ -507,7 +383,8 @@ module powerbitests.performanceTestsHelpers {
                         source: {
                             displayName: "Population of Canada",
                             queryName: "canada",
-                            type: powerbi.ValueType.fromDescriptor({ numeric: true })
+                            type: powerbi.ValueType.fromDescriptor({ numeric: true }),
+                            roles: { Y: true, Values: true },
                         },
                         values: getPopulationCanada()
                     }
@@ -515,12 +392,13 @@ module powerbitests.performanceTestsHelpers {
 
                 var dataValues: DataViewValueColumns = DataViewTransform.createValueColumns(columns);
 
-                var metadata = {
+                var metadata: powerbi.DataViewMetadata = {
                     columns: [
                         {
                             displayName: "Population",
                             queryName: "population",
-                            type: powerbi.ValueType.fromDescriptor({ text: true })
+                            type: powerbi.ValueType.fromDescriptor({ text: true }),
+                            roles: { Category: true },
                         }
                     ]
                 };
@@ -552,7 +430,13 @@ module powerbitests.performanceTestsHelpers {
         switch (visualsType) {
             case "donutChart":
             case "pieChart":
+			case "wordCloud":
+	        case "bulletChart":
                 return 100;
+            case "columnChart":
+                return 13;
+            case "enhancedScatterChart":
+                return 12;
             default:
                 return 6;
         }

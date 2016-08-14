@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,11 +27,6 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    export interface IPoint {
-        x: number;
-        y: number;
-    }
-
     export class Point implements IPoint {
         public x: number;
         public y: number;

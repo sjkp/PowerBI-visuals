@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,46 +27,52 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals.services {
-    interface IGeocodePair {
-        query: GeocodeQuery;
+    interface GeocodeCacheEntry {
         coordinate: IGeocodeCoordinate;
+        hitCount: number;
     }
 
     export interface IGeocodingCache {
-        getCoordinates(query: GeocodeQuery): IGeocodeCoordinate;
-        registerCoordinates(query: GeocodeQuery, coordinate: IGeocodeCoordinate): void;
-        registerCoordinates(query: GeocodeQuery, coordinate: IGeocodeBoundaryCoordinate): void;
+        getCoordinates(key: string): IGeocodeCoordinate;
+        registerCoordinates(key: string, coordinate: IGeocodeCoordinate): void;
+        registerCoordinates(key: string, coordinate: IGeocodeBoundaryCoordinate): void;
     }
 
-    export function createGeocodingCache(maxCacheSize: number, maxCacheSizeOverflow: number): IGeocodingCache {
-        return new GeocodingCache(maxCacheSize, maxCacheSizeOverflow);
+    export function createGeocodingCache(maxCacheSize: number, maxCacheSizeOverflow: number, localStorageService?: IStorageService): IGeocodingCache {
+        if (!localStorageService)
+            localStorageService = powerbi.localStorageService;
+        return new GeocodingCache(maxCacheSize, maxCacheSizeOverflow, localStorageService);
     }
 
     class GeocodingCache implements IGeocodingCache {
-        private geocodeCache: { [key: string]: IGeocodePair; };
+        private geocodeCache: _.Dictionary<GeocodeCacheEntry>;
+        private geocodeCacheCount: number;
         private maxCacheSize: number;
         private maxCacheSizeOverflow: number;
+        private localStorageService: IStorageService;
 
-        constructor(maxCacheSize: number, maxCacheSizeOverflow: number) {
+        constructor(maxCacheSize: number, maxCacheSizeOverflow: number, localStorageService: IStorageService) {
             this.geocodeCache = {};
+            this.geocodeCacheCount = 0;
             this.maxCacheSize = maxCacheSize;
             this.maxCacheSizeOverflow = maxCacheSizeOverflow;
+            this.localStorageService = localStorageService;
         }
         
         /**
          * Retrieves the coordinate for the key from the cache, returning undefined on a cache miss.
          */
-        public getCoordinates(query: GeocodeQuery): IGeocodeCoordinate {
+        public getCoordinates(key: string): IGeocodeCoordinate {
             // Check in-memory cache
-            let pair = this.geocodeCache[query.key];
+            let pair = this.geocodeCache[key];
             if (pair) {
-                pair.query.incrementCacheHit();
+                ++pair.hitCount;
                 return pair.coordinate;
             }
             // Check local storage cache
-            pair = localStorageService.getData(query.key);
+            pair = this.localStorageService.getData(key);
             if (pair) {
-                this.registerInMemory(query, pair.coordinate);
+                this.registerInMemory(key, pair.coordinate);
                 return pair.coordinate;
             }
             return undefined;
@@ -75,37 +81,55 @@ module powerbi.visuals.services {
         /**
          * Registers the query and coordinate to the cache.
          */
-        public registerCoordinates(query: GeocodeQuery, coordinate: IGeocodeCoordinate): void {
-            this.registerInMemory(query, coordinate);
-            this.registerInStorage(query, coordinate);
+        public registerCoordinates(key: string, coordinate: IGeocodeCoordinate): void {
+            this.registerInMemory(key, coordinate);
+            this.registerInStorage(key, coordinate);
         }
 
-        private registerInMemory(query: GeocodeQuery, coordinate: IGeocodeCoordinate): void {
+        private registerInMemory(key: string, coordinate: IGeocodeCoordinate): void {
             let geocodeCache = this.geocodeCache;
-            let keys = Object.keys(geocodeCache);
-            let cacheSize = keys.length;
             let maxCacheSize = this.maxCacheSize;
+            let maxCacheCount = maxCacheSize + this.maxCacheSizeOverflow;
 
-            if (keys.length > (maxCacheSize + this.maxCacheSizeOverflow)) {
+            // are we about to exceed the maximum?
+            if (this.geocodeCacheCount >= maxCacheCount) {
+                let keys = Object.keys(geocodeCache);
+                let cacheSize = keys.length;
 
-                let sortedKeys = keys.sort((a: string, b: string) => {
+                // sort keys in *descending* hitCount order
+                keys.sort((a: string, b: string) => {
                     let cachedA = geocodeCache[a];
                     let cachedB = geocodeCache[b];
-                    let ca = cachedA ? cachedA.query.getCacheHits() : 0;
-                    let cb = cachedB ? cachedB.query.getCacheHits() : 0;
-                    return ca < cb ? -1 : (ca > cb ? 1 : 0);
+                    let ca = cachedA ? cachedA.hitCount : 0;
+                    let cb = cachedB ? cachedB.hitCount : 0;
+                    return ca < cb ? 1 : (ca > cb ? -1 : 0);
                 });
 
-                for (let i = 0; i < (cacheSize - maxCacheSize); i++) {
-                    geocodeCache[sortedKeys[i]] = undefined;
+                // whack ones with the lower hitCounts.
+                // - while # whacked keys is small, do a quick wipe
+                // - after awhile we get lots of keys whose cached value is undefined. 
+                //   when there are "too many," make a whole new memory cache.
+                if (cacheSize < 2 * maxCacheCount) {
+                    for (let i = maxCacheSize; i < cacheSize; i++)
+                        geocodeCache[keys[i]] = undefined;
                 }
+                else {
+                    let newGeocodeCache: _.Dictionary<GeocodeCacheEntry> = {};
+                    for (let i = 0; i < maxCacheSize; ++i)
+                        newGeocodeCache[keys[i]] = geocodeCache[keys[i]];
+
+                    geocodeCache = this.geocodeCache = newGeocodeCache;
+                }
+
+                this.geocodeCacheCount = maxCacheSize;
             }
 
-            geocodeCache[query.key] = { query: query, coordinate: coordinate };
+            geocodeCache[key] = { coordinate: coordinate, hitCount: 1 };
+            ++this.geocodeCacheCount;
         }
 
-        private registerInStorage(query: GeocodeQuery, coordinate: IGeocodeCoordinate): void {
-            localStorageService.setData(query.key, { query: query, coordinate: coordinate });
+        private registerInStorage(key: string, coordinate: IGeocodeCoordinate): void {
+            this.localStorageService.setData(key, { coordinate: coordinate });
         }
     }
 }

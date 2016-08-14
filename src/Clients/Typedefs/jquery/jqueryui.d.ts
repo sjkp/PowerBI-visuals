@@ -1630,6 +1630,9 @@ interface JQuery {
     selectable(optionLiteral: string, options: JQueryUI.SelectableOptions): any;
     selectable(optionLiteral: string, optionName: string, optionValue: any): JQuery;
 
+	// TODO: VSTS 7733811 Define parameter types for jqueryUI selectmenu
+	selectmenu(option: any): JQuery;
+	
     slider(): JQuery;
     slider(methodName: 'destroy'): void;
     slider(methodName: 'disable'): void;

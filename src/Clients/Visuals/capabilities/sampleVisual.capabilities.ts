@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Power BI Visualizations
 *
 *  Copyright (c) Microsoft Corporation
@@ -32,11 +32,15 @@ module powerbi.visuals {
             {
                 name: 'Category',
                 kind: VisualDataRoleKind.Grouping,
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Axis'),
+                description: data.createDisplayNameGetter('Role_DisplayName_AxisDescription')
             },
             {
                 name: 'Y',
                 kind: VisualDataRoleKind.Measure,
                 requiredTypes: [{ numeric: true }, { integer: true }],
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Y'),
+                description: data.createDisplayNameGetter('Role_DisplayName_YDescription')
             },
         ],
         dataViewMappings: [{
@@ -46,15 +50,14 @@ module powerbi.visuals {
                 },
             },
         }],
-        dataPoint: {
-            displayName: data.createDisplayNameGetter('Visual_DataPoint'),
-            description: data.createDisplayNameGetter('Visual_DataPointDescription'),
-            properties: {
-                fill: {
-                    displayName: data.createDisplayNameGetter('Visual_Fill'),
-                    type: { fill: { solid: { color: true } } }
-                },
+        objects: {
+            dataPoint: {
+                displayName: data.createDisplayNameGetter('Visual_DataPoint'),
+                description: data.createDisplayNameGetter('Visual_DataPointDescription'),
+                properties: {
+                    fill: StandardObjectProperties.fill,
+                }
             }
-        },
+        }
     };
 }

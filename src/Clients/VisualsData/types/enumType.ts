@@ -27,15 +27,6 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi {
-    import DisplayNameGetter = powerbi.data.DisplayNameGetter;
-
-    export type EnumMemberValue = string | number;
-
-    export interface IEnumMember {
-        value: EnumMemberValue;
-        displayName: DisplayNameGetter;
-    }
-
     /** Defines a custom enumeration data type, and its values. */
     export interface IEnumType {
         /** Gets the members of the enumeration, limited to the validMembers, if appropriate. */

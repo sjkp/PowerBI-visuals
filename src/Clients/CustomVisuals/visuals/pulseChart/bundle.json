@@ -1,0 +1,28 @@
+{
+    "package": {
+        "build": "13.0.1100.210",
+        "version": "1.10.8",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "name": "PulseChart",
+        "displayName": "Pulse Chart",
+        "guid": "PulseChart1459209850231",
+        "description": "Pulse chart shows a line chart annotated with key events.  Each events can be selected to filter and cross highlight other visuals to reveal insights or help tell a story.  Pulse chart supports animation so you can load your report and watch it play through key events, without user interaction. This visualization is perfect for story telling with data, especially the Power BI publish to web feature. Use it anywhere you need to draw attention to events that shaped a trend.",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["pulseChart_screenshot.png"],
+            "thumbnail": "thumbnail.png"
+        },
+        "code": {
+            "typeScript": "PulseChart.ts",
+            "javaScript": "PulseChart.js",
+            "css": "PulseChart.css"
+        }
+    }
+}

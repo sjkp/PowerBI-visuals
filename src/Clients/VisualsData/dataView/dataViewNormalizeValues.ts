@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -35,14 +35,29 @@ module powerbi.data {
         dataRoles: VisualDataRole[];
     }
 
+    /**
+     * Interface of a function for deciding whether a column is tied to any role that has required type(s).
+     *
+     * @param columnIndex the position of the column in the select statement, i.e. the same semantic as the index property on the DataViewMetadataColumn interface.
+     * @returns true iff the column in the specified columnIndex is tied to any role that has required type(s), i.e. if the value in that column potentially needs to get normalized.
+     */
     export interface IMetadataColumnFilter {
         (columnIndex: number): boolean;
     }
 
+    /**
+     * Returns true iff the specified value is of matching type as required by the role assigned to the column associated with this filter object.
+     */
     export interface IColumnValueFilter {
         (value: any): boolean;
     }
 
+    /**
+     * Interface of a function for deciding whether a value needs to be normalized due to not having a matching type as required by a role tied to the column associated with the specified columnIndex.
+     *
+     * @param columnIndex the position of the column in the select statement, i.e. the same semantic as the index property on the DataViewMetadataColumn interface.
+     * @returns false iff the specified value needs to be normalized due to not having a matching type as required by a role tied to the column associated with the specified columnIndex.
+     */
     export interface IValueFilter {
         (columnIndex: number, value: any): boolean;
     }
@@ -210,13 +225,14 @@ module powerbi.data {
 
         function filterVariantMeasuresTreeNode(node: DataViewTreeNode, columnFilter: IMetadataColumnFilter, valueFilter: IValueFilter): void {
             if (node.values) {
-                for (let valueSourceIndex in node.values) {
-                    // key in node.values corresponds to valueSourceIndex
-                    if (columnFilter(valueSourceIndex)) {
-                        if (typeof (node.values[valueSourceIndex]) === 'object' && ('value' in node.values[valueSourceIndex]))
-                            node.values[valueSourceIndex] = normalizeVariant(node.values[valueSourceIndex], 'value', valueSourceIndex, valueFilter);
-                        else
-                            node.values = normalizeVariant(node.values, valueSourceIndex, valueSourceIndex, valueFilter);
+                for (let columnIndex in node.values) {
+                    // In dataView.tree, the keys in node.values correspond to columnIndex of the node value
+                    if (columnFilter(<any>columnIndex)) {
+                        // According to nojorgen, it is possible to have primitive values as values in the node.values dictionary.
+                        if (typeof (node.values[columnIndex]) === 'object' && ('value' in node.values[columnIndex]))
+                            node.values[columnIndex] = normalizeVariant(node.values[columnIndex], 'value', <any>columnIndex, valueFilter);
+                        else // if node.values[columnIndex] is a primitive value
+                            node.values = normalizeVariant(node.values, columnIndex, <any>columnIndex, valueFilter);
                     }
                 }
             }
@@ -233,20 +249,33 @@ module powerbi.data {
             if (!root)
                 return;
 
-            // Convert dataview.valueSources index to match dataview.metadata.columns
-            let adjustedColumnFilter = (index) => {
-                index = toMetadataColumnIndex(dataview.valueSources, index);
-                return index ? columnFilter(index) : false;
-            };
-
-            let adjustedValueFilter = (index, value) => {
-                index = toMetadataColumnIndex(dataview.valueSources, index);
-                return index ? valueFilter(index, value) : true;
-            };
-
             // Recurse into rows.children
             // e.g. rows.children -> .children -> .children.values
-            filterVariantMeasuresTreeNode(root, adjustedColumnFilter, adjustedValueFilter);
+            filterVariantMeasuresMatrixRecursive(dataview, root, columnFilter, valueFilter);
+        }
+
+        function filterVariantMeasuresMatrixRecursive(dataviewMatrix: DataViewMatrix, node: DataViewTreeNode, columnFilter: IMetadataColumnFilter, valueFilter: IValueFilter): void {
+            if (node.values) {
+                for (let id in node.values) {
+                    // Note related to VSTS 6547124: In dataView.matrix, the keys in node.values are NOT equivalent to value.valueSourceIndex.
+                    let nodeValue: DataViewMatrixNodeValue = node.values[id];
+
+                    // the property DataViewMatrixNodeValue.valueSourceIndex will not exist if valueSourceIndex is 0 for that value
+                    let valueSourceIndex: number = nodeValue.valueSourceIndex || 0;
+
+                    // index is an optional property on DataViewMetadataColumn, but I am not sure when it will ever be undefined in a matrix' column metadata
+                    let columnIndex = dataviewMatrix.valueSources[valueSourceIndex].index;
+
+                    if (_.isNumber(columnIndex) && columnFilter(columnIndex)) {
+                        node.values[id] = normalizeVariant(nodeValue, 'value', columnIndex, valueFilter);
+                    }
+                }
+            }
+            else if (node.children) {
+                for (let child of node.children) {
+                    filterVariantMeasuresMatrixRecursive(dataviewMatrix, child, columnFilter, valueFilter);
+                }
+            }
         }
 
         function filterVariantMeasuresSingle(dataview: DataView, dataViewMappings: DataViewMapping[], rolesToNormalize: VisualDataRole[], valueFilter: IValueFilter): void {
@@ -291,11 +320,6 @@ module powerbi.data {
             }
 
             return false;
-        }
-
-        function toMetadataColumnIndex(valueSources: DataViewMetadataColumn[], valueSourceIndex: number) {
-            let valueSource = valueSources[valueSourceIndex];
-            return valueSource && valueSource.index;
         }
 
         function firstColumnByRoleName(columns: DataViewMetadataColumn[], roleName: string): DataViewMetadataColumn {

@@ -1,0 +1,30 @@
+{
+    "dateAdded": "2015-10-19T03:16:18.000Z",
+    "dateLastUpdated": "2016-02-24T20:54:49.000Z",
+    "package": {
+        "name": "EnhancedScatterChart",
+        "displayName": "EnhancedScatter",
+        "version": "0.2.13",
+        "guid": "EnhancedScatterChart1443994985041",
+        "description": "A few more properties were added to the existing scatter chart visual, including shapes as markers, background image support, and developer crosshairs for positioning elements onto an image background.",
+        "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["screenshot.png"],
+            "thumbnail": "thumbnail.png"
+        },
+        "code": {
+            "typeScript": "EnhancedScatterChart.ts",
+            "javaScript": "EnhancedScatterChart.js",
+            "css": "EnhancedScatterChart.css"
+        }
+    }
+}

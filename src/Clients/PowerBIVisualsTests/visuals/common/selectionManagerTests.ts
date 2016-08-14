@@ -174,5 +174,21 @@ module powerbitests {
                 });
             });
         });
+
+        it("context menu", (done) => {
+            let mockHostServices = powerbitests.mocks.createVisualHostServices();
+            let selectionManager = new SelectionManager({ hostServices: mockHostServices });
+            let selectionId = new SelectionIdBuilder()
+                .withCategory(categoryColumn, 0)
+                .createSelectionId();
+
+            let onContextMenuSpy = spyOn(mockHostServices, 'onContextMenu');
+            selectionManager.showContextMenu(selectionId, { x: 5, y: 15 })
+                .then(() => {
+                    expect(onContextMenuSpy.calls.argsFor(0)[0].data[0]).toEqual({ dataMap: { categoryA: categoryA } });
+                    expect(onContextMenuSpy.calls.argsFor(0)[0].position).toEqual({ x: 5, y: 15 });
+                    done();
+                });
+        });
     });
 }

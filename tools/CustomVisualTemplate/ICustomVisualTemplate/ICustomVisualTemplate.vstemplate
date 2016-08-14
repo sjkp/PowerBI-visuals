@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
+  <TemplateData>
+    <DefaultName>newVisual.ts</DefaultName>
+    <Name>ICustomVisual</Name>
+    <Description>Create a new custom visual for Power BI</Description>
+    <Icon>powerbi_34.ico</Icon>
+    <TemplateID>d07837e2-1e82-4f44-9947-e8142572ae15</TemplateID>
+    <ProjectType>Web</ProjectType>
+    <ProjectSubType>CSharp</ProjectSubType>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <AppendDefaultFileExtension>true</AppendDefaultFileExtension>
+    <SupportsLanguageDropdown>false</SupportsLanguageDropdown>
+    <SupportsCodeSeparation>false</SupportsCodeSeparation>
+    <SupportsMasterPage>false</SupportsMasterPage>
+  </TemplateData>
+  <TemplateContent>
+    <References/>
+    <ProjectItem SubType="Script" TargetFileName="$fileinputname$.ts" ReplaceParameters="true">newVisual.ts</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

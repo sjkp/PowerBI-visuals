@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -28,7 +28,6 @@
 
 module powerbi.data {
     import inherit = Prototype.inherit;
-    import ArrayExtensions = jsCommon.ArrayExtensions;
 
     export module DataViewPivotCategorical {
         /**
@@ -47,7 +46,7 @@ module powerbi.data {
                 return null;
 
             let values = categorical.values;
-            if (ArrayExtensions.isUndefinedOrEmpty(values) || values.source)
+            if (_.isEmpty(values) || values.source)
                 return null;
 
             let category = categories[0],
@@ -89,7 +88,7 @@ module powerbi.data {
             let pivotedMetadata = inherit(dataView.metadata);
             pivotedMetadata.columns = pivotedColumns;
 
-            values = DataViewTransform.createValueColumns(pivotedValues, category.identityFields, category.source);
+            values = DataViewTransform.createValueColumns(pivotedValues, <SQExpr[]>category.identityFields, category.source);
             return {
                 metadata: pivotedMetadata,
                 categorical: {

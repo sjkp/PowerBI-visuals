@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,12 +27,17 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import MapSliceContainer = powerbi.visuals.MapSliceContainer;
+
     export interface MapBehaviorOptions {
         dataPoints: SelectableDataPoint[];
         bubbles?: D3.Selection;
         slices?: D3.Selection;
         shapes?: D3.Selection;
         clearCatcher: D3.Selection;
+        bubbleEventGroup?: D3.Selection;
+        sliceEventGroup?: D3.Selection;
+        shapeEventGroup?: D3.Selection;
     }
 
     export class MapBehavior implements IInteractiveBehavior {
@@ -42,6 +47,7 @@ module powerbi.visuals {
         private mapPointerEventsDisabled = false;
         private mapPointerTimeoutSet = false;
         private viewChangedSinceLastClearMouseDown = false;
+        private receivedZoomOrPanEvent = false;
 
         public bindEvents(options: MapBehaviorOptions, selectionHandler: ISelectionHandler): void {
             let bubbles = this.bubbles = options.bubbles;
@@ -49,7 +55,10 @@ module powerbi.visuals {
             let shapes = this.shapes = options.shapes;
             let clearCatcher = options.clearCatcher;
 
-            let clickHandler = (d: SelectableDataPoint) => {
+            let clickHandler = () => {
+                let target = d3.event.target;
+                let d = <SelectableDataPoint>d3.select(target).datum();
+
                 if (bubbles)
                     bubbles.style("pointer-events", "all");
                 if (shapes)
@@ -67,8 +76,8 @@ module powerbi.visuals {
             }
 
             if (bubbles) {
-                bubbles.on('click', clickHandler);
-                bubbles.on('mousewheel', () => {
+                options.bubbleEventGroup.on('click', clickHandler);
+                options.bubbleEventGroup.on('mousewheel', () => {
                     if (!this.mapPointerEventsDisabled)
                         bubbles.style("pointer-events", "none");
                     this.mapPointerEventsDisabled = true;
@@ -82,15 +91,20 @@ module powerbi.visuals {
                         }, 200);
                     }
                 });
+
+                InteractivityUtils.registerGroupContextMenuHandler(options.bubbleEventGroup, selectionHandler);
             }
 
             if (slices) {
-                slices.on('click', (d) => {
+                options.sliceEventGroup.on('click', () => {
                     slices.style("pointer-events", "all");
                     this.mapPointerEventsDisabled = false;
+
+                    let target = d3.event.target;
+                    let d = <MapSliceContainer>d3.select(target).datum();
                     selectionHandler.handleSelection(d.data, d3.event.ctrlKey);
                 });
-                slices.on('mousewheel', () => {
+                options.sliceEventGroup.on('mousewheel', () => {
                     if (!this.mapPointerEventsDisabled)
                         slices.style("pointer-events", "none");
                     this.mapPointerEventsDisabled = true;
@@ -104,11 +118,23 @@ module powerbi.visuals {
                         }, 200);
                     }
                 });
+
+                options.sliceEventGroup.on('contextmenu', () => {
+                    if (d3.event.ctrlKey)
+                        return;
+
+                    d3.event.preventDefault();
+                    let position = InteractivityUtils.getPositionOfLastInputEvent();
+
+                    let target = d3.event.target;
+                    let d = <MapSliceContainer>d3.select(target).datum();
+                    selectionHandler.handleContextMenu(d.data, position);
+                });
             }
 
             if (shapes) {
-                shapes.on('click', clickHandler);
-                shapes.on('mousewheel', () => {
+                options.shapeEventGroup.on('click', clickHandler);
+                options.shapeEventGroup.on('mousewheel', () => {
                     if (!this.mapPointerEventsDisabled) {
                         shapes.style("pointer-events", "none");
                     }
@@ -123,15 +149,23 @@ module powerbi.visuals {
                         }, 200);
                     }
                 });
+
+                InteractivityUtils.registerGroupContextMenuHandler(options.shapeEventGroup, selectionHandler);
             }
 
             clearCatcher.on('mouseup', () => {
-                if (!this.viewChangedSinceLastClearMouseDown)
+                if (!this.viewChangedSinceLastClearMouseDown) {
                     selectionHandler.handleClearSelection();
+                    this.receivedZoomOrPanEvent = true;
+                }
             });
 
             clearCatcher.on('mousedown', () => {
                 this.viewChangedSinceLastClearMouseDown = false;
+            });
+
+            clearCatcher.on('mousewheel', () => {
+                this.receivedZoomOrPanEvent = true;
             });
         }
 
@@ -161,6 +195,14 @@ module powerbi.visuals {
 
         public viewChanged() {
             this.viewChangedSinceLastClearMouseDown = true;
+        }
+
+        public resetZoomPan() {
+            this.receivedZoomOrPanEvent = false;
+        }
+
+        public hasReceivedZoomOrPanEvent(): boolean {
+            return this.receivedZoomOrPanEvent;
         }
     }
 }

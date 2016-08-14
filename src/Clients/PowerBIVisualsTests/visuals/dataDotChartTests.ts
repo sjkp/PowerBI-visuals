@@ -34,13 +34,15 @@ module powerbitests {
     import ColumnUtil = powerbi.visuals.ColumnUtil;
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
+    import buildSelectorForColumn = powerbitests.helpers.buildSelectorForColumn;
+    import SelectionId = powerbi.visuals.SelectionId;
 
     powerbitests.mocks.setLocale();
 
     describe("Check DataDotChart capabilities", () => {
 
         it("DataDotChart registered capabilities", () => {
-            expect(powerbi.visuals.visualPluginFactory.create().getPlugin("dataDotChart").capabilities).toBe(dataDotChartCapabilities);
+            expect(powerbi.visuals.plugins.dataDotChart.capabilities).toBe(dataDotChartCapabilities);
         });
 
         it("DataDotChart capabilities should include dataRoles", () => {
@@ -357,18 +359,21 @@ module powerbitests {
         columns: [
             {
                 displayName: "stringColumn",
-                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text)
+                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text),
+                queryName: "stringColumn",
             },
             {
                 displayName: "numberColumn",
                 isMeasure: true,
                 type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
-                format: "0.000"
+                format: "0.000",
+                queryName: "numberColumn",
             },
             {
                 displayName: "dateTimeColumn",
                 isMeasure: true,
-                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime)
+                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
+                queryName: "dateTimeColumn",
             }
         ]
     };
@@ -468,11 +473,17 @@ module powerbitests {
 
             dataViewBuilder.onDataChanged();
 
+            let labels = helpers.getAxisTicks('y').find("text");
+
             setTimeout(() => {
-                expect($(".dataDotChart .axisGraphicsContext .x.axis .tick").length).toBeGreaterThan(0);
-                expect($(".dataDotChart .axisGraphicsContext .y.axis .tick").length).toBeGreaterThan(0);
-                expect($(".dataDotChart .axisGraphicsContext .y.axis .tick").find("text").first().text()).toBe("0M");
-                expect($(".dataDotChart .axisGraphicsContext .y.axis .tick").find("text").last().text()).toBe("0.5M");
+                expect(helpers.getAxisTicks('x').length).toBeGreaterThan(0);
+                expect(helpers.getAxisTicks('y').length).toBeGreaterThan(0);
+
+                expect(helpers.findElementText($(labels).first())).toBe("0.0M");
+                expect(helpers.findElementTitle($(labels).first())).toBe("0.0M");
+
+                expect(helpers.findElementText($(labels).last())).toBe("0.5M");
+                expect(helpers.findElementTitle($(labels).last())).toBe("0.5M");
                 done();
             }, DefaultWaitForRender);
         });
@@ -548,7 +559,7 @@ module powerbitests {
                 expect($label1.text()).toBe("0.5M");
 
                 let $label3 = $($labels.get(2));
-                expect($label3.text()).toBe("0.49M");
+                expect($label3.text()).toBe("0.5M");
 
                 done();
             }, DefaultWaitForRender);
@@ -672,7 +683,7 @@ module powerbitests {
 
                 spyOn(dataViewBuilder.hostServices, "onSelect").and.callThrough();
 
-                (<any>dots.first()).d3Click(0, 0);
+                dots.first().d3Click(0, 0);
 
                 expect(dots[0].style.fillOpacity).toBe(defaultOpacity);
                 expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
@@ -682,9 +693,10 @@ module powerbitests {
 
                 expect(dataViewBuilder.hostServices.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [categoryIdentities[0]]
+                                objectName: 'dataPoint',
+                                selectorsByColumn: SelectionId.createWithSelectorForColumnAndMeasure(buildSelectorForColumn("stringColumn", categoryIdentities[0]), "numberColumn").getSelectorsByColumn(),
                             }
                         ]
                     });
@@ -704,7 +716,7 @@ module powerbitests {
 
                 spyOn(dataViewBuilder.hostServices, "onSelect").and.callThrough();
 
-                (<any>dots.first()).d3Click(0, 0);
+                dots.first().d3Click(0, 0);
                 
                 expect(dots[0].style.fillOpacity).toBe(defaultOpacity);
                 expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
@@ -713,9 +725,10 @@ module powerbitests {
 
                 expect(dataViewBuilder.hostServices.onSelect).toHaveBeenCalledWith(
                     {
-                        data: [
+                        visualObjects: [
                             {
-                                data: [categoryIdentities[0]]
+                                objectName: 'dataPoint',
+                                selectorsByColumn: SelectionId.createWithSelectorForColumnAndMeasure(buildSelectorForColumn("stringColumn", categoryIdentities[0]), "numberColumn").getSelectorsByColumn(),
                             }
                         ]
                     });
@@ -735,8 +748,8 @@ module powerbitests {
 
                 spyOn(dataViewBuilder.hostServices, "onSelect").and.callThrough();
 
-                (<any>dots.first()).d3Click(0, 0);
-                (<any>dots.last()).d3Click(0, 0, EventType.CtrlKey);
+                dots.first().d3Click(0, 0);
+                dots.last().d3Click(0, 0, EventType.CtrlKey);
 
                 dataViewBuilder.visual.onClearSelection();
 
@@ -759,12 +772,12 @@ module powerbitests {
 
                 let dots = $(".dataDotChart .dot");                
 
-                (<any>dots.first()).d3Click(0, 0);
-                (<any>dots.last()).d3Click(0, 0, EventType.CtrlKey);
+                dots.first().d3Click(0, 0);
+                dots.last().d3Click(0, 0, EventType.CtrlKey);
 
                 spyOn(dataViewBuilder.hostServices, "onSelect").and.callThrough();
 
-                (<any>($(".clearCatcher").last())).d3Click(0, 0);
+                $(".clearCatcher").last().d3Click(0, 0);
 
                 expect(dots[0].style.fillOpacity).toBe(defaultOpacity);
                 expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
@@ -774,7 +787,7 @@ module powerbitests {
 
                 expect(dataViewBuilder.hostServices.onSelect).toHaveBeenCalledWith(
                     {
-                        data: []
+                        visualObjects: []
                     });
 
                 done();
@@ -863,7 +876,9 @@ module powerbitests {
                 {
                     source: this.getValuesSource(0),
                     values: this.categoryValues,
-                    identity: this.categoryIdentities
+                    identity: this.categoryIdentities,
+                    displayName: 'categories',
+                    queryName: 'categories',
                 }
             ];
         }

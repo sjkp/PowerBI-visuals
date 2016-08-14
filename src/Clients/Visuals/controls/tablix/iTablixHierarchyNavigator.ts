@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -30,11 +30,14 @@ module powerbi.visuals.controls {
 
     export interface ITablixHierarchyNavigator {
         /**
-         * Returns the depth of a hierarchy.
-         *
-         * @param hierarchy Object representing the hierarchy.
-         */
-        getDepth(hierarchy: any): number;
+        * Returns the depth of the column hierarchy.
+        */
+        getColumnHierarchyDepth(): number;
+
+        /**
+        * Returns the depth of the Row hierarchy.
+        */
+        getRowHierarchyDepth(): number;
 
         /**
          * Returns the leaf count of a hierarchy.
@@ -76,6 +79,8 @@ module powerbi.visuals.controls {
 
         isColumnHierarchyLeaf(cornerItem: any): boolean;
 
+        isFirstItem(item: any, items: any): boolean;
+
         /**
          * Checks whether a hierarchy member is the last item within its parent.
          *
@@ -85,11 +90,28 @@ module powerbi.visuals.controls {
         isLastItem(item: any, items: any): boolean;
 
         /**
+         * Checks if the item and all its ancestors are the first items in their parent's children
+        */
+        areAllParentsFirst(item: any, items: any): boolean;
+
+        /**
+         * Checks if the item and all its ancestors are the last items in their parent's children
+        */
+        areAllParentsLast(item: any, items: any): boolean;
+
+        /**
          * Gets the children members of a hierarchy member.
          *
          * @param item Hierarchy member.
          */
         getChildren(item: any): any;
+
+        /**
+         * Gets the difference between current level and min children level. Not necessarily 1
+         *
+         * @param item Hierarchy member.
+         */
+        getChildrenLevelDifference(item: any): number;
 
         /**
          * Gets the members count in a specified collection.

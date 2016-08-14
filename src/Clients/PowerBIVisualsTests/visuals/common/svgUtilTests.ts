@@ -27,6 +27,7 @@
 /// <reference path="../../_references.ts"/>
 
 module powerbitests {
+    import SVGScaleDetector = powerbi.visuals.SVGScaleDetector;
     import SVGUtil = powerbi.visuals.SVGUtil;
     
     describe("SvgUtil tests", () => {
@@ -70,11 +71,52 @@ module powerbitests {
             }).style("fill", "red"); //this rect is simulating the y-axis...
 
             setTimeout(() => {
-                let ratios = SVGUtil.getTransformScaleRatios(<SVGSVGElement>svg.node());
-                expect(ratios.x).toBe(0.75);
-                expect(ratios.y).toBe(0.5);
+                helpers.runWithExpectedAssertFailures(() => {
+                    let ratios = SVGUtil.getTransformScaleRatios(<SVGSVGElement>svg.node());
+                    expect(ratios.x).toBe(0.75);
+                    expect(ratios.y).toBe(0.5);
+                });
                 done();
             }, 10);
+        });
+    });
+
+    describe('SVGScaleDetector', () => {
+        let scaleDetector: SVGScaleDetector;
+        let element: JQuery;
+        let svg: D3.Selection;
+
+        const tolerance = 4;  // decimal points of precision
+
+        beforeEach(() => {
+            element = helpers.testDom("100", "100");
+            svg = d3.select(element.get(0)).append('svg');
+        });
+
+        it('no scale', () => {
+            scaleDetector = new SVGScaleDetector(svg);
+
+            let scale = scaleDetector.getScale();
+            expect(scale.x).toBeCloseTo(1.0, tolerance);
+            expect(scale.y).toBeCloseTo(1.0, tolerance);
+        });
+
+        it('tiny scale', () => {
+            element.css('transform', 'scale(0.0001)');
+            scaleDetector = new SVGScaleDetector(svg);
+
+            let scale = scaleDetector.getScale();
+            expect(scale.x).toBeCloseTo(0.0001, tolerance);
+            expect(scale.y).toBeCloseTo(0.0001, tolerance);
+        });
+
+        it('huge scale', () => {
+            element.css('transform', 'scale(1000.0)');
+            scaleDetector = new SVGScaleDetector(svg);
+
+            let scale = scaleDetector.getScale();
+            expect(scale.x).toBeCloseTo(1000.0, tolerance);
+            expect(scale.y).toBeCloseTo(1000.0, tolerance);
         });
     });
 }

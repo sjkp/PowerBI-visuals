@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module powerbi {
 

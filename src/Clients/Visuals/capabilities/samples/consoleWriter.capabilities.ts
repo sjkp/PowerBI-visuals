@@ -1,4 +1,3 @@
-
 /*
 *  Power BI Visualizations
 *
@@ -33,10 +32,14 @@ module powerbi.visuals.samples {
             {
                 name: 'Category',
                 kind: VisualDataRoleKind.Grouping,
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Axis'),
+                description: data.createDisplayNameGetter('Role_DisplayName_AxisDescription')
             },
             {
                 name: 'Y',
                 kind: VisualDataRoleKind.Measure,
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Y'),
+                description: data.createDisplayNameGetter('Role_DisplayName_YDescription')
             },
         ],
         dataViewMappings: [{
@@ -46,15 +49,5 @@ module powerbi.visuals.samples {
                 },
             },
         }],
-        dataPoint: {
-            displayName: data.createDisplayNameGetter('Visual_DataPoint'),
-            description: data.createDisplayNameGetter('Visual_DataPointDescription'),
-            properties: {
-                fill: {
-                    displayName: data.createDisplayNameGetter('Visual_Fill'),
-                    type: { fill: { solid: { color: true } } }
-                },
-            }
-        },
     };
 }

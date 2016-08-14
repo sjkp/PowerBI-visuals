@@ -24,14 +24,31 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module powerbitests.mocks {
+    import SemanticFilter = powerbi.data.SemanticFilter;
+    import SQExpr = powerbi.data.SQExpr;
     import SQExprBuilder = powerbi.data.SQExprBuilder;
     import defaultVisualHostServices = powerbi.visuals.defaultVisualHostServices;
     import SelectableDataPoint = powerbi.visuals.SelectableDataPoint;
     import ISelectionHandler = powerbi.visuals.ISelectionHandler;
     import DefaultVisualHostServices = powerbi.visuals.DefaultVisualHostServices;
+    import ITelemetryService = powerbi.visuals.telemetry.ITelemetryService;
+    import ITelemetryEvent = powerbi.visuals.telemetry.ITelemetryEvent;
+    import ITelemetryEventFactory = powerbi.visuals.telemetry.ITelemetryEventFactory;
+    import ITelemetryEventFactory1 = powerbi.visuals.telemetry.ITelemetryEventFactory1;
+    import ITelemetryEventFactory2 = powerbi.visuals.telemetry.ITelemetryEventFactory2;
+    import ITelemetryEventFactory3 = powerbi.visuals.telemetry.ITelemetryEventFactory3;
+    import ITelemetryEventFactory4 = powerbi.visuals.telemetry.ITelemetryEventFactory4;
+    import ITelemetryEventFactory5 = powerbi.visuals.telemetry.ITelemetryEventFactory5;
+    import ITelemetryEventFactory6 = powerbi.visuals.telemetry.ITelemetryEventFactory6;
+    import ITelemetryEventFactory7 = powerbi.visuals.telemetry.ITelemetryEventFactory7;
+    import ITelemetryEventFactory8 = powerbi.visuals.telemetry.ITelemetryEventFactory8;
+    import ITelemetryEventFactory9 = powerbi.visuals.telemetry.ITelemetryEventFactory9;
+    import ITelemetryEventFactory10 = powerbi.visuals.telemetry.ITelemetryEventFactory10;
+    import ITelemetryEventFactory11 = powerbi.visuals.telemetry.ITelemetryEventFactory11;
+    import IDeferredTelemetryEvent = powerbi.visuals.telemetry.IDeferredTelemetryEvent;
 
     export class TelemetryCallbackMock {
         public static callbackCalls: number = 0;
@@ -123,28 +140,32 @@ module powerbitests.mocks {
         }
     }
 
-    export function dataViewScopeIdentity(fakeValue: string | number | boolean): powerbi.DataViewScopeIdentity {
+    export function dataViewScopeIdentity(fakeValue: string | number | boolean | Date): powerbi.DataViewScopeIdentity {
         var expr = constExpr(fakeValue);
         return powerbi.data.createDataViewScopeIdentity(expr);
     }
 
-    export function dataViewScopeIdentityWithEquality(keyExpr: powerbi.data.SQExpr, fakeValue: string | number | boolean): powerbi.DataViewScopeIdentity {
+    export function dataViewScopeIdentityWithEquality(keyExpr: SQExpr, fakeValue: string | number | boolean | Date): powerbi.DataViewScopeIdentity {
         return powerbi.data.createDataViewScopeIdentity(
-            powerbi.data.SQExprBuilder.equal(
+            SQExprBuilder.equal(
                 keyExpr,
                 constExpr(fakeValue)));
     }
 
-    function constExpr(fakeValue: string | number | boolean): powerbi.data.SQExpr {
+    function constExpr(fakeValue: string | number | boolean | Date): SQExpr {
         if (fakeValue === null)
             return SQExprBuilder.nullConstant();
 
         if (fakeValue === true || fakeValue === false)
             return SQExprBuilder.boolean(<boolean>fakeValue);
 
-        return (typeof (fakeValue) === 'number')
-            ? powerbi.data.SQExprBuilder.double(<number>fakeValue)
-            : powerbi.data.SQExprBuilder.text(<string>fakeValue);
+        if (typeof (fakeValue) === 'number')
+            return SQExprBuilder.double(<number>fakeValue);
+
+        if (fakeValue instanceof Date)
+            return SQExprBuilder.dateTime(<Date>fakeValue);
+
+        return SQExprBuilder.text(<string>fakeValue);
     }
 
     export class MockVisualWarning implements powerbi.IVisualWarning {
@@ -186,28 +207,71 @@ module powerbitests.mocks {
         ];
 
         /** With the way our tests run, these values won't be consistent, so you shouldn't validate actual lat/long or pixel lcoations */
-        public geocode(query: string, category?: string): any {
+        public geocode(query: string, category?: string, options?: powerbi.GeocodeOptions): any {
             var resultIndex = this.callNumber++ % this.resultList.length;
             var deferred = $.Deferred();
             deferred.resolve(this.resultList[resultIndex]);
             return deferred;
         }
 
-        public geocodeBoundary(latitude: number, longitude: number, category: string, levelOfDetail?: number, maxGeoData?: number): any {
-            // Only the absoluteString is actually used for drawing, but a few other aspects of the geoshape result are checked for simple things like existence and length
-            var result = {
-                locations: [{
-                    absoluteString: "84387.1,182914 84397.3,182914 84401.3,182914 84400.9,182898 84417.4,182898 84421.3,182885 84417.4,182877 84418.2,182865 84387.2,182865 84387.1,182914", // A valid map string taken from a piece of Redmond's path
-                    geographic: [undefined, undefined, undefined], // This needs to be an array with length > 2 for checks in map; contents aren't used.
-                    absoluteBounds: {
-                        width: 34.2,
-                        height: 49,
-                    },
-                }]
+        public tryGeocodeImmediate(query: string, category?: string): powerbi.IGeocodeCoordinate {
+            if (3 === this.callNumber++ % 5)
+                return null;
+            var resultIndex = this.callNumber % this.resultList.length;
+            return this.resultList[resultIndex];
+        }
+
+        private makeGeocodeBoundary(): powerbi.IGeocodeBoundaryCoordinate {
+            // this is colorado
+            return {
+                latitude: 38.998542785645,
+                longitude: -105.54781341553,
+                locations: [
+                    {
+                        nativeBing: "80s-rx-z-K8zo6-6sJ4i2k81wcln3wwopE6_i5qOr8-z1mZuy71-hzc",
+                        geographic: new Float64Array([36.9929, -102.04222, 41.00232, -102.05168, 41.00066, -109.04998, 38.2964, -109.06039, 38.15945, -109.04225, 36.99902, -109.04517, 36.9929, -102.04222]),
+                        absolute: new Float64Array([113534.74600178, 204082.10164961, 113520.96887822, 196565.23845887, 103328.95579378, 196568.44181674, 103313.79513244, 201684.50661498, 103340.21342222, 201938.40086642, 103335.960864, 204070.94208762, 113534.74600178, 204082.10164961]),
+                        absoluteString: "113534.74600177776 204082.10164960928 113520.96887822222 196565.23845886585 103328.95579377777 196568.44181673933 103313.79513244443 201684.5066149847 103340.21342222221 201938.4008664172 103335.96086399998 204070.9420876242 113534.74600177776 204082.10164960928 ",
+                        absoluteBounds: {
+                            left: 103313.79513244,
+                            top: 196565.23845887,
+                            width: 10220.950869333,
+                            height: 7516.8631907434
+                        }
+                    }
+                ]
             };
+        }
+
+        public geocodeBoundary(latitude: number, longitude: number, category: string, levelOfDetail?: number, maxGeoData?: number, options?: powerbi.GeocodeOptions): any {   
+            var result = this.makeGeocodeBoundary();
             var deferred = $.Deferred();
             deferred.resolve(result);
             return deferred;
+        }
+
+        public geocodePoint(latitude: number, longitude: number, options?: powerbi.GeocodeOptions): any {
+            let result = {
+                latitude: latitude,
+                longitude: longitude,
+                addressLine: "10952 109th Ave SE",
+                locality: "Bellevue",
+                adminDistrict: "WA",
+                adminDistrict2: "King Co.",
+                formattedAddress: "10952 109th Ave SE, Bellevue, WA 98004",
+                postalCode: "98004",
+                countryRegionIso2: "US",
+                countryRegion: "United States"
+            };
+            let deferred = $.Deferred();
+            deferred.resolve(result);
+            return deferred;
+        }
+
+        public tryGeocodeBoundaryImmediate(latitude: number, longitude: number, category: string, levelOfDetail?: number, maxGeoData?: number): powerbi.IGeocodeBoundaryCoordinate {
+            if (2 === this.callNumber++ % 5)
+                return null;
+            return this.makeGeocodeBoundary();
         }
     }
 
@@ -240,7 +304,7 @@ module powerbitests.mocks {
 
         public tryLocationToPixel(location) {
             var result;
-            if (location.length) {
+            if (location.length) {    
                 // It's an array of locations; iterate through the array
                 result = [];
                 for (var i = 0, ilen = location.length; i < ilen; i++) {
@@ -257,6 +321,7 @@ module powerbitests.mocks {
         private tryLocationToPixelSingle(location: powerbi.IGeocodeCoordinate) {
             var centerX = this.centerX;
             var centerY = this.centerY;
+            
             // Use a really dumb projection with no sort of zooming/panning
             return { x: centerX * (location.longitude / 180), y: centerY * (location.latitude / 90) };
         }
@@ -269,6 +334,10 @@ module powerbitests.mocks {
     // Mocks for Microsoft's Bing Maps API; implements select methods in the interface for test purposes
     // Declared separately from Microsoft.Maps to avoid collision with the declaration in Microsoft.Maps.d.ts
     export module MockMaps {
+        export module Globals {
+            export let roadUriFormat = "";
+        }
+
         export function loadModule(moduleKey: string, options?: { callback: () => void; }): void {
             if (options && options.callback)
                 options.callback();
@@ -414,4 +483,94 @@ module powerbitests.mocks {
             return selections;
         }
     }
+
+    export class MockSelectionHandler implements powerbi.visuals.ISelectionHandler {
+        public handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void { }
+        public handleContextMenu(dataPoint: SelectableDataPoint, position: powerbi.visuals.IPoint): void { }
+        public handleClearSelection(): void { }
+        public toggleSelectionModeInversion(): boolean { return true; }
+        public persistSelectionFilter(filterPropertyIdentifier: powerbi.DataViewObjectPropertyIdentifier): void { }
+        public persistSelfFilter(filterPropertyIdentifier: powerbi.DataViewObjectPropertyIdentifier, selfFilter: SemanticFilter): void { }
+    }
+
+    export class FilterAnalyzerMock implements powerbi.AnalyzedFilter {
+        public filter: SemanticFilter;
+        public defaultValue: powerbi.DefaultValueDefinition;
+        public isNotFilter: boolean;
+        public selectedIdentities: powerbi.DataViewScopeIdentity[];
+
+        private fieldSQExprs: SQExpr[];
+        private container: powerbi.data.FilterValueScopeIdsContainer;
+        public constructor(
+            filter: SemanticFilter,
+            fieldSQExprs: SQExpr[],
+            defaultValue?: powerbi.DefaultValueDefinition,
+            selectedIdentities?: powerbi.DataViewScopeIdentity[]) {
+            this.filter = filter;
+            this.fieldSQExprs = fieldSQExprs;
+            
+            if (this.filter
+                && !SemanticFilter.isDefaultFilter(this.filter)
+                && !SemanticFilter.isAnyFilter(this.filter)) {
+                this.container = powerbi.data.SQExprConverter.asScopeIdsContainer(this.filter, this.fieldSQExprs);
+            }
+            else {
+                this.container = { isNot: false, scopeIds: [] };
+            }
+
+            this.isNotFilter = this.container && this.container.isNot;
+            this.selectedIdentities = selectedIdentities || (this.container && this.container.scopeIds);
+
+            this.defaultValue = defaultValue;
+        }
+    }
+
+    export function createMockTelemetryService(): ITelemetryService {
+        return new MockTelemetryService();
+    }
+
+    class MockTelemetryService implements ITelemetryService {
+
+        constructor() { }
+
+        public suspend(): void { }
+
+        public resume(): void { }
+
+        public flush(): void { }
+
+        /** Log telemetry event **/
+        logEvent(eventFactory: ITelemetryEventFactory): ITelemetryEvent;
+        logEvent<T>(eventFactory: ITelemetryEventFactory1<T>, arg: T): ITelemetryEvent;
+        logEvent<T1, T2>(eventFactory: ITelemetryEventFactory2<T1, T2>, arg1: T1, arg2: T2): ITelemetryEvent;
+        logEvent<T1, T2, T3>(eventFactory: ITelemetryEventFactory3<T1, T2, T3>, arg1: T1, arg2: T2, arg3: T3): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4>(eventFactory: ITelemetryEventFactory4<T1, T2, T3, T4>, arg1: T1, arg2: T2, arg3: T3, arg4: T4): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4, T5>(eventFactory: ITelemetryEventFactory5<T1, T2, T3, T4, T5>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4, T5, T6>(eventFactory: ITelemetryEventFactory6<T1, T2, T3, T4, T5, T6>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4, T5, T6, T7>(eventFactory: ITelemetryEventFactory7<T1, T2, T3, T4, T5, T6, T7>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4, T5, T6, T7, T8>(eventFactory: ITelemetryEventFactory8<T1, T2, T3, T4, T5, T6, T7, T8>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7, arg8: T8): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4, T5, T6, T7, T8, T9>(eventFactory: ITelemetryEventFactory9<T1, T2, T3, T4, T5, T6, T7, T8, T9>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7, arg8: T8, arg9: T9): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(eventFactory: ITelemetryEventFactory10<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7, arg8: T8, arg9: T9, arg10: T10): ITelemetryEvent;
+        logEvent<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(eventFactory: ITelemetryEventFactory11<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7, arg8: T8, arg9: T9, arg10: T10, arg11: T11): ITelemetryEvent;
+        public logEvent(eventFactory: Function, ...args: any[]): ITelemetryEvent {
+            return;
+        }
+
+        /** Log telemetry event **/
+        /** Starts recording a timed event **/
+        startEvent(eventFactory: ITelemetryEventFactory): IDeferredTelemetryEvent;
+        startEvent<T>(eventFactory: ITelemetryEventFactory1<T>, arg: T): IDeferredTelemetryEvent;
+        startEvent<T1, T2>(eventFactory: ITelemetryEventFactory2<T1, T2>, arg1: T1, arg2, T2): IDeferredTelemetryEvent;
+        startEvent<T1, T2, T3>(eventFactory: ITelemetryEventFactory3<T1, T2, T3>, arg1: T1, arg2: T2, arg3: T3): IDeferredTelemetryEvent;
+        startEvent<T1, T2, T3, T4>(eventFactory: ITelemetryEventFactory4<T1, T2, T3, T4>, arg1: T1, arg2: T2, arg3: T3, arg4: T4): IDeferredTelemetryEvent;
+        startEvent<T1, T2, T3, T4, T5>(eventFactory: ITelemetryEventFactory5<T1, T2, T3, T4, T5>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5): IDeferredTelemetryEvent;
+        startEvent<T1, T2, T3, T4, T5, T6>(eventFactory: ITelemetryEventFactory6<T1, T2, T3, T4, T5, T6>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6): IDeferredTelemetryEvent;
+        startEvent<T1, T2, T3, T4, T5, T6, T7>(eventFactory: ITelemetryEventFactory7<T1, T2, T3, T4, T5, T6, T7>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7): IDeferredTelemetryEvent;
+        startEvent<T1, T2, T3, T4, T5, T6, T7, T8>(eventFactory: ITelemetryEventFactory8<T1, T2, T3, T4, T5, T6, T7, T8>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7, arg8: T8): IDeferredTelemetryEvent;
+        startEvent<T1, T2, T3, T4, T5, T6, T7, T8, T9>(eventFactory: ITelemetryEventFactory9<T1, T2, T3, T4, T5, T6, T7, T8, T9>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, arg7: T7, arg8: T8, arg9: T9): IDeferredTelemetryEvent;
+        public startEvent(eventFactory: ITelemetryEventFactory): IDeferredTelemetryEvent {
+            return;
+        }
+    }
+
 }

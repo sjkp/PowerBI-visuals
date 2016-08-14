@@ -30,9 +30,7 @@ module powerbi.visuals {
     export const animatedTextObjectDescs: data.DataViewObjectDescriptors = {
         general: {
             properties: {
-                formatString: {
-                    type: { formatting: { formatString: true } },
-                },
+                formatString: StandardObjectProperties.formatString,
             },
         }
     };

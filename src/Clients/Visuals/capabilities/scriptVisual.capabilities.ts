@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
     export var scriptVisualCapabilities: VisualCapabilities = {
         dataRoles: [{
@@ -40,9 +42,7 @@ module powerbi.visuals {
                                 in: 'Values'
                             },
                             dataReductionAlgorithm: {
-                                top: {
-                                    count: 10000
-                                }
+                                top: {}
                             }
                         },
                     },
@@ -56,7 +56,6 @@ module powerbi.visuals {
                         objectName: 'script',
                         propertyName: 'provider'
                     },
-                    imageFormat: 'svg',
                 }
             }
         }],
@@ -72,19 +71,6 @@ module powerbi.visuals {
                     },
                 }
             },
-            lastSavedImage: {
-                properties: {
-                    imageUrl: {
-                        type: { misc: { imageUrl: true } }
-                    },
-                    viewportHeight: {
-                        type: { numeric: true }
-                    },
-                    viewportWidth: {
-                        type: { numeric: true }
-                    }
-                }
-            }
         },
     };
 } 

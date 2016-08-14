@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,11 +27,6 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi {
-
-    export interface IViewport {
-        height: number;
-        width: number;
-    }
 
     export interface VisualElement {
         DataRoles?: DataRole[];

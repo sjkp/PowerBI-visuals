@@ -63,7 +63,7 @@ module powerbitests {
                 let formattersCache = DataLabelUtils.createColumnFormatterCacheManager();
                 let formatter = formattersCache.getOrCreate(null, labelSettings);
                 let formattedValue = formatter.format(value);
-                expect(formattedValue).toBe("20,000");
+                expect(formattedValue).toBe("20000");
             });
 
             it("display units formatting values : K", () => {
@@ -125,7 +125,7 @@ module powerbitests {
                 let formattersCache = DataLabelUtils.createColumnFormatterCacheManager();
                 let formatter = formattersCache.getOrCreate("#0.00", labelSettings);
                 let formattedValue = formatter.format(value);
-                expect(formattedValue).toBe("2,000.00");
+                expect(formattedValue).toBe("2000.00");
             });
 
             it("precision formatting using format string 0.#### $;-0.#### $;0 $", () => {
@@ -144,7 +144,7 @@ module powerbitests {
                 let formattersCache = DataLabelUtils.createColumnFormatterCacheManager();
                 let formatter = formattersCache.getOrCreate("0.0000", labelSettings);
                 let formattedValue = formatter.format(value);
-                expect(formattedValue).toBe("2,000.12");
+                expect(formattedValue).toBe("2000.12");
             });
 
             it("label formatting - multiple formats", () => {
@@ -165,6 +165,34 @@ module powerbitests {
                 formattedValue = formatter2.format(value);
 
                 expect(formattedValue).toBe("$1,545.0");
+            });
+        });
+
+        describe("Test enumerateDataLabels", () => {
+            it("showAll should always be the last property when exists", () => {
+                let labelSettings = DataLabelUtils.getDefaultLineChartLabelSettings();
+                let options: powerbi.visuals.VisualDataLabelsSettingsOptions = {
+                    dataLabelsSettings: labelSettings,
+                    displayUnits: true,
+                    enumeration: new ObjectEnumerationBuilder(),
+                    fontSize: true,
+                    labelDensity: true,
+                    labelStyle: true,
+                    position: true,
+                    positionObject: [],
+                    precision: true,
+                    selector: null,
+                    show: true,
+                    showAll: true,
+                };
+
+                DataLabelUtils.enumerateDataLabels(options);
+                let enumeration = options.enumeration.complete();
+
+                expect(enumeration.instances.length).toBe(1);
+
+                let properties = enumeration.instances[0].properties;
+                expect(_.last(Object.keys(properties))).toBe('showAll');
             });
         });
 
@@ -371,7 +399,7 @@ module powerbitests {
         }
 
         private createVisual() {
-            this.visual = powerbi.visuals.visualPluginFactory.create().getPlugin(this._pluginName).create();
+            this.visual = powerbi.visuals.plugins[this._pluginName].create();
 
             this.visual.init(this.createInitOptions());
         }
@@ -442,8 +470,7 @@ module powerbitests {
             displayUnits: 2,
             position: powerbi.visuals.PointLabelPosition.Above,
             precision: 2,
-            labelColor: "#000000",
-            formatterOptions: {}
+            labelColor: "#000000"
         };
 
         public viewPort = {

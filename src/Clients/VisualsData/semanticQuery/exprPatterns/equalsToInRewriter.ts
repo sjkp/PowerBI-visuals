@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -43,7 +43,7 @@ module powerbi.data {
             }
 
             public visitCompare(expr: SQCompareExpr): SQExpr {
-                if (expr.kind !== QueryComparisonKind.Equal)
+                if (expr.comparison !== QueryComparisonKind.Equal)
                     return this.visitUnsupported(expr);
                 if (!this.isSupported(expr.left) || !this.isSupported(expr.right))
                     return this.visitUnsupported(expr);

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -39,6 +39,7 @@ module powerbi.visuals.samples {
     export class HelloIVisual implements IVisual {
         public static capabilities: VisualCapabilities = {
             dataRoles: [{
+                displayName: 'Values',
                 name: 'Values',
                 kind: VisualDataRoleKind.GroupingOrMeasure
             }],
@@ -88,7 +89,7 @@ module powerbi.visuals.samples {
             var table = dataView.table;
             if (!table) return viewModel;
 
-            viewModel.text = table.rows[0][0];
+            viewModel.text = <string>table.rows[0][0];
             if (dataView.categorical) {
                 viewModel.selector = dataView.categorical.categories[0].identity
                     ? SelectionId.createWithId(dataView.categorical.categories[0].identity[0])

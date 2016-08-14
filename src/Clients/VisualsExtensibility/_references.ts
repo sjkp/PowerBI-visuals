@@ -1,0 +1,17 @@
+/// <reference path="../../../src/Clients/Typedefs/webpack/webpack-env.d.ts"/>
+/// <reference path="../../../src/Clients/Typedefs/common/window.d.ts"/>
+/// <reference path="./typedefs/typedefs.ts"/>
+/// <reference path="../VisualsContracts/_references.ts"/>
+/// <reference path="../VisualsCommon/_references.ts"/>
+/// <reference path="../VisualsData/_references.ts"/>
+/// <reference path="./telemetry/generateGuid.ts"/>
+/// <reference path="./telemetry/events.ts"/>
+/// <reference path="./decorators/VisualPlugin.ts"/>
+/// <reference path="./components/selectionManager.ts"/>
+/// <reference path="./components/selectionIdBuilder.ts"/>
+/// <reference path="./versioning/VisualAdapter.ts"/>
+/// <reference path="./versioning/VisualPluginAdapter.ts"/>
+/// <reference path="./versioning/VisualSafeExecutionWrapper.ts"/>
+/// <reference path="./versioning/versions/legacy.ts"/>
+/// <reference path="./versioning/versions/v1.0.0.ts"/>
+/// <reference path="./versioning/versions/v1.1.0.ts"/>

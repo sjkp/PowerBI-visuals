@@ -133,7 +133,7 @@ declare module noUiSlider {
          * Array for both one-handle and two-handle sliders. It contains the current slider values,
          * with formatting applied.
          */
-        (values: any[], handle: number, unencoded: number): void
+        (values: any[], handle: number, unencoded: number[] | number): void
     }
 
 

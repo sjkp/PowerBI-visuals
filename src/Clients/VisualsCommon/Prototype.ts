@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module powerbi {
     export module Prototype {
@@ -34,7 +34,7 @@ module powerbi {
         export function inherit<T>(obj: T, extension?: (inherited: T) => void): T {
             debug.assertValue(obj, 'obj');
 
-            function wrapCtor() { };
+            function wrapCtor(): void { };
             wrapCtor.prototype = obj;
 
             let inherited = new wrapCtor();

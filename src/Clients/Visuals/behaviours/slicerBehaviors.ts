@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,6 +27,8 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import DOMConstants = jsCommon.DOMConstants;
+    import KeyUtils = jsCommon.KeyUtils;
     import SlicerOrientation = slicerOrientation.Orientation;
 
     export interface SlicerOrientationBehaviorOptions {
@@ -41,10 +43,13 @@ module powerbi.visuals {
         dataPoints: SlicerDataPoint[];
         interactivityService: IInteractivityService;
         settings: SlicerSettings;
+        slicerValueHandler: SlicerValueHandler;
+        searchInput: D3.Selection;
     }
 
     export class SlicerWebBehavior implements IInteractiveBehavior {
         private behavior: IInteractiveBehavior;
+        private static searchInputTimeoutDuration = 500;
 
         public bindEvents(options: SlicerOrientationBehaviorOptions, selectionHandler: ISelectionHandler): void {
             this.behavior = this.createWebBehavior(options);
@@ -55,10 +60,19 @@ module powerbi.visuals {
             this.behavior.renderSelection(hasSelection);
         }
 
-        public static bindSlicerEvents(slicerContainer: D3.Selection, slicers: D3.Selection, slicerClear: D3.Selection, selectionHandler: ISelectionHandler, slicerSettings: SlicerSettings, interactivityService: IInteractivityService): void {
+        public static bindSlicerEvents(
+            behaviorOptions: SlicerBehaviorOptions,
+            slicers: D3.Selection,
+            selectionHandler: ISelectionHandler,
+            slicerSettings: SlicerSettings,
+            interactivityService: IInteractivityService): void {
+
             SlicerWebBehavior.bindSlicerItemSelectionEvent(slicers, selectionHandler, slicerSettings, interactivityService);
-            SlicerWebBehavior.bindSlicerClearEvent(slicerClear, selectionHandler);
-            SlicerWebBehavior.styleSlicerContainer(slicerContainer, interactivityService);
+            SlicerWebBehavior.bindSlicerClearEvent(behaviorOptions.clear, selectionHandler);
+            if (behaviorOptions.searchInput)
+                SlicerWebBehavior.bindSlicerSearchEvent(behaviorOptions.searchInput, selectionHandler, behaviorOptions.slicerValueHandler);
+
+            SlicerWebBehavior.styleSlicerContainer(behaviorOptions.slicerContainer, interactivityService);
         }
 
         public static setSelectionOnSlicerItems(selectableItems: D3.Selection, itemLabel: D3.Selection, hasSelection: boolean, interactivityService: IInteractivityService, slicerSettings: SlicerSettings): void {
@@ -72,28 +86,37 @@ module powerbi.visuals {
                 itemLabel.style('color', slicerSettings.slicerText.color);
             }
             else {
-                SlicerWebBehavior.styleSlicerItems(selectableItems, hasSelection);
+                SlicerWebBehavior.styleSlicerItems(selectableItems, hasSelection, interactivityService.isSelectionModeInverted());
             }
         }
 
-        public static styleSlicerItems(slicerItems: D3.Selection, hasSelection: boolean): void {
+        public static styleSlicerItems(slicerItems: D3.Selection, hasSelection: boolean, isSelectionInverted: boolean): void {
             slicerItems.each(function (d: SlicerDataPoint) {
                 let slicerItem: HTMLElement = this;
-
-                if (d.isSelectAllDataPoint && hasSelection)
-                    slicerItem.classList.add('partiallySelected');
-                else
-                    slicerItem.classList.remove('partiallySelected');
-
-                if (d.selected)
+                let shouldCheck: boolean = false;
+                if (d.isSelectAllDataPoint) {
+                    if (hasSelection) {
+                        slicerItem.classList.add('partiallySelected');
+                        shouldCheck = false;
+                    }
+                    else {
+                        slicerItem.classList.remove('partiallySelected');
+                        shouldCheck = isSelectionInverted;
+                    }
+                }
+                else {
+                    shouldCheck = jsCommon.LogicExtensions.XOR(d.selected, isSelectionInverted);
+                }
+                
+                if (shouldCheck)
                     slicerItem.classList.add('selected');
                 else
                     slicerItem.classList.remove('selected');
-                 
+
                 // Set input selected state to match selection
                 let input = slicerItem.getElementsByTagName('input')[0];
                 if (input)
-                    input.checked = d.selected;
+                    input.checked = shouldCheck;
             });
         }
 
@@ -112,15 +135,55 @@ module powerbi.visuals {
 
         private static bindSlicerClearEvent(slicerClear: D3.Selection, selectionHandler: ISelectionHandler): void {
             if (slicerClear) {
-                slicerClear.on("click", (d: SelectableDataPoint) => {
+                slicerClear.on("click", () => {
                     selectionHandler.handleClearSelection();
                     selectionHandler.persistSelectionFilter(slicerProps.filterPropertyIdentifier);
                 });
             }
         }
+        
+        private static bindSlicerSearchEvent(slicerSearch: D3.Selection, selectionHandler: ISelectionHandler, slicerValueHandler: SlicerValueHandler): void {
+            if (slicerSearch.empty())
+                return;
+
+            slicerSearch.on(DOMConstants.keyDownEventName, () => {
+                if (d3.event.ctrlKey && KeyUtils.isCtrlDefaultKey(d3.event.keyCode))
+                    d3.event.stopPropagation();
+                else if (KeyUtils.isArrowKey(d3.event.keyCode) || d3.event.keyCode === DOMConstants.deleteKeyCode)
+                    d3.event.stopPropagation();
+                else if (d3.event.keyCode === DOMConstants.escKeyCode) {
+
+                    // Clear search when ESC key is pressed
+                    selectionHandler.persistSelfFilter(slicerProps.selfFilterPropertyIdentifier, null);
+                    d3.event.stopPropagation();
+                }
+                else if (d3.event.keyCode === DOMConstants.enterKeyCode) {
+                    SlicerWebBehavior.startSearch(slicerSearch, selectionHandler, slicerValueHandler);
+                    d3.event.stopPropagation();
+                }
+            }).on(DOMConstants.keyUpEventName, _.debounce(() => {
+                SlicerWebBehavior.startSearch(slicerSearch, selectionHandler, slicerValueHandler);
+            }, SlicerWebBehavior.searchInputTimeoutDuration));
+        }
+
+        private static startSearch(slicerSearch: D3.Selection, selectionHandler: ISelectionHandler, slicerValueHandler: SlicerValueHandler): void {
+            let element: HTMLInputElement = <HTMLInputElement>slicerSearch.node();
+            let searchKey: string = element && element.value;
+            searchKey = _.trim(searchKey);
+            // When searchKey is cleared.
+            if (_.isEmpty(searchKey)) {
+                selectionHandler.persistSelfFilter(slicerProps.selfFilterPropertyIdentifier, null);
+                return;
+            }
+
+            let updatedFilter = slicerValueHandler.getUpdatedSelfFilter(searchKey);
+            if (updatedFilter)
+                selectionHandler.persistSelfFilter(slicerProps.selfFilterPropertyIdentifier, updatedFilter);
+        }
 
         private static styleSlicerContainer(slicerContainer: D3.Selection, interactivityService: IInteractivityService) {
-            let hasSelection = interactivityService.hasSelection();
+            let hasSelection = (interactivityService.hasSelection() && interactivityService.isDefaultValueEnabled() === undefined)
+                || interactivityService.isDefaultValueEnabled() === false;
             slicerContainer.classed('hasSelection', hasSelection);
         }
 

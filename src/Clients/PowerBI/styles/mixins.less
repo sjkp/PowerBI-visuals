@@ -40,9 +40,9 @@
 
 .unselectable {
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    -o-user-select: none;
     user-select: none;
     cursor: default;
 }
@@ -69,8 +69,6 @@
     width: 30px;
     height: 30px;
     cursor: pointer;
-    -moz-transition: opacity 0.2s ease-in;
-    -o-transition: opacity 0.2s ease-in;
     -webkit-transition: opacity 0.2s ease-in;
     transition: opacity 0.2s ease-in;
     -webkit-transition-delay: 0s; /* Safari */
@@ -116,14 +114,13 @@
     opacity: 0;
 }
 
+.no-border-radius {
+    border-radius: 0;
+}
+
 .placeholderColor(@color: @neutralSecondaryColor) {
     &::-webkit-input-placeholder { /* WebKit browsers */
         color: @color;
-    }
-
-    &:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
-        color: @color;
-        opacity: 1;
     }
 
     &::-moz-placeholder { /* Mozilla Firefox 19+ */

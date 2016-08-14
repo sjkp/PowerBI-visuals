@@ -2,7 +2,7 @@
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,21 +11,21 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
 
 @import "sprites.less";
-@import "../../StyleLibrary/less/powervisuals-glyphs.less";
+@import "../../StyleLibrary/exports.less";
 @import "../../PowerBI/styles/colorPalette.less";
 @import "../../PowerBI/styles/fonts.less";
 @import "../../PowerBI/styles/mixins.less";
@@ -39,235 +39,383 @@
 
 @defaultShapeRendering: crispEdges;
 
-.slicerHeader {
-    margin: 0 0 0 8px;
-    box-sizing: border-box;
-
-    .headerText {
-        color: @neutralPrimaryColor;
-        font-size: 14px;
-        text-overflow: ellipsis;
-        display: block;
-        overflow: hidden;
-        white-space: nowrap;
-        width: auto;
-        float: none;
+.visual {
+    a:link {
+        color: @defaultLinkColor;
+        text-decoration: underline;
     }
 
-    .clear {
-        .sprite(@slicer-reset);
-        margin: 4px 2px;
-        float: right;
-        cursor: pointer;
-        display: block;
-        visibility: hidden;
+    a:visited {
+        color: @defaultVisitedLinkColor;
     }
-}
 
-.slicerContainer, .horizontalSlicerContainer {
-    &.hasSelection, &:hover {
-        .clear {
-            visibility: visible;
-        }   
+    a:active {
+        color: @themePrimaryColor;
     }
-}
 
-.slicerContainer {
+    .powervisuals-glyph {
+        font-size: inherit;
 
-    .slicerItemContainer {
-        margin: 2px 0 0 8px;
+        &.big-kpi {
+            font-size: 48px;
+        }
+    }
+
+    &.disable-events {
+        pointer-events: none;
+    }
+
+    .slicerHeader {
+        margin: 0 0 0 8px;
         box-sizing: border-box;
-        white-space: nowrap;
-        cursor: pointer;
+        .titleHeader {
+            margin: 0 8px 0 0;
 
-        * {
-            display: table-cell;
-            vertical-align: bottom;
-        }
-
-        img {
-            max-width:100px;
-            width:100%;
-        }
-
-        &:hover {
-            .slicerText {
-                color: @neutralDarkColor !important;
+            .headerText {
+                color: @neutralPrimaryColor;
+                font-size: 14px;
+                text-overflow: ellipsis;
+                display: block;
+                overflow: hidden;
+                white-space: nowrap;
+                width: auto;
+                margin:2px 0;
             }
 
-            .slicerCheckbox {
-                span.checkbox {
-                    border-color: @neutralSecondaryColor;
-                }
+            .clear {
+                .sprite(@slicer-reset);
+                margin: 4px 8px 4px 2px;
+                float: right;
+                cursor: pointer;
+                display: block;
+                visibility: hidden;
+            }
+        }
 
-                &.selected span.checkbox {
-                    border-color: @neutralDarkColor;
-                }
+        .searchHeader {
+             overflow: hidden;
 
-                &.partiallySelected span.checkbox::before {
-                    background-color: @neutralSecondaryColor;
+             &.collapsed {
+                display: none;
+            }
+
+            &.show {
+                display: -webkit-box; // IOS 6-, Safari
+                display: flex; // Opera, Firefox
+                justify-content: space-between;
+                -webkit-align-items: center;
+                width: ~"calc(100% - 10px)";
+                border: 1px solid @neutralDarkColor;
+                height: 20px;
+            }
+
+            .search {
+                cursor: pointer;
+                margin: 0 4px;
+                flex: 0 0 auto;
+                -webkit-flex: 0 0 auto;
+                color: @neutralDarkColor;
+            }
+
+            input {
+                color: @neutralPrimaryColor;
+                cursor: auto;
+                align-self: center;
+                flex: 1 1 0px;
+                -webkit-flex: 1 1 0px;
+                border-style:none;
+                padding: 0; // Override parent style
+            }
+        }
+    }
+
+    .slicerContainer, .horizontalSlicerContainer {
+        &.hasSelection {
+            &:hover {
+                .clear {
+                    visibility: visible;
                 }
             }
         }
     }
 
-    .slicerCheckbox {
+    .slicerContainer {
         cursor: pointer;
-        vertical-align: middle;
+        font-size: 14px;
 
-        input {
-            display: none;
+        ul {
+            padding: 0;
+            margin: 0;
         }
 
-        span {
+        .slicerItemContainer {
+            margin: 0;
+            padding: 2px 0 0 0;
+            box-sizing: border-box;
+            white-space: nowrap;
+            cursor: pointer;
+            display: -webkit-box !important; // IOS 6-, Safari
+            display: flex !important; // Opera, Firefox
+            justify-content: space-between;
+            overflow: hidden;
+            -webkit-align-items: center;
+            width: 100%;
+
+            * {
+                display: table-cell;
+                vertical-align: bottom;
+            }
+
+            img {
+                max-width: 100px;
+                width: 100%;
+            }
+
+            &:hover {
+                .slicerCheckbox {
+                    span.checkbox {
+                        border-color: @neutralSecondaryColor;
+                    }
+
+                    &.selected span.checkbox {
+                        border-color: @neutralDarkColor;
+                    }
+
+                    &.partiallySelected span.checkbox::before {
+                        background-color: @neutralSecondaryColor;
+                    }
+                }
+            }
+        }
+
+        .slicerCheckbox {
+            cursor: pointer;
+            vertical-align: middle;
+            align-self: center;
+            margin: 0 8px;
+            flex: 0 0 auto;
+            -webkit-flex: 0 0 auto;
             display: inline-block;
-            width: 9px;
-            height: 9px;
-            border: 2px solid @neutralTertiaryAltColor;
-            box-shadow: inset 0px 0px 1px @neutralTertiaryAltColor;
+
+            input {
+                display: none;
+            }
+
+            span {
+                display: inline-block;
+                width: 9px;
+                height: 9px;
+                border: 2px solid @neutralTertiaryAltColor;
+                box-shadow: inset 0px 0px 1px @neutralTertiaryAltColor;
+            }
+
+            &.selected {
+                border: none !important;
+
+                span.checkbox {
+                    border-color: @neutralDarkColor;
+                    background-color: @neutralDarkColor;
+                    box-shadow: none;
+                }
+            }
+
+            &.partiallySelected {
+                span.checkbox {
+                    background-color: transparent;
+                    border-color: @neutralTertiaryAltColor;
+                }
+
+                span.checkbox::before {
+                    content: '';
+                    height: 3px;
+                    width: 3px;
+                    position: absolute;
+                    display: inline-block;
+                    margin: 3px 0 0px 3px;
+                    background-color: @neutralTertiaryAltColor;
+                    box-shadow: 0px 0px 2px @neutralTertiaryAltColor;
+                    border: none;
+                }
+            }
         }
 
-        &.selected {
-            border: none !important;
-
-            & + .slicerText {
-                color: @neutralDarkColor !important;
-            }
-
-            span.checkbox {
-                border-color: @neutralDarkColor;
-                background-color: @neutralDarkColor;
-                box-shadow: none;
-            }
+        .slicerText {
+            align-self: center;
+            flex: 1 1 0px;
+            -webkit-flex: 1 1 0px;
+            display: inline-block;
+            .trimmedTextWithEllipsis
         }
 
-        &.partiallySelected {
-            span.checkbox {
-                background-color: transparent;
-                border-color: @neutralTertiaryAltColor;
-            }
+        .slicerCountText {
+            align-self: center;
+            flex: 0 0 auto;
+            -webkit-flex: 0 0 auto;
+            display: inline-block;
+        }
 
+        &.isMultiSelectEnabled .slicerCheckbox.selected:not(.partiallySelected) {
+            /* TODO: Use a checkmark glyph rather than drawing a custom one using transforms and offsets. */
             span.checkbox::before {
                 content: '';
-                height: 3px;
+                height: 8px;
                 width: 3px;
                 position: absolute;
                 display: inline-block;
-                margin: 3px 0 0px 3px;
-                background-color: @neutralTertiaryAltColor;
-                box-shadow: 0px 0px 2px @neutralTertiaryAltColor;
-                border: none;
+                margin: -2px 0 0 3px;
+                border-right: 2px solid @whiteColor;
+                border-bottom: 2px solid @whiteColor;
+                transform: rotate(45deg);
             }
         }
     }
 
-    .slicerText {
-        cursor: pointer;
-        font-size: 14px;
-    }
+    .horizontalSlicerContainer {
+        &.canScrollRight {
+            .navigationArrow.right {
+                visibility: visible;
+            }
+        }
 
-    &.isMultiSelectEnabled .slicerCheckbox.selected:not(.partiallySelected) {
-        /* TODO: Use a checkmark glyph rather than drawing a custom one using transforms and offsets. */
-        span.checkbox::before {
-            content: '';
-            height: 8px;
-            width: 3px;
-            position: absolute;
-            display: inline-block;
-            margin: -2px 0 0 3px;
-            border-right: 2px solid @whiteColor;
-            border-bottom: 2px solid @whiteColor;
-            transform: rotate(45deg);
+        &.canScrollLeft {
+            .navigationArrow.left {
+                visibility: visible;
+            }
+        }
+
+        .navigationArrow {
+            visibility: hidden;
+            background-color: white;
+
+            &.right {
+                .sprite(@horizontal-slicer-right-arrow);
+                margin-left: 5px;
+            }
+
+            &.left {
+                .sprite(@horizontal-slicer-left-arrow);
+                margin-right: 5px;
+            }
+        }
+
+        .flexDisplay {
+            display: -webkit-flex;
+            display: flex;
+        }
+
+        .slicerBody {
+            align-items: center;
+            justify-content: space-between;
+            flex-direction: row;
+        }
+
+        .slicerItemsContainer {
+            vertical-align: top;
+            width: 100%;
+            height: 100%;
+            -webkit-flex: 1; /* Chrome */
+            flex: 1;
+        }
+
+        .slicerText {
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            -webkit-justify-content: center;
+            justify-content: center;
+            -webkit-align-items: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding: 4px 0;
+
+            &.selected, &.partiallySelected {
+                color: @whiteColor !important;
+            }
+
+            &:hover {
+                background-color: @neutralLightColor !important;
+            }
+
+            &.selected {
+                background-color: rgba(51,51,51,1.0) !important;
+            }
+
+            &.partiallySelected {
+                background-color: rgba(51,51,51,0.6) !important;
+            }
+
+            &.selected:hover, &.partiallySelected:hover {
+                background-color: @neutralTertiaryAltColor !important;
+            }
+
+            > span {
+                text-align: center;
+            }
+        }
+
+        .slicerImage {
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            -webkit-justify-content: center;
+            justify-content: center;
+            -webkit-align-items: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding: 4px 0;
         }
     }
-}
+    
+    /* Adding custom styles to the listView jQuery Scrollbar. */
+    .scroll-wrapper {
+        width: 100%;
+        height: 100%;
+        display: block;
 
-.horizontalSlicerContainer {
-
-    .navigationArrow {
-        visibility: hidden;
-        background-color: white;
-
-        &.show {
-            visibility: visible;
+        .scroll-content {
+            height: inherit;
         }
 
-        &.right {
-            .sprite(@horizontal-slicer-right-arrow);
-        }
+        .scroll-element {
+            &.scroll-x {
+                height: 8px !important;
+            }
 
-        &.left {
-            .sprite(@horizontal-slicer-left-arrow);
-        }
-    }
+            &.scroll-y {
+                width: 8px !important;
+            }
 
-    .flexDisplay {
-        display: -ms-flexbox;
-        display: -moz-box;
-        display: flex;
-        -ms-flex-direction: row;
-        -moz-box-orient: horizontal;
-        flex-direction: row;
-    }
+            .scroll-element_track {
+                background-color: transparent !important;
+            }
 
-    .slicerBody {
-        align-items: center;
-        -ms-flex-align: center;
-    }
+            .scroll-element_outer, .scroll-bar {
+                .no-border-radius;
+            }
 
-    .slicerItemsContainer {
-        vertical-align: top;
-    }
-
-    .slicerText {
-        display: -ms-flexbox;
-        display: -webkit-flex;
-        display: flex;
-        -webkit-flex-direction: column;
-        -ms-flex-direction: column;
-        flex-direction: column;
-        -webkit-justify-content: center;
-        -ms-flex-pack: center;
-        justify-content: center;
-        -webkit-align-items: center;
-        -ms-flex-align: center;
-        align-items: center;
-
-        &.selected, &.partiallySelected {
-            color: @whiteColor !important;
-        }
-
-        &:hover {
-            background-color: @neutralLightColor !important;
-        }
-
-        &.selected {
-            background-color: rgba(51,51,51,1.0) !important;
-        }
-
-        &.partiallySelected {
-            background-color: rgba(51,51,51,0.6) !important;
-        }
-
-        &.selected:hover, &.partiallySelected:hover {
-            background-color: @neutralTertiaryAltColor !important;
-        }
-
-        > span {
-            text-align: center;
+            .scroll-bar {
+                background-color: @neutralTertiaryAltColor !important;
+                opacity: 0;
+            }
         }
     }
-}
+    
+    /* Only show the scrollbars on hover or when being dragged. */
+    .scroll-wrapper:hover .scroll-element .scroll-bar,
+    .scroll-wrapper .scroll-element.scroll-draggable .scroll-bar {
+        opacity: 1;
+    }
 
-.overflowingText {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    display: block;
-}
+    .overflowingText {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        display: block;
+    }
 
-.visual svg {
-    &.legend {
+    .legend {
         .navArrow {
             fill: @neutralPrimaryColor;
             cursor: pointer;
@@ -277,13 +425,14 @@
         }
     }
 
-    .showLinesOnAxis {
-        path {
-            display: none;
-        }
+    .cartesianChart {
+        .showLinesOnAxis {
+            path.domain {
+                display: none;
+                fill: none;
+            }
 
-        .tick {
-            line {
+            .tick line {
                 stroke: @chartAxisGridLineColor;
                 stroke-width: 1px;
                 padding-left: 10px;
@@ -293,859 +442,615 @@
                 }
             }
         }
-    }
 
-    .hideLinesOnAxis {
-        .tick {
-            line {
+        .hideLinesOnAxis {
+            .tick line {
+                display: none;
+            }
+
+            path.domain {
                 display: none;
             }
         }
 
-        path {
+        .x-ref-line {
+            stroke-width: 3px;
+            stroke-opacity: 0.5;
+        }
+
+        .y1-ref-line {
+            stroke-width: 3px;
+            stroke-opacity: 0.5;
+        }
+
+        .axisGraphicsContext {
+            font-family: @regularFontFamily;
+            font-size: 11px;
+
+            text {
+                fill: @neutralSecondaryAltColor;
+            }
+
+            .axis line {
+                fill: none;
+                //stroke: @neutralSecondaryAltColor;
+                shape-rendering: @defaultShapeRendering;
+            }
+        }
+
+        .brush {
+            .background {
+                fill-opacity: 0.5;
+                fill: @neutralLightColor;
+                visibility: visible !important;
+                cursor: default !important;
+            }
+
+            .extent {
+                fill-opacity: 0.2;
+                cursor: default !important;
+            }
+        }
+
+        .trend-line {
+            stroke-width: 2px;
+            pointer-events: none;
+        }
+
+        .forecast-line {
             stroke-width: 1px;
         }
-
-        .domain {
-            display: none;
-        }
-    }
-}
-
-/* Animated Text (and card) Styles */
-.animatedNumber .mainText, .card .mainText {
-    fill: @neutralPrimaryColor;
-    font-family: @lightSecondaryFontFamily;
-}
-
-/* Column chart styles */
-.columnChart {
-    .column {
-        fill: @chartTemplateColor;
     }
 
-    .column:hover {
-        fill: @chartTemplateColorDarker;
+    /* Animated Text (and card) Styles */
+    .animatedNumber .mainText, .card .mainText {
+        fill: @neutralPrimaryColor;
+        // Per Design, this is the light font instead of the regular font (#7966810)
+        font-family: @lightSecondaryFontFamily;
     }
 
-    .axisGraphicsContext {
-        font-family: @regularFontFamily;
-        font-size: 11px;
-
-        text {
-            fill: @neutralSecondaryAltColor;
-        }
-
-        .axis path, .axis line {
-            fill: none;
-            stroke: @neutralSecondaryAltColor;
-            shape-rendering: @defaultShapeRendering;
-        }
-    }
-
-    .interactive-hover-line {
-        stroke: @interactiveHoverLineColor;
-        stroke-width: 3px;
-        opacity: 1;
-    }
-
-    .drag-handle {
-        fill: #666666;
-        opacity: 1;
-    }
-}
-
-.dataDotChart {
-
-    .dataDotChartMainGraphicsContext {
-        font-family: @regularFontFamily;
-        font-size: 11px;
-
-        .dot {
-            fill: @chartTemplateColor;
-        }
-
-        .dot:hover {
-            fill: @chartTemplateColorDarker;
-        }
-
-        .dot.null-value {
-            display: none;
-        }
-
-        .label {
-            fill: white;
-            text-anchor: middle;
-        }
-
-        .label.null-value {
-            display: none;
-        }
-
-        .label.overflowed {
-            display: none;
-        }
-    }
-
-    .axisGraphicsContext {
-        font-family: @regularFontFamily;
-        font-size: 11px;
-
-        text {
-            fill: @neutralSecondaryAltColor;
-        }
-
-        .axis path, .axis line {
-            fill: none;
-            stroke: @neutralSecondaryAltColor;
-            shape-rendering: @defaultShapeRendering;
-        }
-    }
-}
-
-.waterfallChart {
-    .column {
-        fill: @chartTemplateColor;
-    }
-
-    .column:hover {
-        fill: @chartTemplateColorDarker;
-    }
-
-    .axisGraphicsContext {
-        font-family: @regularFontFamily;
-        font-size: 11px;
-
-        text {
-            fill: @neutralSecondaryAltColor;
-        }
-
-        .axis path, .axis line {
-            fill: none;
-            stroke: @neutralSecondaryAltColor;
-            shape-rendering: @defaultShapeRendering;
-        }
-    }
-
-    .waterfall-connector {
-        stroke: @chartConnectorColor;
-        stroke-width: 1px;
-        shape-rendering: @defaultShapeRendering;
-    }
-}
-
-.lineChart {
-    .mainGraphicsContext {
-        path {
-            fill: none;
+    .columnChart {
+        .interactive-hover-line {
+            stroke: @interactiveHoverLineColor;
             stroke-width: 3px;
-            stroke-linecap: round;
+            opacity: 1;
         }
 
-        .catBackground path { // Replaced by .line-shadow; kept around until the deprecated render method can be removed.
-            stroke-width: 6px;
+        .drag-handle {
+            fill: #666666;
+            opacity: 1;
+        }
+    }
+
+    .dataDotChart {
+        .dataDotChartMainGraphicsContext {
+            font-family: @regularFontFamily;
+            font-size: 11px;
+
+            .dot.null-value {
+                display: none;
+            }
+
+            .label {
+                fill: white;
+                text-anchor: middle;
+            }
+
+            .label.null-value {
+                display: none;
+            }
+
+            .label.overflowed {
+                display: none;
+            }
+        }
+    }
+
+    .waterfallChart {
+        .waterfall-connector {
+            stroke: @chartConnectorColor;
+            stroke-width: 1px;
+            shape-rendering: @defaultShapeRendering;
+        }
+    }
+
+    .lineChart {
+        .mainGraphicsContext {
+            path {
+                fill: none;
+                stroke-width: 2px;
+                stroke-linecap: round;
+            }
+
+            .catBackground path { // Replaced by .line-shadow; kept around until the deprecated render method can be removed.
+                stroke-width: 6px;
+                stroke: white;
+            }
+
+            .interactivity-line {
+                stroke: @whiteColor;
+                stroke-opacity: 0;
+            }
+        }
+
+        .hover-line {
+            stroke: @interactiveHoverLineColor;
+            pointer-events: none;
+
+            .interactive {
+                stroke-width: 3px;
+                opacity: 1;
+            }
+
+            .selection-circle {
+                stroke: @chartAxisGridLineColor;
+            }
+
+            .circle-item {
+                stroke: none;
+                pointer-events: none;
+            }
+        }
+
+        .drag-handle {
+            fill: #666666;
+            opacity: 1;
+        }
+    }
+
+    .realTimeLineChart {
+        .mainGraphicsSVG {
+            position: absolute;
+            overflow: hidden;
+        }
+    }
+
+    .funnelChart {
+        line {
+            shape-rendering: @defaultShapeRendering;
+        }
+
+        .percentBars {
+            line {
+                fill: none;
+                stroke: @neutralTertiaryColor;
+                stroke-width: 1px;
+            }
+
+            text {
+                text-anchor: middle;
+                font-family: @regularSecondaryFontFamily;
+            }
+        }
+
+        .axis {
+            font-family: @regularFontFamily;
+            font-size: 11px;
+
+            path {
+                fill: none;
+            }
+
+            .tick text {
+                fill: @neutralSecondaryAltColor;
+            }
+        }
+    }
+
+    .donutChart {
+        overflow: visible !important;
+
+        path.slice {
+            stroke-width: 1px;
             stroke: white;
         }
 
-        .interactivity-line {
-            stroke: @whiteColor;
-            stroke-opacity: 0;
-            stroke-width: 10px;
-        }
-    }
-
-    .hover-line {
-        stroke: @interactiveHoverLineColor;
-        pointer-events: none;
-
-        .interactive {
-            stroke-width: 3px;
-            opacity: 1;
-        }
-
-        .selection-circle {
-            stroke: @chartAxisGridLineColor;
-        }
-
-        .circle-item {
-            stroke: none;
-            pointer-events: none;
-        }
-    }
-
-    .drag-handle {
-        fill: #666666;
-        opacity: 1;
-    }
-
-    .axisGraphicsContext {
-        font-family: @regularFontFamily;
-        font-size: 11px;
-
-        text {
-            fill: @neutralSecondaryAltColor;
-        }
-
-        .axis path, .axis line {
-            fill: none;
-            stroke: @neutralSecondaryAltColor;
-            shape-rendering: @defaultShapeRendering;
-        }
-
-        .line {
-            fill: none;
-            stroke: steelblue;
-            stroke-width: 2px;
-        }
-    }
-}
-
-.funnelChart {
-    line {
-        shape-rendering: @defaultShapeRendering;
-    }
-
-    .percentBars {
-        line {
-            fill: none;
-            stroke: @neutralTertiaryColor;
+        path.slice-highlight {
             stroke-width: 1px;
+            stroke: white;
         }
 
-        text {
-            text-anchor: middle;
-            font-family: @regularSecondaryFontFamily;
-        }
-    }
-
-    .axis {
-        font-family: @regularFontFamily;
-        font-size: 11px;
-
-        path {
-            fill: none;
+        .labels {
+            text {
+                font-family: @regularFontFamily;
+                font-size: 11px;
+                fill: @neutralSecondaryAltColor;
+            }
         }
 
-        .tick text {
-            fill: @neutralSecondaryAltColor;
-        }
-    }
-}
-
-.donutChart {
-    overflow: visible !important;
-
-    path.slice {
-        stroke-width: 1px;
-        stroke: white;
-    }
-
-    path.slice-highlight {
-        stroke-width: 1px;
-        stroke: white;
-    }
-
-    .labels {
-        text {
-            font-family: @regularFontFamily;
-            font-size: 11px;
-            fill: @neutralSecondaryAltColor;
-        }
-    }
-
-    polyline {
-        stroke: @neutralSecondaryAltColor;
-        stroke-width: 1px;
-        fill: rgba(0, 0, 0, 0.00);
-    }
-
-    .donutLegendArrow {
-        fill: #666666;
-    }
-}
-
-.donutLegend {
-    .legend-item {
-        .category {
-            font-family: @regularFontFamily;
-            color: @neutralSecondaryColor;
-        }
-
-        .percentage {
-            font-family: @lightFontFamily;
-            /* No need for color, as it would be overriden afterwards */
-        }
-
-        .value {
-            font-family: @regularFontFamily;
-            color: @neutralSecondaryColor;
-        }
-    }
-}
-
-.scatterChart {
-    .mainGraphicsContext {
-        path {
-            fill: none;
-            stroke-width: 3px;
-        }
-
-        .notSelected {
-            opacity: 0.6;
-        }
-
-        .selected {
-            opacity: 1;
-        }
-    }
-
-    .crosshair {
-        .horizontal {
-            stroke: @neutralSecondaryColor;
-            stroke-width: 3px;
-            opacity: 0.6;
-        }
-
-        .vertical {
-            stroke: @neutralSecondaryColor;
-            stroke-width: 3px;
-            opacity: 0.6;
-        }
-    }
-
-    .axisGraphicsContext {
-        font-family: @regularFontFamily;
-        font-size: 11px;
-
-        text {
-            fill: @neutralSecondaryAltColor;
-        }
-
-        .axis path, .axis line {
-            fill: none;
+        polyline {
             stroke: @neutralSecondaryAltColor;
-            shape-rendering: @defaultShapeRendering;
-        }
-    }
-}
-
-.playChart {
-    .traceLine {
-        fill: none;
-        stroke-width: 2px;
-        stroke-linecap: round;
-    }
-
-    .mainGraphicsContext {
-        .notSelected {
-            opacity: 0.6;
+            stroke-width: 1px;
+            fill: rgba(0, 0, 0, 0.00);
         }
 
-        .selected {
-            opacity: 1;
+        .donutLegendArrow {
+            fill: #666666;
         }
     }
 
-    .axisGraphicsContext {
-        font-family: @regularFontFamily;
-        font-size: 11px;
+    .donutLegend {
+        .legend-item {
+            .category {
+                font-family: @regularFontFamily;
+                color: @neutralSecondaryColor;
+            }
 
-        text {
-            fill: @neutralSecondaryAltColor;
+            .percentage {
+                font-family: @lightFontFamily;
+                /* No need for color, as it would be overriden afterwards */
+            }
+
+            .value {
+                font-family: @regularFontFamily;
+                color: @neutralSecondaryColor;
+            }
+        }
+    }
+
+    .scatterChart {
+        .mainGraphicsContext {
+            path {
+                fill: none;
+                stroke-width: 3px;
+            }
+
+            .notSelected {
+                opacity: 0.6;
+            }
+
+            .selected {
+                opacity: 1;
+            }
         }
 
-        .axis path, .axis line {
+        .crosshair {
+            .horizontal {
+                stroke: @neutralSecondaryColor;
+                stroke-width: 3px;
+                opacity: 0.6;
+            }
+
+            .vertical {
+                stroke: @neutralSecondaryColor;
+                stroke-width: 3px;
+                opacity: 0.6;
+            }
+        }
+    }
+
+    .playChart {
+        .traceLine {
             fill: none;
-            stroke: @neutralSecondaryAltColor;
-            shape-rendering: @defaultShapeRendering;
+            stroke-width: 2px;
+            stroke-linecap: round;
+        }
+
+        .mainGraphicsContext {
+            .notSelected {
+                opacity: 0.6;
+            }
+
+            .selected {
+                opacity: 1;
+            }
         }
     }
 
     .play-axis-container {
         position: absolute;
-        left: 16px;
-        bottom: 35px;
-    }
-
-    .button-container {
-        height: 24px;
-        width: 24px;
         overflow: hidden;
-        -moz-border-radius: 13px;
-        -webkit-border-radius: 13px;
-        border-radius: 13px;
-        border: 1px solid @neutralSecondaryColor;
-        margin: 10px;
-        display: inline-block;
-        cursor: pointer;
-    }
-
-    .play {
-        width: 0;
-        height: 0;
-        border-top: 6px solid transparent;
-        border-bottom: 6px solid transparent;
-        border-left: 11px solid @neutralSecondaryAltColor3;
-        border-right: 1px solid transparent;
-        padding: 0;
-        margin: 6px 8px;
-        background: transparent;
-        display: block;
-    }
-
-    .pause {
-        width: 4px;
-        height: 12px;
-        border-top: 0px;
-        border-bottom: 0px;
-        border-left: 4px solid #999;
-        border-right: 4px solid #999;
-        padding: 0;
-        margin: 6px 6px;
-        background-color: transparent;
-        display: block;
-    }
-
-    .sliders {
-        display: inline-block;
-        vertical-align: top;
-        margin-top: 18px;
-    }
-
-    .callout {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        color: @neutralSecondaryAltColor2;
-        opacity: 0.5;
-        pointer-events: none;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-    }
-}
-
-.tableContainer {
-    overflow: auto;
-    /* table */
-    .table {
         width: 100%;
-        color: @neutralPrimaryColor;
-        text-align: left;
 
-        th {
-            color: @neutralSecondaryAltColor;
+        .button-container {
+            height: 24px;
+            width: 24px;
             overflow: hidden;
-            text-align: left;
-            text-overflow: ellipsis;
+            border-radius: 13px;
+            border: 1px solid @neutralSecondaryColor;
+            margin: 6px 10px;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .mobile-button-container {
+            margin-left: 2px;
+            margin-right: 18px;
+            touch-action: none;
+        }
+
+        .play {
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 11px solid @neutralSecondaryAltColor3;
+            border-right: 1px solid transparent;
+            padding: 0;
+            margin: 6px 8px;
+            background: transparent;
+            display: block;
+        }
+
+        .pause {
+            width: 4px;
+            height: 12px;
+            border-top: 0px;
+            border-bottom: 0px;
+            border-left: 4px solid #999;
+            border-right: 4px solid #999;
+            padding: 0;
+            margin: 6px 6px;
+            background-color: transparent;
+            display: block;
+        }
+
+        .sliders {
+            display: inline-block;
+            vertical-align: top;
+            margin-top: 12px;
+        }
+
+        .mobile-noUi-handle {
+            width: 20px;
+            left: -10px;
+            touch-action: none;
+        }
+    }
+
+    .play-callout {
+        pointer-events: none;
+    }
+
+    .tablixContainer {
+        overflow: hidden;
+
+        .tablixDiv {
             white-space: nowrap;
-            /* We cannot use the border-spacing on the table style for spacing since the UX spec wants unbroken row separator lines */
-            padding: 0px 12px 0px 0px;
-        }
-
-        th:last-child {
-            padding: 0px;
-        }
-
-        tr {
-            height: 20px;
-            color: #333;
-            font-size: 11px;
-            font-weight: normal;
-        }
-
-        td {
-            border-top: 1px solid @neutralTertiaryAltColor;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
-            /* We cannot use the border-spacing on the table style for spacing since the UX spec wants unbroken row separator lines */
-            padding: 0px 12px 0px 0px;
-        }
-
-        td:last-child {
-            padding: 0px;
-        }
-
-        .numeric {
-            text-align: right;
-        }
-
-        .total {
-            font-weight: bold;
-        }
-    }
-
-    &.scrollbarPad .table th:last-child {
-        padding: 0px 20px 0px 0px;
-    }
-
-    &.scrollbarPad .table td:last-child {
-        padding: 0px 20px 0px 0px;
-    }
-}
-
-.tablixContainer {
-    overflow: auto;
-    /** Preserve previous dashboard tile font-size */
-    font-size: 11px;
-
-    .bi-tablix {
-        position: relative;
-        text-align: left;
-
-        .unselectable {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -o-user-select: none;
-            user-select: none;
-            cursor: default;
-        }
-
-        table {
-            border-collapse: collapse;
             line-height: normal;
-            padding: 0px;
-            border: 0px;
-            margin: 0px;
-            font-family: @semiboldFontFamily;
-            color: @neutralSecondaryColor;
-            font-weight: normal;
+            box-sizing: border-box;
         }
 
-        tr {
-            line-height: normal;
-            padding: 0px;
-            border: 0px;
-            margin: 0px;
-        }
-
-        td {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .bi-table-column-header {
-            border-bottom-width: 1pt;
-            border-bottom-style: solid;
-            border-bottom-color: #CCCCCC;
-            /* Having a right padding of 5px is crucial to make sure that we do not fire click events on the table column
-               header (and trigger sorting) when resizing a column.  The allowed offset from the parent td's right border
-               to trigger resizing is 4px (see TablixResizer.resizeHandleSize) and thus less than the 5px padding.
-            */
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-table-column-header i {
-            visibility:hidden;
-        }
-
-        .bi-table-column-header.sorted i,
-        .bi-table-column-header:hover i {
-            visibility:visible;
-        }
-
-        .bi-table-cell-numeric {
-            text-align: right;
-        }
-
-        .bi-table-row {
-            border-bottom-width: 1pt;
-            border-bottom-style: solid;
-            border-bottom-color: #E8E8E8;
-            font-family: @semiboldFontFamily;
-            color: @neutralPrimaryColor;
-            padding: 0px 0px 0px 10px;
-        }
-
-        .bi-table-last-row {
-            font-family: @semiboldFontFamily;
-            color: @neutralPrimaryColor;
-            padding: 0px 0px 0px 10px;
-        }
-
-        .bi-table-footer {
-            border-top-width: 1pt;
-            border-top-style: solid;
-            border-top-color: #CCCCCC;
-            font-family: @boldFontFamily;
-            color: @neutralPrimaryColor;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-tablix-header {
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-tablix-row-header-leaf {
-            border-right-width: 1px;
-            border-right-color: #CCCCCC;
-            border-right-style: solid;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-tablix-row-header-static-leaf {
-            border-right-width: 1px;
-            border-right-color: #CCCCCC;
-            border-right-style: solid;
-            padding: 0px 0px 0px 0px;
-        }
-
-        .bi-tablix-row-header-toplevel-static-leaf {
-            border-right-width: 1px;
-            border-right-color: #CCCCCC;
-            border-right-style: solid;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-tablix-column-header-leaf {
-            border-bottom-width: 1px;
-            border-bottom-color: #CCCCCC;
-            border-bottom-style: solid;
-            /* Having a right padding of 5px is crucial to make sure that we do not fire click events on the tablix column
-               header (and trigger sorting) when resizing a column.  The allowed offset from the parent td's right border
-               to trigger resizing is 4px (see TablixResizer.resizeHandleSize) and thus less than the 5px padding.
-            */
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-matrix-body-cell {
-            text-align: right;
-            font-family: @semiboldFontFamily;
-            color: @neutralPrimaryColor;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .total {
-            font-family: @boldFontFamily;
-        }
-
-        .scroll-bar-div {
-            background: #F1F1F1;
+        .tablixCanvas {
             position: relative;
-            user-select: none;
+
+            .unselectable {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                user-select: none;
+                cursor: default;
+            }
+
+            table {
+                line-height: normal;
+                font-weight: normal;
+                table-layout: fixed;
+            }
+
+            tr {
+                line-height: normal;
+            }
+
+            td {
+                line-height: normal;
+                overflow: hidden;
+                vertical-align: top;
+                position: relative;
+            }
+
+            .tablixTableArea {
+                overflow: hidden;
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+
+            .tableFooterArea {
+                overflow: hidden;
+                position: absolute;
+                left: 0;
+            }
+            // Outer DIV
+            .tablixCellContentElement {
+                position: relative;
+                overflow: hidden;
+            }
+            // Inner DIV
+            .tablixCellContentHost {
+                position: relative;
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+            }
+            // Leaves of the Columns Header for Table/Matrix
+            .tablixColumnHeaderLeaf {
+                .tablixSortIconContainer {
+                    float: right;
+                }
+
+                i.future {
+                    display: none;
+                }
+
+                i.sorted {
+                    display: inline-block;
+                }
+
+                > div:hover {
+                    i.sorted {
+                        display: none;
+                    }
+
+                    i.future {
+                        display: inline-block;
+                    }
+                }
+            }
+            // Numeric Body Cells for Table
+            .tablixValueNumeric {
+                text-align: right;
+            }
+            // URL Body Cells URL Container
+            .tablixValueUrlIcon {
+                text-align: center;
+
+                .tablixUrlIconGlyph {
+                    // Remove underline
+                    text-decoration: none;
+                }
+            }
+ 
+            .scroll-bar-div {
+                background: #F1F1F1;
+                position: relative;
+                user-select: none;
+            }
+
+            .scroll-bar-part-arrow {
+                background: #F1F1F1;
+                position: absolute;
+                text-align: center;
+                user-select: none;
+            }
+
+            .scroll-bar-part-arrow:hover {
+                background-color: #cecece;
+            }
+
+            .scroll-bar-part-bar {
+                background: #cecece;
+                position: absolute;
+                text-align: center;
+                user-select: none;
+            }
+
+            .scroll-bar-part-bar:hover {
+                background: #c0c0c0;
+            }
         }
 
-        .scroll-bar-part-arrow {
-            background: #F1F1F1;
-            position: absolute;
-            text-align: center;
-            user-select: none;
-        }
+        .tablixDashboard {
+            position: relative;
 
-        .scroll-bar-part-arrow:hover {
-            background-color: #cecece;
-        }
+            .unselectable {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                user-select: none;
+                cursor: default;
+            }
 
-        .scroll-bar-part-bar {
-            background: #cecece;
-            position: absolute;
-            text-align: center;
-            user-select: none;
-        }
+            table {
+                line-height: normal;
+                font-weight: normal;
+                table-layout: fixed;
+            }
 
-        .scroll-bar-part-bar:hover {
-            background: #c0c0c0;
-        }
-    }
+            tr {
+                line-height: normal;
+            }
 
-    .bi-dashboard-tablix {
-        position: relative;
-        text-align: left;
+            td {
+                line-height: normal;
+                overflow: hidden;
+                vertical-align: top;
+                position: relative;
+            }
 
-        .unselectable {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -o-user-select: none;
-            user-select: none;
-            cursor: default;
-        }
+            .tablixTableArea {
+                overflow: hidden;
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
 
-        table {
-            border-collapse: collapse;
-            line-height: normal;
-            padding: 0px;
-            border: 0px;
-            margin: 0px;
-            font-family: @semiboldFontFamily;
-            color: @neutralSecondaryColor;
-            font-weight: normal;
-        }
+            .tableFooterArea {
+                overflow: hidden;
+                position: absolute;
+                left: 0;
+                background-color: white;
+            }
+            // Outer DIV
+            .tablixCellContentElement {
+                position: relative;
+                overflow: hidden;
+            }
+            // Inner DIV
+            .tablixCellContentHost {
+                position: relative;
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+            }
+            // Leaves of the Columns Header for Table/Matrix
+            .tablixColumnHeaderLeaf {
 
-        tr {
-            line-height: normal;
-            padding: 0px;
-            border: 0px;
-            margin: 0px;
-        }
+                .tablixSortIconContainer {
+                    float: right;
+                }
 
-        td {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+                i.future {
+                    display: none;
+                }
 
-        .bi-table-column-header {
-            border-bottom-width: 1pt;
-            border-bottom-style: solid;
-            border-bottom-color: #CCCCCC;
-            padding: 0px 5px 0px 10px;
-        }
+                i.sorted {
+                    display: inline-block;
+                }
+            }
+             // Numeric Body Cells for Table
+            .tablixValueNumeric {
+                text-align: right;
+            }
+            // URL Body Cells URL Container
+            .tablixValueUrlIcon {
+                text-align: center;
 
-        .bi-table-cell-numeric {
-            text-align: right;
-        }
-
-        .bi-table-row {
-            border-bottom-width: 1pt;
-            border-bottom-style: solid;
-            border-bottom-color: #E8E8E8;
-            font-family: @semiboldFontFamily;
-            color: @neutralPrimaryColor;
-            padding: 0px 0px 0px 10px;
-        }
-
-        .bi-table-last-row {
-            font-family: @semiboldFontFamily;
-            color: @neutralPrimaryColor;
-            padding: 0px 0px 0px 10px;
-        }
-
-        .bi-table-footer {
-            border-top-width: 1pt;
-            border-top-style: solid;
-            border-top-color: #CCCCCC;
-            font-family: @regularFontFamily;
-            font-weight: bold;
-            color: @neutralPrimaryColor;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-tablix-header {
-            padding: 0px 5px 0px 10px;
-            text-align: left;
-        }
-
-        .bi-tablix-row-header-leaf {
-            border-right-width: 1px;
-            border-right-color: #CCCCCC;
-            border-right-style: solid;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-tablix-row-header-static-leaf {
-            border-right-width: 1px;
-            border-right-color: #CCCCCC;
-            border-right-style: solid;
-            padding: 0px 0px 0px 0px;
-        }
-
-        .bi-tablix-row-header-toplevel-static-leaf {
-            border-right-width: 1px;
-            border-right-color: #CCCCCC;
-            border-right-style: solid;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-tablix-column-header-leaf {
-            border-bottom-width: 1px;
-            border-bottom-color: #CCCCCC;
-            border-bottom-style: solid;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .bi-matrix-body-cell {
-            text-align: right;
-            font-family: @regularFontFamily;
-            color: @neutralPrimaryColor;
-            padding: 0px 5px 0px 10px;
-        }
-
-        .total {
-            font-weight: bold;
-            font-family: @regularFontFamily;
-        }
-    }
-}
-
-.callout {
-    /*temp styles, waiting on behaviour spec*/
-    height: 15px;
-    top: -49px;
-    color: @neutralSecondaryAltColor;
-    font-weight: bold;
-    white-space: nowrap;
-
-    .label {
-        font-weight: bold;
-    }
-
-    .labelValue {
-        font-weight: normal;
-    }
-}
-
-.triangle-border {
-    position: absolute;
-    padding: 10px;
-    margin: 1em 0 3em;
-    border: 1px solid rgb(165, 221, 235);
-    color: #333;
-    background: rgba(255,255,255,1);
-    /* css3 */
-    -webkit-border-radius: 0px;
-    -moz-border-radius: 0px;
-    border-radius: 0px;
-}
-
-.triangle-border:before {
-    content: "";
-    position: absolute;
-    bottom: -11px; /* value = - border-top-width - border-bottom-width */
-    border-width: 11px 11px 0;
-    border-style: solid;
-    border-color: rgb(165, 221, 235) transparent;
-    /* reduce the damage in FF3.0 */
-    display: block;
-    width: 0;
-}
-
-/* creates the smaller  triangle */
-.triangle-border:after {
-    content: "";
-    position: absolute;
-    bottom: -9px; /* value = - border-top-width - border-bottom-width */
-    border-width: 9px 9px 0;
-    border-style: solid;
-    border-color: rgba(255,255,255,1) transparent;
-    /* reduce the damage in FF3.0 */
-    display: block;
-    width: 0;
-}
-
-
-
-.visual {
-    .mapControl {
-        position: relative;
-    }
-
-    .mapShapes {
-        stroke-linejoin: round;
-    }
-
-    .textbox {
-        color: @blackColor;
-        line-height: 1;
+                .tablixUrlIconGlyph {
+                    // Remove underline
+                    text-decoration: none;
+                }
+            }
+         }
     }
 
     .imageBackground {
         background-size: contain;
         background-position: center;
         background-repeat: no-repeat;
+    }
+
+    .autoScaleImageContainer {
+        position: relative;
+
+        .autoScaleImage {
+            max-width: 100%;
+            max-height: 100%;
+            position: absolute;
+            top: 50%;
+            /* @noflip */
+            left: 50%;
+            transform: translateY(-50%) translateX(-50%);
+            -webkit-transform: translateY(-50%) translateX(-50%);
+        }
+    }
+
+    .mapCurrentLocation {
+        background-image: url('../images/locationButton.svg');
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        bottom: 0;
+        right: 0;
+        pointer-events: all;
+    }
+
+    .mapControl {
+        position: relative;
+    }
+
+    .mapShapes {
+        stroke-linejoin: round;
     }
 
     .treemap {
@@ -1183,189 +1088,349 @@
         }
     }
 
-    .powervisuals-glyph {
-        font-size: inherit;
-
-        &.big-kpi {
-            font-size: 48px;
-        }
-    }
-}
-
-.interactive-legend {
-    white-space: nowrap;
-    text-align: left;
-    overflow: hidden;
-
-    .title {
-        font-family: @lightFontFamily;
-        font-size: 16px;
-        color: #666666;
-    }
-
-    .item {
-        font-family: @lightFontFamily;
-        font-size: 12px;
-        color: #666666;
-        padding-right: 22px;
-        padding-bottom: 0px;
-        padding-top: 3px;
-    }
-
-    .icon {
-        display: inline-block;
+    .interactive-legend {
+        white-space: nowrap;
+        text-align: left;
         overflow: hidden;
-        vertical-align: middle;
-        margin-left: auto;
-    }
-}
-
-.tooltip-container {
-    position: absolute;
-    font-size: 11px;
-    background-color: @neutralPrimaryColor;
-    pointer-events: none;
-    z-index: @tooltip-z-index;
-
-    .tooltip-content-container {
-        padding: 12px;
-        max-width: 390px;
-    }
-
-    div.tooltip-header {
-        word-wrap: break-word;
-        max-width: 260px;
-        font-weight: bold;
-        color: @whiteColor;
-        letter-spacing: 1px;
-        padding-bottom: 4px;
-    }
-
-    .tooltip-row {
-        display: table-row;
-        line-height: 16px;
-    }
-
-    div.tooltip-color-cell {
-        display: table-cell;
-        vertical-align: top;
-        max-width: 13px;
-        padding-right: 4px;
-    }
-
-    div.tooltip-title-cell {
-        display: table-cell;
-        word-wrap: break-word;
-        font-family: @regularSecondaryFontFamily;
-        text-transform: uppercase;
-        max-width: 130px;
-        padding-right: 12px;
-        color: @neutralTertiaryColor;
-    }
-
-    div.tooltip-value-cell {
-        display: table-cell;
-        word-wrap: break-word;
-        font-family: @regularFontFamily;
-        max-width: 260px;
-        font-weight: bold;
-        color: @whiteColor;
-        letter-spacing: 1px;
-    }
-
-    .arrow {
+        touch-action: none;
+        cursor: pointer;
         position: absolute;
-        width: 0;
-        height: 0;
 
-        &.top {
-            top: 7px;
+        .title {
+            font-family: @semiboldFontFamily;
+            font-size: 12px;
+            color: #666666;
         }
 
-        &.bottom {
-            bottom: 7px;
+        .item {
+            font-family: @regularFontFamily;
+            font-size: 12px;
+            color: #666666;
+            padding-right: 22px;
+            padding-bottom: 0px;
+            padding-top: 3px;
         }
 
-        &.left {
-            left: -7px;
-            border-top: 7px solid transparent;
-            border-bottom: 7px solid transparent;
-            border-right: 7px solid @neutralPrimaryColor;
+        .itemMeasure {
+            font-family: @semiboldFontFamily;
+            font-size: 12px;
+            color: #666666;
         }
 
-        &.right {
-            right: -7px;
-            border-top: 7px solid transparent;
-            border-bottom: 7px solid transparent;
-            border-left: 7px solid @neutralPrimaryColor;
+        .icon {
+            display: inline-block;
+            overflow: hidden;
+            vertical-align: middle;
+            margin-left: auto;
         }
     }
-}
 
-.labelGraphicsContext {
-    .label {
+    .labelGraphicsContext {
+        .label, .label-second-line, .catagorylabel {
+            font-size: 12px;
+            text-anchor: middle;
+            font-family: @regularSecondaryFontFamily;
+            pointer-events: none;
+        }
+    }
+    
+    .labelBackgroundGraphicsContext {
+        pointer-events: none;
+    }
+    
+    /* Depricated. Done use it for new charts. */
+    .data-labels {
         font-size: 12px;
         text-anchor: middle;
         font-family: @regularSecondaryFontFamily;
+        pointer-events: none;
+    }
+    
+
+    .leader-lines {
+        .line-label {
+            opacity: 0.5;
+        }
+    }
+
+    .textbox {
+        color: @neutralPrimaryColor;
+        pointer-events: all;
+        white-space: pre-wrap;
+
+        .ql-container {
+            padding: 0px;
+            cursor: auto;
+        }
+
+        .ql-editor {
+            line-height: normal;
+            word-wrap: break-word;
+        }
+    }
+
+    div.ql-paste-manager {
+        display: none;
+    }
+
+    .multiRowCard {
+        .card {
+            box-sizing: border-box;
+            color: #767676;
+            position: relative;
+            width: 100%;
+
+            .cardItemContainer {
+                box-sizing: border-box;
+                position: relative;
+                vertical-align: top;
+                display: inline-block;
+
+                .caption {
+                    color: @neutralPrimaryColor;
+                    font-size: 14px;
+                    line-height: 20px;
+                    overflow: hidden;
+                    text-align: left;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .details {
+                    color: @neutralTertiaryColor;
+                    font-size: 12px;
+                    overflow: hidden;
+                    text-align: left;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .imgCon img {
+                    display: inline-block;
+                    vertical-align: sub;
+                }
+            }
+
+            .title {
+                font-size: 18px;
+                font-family: @semiboldFontFamily;
+                line-height: 24px;
+                margin-bottom: 5px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        .row:last-child {
+            .card {
+                &.mrtile {
+                    border-bottom: 0px;
+                    padding-bottom: 0px;
+                }
+            }
+        }
+    }
+
+    .clearCatcher, .backgroundRect {
+        fill-opacity: 0;
+    }
+
+    .owlGaugeVisual {
+        overflow: hidden;
+
+        &.sad {
+            .owlGaugeBg {
+                .st0 {
+                    fill: #EF4137;
+                }
+
+                .st1 {
+                    fill: #FAAF42;
+                }
+
+                .st2 {
+                    fill: #F15B2A;
+                }
+
+                .st3 {
+                    fill: #F15B2A;
+                }
+            }
+
+            .owlGaugeTail {
+                animation: owlTailAmbientAnimation 2.5s infinite;
+            }
+        }
+
+        &.meh {
+            .owlGaugeBg {
+                .st0 {
+                    fill: #F18D05;
+                }
+
+                .st1 {
+                    fill: #FAAF42;
+                }
+
+                .st2 {
+                    fill: #F15B2A;
+                }
+
+                .st3 {
+                    fill: #F15B2A;
+                }
+            }
+
+            .owlGaugeTail {
+                animation: owlTailAmbientAnimation 1.5s infinite;
+            }
+        }
+
+        &.happy {
+            .owlGaugeBg {
+                .st0 {
+                    fill: #32742C;
+                }
+
+                .st1 {
+                    fill: #D0D102;
+                }
+
+                .st2 {
+                    fill: #61AE24;
+                }
+
+                .st3 {
+                    fill: #23AA65;
+                }
+            }
+
+            .owlGaugeTail {
+                animation: owlTailAmbientAnimation .5s infinite;
+            }
+        }
+
+        > svg {
+            position: absolute;
+            transition: all 0.25s;
+        }
+
+        .owlGaugeBody {
+            width: 30%;
+            left: 35%;
+            bottom: 0;
+            transform: translate(0, 30%);
+        }
+
+        .owlGaugeTail {
+            width: 70%;
+            left: 15%;
+            bottom: 0;
+            transform-origin: 50% 100%;
+        }
+
+        .owlGaugeBg {
+            width: 120%;
+            left: -10%;
+            bottom: 0;
+            transform-origin: 50% 100%;
+            transform: rotate(-180deg);
+
+            path {
+                transition: fill 0.5s;
+            }
+        }
+
+        @keyframes owlTailAmbientAnimation {
+            0% {
+                transform: rotate(2deg);
+            }
+
+            50% {
+                transform: rotate(-2deg);
+            }
+
+            100% {
+                transform: rotate(2deg);
+            }
+        }
+    }
+
+    .gauge {
+        .labelText {
+            font-family: @regularSecondaryFontFamily;
+        }
+    }
+
+    .kpiVisual {
+        .goalText {
+            margin-top: -6px;
+            color: #333333;
+            font-family: Segoe UI Semibold,wf_segoe-ui_semibold,helvetica,arial,sans-serif;
+            font-size: 11px;
+        }
+
+        .textContainer {
+            display: block;
+            align-items: center;
+            position: absolute;
+            text-align: center;
+        }
+
+        .indicatorText {
+            font-family: wf_standard-font_light,helvetica,arial,sans-serif;
+            font-size: 60px;
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+            justify-content: center;
+        }
     }
 }
 
-/* Kept around for funnel labels; can be removed once it's moved to the new system */
-.data-labels {
-    font-size: 12px;
-    text-anchor: middle;
-    font-family: @regularSecondaryFontFamily;
-    /* Enables tooltip when hovering on data label inside visual */
-    pointer-events: none;
-}
-
-.richtextbox {
-    color: @neutralPrimaryColor;
-    pointer-events: all;
-
-    a {
-        color: @defaultLinkColor;
-    }
-
-    .ql-container {
-        padding: 0px;
-        cursor: auto;
-    }
-
-    .ql-editor {
-        line-height: normal;
-        word-wrap: break-word;
+// TODO: remove
+.visual-sandbox {
+    border: none;
+    overflow: hidden;
+    //adding this because cors block fonts for sandboxed visuals.
+    .tooltip-container .tooltip-row {
+        font-size: 9px;
     }
 }
 
-div.ql-toolbar {
+// TODO: Get redlined by design
+div.debugVisual-controlsContainer{
+    background: rgb(68, 68, 68);
     padding: 4px;
-    background: @neutralPrimaryColor;
-    color: @whiteColor;
+    
+    .controlBtn {
+        margin: 3px;
+        padding: 4px;
+        font-size: 16px;
+        display: inline-block;
+        vertical-align: middle;
+        color: white;
+        cursor: pointer;
+    }
+    
+    .controlBtn.active {
+        background: @themePrimaryColor;
+        color: @themeSecondaryColor;
+    }
+}
+
+// NOTE: this lives outside the visual and must not be scoped by the .visual selector.
+div.ql-toolbar {
     white-space: nowrap;
     overflow-x: hidden;
     font-size: 14px;
-    // TODO: fix SELECT dropdown arrow in IE
-    /*
-    select::-ms-expand {
-        display: none;
-    }
-    */
     .ql-format-group {
-        display: inline-block;
         vertical-align: middle;
-        margin: 0px 2px;
     }
 
     select.ql-picker {
-        margin: 3px;
         padding: 3px;
-        background: @neutralPrimaryColorAlt;
-        border: 1px solid @blackColor;
-    }
-
-    select.ql-font {
-        width: 122px;
     }
 
     label {
@@ -1374,8 +1439,16 @@ div.ql-toolbar {
 
     .ql-format-button {
         margin: 3px;
+        padding: 4px;
+        font-size: @largeFontSize;
         display: inline-block;
         vertical-align: middle;
+
+        &:hover,
+        &.ql-active {
+            background: @themePrimaryColor;
+            color: @neutralPrimaryColor;
+        }
     }
 
     .toolbar-url-input {
@@ -1383,7 +1456,11 @@ div.ql-toolbar {
         vertical-align: middle;
 
         .ql-link div {
-            height: 100%;
+            height: 24px;
+            width: 24px;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         .ql-link-tooltip {
@@ -1434,434 +1511,172 @@ div.ql-toolbar {
         }
     }
 
-    .ql-format-button:hover {
-        background: @themePrimaryColor;
-        color: @neutralPrimaryColor;
-    }
+    &.stackedToolbar {
+        box-shadow: none;
+        position: inherit;
 
-    .ql-format-button.ql-active {
-        background: @themePrimaryColor;
-        color: @neutralPrimaryColor;
-    }
-
-    .ql-format-button[data-value="left"] {
-        .sprite(@left-align-text-white);
-    }
-
-    .ql-format-button[data-value="left"].ql-active {
-        .sprite(@left-align-text-black);
-    }
-
-    .ql-format-button[data-value="left"]:hover {
-        .sprite(@left-align-text-black);
-    }
-
-    .ql-format-button[data-value="right"] {
-        .sprite(@right-align-text-white);
-    }
-
-    .ql-format-button[data-value="right"].ql-active {
-        .sprite(@right-align-text-black);
-    }
-
-    .ql-format-button[data-value="right"]:hover {
-        .sprite(@right-align-text-black);
-    }
-
-    .ql-format-button[data-value="center"] {
-        .sprite(@center-align-text-white);
-    }
-
-    .ql-format-button[data-value="center"].ql-active {
-        .sprite(@center-align-text-black);
-    }
-
-    .ql-format-button[data-value="center"]:hover {
-        .sprite(@center-align-text-black);
-    }
-
-    .ql-format-button.ql-bold {
-        .sprite(@bold-text-white);
-    }
-
-    .ql-format-button.ql-bold.ql-active {
-        .sprite(@bold-text-black);
-    }
-
-    .ql-format-button.ql-bold:hover {
-        .sprite(@bold-text-black);
-    }
-
-    .ql-format-button.ql-italic {
-        .sprite(@italic-text-white);
-    }
-
-    .ql-format-button.ql-italic.ql-active {
-        .sprite(@italic-text-black);
-    }
-
-    .ql-format-button.ql-italic:hover {
-        .sprite(@italic-text-black);
-    }
-
-    .ql-format-button.ql-underline {
-        .sprite(@underline-text-white);
-    }
-
-    .ql-format-button.ql-underline.ql-active {
-        .sprite(@underline-text-black);
-    }
-
-    .ql-format-button.ql-underline:hover {
-        .sprite(@underline-text-black);
-    }
-
-    .ql-format-button.ql-link {
-        .sprite(@insert-link-white);
-    }
-
-    .ql-format-button.ql-link.ql-active {
-        .sprite(@insert-link-black);
-    }
-
-    .ql-format-button.ql-link:hover {
-        .sprite(@insert-link-black);
-    }
-}
-
-.multiRowCard {
-    .card {
-        box-sizing: border-box;
-        border-left: 3px solid;
-        border-left-color: @neutralTertiaryColor;
-        color: #767676;
-        padding-left: 10px;
-        position: relative;
-        width: 100%;
-
-        &.mrtile {
-            border-bottom: 1px solid @neutralTertiaryAltColor;
-            border-left: 0px;
-            padding-bottom: 5px;
-            padding-left: 0px;
-            padding-top: 5px;
-
-            .cardItemContainer {
-                padding-top: 5px;
+        .ql-link-tooltip {
+            a {
+                margin: 0;
             }
-        }
 
-        .cardItemContainer {
-            box-sizing: border-box;
-            padding-top: 7px;
-            position: relative;
-            vertical-align: top;
-
-            .caption {
-                color: @neutralPrimaryColor;
-                font-size: 14px;
-                line-height: 20px;
+            .url {
+                max-width: 130px;
                 overflow: hidden;
-                text-align: left;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .details {
-                color: @neutralTertiaryColor;
-                font-size: 12px;
-                overflow: hidden;
-                text-align: left;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .imgCon img {
                 display: inline-block;
-                vertical-align: sub;
+            }
+
+            &.editing .url {
+                display: none;
+            }
+
+            .input {
+                width: 165px;
+                margin: 0;
             }
         }
 
-        .title {
-            font-size: 18px;
-            font-family: @semiboldFontFamily;
-            line-height: 24px;
-            margin-bottom: 5px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .ql-format-group {
+            margin-top: 8px;
+            display: block;
+            float: left;
+        }
+
+        label {
+            display: none;
+        }
+
+        select.ql-font {
+            width: 166px;
+        }
+
+        select.ql-size {
+            width: 60px;
+            margin-left: 10px;
         }
     }
 
-    .row:last-child {
-        .card {
-            &.mrtile {
-                border-bottom: 0px;
-                padding-bottom: 0px;
-            }
+    &.overlayedToolbar {
+        padding: 4px;
+
+        select.ql-picker {
+            margin: 3px;
+        }
+
+        .ql-format-group {
+            display: inline-block;
+            margin: 0px 2px;
+        }
+
+        select.ql-font {
+            width: 122px;
+        }
+    }
+
+    &.darkToolbar {
+        background: @neutralPrimaryColor;
+        color: @whiteColor;
+
+        select.ql-picker {
+            background: @neutralPrimaryColorAlt;
+            border: 1px solid @blackColor;
         }
     }
 }
 
-.clearCatcher {
-    fill-opacity: 0;
-}
+// NOTE: this lives outside the visual and must not be scoped by the .visual selector.
+.tooltip-container {
+    .unselectable;
+    position: absolute;
+    pointer-events: none;
+    z-index: @tooltip-z-index;
+    display: flex;
 
-.visual.owlGaugeVisual {
-    overflow: hidden;
-
-    &.sad {
-        .owlGaugeBg {
-            .st0 {
-                fill: #EF4137;
-            }
-
-            .st1 {
-                fill: #FAAF42;
-            }
-
-            .st2 {
-                fill: #F15B2A;
-            }
-
-            .st3 {
-                fill: #F15B2A;
-            }
-        }
-
-        .owlGaugeTail {
-            animation: owlTailAmbientAnimation 2.5s infinite;
-        }
+    &.left {
+        flex-direction: row;
+    }
+    
+    &.right {
+        flex-direction: row-reverse;
     }
 
-    &.meh {
-        .owlGaugeBg {
-            .st0 {
-                fill: #F18D05;
-            }
-
-            .st1 {
-                fill: #FAAF42;
-            }
-
-            .st2 {
-                fill: #F15B2A;
-            }
-
-            .st3 {
-                fill: #F15B2A;
-            }
-        }
-
-        .owlGaugeTail {
-            animation: owlTailAmbientAnimation 1.5s infinite;
-        }
+    .tooltip-content-container {
+        padding: 12px;
+        max-width: 520px;
+        font-size: 11px;
+        background-color: @neutralPrimaryColor;
     }
 
-    &.happy {
-        .owlGaugeBg {
-            .st0 {
-                fill: #32742C;
-            }
-
-            .st1 {
-                fill: #D0D102;
-            }
-
-            .st2 {
-                fill: #61AE24;
-            }
-
-            .st3 {
-                fill: #23AA65;
-            }
-        }
-
-        .owlGaugeTail {
-            animation: owlTailAmbientAnimation .5s infinite;
-        }
+    div.tooltip-header {
+        word-wrap: break-word;
+        max-width: 260px;
+        font-weight: bold;
+        color: @whiteColor;
+        letter-spacing: 1px;
+        padding-bottom: 4px;
     }
 
-    > svg {
-        position: absolute;
-        transition: all 0.25s;
+    .tooltip-row {
+        display: table-row;
     }
 
-    .owlGaugeBody {
-        width: 30%;
-        left: 35%;
-        bottom: 0;
-        transform: translate(0, 30%);
+    div.tooltip-color-cell {
+        display: table-cell;
+        vertical-align: top;
+        max-width: 13px;
+        padding-right: 4px;
+        padding-top: 1px;
+        padding-bottom: 1px;
     }
 
-    .owlGaugeTail {
-        width: 70%;
-        left: 15%;
-        bottom: 0;
-        transform-origin: 50% 100%;
+    div.tooltip-title-cell {
+        display: table-cell;
+        word-wrap: break-word;
+        font-family: @regularSecondaryFontFamily;
+        text-transform: uppercase;
+        max-width: 260px;
+        padding-right: 12px;
+        padding-top: 1px;
+        padding-bottom: 1px;
+        color: @neutralTertiaryColor;
     }
 
-    .owlGaugeBg {
-        width: 120%;
-        left: -10%;
-        bottom: 0;
-        transform-origin: 50% 100%;
-        transform: rotate(-180deg);
+    div.tooltip-value-cell {
+        display: table-cell;
+        word-wrap: break-word;
+        font-family: @regularFontFamily;
+        max-width: 260px;
+        padding-top: 1px;
+        padding-bottom: 1px;
+        font-weight: bold;
+        color: @whiteColor;
+        letter-spacing: 1px;
+    }
+    
+    .arrow {
+        width: 0;
+        height: 0;
 
-        path {
-            transition: fill 0.5s;
+        &.top {
+            margin-top: 7px;
+            align-self: flex-start;
         }
-    }
 
-    @keyframes owlTailAmbientAnimation {
-        0% {
-            transform: rotate(2deg);
+        &.bottom {
+            margin-bottom: 7px;
+            align-self: flex-end;
         }
 
-        50% {
-            transform: rotate(-2deg);
+        &.left {
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            border-right: 7px solid @neutralPrimaryColor;
         }
 
-        100% {
-            transform: rotate(2deg);
+        &.right {
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            border-left: 7px solid @neutralPrimaryColor;
         }
     }
 }
-
-
-.visual-sandbox {
-    border: none;
-    overflow: hidden;
-}
-
-.streamGraph {
-    .axis{
-        path, line {
-            fill: none;
-            stroke: black;
-            shape-rendering: crispEdges;
-        }
-
-        text {
-            font-family: sans-serif;
-            font-size: 11px;
-        }
-    }
-}
-
-.radarChart {
-    .axis {
-        path, line {
-            fill: none;
-            stroke: grey;
-            stroke-width: 1px;
-        }
-
-        text {
-            font-family: sans-serif;
-            font-size: 11px;
-        }
-    }
-    .segments {
-        path, line {
-            fill: none;
-            stroke: grey;
-            stroke-opacity: 0.75;
-            stroke-width: 0.3px;
-        }
-    }
-}
-
-.dotPlot {
-    .axis{
-        path, line {
-            fill: none;
-            stroke: black;
-            shape-rendering: crispEdges;
-        }
-
-        text {
-            font-family: sans-serif;
-            font-size: 11px;
-        }
-    }
-}
-
-.timeline {
-    .axis{
-        path, line {
-            fill: none;
-            stroke: black;
-            shape-rendering: crispEdges;
-        }
-
-        text {
-            font-family: sans-serif;
-            font-size: 11px;
-        }
-    }
-}
-
-.sunBurstPercentage{
-    font-weight:bold;
-    opacity:0;
-}
-.sunBurstPercentageFixed{
-    font-weight:bold;
-    opacity:0;
-}
-
-.histogram {
-    @histogramAxesColor: @neutralSecondaryAltColor;
-    @histogramLegendTextColor: @blackColor;
-
-    font-family: @regularFontFamily;
-
-    .axis, .legends {
-        path, line {
-            fill: none;
-            stroke: @histogramAxesColor;
-            shape-rendering: crispEdges;
-        }
-
-        text {
-            fill: @histogramAxesColor;
-            font-size: 11px;
-        }
-    }
-
-    .legends {
-        text {
-            font-size: 12px;
-            fill: @histogramLegendTextColor;
-            text-anchor: middle;
-        }
-    }
-}
-
-.areaRangeChart {
-    @areaRangeChartAxesColor: @neutralSecondaryAltColor;
-    @areaRangeChartLegendTextColor: @blackColor;
-
-    font-family: @regularFontFamily;
-
-    .axis {
-        path, line {
-            fill: none;
-            stroke: @areaRangeChartAxesColor;
-            shape-rendering: crispEdges;
-        }
-
-        text {
-            fill: @areaRangeChartAxesColor;
-            font-size: 11px;
-        }
-    }
-
-    .chart {
-        path, line {
-            stroke-width: 1;
-        }
-    }
-}
-

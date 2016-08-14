@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="./_references.ts"/>
+
 module powerbitests {
     export var DefaultWaitForRender = 10;
 }

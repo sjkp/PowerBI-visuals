@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -162,11 +162,11 @@ module jsCommon {
             return toString(fromPointToPixel(pt));
         }
 
-        /**
-       * Converts point value (pt) to pixels
-       * Returns a number for font-size property
-       * e.g. fromPoint(8) => 24px
-       */
+       /**
+        * Converts point value (pt) to pixels
+        * Returns a number for font-size property
+        * e.g. fromPoint(8) => 24px
+        */
         export function fromPointToPixel(pt: number): number {
             return (PxPtRatio * pt);
         }
@@ -177,6 +177,24 @@ module jsCommon {
          */
         export function toPoint(px: number): number {
             return px / PxPtRatio;
+        }
+    }
+
+    export module RegExpExtensions {
+        /**
+         * Runs exec on regex starting from 0 index
+         * This is the expected behavior but RegExp actually remember
+         * the last index they stopped at (found match at) and will
+         * return unexpected results when run in sequence.
+         * @param regex - regular expression object
+         * @param value - string to search wiht regex
+         * @param start - index within value to start regex
+         */
+        export function run(regex: RegExp, value: string, start?: number): RegExpExecArray {
+            debug.assertValue(regex, 'regex');
+
+            regex.lastIndex = start || 0;
+            return regex.exec(value);
         }
     }
 }

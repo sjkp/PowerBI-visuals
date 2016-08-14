@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -34,17 +34,20 @@ module powerbi.data {
         Where?: QueryFilter[];
         OrderBy?: QuerySortClause[];
         Select: QueryExpressionContainer[];
+        GroupBy?: QueryExpressionContainer[];
+        Transform?: QueryTransform[];
     }
 
     export interface FilterDefinition {
         Version?: number;
         From: EntitySource[];
         Where: QueryFilter[];
-    }    
+    }
 
     export enum EntitySourceType {
         Table = 0,
         Pod = 1,
+        Expression = 2,
     }
 
     export interface EntitySource {
@@ -52,6 +55,7 @@ module powerbi.data {
         EntitySet?: string; // TODO: Remove this when Q&A Silverlight is removed and make Entity required
         Entity?: string;
         Schema?: string;
+        Expression?: QueryExpressionContainer;
         Type?: EntitySourceType;
     }
 
@@ -72,9 +76,11 @@ module powerbi.data {
         Column?: QueryColumnExpression;
         Measure?: QueryMeasureExpression;
         Aggregation?: QueryAggregationExpression;
+        Percentile?: QueryPercentileExpression;
         Hierarchy?: QueryHierarchyExpression;
         HierarchyLevel?: QueryHierarchyLevelExpression;
         PropertyVariationSource?: QueryPropertyVariationSourceExpression;
+        Subquery?: QuerySubqueryExpression;
 
         // Logical
         And?: QueryBinaryExpression;
@@ -107,9 +113,24 @@ module powerbi.data {
         DefaultValue?: QueryDefaultValueExpression;
         AnyValue?: QueryAnyValueExpression;
 
-        // TODO: Still need to add the rest of the QueryExpression types.
-    }
+        Arithmetic?: QueryArithmeticExpression;
 
+        // Evaluation Expressions
+        ScopedEval?: QueryScopedEvalExpression;
+
+        // Reference Expressions
+        WithRef?: QueryWithRefExpression;
+
+        // Transform Expressions
+        TransformTableRef?: QueryTransformTableRefExpression;
+        TransformOutputRoleRef?: QueryTransformOutputRoleRefExpression;
+
+        // Client-only expressions
+        FillRule?: QueryFillRuleExpression;
+        ResourcePackageItem?: QueryResourcePackageItem;
+        SelectRef?: QuerySelectRefExpression;
+    }
+    
     export interface QueryPropertyExpression {
         Expression: QueryExpressionContainer;
         Property: string;
@@ -118,16 +139,26 @@ module powerbi.data {
     export interface QueryColumnExpression extends QueryPropertyExpression {
     }
 
-    export interface QueryMeasureExpression extends QueryPropertyExpression  {
+    export interface QueryMeasureExpression extends QueryPropertyExpression {
     }
 
     export interface QuerySourceRefExpression {
         Source: string;
     }
 
+    export interface QuerySelectRefExpression {
+        ExpressionName: string;
+    }
+
     export interface QueryAggregationExpression {
         Function: QueryAggregateFunction;
         Expression: QueryExpressionContainer;
+    }
+
+    export interface QueryPercentileExpression {
+        Expression: QueryExpressionContainer;
+        K: number;
+        Exclusive?: boolean;
     }
 
     export interface QueryHierarchyExpression {
@@ -144,6 +175,10 @@ module powerbi.data {
         Expression: QueryExpressionContainer;
         Name: string;
         Property: string;
+    }
+
+    export interface QuerySubqueryExpression {
+        Query: QueryDefinition;
     }
 
     export interface QueryBinaryExpression {
@@ -212,6 +247,62 @@ module powerbi.data {
 
     export interface QueryAnyValueExpression { }
 
+    export interface QueryArithmeticExpression {
+        Left: QueryExpressionContainer;
+        Right: QueryExpressionContainer;
+        Operator: ArithmeticOperatorKind;
+    }
+
+    export const enum ArithmeticOperatorKind {
+        Add = 0,
+        Subtract = 1,
+        Multiply = 2,
+        Divide = 3,
+    }
+
+    export function getArithmeticOperatorName(arithmeticOperatorKind: ArithmeticOperatorKind): string {
+        switch (arithmeticOperatorKind) {
+            case ArithmeticOperatorKind.Add:
+                return "Add";
+            case ArithmeticOperatorKind.Subtract:
+                return "Subtract";
+            case ArithmeticOperatorKind.Multiply:
+                return "Multiply";
+            case ArithmeticOperatorKind.Divide:
+                return "Divide";
+        }
+        throw new Error('Unexpected ArithmeticOperatorKind: ' + arithmeticOperatorKind);
+    }
+
+    export interface QueryFillRuleExpression {
+        Input: QueryExpressionContainer;
+        FillRule: FillRuleGeneric<QueryExpressionContainer, QueryExpressionContainer>;
+    }
+
+    export interface QueryResourcePackageItem {
+        PackageName: string;
+        PackageType: number;
+        ItemName: string;
+    }
+
+    export interface QueryScopedEvalExpression {
+        Expression: QueryExpressionContainer;
+        Scope: QueryExpressionContainer[];
+    }
+
+    export interface QueryWithRefExpression {
+        ExpressionName: string;
+    }
+
+    export interface QueryTransformTableRefExpression {
+        Source: string;
+    }
+
+    export interface QueryTransformOutputRoleRefExpression {
+        Role: string;
+        Transform?: string;
+    }
+
     export enum TimeUnit {
         Day = 0,
         Week = 1,
@@ -243,28 +334,6 @@ module powerbi.data {
         LessThanOrEqual = 4,
     }
 
-    export interface DataQuery {
-        Commands: QueryCommand[];
-    }
-    
-    export interface SemanticQueryDataShapeCommand {
-        Query: QueryDefinition;
-        Binding: DataShapeBinding;
-    }
-    
-    export interface QueryCommand {
-        SemanticQueryDataShapeCommand?: SemanticQueryDataShapeCommand;
-        ScriptVisualCommand?: ScriptVisualCommand;
-    }
-
-    export interface ScriptVisualCommand {
-        Script?: string;
-        RenderingEngine?: string;
-        ViewportWidthPx?: number;
-        ViewportHeightPx?: number;
-        Version?: number;
-    }
-
     /** Defines semantic data types. */
     export enum SemanticType {
         None = 0x0,
@@ -285,16 +354,6 @@ module powerbi.data {
         Range = 0x4000,
     }
 
-    export enum SelectKind {
-        None,
-        Group,
-        Measure,
-    }
-
-    export interface AuxiliarySelectBinding {
-        Value?: string;
-    }
-
     export interface QueryMetadata {
         Select?: SelectMetadata[];
         Filters?: FilterMetadata[];
@@ -303,9 +362,9 @@ module powerbi.data {
     // TODO: Stop using SemanticType and ConceptualDataCategory here (may need server contract changes)
     export interface SelectMetadata {
         Restatement: string;
-        
+
         /* SemanticType or PrimitiveType. */
-        Type?: number; 
+        Type?: number;
 
         Format?: string;
         DataCategory?: ConceptualDataCategory;
@@ -323,10 +382,38 @@ module powerbi.data {
     export interface FilterMetadata {
         Restatement: string;
         Kind?: FilterKind;
+        /** The expression being filtered.  This is reflected in the filter card UI. */
+        expression?: QueryExpressionContainer;
     }
 
     export enum FilterKind {
         Default,
         Period,
     }
-} 
+
+    export interface QueryTransform {
+        Name: string;
+        Algorithm: string;
+        Input: QueryTransformInput;
+        Output: QueryTransformOutput;
+    }
+
+    export interface QueryTransformInput {
+        Parameters: QueryExpressionContainer[];
+        Table?: QueryTransformTable;
+    }
+
+    export interface QueryTransformOutput {
+        Table?: QueryTransformTable;
+    }
+
+    export interface QueryTransformTable {
+        Name: string;
+        Columns: QueryTransformTableColumn[];
+    }
+
+    export interface QueryTransformTableColumn {
+        Role?: string;
+        Expression: QueryExpressionContainer;
+    }
+}

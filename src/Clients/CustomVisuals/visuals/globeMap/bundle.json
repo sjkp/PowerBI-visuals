@@ -1,0 +1,31 @@
+{
+    "dateAdded": "2015-11-24T01:25:31.000Z",
+    "dateLastUpdated": "2016-03-02T00:03:00.000Z",
+    "videoUrl": "https://www.youtube.com/watch?v=0Y_q0AyZrKs",
+    "package": {
+        "name": "GlobeMap",
+        "displayName": "GlobeMap",
+        "guid": "GlobeMap1447669447624",
+        "version": "1.3.1",
+        "description": "A 3D visual using WebGL for plotting locations, with category values displayed as bar heights and heat maps.\n\nShift+Click on bar to change center point. \nSlicing data points will animate to average location.\n\nAttributions:\nthree.js - https://github.com/mrdoob/three.js/\nwebgl-heatmap - https://github.com/pyalot/webgl-heatmap",
+        "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["screenshot.png"],
+            "thumbnail": "thumb.png"
+        },
+        "code": {
+            "typeScript": "globeMap.ts",
+            "javaScript": "globeMap.js",
+            "css": "globeMap.css"
+        }
+    }
+}

@@ -39,33 +39,33 @@ module powerbi.visuals.controls {
         /** 
          * Used to termine if the touch event is within bounds.
          */
-        private _dimension: TouchUtils.Rectangle;
+        private dim: TouchUtils.Rectangle;
         /**
          * Average pixel width of columns in table.
          */
-        private _averageSize: number;
+        private averageSize: number;
         /**
          * Used for 'firing' a scroll event following a received gesture.
          */
-        private _tablixControl: TablixControl;
+        private tablixControl: TablixControl;
         /**
          * Stores the event handler of TablixControl for scroll events.
          */
-        private _handlers: any;
+        private handlers: any;
 
         /**
          * @constructor 
          * @param region Location and area of the touch region in respect to its HTML element.
          */
         constructor(region: TouchUtils.Rectangle) {
-            this._dimension = region;
-            this._averageSize = 1; //default
-            this._handlers = null;
-            this._tablixControl = null;
+            this.dim = region;
+            this.averageSize = 1; //default
+            this.handlers = null;
+            this.tablixControl = null;
         }
 
         get dimension(): TouchUtils.Rectangle {
-            return this._dimension;
+            return this.dim;
         }
 
         /** 
@@ -74,7 +74,7 @@ module powerbi.visuals.controls {
          * @param xRatio Column to pixel ratio (# columns / # pixels).
          */
         public setScrollDensity(xRatio: number): void {
-            this._averageSize = xRatio;
+            this.averageSize = xRatio;
         }
 
         /**
@@ -86,17 +86,17 @@ module powerbi.visuals.controls {
          * @param height Height of area to listen for events.
          */
         public resize(x: number, y: number, width: number, height: number) {
-            this._dimension.x = x;
-            this._dimension.y = y;
-            this._dimension.width = width;
-            this._dimension.height = height;
+            this.dim.x = x;
+            this.dim.y = y;
+            this.dim.width = width;
+            this.dim.height = height;
         }
 
         /**
          * @see IPixelToItem.
          */
         public getPixelToItem(x: number, y: number, dx: number, dy: number, down: boolean): TouchUtils.TouchEvent {
-            return new TouchUtils.TouchEvent(x * this._averageSize, 0, down, -dx * this._averageSize, 0);
+            return new TouchUtils.TouchEvent(x * this.averageSize, 0, down, -dx * this.averageSize, 0);
         }
 
         /**
@@ -107,12 +107,12 @@ module powerbi.visuals.controls {
         public touchEvent(e: TouchUtils.TouchEvent): void {
             let args: any[] = [];
 
-            args[0] = this._tablixControl;
+            args[0] = this.tablixControl;
             args[1] = e.dx;
             args[2] = e.dy;
 
-            if (this._handlers) {
-                fire([this._handlers], args);
+            if (this.handlers) {
+                fire([this.handlers], args);
             }
         }
 
@@ -123,8 +123,8 @@ module powerbi.visuals.controls {
          * @param handlerCall The call to be made (EXAMPLE: handlerCall = object.method;).
          */
         public setHandler(tablixObj: TablixControl, handlerCall: (args: any[]) => void): void {
-            this._handlers = handlerCall;
-            this._tablixControl = tablixObj;
+            this.handlers = handlerCall;
+            this.tablixControl = tablixObj;
         }
     }
 
@@ -138,36 +138,36 @@ module powerbi.visuals.controls {
         /**
          * Used to termine if the touch event is within bounds.
          */
-        private _dimension: TouchUtils.Rectangle;
+        private dim: TouchUtils.Rectangle;
         
         /**
          * Average pixel height of rows in table.
          */
-        private _averageSize: number;
+        private averageSize: number;
         
         /**
          * Used for 'firing' a scroll event following a recieved gesture.
          */
-        private _tablixControl: TablixControl;
+        private tablixControl: TablixControl;
         
         /**
          * Stores the event handler of TablixControl for scroll events.
          */
-        private _handlers: any;
+        private handlers: any;
 
         /**
          * @constructor
          * @param region Location and area of the touch region in respect to its HTML element.
          */
         constructor(region: TouchUtils.Rectangle) {
-            this._dimension = region;
-            this._averageSize = 30; //default
-            this._handlers = null;
-            this._tablixControl = null;
+            this.dim = region;
+            this.averageSize = 30; //default
+            this.handlers = null;
+            this.tablixControl = null;
         }
 
         get dimension(): TouchUtils.Rectangle {
-            return this._dimension;
+            return this.dim;
         }
 
         /**
@@ -176,7 +176,7 @@ module powerbi.visuals.controls {
          * @param yRatio Row to pixel ratio (# rows / # pixels).
          */
         public setScrollDensity(yRatio: number): void {
-            this._averageSize = yRatio;
+            this.averageSize = yRatio;
         }
 
         /**
@@ -187,18 +187,18 @@ module powerbi.visuals.controls {
          * @param height Height of area to listen for events.
          */
         public resize(x: number, y: number, width: number, height: number) {
-            this._dimension.x = x;
-            this._dimension.y = y;
-            this._dimension.width = width;
-            this._dimension.height = height;
+            this.dim.x = x;
+            this.dim.y = y;
+            this.dim.width = width;
+            this.dim.height = height;
         }
 
         /**
          * @see: IPixelToItem
          */
         public getPixelToItem(x: number, y: number, dx: number, dy: number, down: boolean): TouchUtils.TouchEvent {
-            let event: TouchUtils.TouchEvent = new TouchUtils.TouchEvent(0, y * this._averageSize, down,
-                                                                                   0, -dy * this._averageSize);
+            let event: TouchUtils.TouchEvent = new TouchUtils.TouchEvent(0, y * this.averageSize, down,
+                                                                                   0, -dy * this.averageSize);
             return event;
         }
 
@@ -210,12 +210,12 @@ module powerbi.visuals.controls {
         public touchEvent(e: TouchUtils.TouchEvent): void {
             let args: any[] = [];
 
-            args[0] = this._tablixControl;
+            args[0] = this.tablixControl;
             args[1] = e.dx;
             args[2] = e.dy;
 
-            if (this._handlers) {
-                fire([this._handlers], args);
+            if (this.handlers) {
+                fire([this.handlers], args);
             }
         }
 
@@ -226,8 +226,8 @@ module powerbi.visuals.controls {
          * @param handlerCall The call to be made (EXAMPLE: handlerCall = object.method;).
          */
         public setHandler(tablixObj: TablixControl, handlerCall: (args: any[]) => void): void {
-            this._handlers = handlerCall;
-            this._tablixControl = tablixObj;
+            this.handlers = handlerCall;
+            this.tablixControl = tablixObj;
         }
     }
 
@@ -243,38 +243,38 @@ module powerbi.visuals.controls {
         /**
          * Used to termine if the touch event is within bounds.
          */
-        private _dimension: TouchUtils.Rectangle;
+        private dim: TouchUtils.Rectangle;
         
         /**
          * Average pixel width of columns in table.
          */
-        private _averageSizeX: number;
+        private averageSizeX: number;
         
         /**
          * Average pixel height of rows in table.
          */
-        private _averageSizeY: number;
+        private averageSizeY: number;
         
         /**
          * Used for 'firing' a scroll event following a recieved gesture.
          */
-        private _tablixControl: TablixControl;
+        private tablixControl: TablixControl;
         
         /**
          * Stores the event handler of TablixControl for scroll events.
          */
-        private _handlers: any;
+        private handlers: any;
 
         /**
          * @constructor
          * @param region Location and area of the touch region in respect to its HTML element.
          */
         constructor(region: TouchUtils.Rectangle) {
-            this._dimension = region;
-            this._averageSizeX = BodyTouchDelegate.DefaultAverageSizeX;
-            this._averageSizeY = BodyTouchDelegate.DefaultAverageSizeY;
-            this._handlers = null;
-            this._tablixControl = null;
+            this.dim = region;
+            this.averageSizeX = BodyTouchDelegate.DefaultAverageSizeX;
+            this.averageSizeY = BodyTouchDelegate.DefaultAverageSizeY;
+            this.handlers = null;
+            this.tablixControl = null;
         }
 
         /**
@@ -283,7 +283,7 @@ module powerbi.visuals.controls {
          * @return The dimentions of the region this delegate listens to.
          */
         get dimension(): TouchUtils.Rectangle {
-            return this._dimension;
+            return this.dim;
         }
 
         /**
@@ -293,8 +293,8 @@ module powerbi.visuals.controls {
          * @param yRatio Row to pixel ratio (# rows / # pixels)
          */
         public setScrollDensity(xRatio: number, yRatio: number): void {
-            this._averageSizeX = xRatio;
-            this._averageSizeY = yRatio;
+            this.averageSizeX = xRatio;
+            this.averageSizeY = yRatio;
         }
 
         /**
@@ -306,7 +306,7 @@ module powerbi.visuals.controls {
          * @param height Height of area to listen for events.
          */
         public resize(x: number, y: number, width: number, height: number) {
-            let dimension = this._dimension;
+            let dimension = this.dim;
 
             dimension.x = x;
             dimension.y = y;
@@ -318,7 +318,7 @@ module powerbi.visuals.controls {
          * @see: IPixelToItem.
          */
         public getPixelToItem(x: number, y: number, dx: number, dy: number, down: boolean): TouchUtils.TouchEvent {
-            return new TouchUtils.TouchEvent(x * this._averageSizeX, y * this._averageSizeY, down, -dx * this._averageSizeX, -dy * this._averageSizeY);
+            return new TouchUtils.TouchEvent(x * this.averageSizeX, y * this.averageSizeY, down, -dx * this.averageSizeX, -dy * this.averageSizeY);
         }
 
         /**
@@ -327,10 +327,10 @@ module powerbi.visuals.controls {
          * @param e Event recieved from touch manager.
          */
         public touchEvent(e: TouchUtils.TouchEvent): void {
-            let args: any[] = [this._tablixControl, e.dx, e.dy];
+            let args: any[] = [this.tablixControl, e.dx, e.dy];
 
-            if (this._handlers) {
-                fire([this._handlers], args);
+            if (this.handlers) {
+                fire([this.handlers], args);
             }
         }
 
@@ -341,8 +341,8 @@ module powerbi.visuals.controls {
          * @param handlerCall The call to be made (EXAMPLE: handlerCall = object.method;).
          */
         public setHandler(tablixObj: TablixControl, handlerCall: (args: any[]) => void): void {
-            this._handlers = handlerCall;
-            this._tablixControl = tablixObj;
+            this.handlers = handlerCall;
+            this.tablixControl = tablixObj;
         }
     }
 }

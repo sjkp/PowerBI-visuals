@@ -3946,6 +3946,7166 @@ declare module "jquery" {
 declare var jQuery: JQueryStatic;
 declare var $: JQueryStatic;
 
+declare module Microsoft.Maps {
+
+    /*
+        Global functions
+    */
+    export module Globals {
+        export var roadUriFormat: any;
+    }
+
+    /*
+        Loads the specified registered module, making its functionality available. An optional function can be specified that is called when the module is loaded.
+        To register a module, use the registerModule method.
+
+        The following Bing Maps modules are available:
+
+        Microsoft.Maps.AdvancedShapes
+        Microsoft.Maps.Directions
+        Microsoft.Maps.Overlays.Style
+        Microsoft.Maps.Search
+        Microsoft.Maps.Themes.BingTheme
+        Microsoft.Maps.Traffic
+        Microsoft.Maps.VenueMaps
+    */
+    export function loadModule(moduleKey: string, options?: { callback: () => void; }): void;
+    /*
+        Signals that the specified module has been loaded and if specified, calls the callback function in loadModule. Call this method at the end of your module script.
+    */
+    export function moduleLoaded(moduleKey: string): void;
+
+    /*
+        Registers a module with the map control. The name of the module is specified in moduleKey, the module script is defined in scriptUrl, and the options provides the location of a *.css file to load with the module.
+        Tip: To minimize possible conflicts with other custom modules, choose a unique module name (defined in moduleKey). For example, you can use your company name in the name of the module.
+        Once you have registered a module, you can make its functionality available by loading it using loadModule.
+    */
+    export function registerModule(moduleKey: string, scriptUrl: string, options?: string[]): void;
+
+    /*
+        Tagging interface for items in an EntityCollection
+    */
+    export interface Entity {
+        //No members
+    }
+
+    /*
+        Represents the coordinates of the position of the user.
+    */
+    export class Coordinates {
+        /*************
+        * PROPERTIES *
+        **************/
+        /*
+            The accuracy, in meters, of the latitude and longitude values.
+        */
+        accuracy: number;
+
+        /*
+            The altitude of the location.
+        */
+        altitude: number;
+
+        /*
+            The accuracy, in meters, of the altitude value.
+        */
+        altitudeAccuracy: number;
+
+        /*
+            The direction of travel of the hosting device.
+        */
+        heading: number;
+
+        /*
+            The latitude of the location.
+        */
+        latitude: number;
+
+        /*
+            The longitude of the location.
+        */
+        longitude: number;
+
+        /*
+            The ground speed of the hosting device, in meters per second.
+        */
+        speed: number;
+    }
+
+    /*
+        Contains methods for obtaining and displaying the user’s current location.
+        Note: This functionality is only available on browsers that support the W3C GeoLocation API.
+    */
+    export class GeoLocationProvider {
+        constructor (map: Map);
+
+        /*
+            Renders a geo location accuracy circle on the map. The accuracy circle is created with the center at the specified location, using the given radiusInMeters, and with the specified number of segments for the accuracy circle polygon. Additional options are also available to adjust the style of the polygon.
+        */
+        addAccuracyCircle(center: Location, radiusInMeters: number, segments: number, options: PositionCircleOptions): void;
+
+        /*
+            Cancels the processing of the current getCurrentPosition request. This method prevents the response from being processed.
+        */
+        cancelCurrentRequest(): void;
+
+        /*
+            Obtains the user’s current location and displays it on the map.
+            Important:
+                The accuracy of the user location obtained using this method varies widely depending on the desktop browser or mobile device of the requesting client. Desktop users may experience low user location accuracy (accuracy circles with large radiuses), while mobile user location accuracy may be much greater (a few meters).
+        */
+        getCurrentPosition(options: PositionOptions): void;
+
+        /*
+            Removes the current geo location accuracy circle.
+        */
+        removeAccuracyCircle(): void;
+    }
+
+    export class MouseEventArgs {
+        eventName: string;
+        handled: boolean;
+        isPrmary: boolean;
+        isSecondary: boolean;
+        isTouchEvent: boolean;
+        originalEvent: any;
+        pageX: number;
+        pageY: number;
+        target: any;
+        targetType: string;
+        wheelDelta: number;
+
+        getX(): number;
+        getY(): number;
+    }
+
+    export class KeyEventArgs {
+        altKey: boolean;
+        ctrlKey: boolean;
+        eventName: string;
+        //A boolean indicating whether the event is handled. If this property is set to true, the default map control behavior for the event is cancelled.
+        handled: boolean;
+        //The ASCII character code that identifies the keyboard key that was pressed.
+        keyCode: string;
+        originalEvent: any;
+        shiftKey: boolean;
+    }
+
+    export class LocationRect {
+        constructor (center: Location, width: number, height: number);
+
+        center: Location;
+        height: number;
+        width: number;
+
+        static fromCorners(northwest: Location, southeast: Location): LocationRect;
+        static fromEdges(north: number, west: number, south: number, east: number, altitude: number, altitudeReference: AltitudeReference): LocationRect;
+
+        static fromLocations(...locations: Location[]): LocationRect;
+        static fromString(str: string): LocationRect;
+
+        clone(): LocationRect;
+        contains(location: Location): boolean;
+        getEast(): number;
+        getNorth(): number;
+        getNorthwest(): Location;
+        getSouth(): number;
+        getSoutheast(): Location;
+        getWest(): number;
+        insersects(rect: LocationRect): boolean;
+        toString(): string;
+    }
+
+    export class Location {
+        constructor (latitude: number, longitude: number, altitude?: number, altitudeReference?: AltitudeReference);
+
+        altitude: number;
+        altitudeReference: AltitudeReference;
+        latitude: number;
+        longitude: number;
+
+        static areEqual(location1: Location, location2: Location): boolean;
+        static normalizeLongitude(longitude: number): number;
+
+        clone(): Location;
+        toString(): string;
+    }
+
+    /*
+        Defines the reference point from which the altitude is measured.
+    */
+    export class AltitudeReference {
+        /*
+            The altitude is measured from the ground level.
+        */
+        static ground: string;
+        /*
+            The altitude is measured from the WGS 84 ellipsoid of the Earth.
+        */
+        static ellipsoid: string;
+
+        /*
+            Determines if the specified reference is a supported AltitudeReference.
+        */
+        static isValid(reference: AltitudeReference): boolean;
+    }
+
+    export class MapMode {
+        getDrawShapesInSingleLayer(): boolean;
+        setDrawShapesInSingleLayer(drawInSingleLayer: boolean): void;
+        setViewChangeEndDelay(delay: number): void;
+    }
+
+    export class MapTypeId {
+        static aerial: string;
+        static auto: string;
+        static birdseye: string;
+        static collinsBart: string;
+        static mercator: string;
+        static ordnanceSurvey: string;
+        static road: string;
+    }
+
+    /*
+        Represents a color.
+    */
+    export class Color {
+        /*
+            Initializes a new instance of the Color class. The a parameter represents opacity. The range of valid values for all parameters is 0 to 255.
+        */
+        constructor (a: number, r: number, g: number, b: number);
+
+        /*
+            The opacity of the color. The range of valid values is 0 to 255.
+        */
+        a: number;
+
+        /*
+            The red value of the color. The range of valid values is 0 to 255.
+        */
+        r: number;
+
+        /*
+            The green value of the color. The range of valid values is 0 to 255.
+        */
+        g: number;
+
+        /*
+            The blue value of the color. The range of valid values is 0 to 255.
+        */
+        b: number;
+
+        /*
+            Creates a copy of the Color object.
+        */
+        static clone(color: Color): Color;
+
+        /*
+            Converts the specified hex string to a Color.
+        */
+        static fromHex(hex: string): Color;
+
+        /*
+            Returns a copy of the Color object.
+        */
+        clone(): Color;
+
+        /*
+            Returns the opacity of the Color as a value between 0 (a=0) and 1 (a=255).
+        */
+        getOpacity(): number;
+
+        /*
+            Converts the Color into a 6-digit hex string. Opacity is ignored. For example, a Color with values (255,0,0,0) is returned as hex string #000000.
+        */
+        toHex(): string;
+
+        /*
+            Converts the Color object to a string.
+        */
+        toString(): string;
+    }
+
+    export interface MapOptions {
+        backgroundColor?: Color;
+        credentials?: string;
+        customizeOverlays?: boolean;
+        disableBirdseye?: boolean;
+        disableKeyboardInput?: boolean;
+        disableMouseInput?: boolean;
+        disablePanning?: boolean;
+        disableTouchInput?: boolean;
+        disableUserInput?: boolean;
+        disableZooming?: boolean;
+        enableClickableLogo?: boolean;
+        enableSearchLogo?: boolean;
+        fixedMapPosition?: boolean;
+        height?: number;
+        inertiaIntensity?: number;
+        showBreadcrumb?: boolean;
+        showCopyright?: boolean;
+        showDashboard?: boolean;
+        showMapTypeSelector?: boolean;
+        showScalebar?: boolean;
+        theme?: any;
+        tileBuffer?: number;
+        useInertia?: boolean;
+        width?: number;
+    }
+
+    export interface ViewOptions {
+        //Properties
+        animate?: boolean;
+        bounds?: LocationRect;
+        center?: Location;
+        centerOffset?: Point;
+        heading?: number;
+        labelOverlay?: LabelOverlay;
+        mapTypeId?: string;
+        padding?: number;
+        zoom?: number;
+    }
+
+    export class PixelReference {
+        //The pixel is defined relative to the map control’s root element, where the top left corner of the map control is (0, 0). Using this option might cause a page reflow which may negatively impact performance.
+        static control: string;
+        //The pixel is defined relative to the page, where the top left corner of the HTML page is (0, 0). This option is best used when working with mouse or touch events. Using this option might cause a page reflow which may negatively impact performance.
+        static page: string;
+        //The pixel is defined in viewport coordinates, relative to the center of the map, where the center of the map is (0, 0). This option is best used for positioning geo-aligned entities added to the user layer.
+        static viewport: string;
+
+        static isValid(reference: PixelReference): boolean;
+    }
+
+    export class Point {
+        constructor (x: number, y: number);
+
+        x: number;
+        y: number;
+
+        static areEqual(point1: Point, point2: Point): boolean;
+        static clone(point: Point): Point;
+
+        clone(): Point;
+        toString(): string;
+    }
+
+    export class Infobox implements Entity { }
+
+    export class Polygon implements Entity {
+        constructor (locations: Location[], options?: PolygonOptions);
+
+        getFillColor(): Color;
+        getLocations(): Location[];
+        getStrokeColor(): Color;
+        getStrokeDashArray(): string;
+        getStrokeThickness(): number;
+        getVisible(): boolean;
+        setLocations(locations: Location[]): void;
+        setOptions(options: PolylineOptions): void;
+        toString(): string;
+
+        click: (eventArgs: MouseEventArgs) => any;
+        dbclick: (eventArgs: MouseEventArgs) => any;
+        entitychanged: (entity: Entity) => any;
+        mousedown: (eventArgs: MouseEventArgs) => any;
+        mouseout: (eventArgs: MouseEventArgs) => any;
+        mouseover: (eventArgs: MouseEventArgs) => any;
+        mouseup: (eventArgs: MouseEventArgs) => any;
+        rightclick: (eventArgs: MouseEventArgs) => any;
+    }
+
+    export class Polyline implements Entity {
+        constructor (locations: Location[], options?: PolylineOptions);
+
+        getLocations(): Location[];
+        getStrokeColor(): Color;
+        getStrokeDashArray(): string;
+        getStrokeThickness(): number;
+        getVisible(): boolean;
+        setLocations(locations: Location[]): void;
+        setOptions(options: PolylineOptions): void;
+        toString(): string;
+
+        click: (eventArgs: MouseEventArgs) => any;
+        dbclick: (eventArgs: MouseEventArgs) => any;
+        entitychanged: (entity: Entity) => any;
+        mousedown: (eventArgs: MouseEventArgs) => any;
+        mouseout: (eventArgs: MouseEventArgs) => any;
+        mouseover: (eventArgs: MouseEventArgs) => any;
+        mouseup: (eventArgs: MouseEventArgs) => any;
+        rightclick: (eventArgs: MouseEventArgs) => any;
+    }
+
+    export class Pushpin implements Entity {
+        constructor (location: Location, options?: PushpinOptions);
+        getAnchor(): Point;
+        getIcon(): string;
+        getHeight(): number;
+        getLocation(): Location;
+        getText(): string;
+        getTextOffset(): Point;
+        getTypeName(): string;
+        getVisible(): boolean;
+        getWidth(): number;
+        getZIndex(): number;
+        setLocation(location: Location): void;
+        setOptions(options: PushpinOptions): void;
+        toString(): string;
+
+        click: (eventArgs: MouseEventArgs) => any;
+        dblclick: (eventArgs: MouseEventArgs) => any;
+        drag: (object: Pushpin) => any;
+        dragend: (eventArgs: MouseEventArgs) => any;
+        dragstart: (eventArgs: MouseEventArgs) => any;
+        entitychanged: (object: { entity: Entity; }) => any;
+        mousedown: (eventArgs: MouseEventArgs) => any;
+        mouseout: (eventArgs: MouseEventArgs) => any;
+        mouseover: (eventArgs: MouseEventArgs) => any;
+        mouseup: (eventArgs: MouseEventArgs) => any;
+        rightclick: (eventArgs: MouseEventArgs) => any;
+    }
+
+    export class TileLayer implements Entity {
+        constructor (options: TileLayerOptions);
+
+        getOpacty(): number;
+        /*
+        Returns the tile source of the tile layer.
+        The projection parameter accepts the following values: mercator, enhancedBirdseyeNorthUp, enhancedBirdseyeSouthUp, enhancedBirdseyeEastUp, enhancedBirdseyeWestUp
+        */
+        getTileSource(projection: string): TileSource;
+        getZIndex(): number;
+        setOptions(options: TileLayerOptions): void;
+        toString(): string;
+
+        tiledownloadcomplete: () => any;
+    }
+
+    export class PositionError {
+        /*
+            The error code.
+            Any one of the following error codes may be returned:
+            0 - An error occurred that is not covered by other error codes.
+
+            1 - The application does not have permission to use the GeoLocation API.
+
+            2 - The position of the host device could not be determined.
+
+            3 - The specified timeout was exceeded.
+        */
+        code: number;
+
+        //The error message. This message is for the developer and is not intended to be displayed to the end user.
+        message: string;
+    }
+
+    export class LabelOverlay {
+        //Map labels are not shown on top of imagery.
+        static hidden: string;
+        //Map labels are shown on top of imagery.
+        static visible: string;
+
+        static isValid(labelOverlay: LabelOverlay): boolean;
+    }
+
+    export class EntityState {
+        //The entity is highlighted on the map.
+        static highlighted: string;
+
+        //The entity is not highlighted or selected.
+        static none: string;
+
+        //The entity is selected on the map.
+        static selected: string;
+    }
+
+    /*
+        Defines a tile layer’s visibility during animation.
+    */
+    export class AnimationVisibility {
+        //The map control determines whether or not to show a tile layer based on system capability. If a browser can render a tile layer with acceptable performance, it is displayed during animations.
+        static auto: string;
+
+        //The tile layer is not displayed during animation.
+        static hide: string;
+
+        //The tile layer is displayed during animations. This option may impact performance on older browsers.
+        static show: string;
+    }
+
+    export class InfoboxType {
+        //A smaller info box with space for a title.
+        static mini: string;
+
+        //The default info box style. This standard info box makes space for a title, title link, description, and other links if they are specified.
+        static standard: string;
+    }
+
+    export class Position {
+        //The position as a W3C Coordinates object.
+        coords: Coordinates;
+        //The time when the position was determined, in the form of a DOMTimeStamp.
+        timestamp: string;
+    }
+
+    export interface TileSourceOptions {
+        height?: number;
+        //The string that constructs the URLs used to retrieve tiles from the tile source. This property is required. The uriConstructor will replace {subdomain} and {quadkey}.
+        uriConstructor: string;
+        width?: number;
+    }
+
+    export class TileSource {
+        constructor (options: TileSourceOptions);
+
+        getHeight(): number;
+        getUriConstructor(): string;
+        getWidth(): string;
+        toString(): string;
+    }
+
+    export interface TileLayerOptions {
+        animationDisplay?: AnimationVisibility;
+        downloadTimeout?: number;
+        mercator?: TileSource;
+        opacity?: number;
+        visible?: boolean;
+        zIndex?: number;
+    }
+
+    export interface PushpinOptions {
+        anchor?: Point;
+        draggable?: boolean;
+        height?: number;
+        htmlContent?: string;
+        icon?: string;
+        infobox?: Infobox;
+        state?: EntityState;
+        text?: string;
+        textOffset?: Point;
+        typeName?: string;
+        visible?: boolean;
+        width?: number;
+        zIndex?: number;
+    }
+
+    export interface PositionOptions {
+        enableHighAccuracy?: boolean;
+        /*
+        The function to call when an error occurs during the user location request. The callback function must accept one argument.
+        The argument object contains two properties, internalError, a PositionError type, and errorCode, a number.
+        
+        Any one of the following errorCode values may be returned:
+        1 - The application origin does not have permission to use the GeoLocation API.
+
+        2 - The position of the user could not be determined because of a device failure.
+
+        3 - The time specified in timeout has been exceeded.
+
+        4 - A request is already in process.
+
+        5 - The user’s browser does not support geo location.
+        */
+        errorCallback?: (internalError: PositionError, errorCode: number) => void;
+        maximumAge?: number;
+        showAccuracyCircle?: boolean;
+        successCallback?: (center: Location, position: Position) => void;
+        timeout?: number;
+        updateMapView?: boolean;
+    }
+
+    //TODO: Change options interfaces so a concrete class and an interface exists
+    export interface PositionCircleOptions {
+        //The polygon options for the geo location accuracy circle.
+        polygonOptions?: PolygonOptions;
+        //A boolean indicating whether to display the geo location accuracy circle. The default value is true. If this property is set to false, a geo location accuracy circle is not drawn and any existing accuracy circles are removed.
+        showOnMap?: boolean;
+    }
+
+    export interface PolylineOptions {
+        //The color of the outline of the polygon.
+        strokeColor?: Color;
+        //A string representing the stroke/gap sequence to use to draw the outline of the polygon. The string must be in the format S, G, S*, G*, where S represents the stroke length and G represents gap length. Stroke lengths and gap lengths can be separated by commas or spaces. For example, a stroke dash string of “1 4 2 1” would draw the polygon outline with a dash, four spaces, two dashes, one space, and then repeated.
+        strokeDashArray?: string;
+        //The thickness of the outline of the polygon.
+        strokeThickness?: number;
+        //A boolean indicating whether to show or hide the polygon. A value of false indicates that the polygon is hidden, although it is still an entity on the map.
+        visible?: boolean;
+    }
+
+    export interface PolygonOptions {
+        //The color of the inside of the polygon.
+        fillColor?: Color;
+        //The info box associated with this polygon. If an info box is assigned and the Microsoft.Maps.Themes.BingTheme module is loaded, then the info box appears when the hover or click events of the polygon occur.
+        infobox?: Infobox;
+        //The color of the outline of the polygon.
+        strokeColor?: Color;
+        //A string representing the stroke/gap sequence to use to draw the outline of the polygon. The string must be in the format S, G, S*, G*, where S represents the stroke length and G represents gap length. Stroke lengths and gap lengths can be separated by commas or spaces. For example, a stroke dash string of “1 4 2 1” would draw the polygon outline with a dash, four spaces, two dashes, one space, and then repeated.
+        strokeDashArray?: string;
+        //The thickness of the outline of the polygon.
+        strokeThickness?: number;
+        //A boolean indicating whether to show or hide the polygon. A value of false indicates that the polygon is hidden, although it is still an entity on the map.
+        visible?: boolean;
+    }
+
+    export interface InfoboxOptions {
+        //A list of the info box actions, where each item is a label (the link text) or icon (the URL of the image to use as the icon link) and eventHandler (name of the function handling a click of the action link).
+        actions?: { label?: string; icon?: string; eventHandler: () => void; };
+        //The string displayed inside the info box.
+        description?: string;
+        htmlContent?: string;
+        id?: string;
+        location?: Location;
+        offset?: Point;
+        showCloseButton?: boolean;
+        showPointer?: boolean;
+        pushpin?: Pushpin;
+        title?: string;
+        titleAction?: { label?: string; eventHandler: () => void; };
+        titleClickHandler?: string;
+        typeName?: InfoboxType;
+        visible?: boolean;
+        width?: number;
+        height?: number;
+    }
+
+    /*
+        Contains a collection of entities. An Entity can be any one of the following types: Infobox, Polygon, Polyline, Pushpin, TileLayer, or EntityCollection.
+    */
+    export interface EntityCollectionOptions {
+        bubble?: boolean;
+        visible?: boolean;
+        zIndex?: number;
+    }
+
+    export class EntityCollection implements Entity {
+        /*
+         * CONSTRUCTOR
+         */
+
+        /*
+            Initializes a new instance of the EntityCollection class.
+        */
+        EntityCollection(options?: EntityCollectionOptions);
+
+        /*
+         * METHODS
+         */
+
+        /*
+            Removes all entities from the collection.
+        */
+        clear(): void;
+        get(index: number): Entity;
+        getLength(): number;
+        getVisible(): boolean;
+        getZIndex(): number;
+        indexOf(entity: Entity): number;
+        insert(entity: Entity, index: number): void;
+        pop(): Entity;
+        push(entity: Entity): void;
+        remove(entity: Entity): Entity;
+        removeAt(index: number): Entity;
+        setOptions(options: EntityCollectionOptions): void;
+        toString(): string;
+
+        //Events
+        entityAdded: (object: { collection: EntityCollection; entity: Entity; }) => any;
+        entityChanged: (object: { collection: EntityCollection; entity: Entity; }) => any;
+        entityRemoved: (object: { collection: EntityCollection; entity: Entity; }) => any;
+    }
+
+    export class Map {
+        //Constructors
+        constructor (mapElement: HTMLElement, options?: MapOptions);
+        constructor (mapElement: HTMLElement, options?: ViewOptions);
+        width: number;
+        height: number;
+
+        //Properties
+        entities: EntityCollection;
+
+        //Static Methods
+        getVersion(): string;
+
+        //Methods
+        blur(): void;
+        dispose(): void;
+        focus(): void;
+        getBounds(): LocationRect;
+        getCenter(): Location;
+        getCopyrights(callback: (attributions: string[]) => void ): string[];
+        getCredentials(callback: (credentials: string) => void ): void;
+        getHeading(): number;
+        getHeight(): number;
+        getImageryId(): string;
+        getMapTypeId(): string;
+        getMetersPerPixel(): number;
+        getMode(): MapMode;
+        getModeLayer(): Node;
+        getOptions(): MapOptions;
+        getPageX(): number;
+        getRootElement(): Node;
+        getTargetBounds(): LocationRect;
+        getTargetCenter(): Location;
+        getTargetHeading(): number;
+        getTargetMetersPerPixel(): number;
+        getTargetZoom(): number;
+        getUserLayer(): Node;
+        getViewportX(): number;
+        getViewportY(): number;
+        getWidth(): number;
+        getZoom(): number;
+        getZoomRange(): { min: number; max: number; };
+        isDownloadingTiles(): boolean;
+        isMercator(): boolean;
+        isRotationEnabled(): boolean;
+        setMapType(mapTypeId: string): void;
+        setOptions(options: { height: number; width: number; }): void;
+        setView(options: ViewOptions): void;
+        restrictZoom(min: number, max: number);
+        tryLocationToPixel(location: Location, reference?: PixelReference): Point;
+        tryLocationToPixel(location: Location[], reference?: PixelReference): Point[];
+        tryPixelToLocation(point: Point, reference?: PixelReference): Location;
+        tryPixelToLocation(point: Point[], reference?: PixelReference): Location[];
+
+        //Events
+        click: (eventArgs: MouseEventArgs) => any;
+        copyrightchanged: () => any;
+        dblclick: (eventArgs: MouseEventArgs) => any;
+        imagerychanged: () => any;
+        keydown: (eventArgs: KeyEventArgs) => any;
+        keypress: (eventArgs: KeyEventArgs) => any;
+        keyup: (eventArgs: KeyEventArgs) => any;
+        maptypechanged: () => any;
+        mousedown: (eventArgs: MouseEventArgs) => any;
+        mousemove: (eventArgs: MouseEventArgs) => any;
+        mouseout: (eventArgs: MouseEventArgs) => any;
+        mouseover: (eventArgs: MouseEventArgs) => any;
+        mouseup: (eventArgs: MouseEventArgs) => any;
+        mousewheel: (eventArgs: MouseEventArgs) => any;
+        rightlick: (eventArgs: MouseEventArgs) => any;
+        targetviewchanged: () => any;
+        tiledownloadcomplete: () => any;
+        viewchange: () => any;
+        viewchangeend: () => any;
+        viewchangestart: () => any;
+    }
+
+    module Events {
+        function addHandler(target: any, eventName: string, handler: any);
+        function addThrottledHandler(target: any, eventName: string, handler: any, throttleInterval: any);
+    }
+}
+declare var Quill: quill.QuillStatic;
+declare var Delta: quill.DeltaStatic;
+
+declare module quill {
+    interface EventEmitter2 {
+        on(event: string, listener: Function);
+        off(event: string, listener: Function);
+        removeAllListeners(event?: string);
+        emit(event: string, ...args: any[]);
+    }
+
+    interface Range {
+        start: number;
+        end: number;
+    }
+
+    interface QuillEvents {
+        FORMAT_INIT: string;
+        MODULE_INIT: string;
+        POST_EVENT: string;
+        PRE_EVENT: string;
+        SELECTION_CHANGE: string;
+        TEXT_CHANGE: string;
+    }
+
+    interface Quill extends EventEmitter2 {
+        container: HTMLElement;
+        root: HTMLElement;
+        getText(start?: number, end?: number): string;
+        getLength(): number;
+        getContents(start?: number, end?: number): Delta;
+        getHTML(): string;
+        
+        insertText(index: number, text: string)
+        insertText(index: number, text: string, name: string, value: string)
+        insertText(index: number, text: string, formats: FormatAttributes)
+        insertText(index: number, text: string, source: string)
+        insertText(index: number, text: string, name: string, value: string, source: string)
+        insertText(index: number, text: string, formats: FormatAttributes, source: string)
+
+        deleteText(start, end, source): void;
+        formatText(start: number, end: number, name: string, value: any, source: string): void;
+        formatText(range: any, name: string, value: any, source: string): void;
+        insertEmbed(index, type, url, source): void;
+        updateContents(delta, source): void;
+        setContents(delta, source): void;
+        setHTML(html, source): void;
+        setText(text, source): void;
+        
+        getSelection(): Range;
+
+        setSelection(start: number, end: number, source?: string): void;
+        setSelection(range: Range, source?: string): void;
+
+        prepareFormat(name, value, source): any;
+        focus(): any;
+        
+        addModule(name, options): any;
+        getModule(name): any;
+        onModuleLoad(name, callback): any;
+        addFormat(name, config): any;
+        addContainer(className, before): any;
+    }
+
+    interface FormatAttributes {
+        bold?: boolean;
+        italic?: boolean;
+        strike?: boolean;
+        underline?: boolean;
+        font?: string;
+        size?: string;
+        color?: string;
+        background?: string;
+        image?: string;
+        link?: string;
+        bullet?: boolean;
+        list?: boolean;
+        align?: string
+    }
+
+    interface QuillStatic {
+        new (container: any): Quill;
+        new (container: any, configs: any): Quill;
+        events: QuillEvents;
+    }
+
+    interface Delta {
+        ops?: Op[];
+
+        insert(text: string, attributes?: FormatAttributes): Delta;
+        insert(embed: number, attributes?: FormatAttributes): Delta;
+
+        delete(length: number): Delta;
+
+        retain(length: number, attributes?: FormatAttributes): Delta;
+
+        length(): number;
+
+        slice(): Delta;
+        slice(start: number): Delta;
+        slice(start: number, end: number): Delta;
+
+        compose(other: Delta): Delta;
+
+        transform(other: Delta, priority: boolean): Delta;
+        transform(index: number): number;
+
+        transformPosition(index: number): number;
+
+        diff(other: Delta): Delta;
+    }
+
+    interface DeltaStatic {
+        new (): Delta;
+    }
+
+    type Op = InsertOp | DeleteOp | RetainOp;
+
+    interface InsertOp {
+        insert: string | number;
+        attributes?: FormatAttributes;
+    }
+
+    interface DeleteOp {
+        delete: number;
+    }
+
+    interface RetainOp {
+        retain: number;
+        attributes?: FormatAttributes;
+    }
+}
+// Type definitions for Lo-Dash
+// Project: http://lodash.com/
+// Definitions by: Brian Zengel <https://github.com/bczengel>
+// Definitions: https://github.com/borisyankov/DefinitelyTyped
+
+declare var _: _.LoDashStatic;
+
+declare module _ {
+    interface LoDashStatic {
+        /**
+        * Creates a lodash object which wraps the given value to enable intuitive method chaining.
+        *
+        * In addition to Lo-Dash methods, wrappers also have the following Array methods:
+        * concat, join, pop, push, reverse, shift, slice, sort, splice, and unshift
+        *
+        * Chaining is supported in custom builds as long as the value method is implicitly or 
+        * explicitly included in the build.
+        *
+        * The chainable wrapper functions are:
+        * after, assign, bind, bindAll, bindKey, chain, compact, compose, concat, countBy, 
+        * createCallback, curry, debounce, defaults, defer, delay, difference, filter, flatten, 
+        * forEach, forEachRight, forIn, forInRight, forOwn, forOwnRight, functions, groupBy, 
+        * indexBy, initial, intersection, invert, invoke, keys, map, max, memoize, merge, min, 
+        * object, omit, once, pairs, partial, partialRight, pick, pluck, pull, push, range, reject, 
+        * remove, rest, reverse, shuffle, slice, sort, sortBy, splice, tap, throttle, times, 
+        * toArray, transform, union, uniq, unshift, unzip, values, where, without, wrap, and zip
+        *
+        * The non-chainable wrapper functions are:
+        * clone, cloneDeep, contains, escape, every, find, findIndex, findKey, findLast, 
+        * findLastIndex, findLastKey, has, identity, indexOf, isArguments, isArray, isBoolean, 
+        * isDate, isElement, isEmpty, isEqual, isFinite, isFunction, isNaN, isNumber, 
+        * isObject, isPlainObject, isRegExp, isString, join, lastIndexOf, mixin, 
+        * noConflict, parseInt, pop, random, reduce, reduceRight, result, shift, size, some, 
+        * sortedIndex, runInContext, template, unescape, uniqueId, and value
+        *
+        * The wrapper functions first and last return wrapped values when n is provided, otherwise 
+        * they return unwrapped values.
+        *
+        * Explicit chaining can be enabled by using the _.chain method.
+        **/
+        (value: number): LoDashWrapper<number>;
+        (value: string): LoDashWrapper<string>;
+        (value: boolean): LoDashWrapper<boolean>;
+        <T>(value: Array<T>): LoDashArrayWrapper<T>;
+        <T extends {}>(value: T): LoDashObjectWrapper<T>;
+        (value: any): LoDashWrapper<any>;
+
+        /**
+        * The semantic version number.
+        **/
+        VERSION: string;
+
+        /**
+        * An object used to flag environments features.
+        **/
+        support: Support;
+
+        /**
+        * By default, the template delimiters used by Lo-Dash are similar to those in embedded Ruby 
+        * (ERB). Change the following template settings to use alternative delimiters.
+        **/
+        templateSettings: TemplateSettings;
+    }
+
+    /**
+    * By default, the template delimiters used by Lo-Dash are similar to those in embedded Ruby 
+    * (ERB). Change the following template settings to use alternative delimiters.
+    **/
+    interface TemplateSettings {
+        /**
+        * The "escape" delimiter.
+        **/
+        escape?: RegExp;
+
+        /**
+        * The "evaluate" delimiter.
+        **/
+        evaluate?: RegExp;
+
+        /**
+        * An object to import into the template as local variables.
+        **/
+        imports?: Dictionary<any>;
+
+        /**
+        * The "interpolate" delimiter.
+        **/
+        interpolate?: RegExp;
+
+        /**
+        * Used to reference the data object in the template text.
+        **/
+        variable?: string;
+    }
+
+    /**
+    * An object used to flag environments features.
+    **/
+    interface Support {
+        /**
+        * Detect if an arguments object’s [[Class]] is resolvable (all but Firefox < 4, IE < 9).
+        **/
+        argsClass: boolean;
+
+        /**
+        * Detect if arguments objects are Object objects (all but Narwhal and Opera < 10.5).
+        **/
+        argsObject: boolean;
+
+        /**
+        * Detect if name or message properties of Error.prototype are enumerable by default. 
+        * (IE < 9, Safari < 5.1)
+        **/
+        enumErrorProps: boolean;
+
+        /**
+        * Detect if Function#bind exists and is inferred to be fast (all but V8).
+        **/
+        fastBind: boolean;
+
+        /**
+        * Detect if functions can be decompiled by Function#toString (all but PS3 and older Opera 
+        * mobile browsers & avoided in Windows 8 apps).
+        **/
+        funcDecomp: boolean;
+
+        /**
+        * Detect if Function#name is supported (all but IE).
+        **/
+        funcNames: boolean;
+
+        /**
+        * Detect if arguments object indexes are non-enumerable (Firefox < 4, IE < 9, PhantomJS, 
+        * Safari < 5.1).
+        **/
+        nonEnumArgs: boolean;
+
+        /**
+        * Detect if properties shadowing those on Object.prototype are non-enumerable.
+        *
+        * In IE < 9 an objects own properties, shadowing non-enumerable ones, are made 
+        * non-enumerable as well (a.k.a the JScript [[DontEnum]] bug).
+        **/
+        nonEnumShadows: boolean;
+
+        /**
+        * Detect if own properties are iterated after inherited properties (all but IE < 9).
+        **/
+        ownLast: boolean;
+
+        /**
+        * Detect if Array#shift and Array#splice augment array-like objects correctly.
+        *
+        * Firefox < 10, IE compatibility mode, and IE < 9 have buggy Array shift() and splice() 
+        * functions that fail to remove the last element, value[0], of array-like objects even 
+        * though the length property is set to 0. The shift() method is buggy in IE 8 compatibility 
+        * mode, while splice() is buggy regardless of mode in IE < 9 and buggy in compatibility mode
+        * in IE 9.
+        **/
+        spliceObjects: boolean;
+
+        /**
+        * Detect lack of support for accessing string characters by index.
+        *
+        * IE < 8 can't access characters by index and IE 8 can only access characters by index on 
+        * string literals.
+        **/
+        unindexedChars: boolean;
+    }
+
+    interface LoDashWrapperBase<T, TWrapper> {
+        /**
+        * Produces the toString result of the wrapped value.
+        * @return Returns the string result.
+        **/
+        toString(): string;
+
+        /**
+        * Extracts the wrapped value.
+        * @return The wrapped value.
+        **/
+        valueOf(): T;
+
+        /**
+        * @see valueOf
+        **/
+        value(): T;
+    }
+
+    interface LoDashWrapper<T> extends LoDashWrapperBase<T, LoDashWrapper<T>> { }
+
+    interface LoDashObjectWrapper<T> extends LoDashWrapperBase<T, LoDashObjectWrapper<T>> { }
+
+    interface LoDashArrayWrapper<T> extends LoDashWrapperBase<T[], LoDashArrayWrapper<T>> {
+        concat(...items: T[]): LoDashArrayWrapper<T>;
+        join(seperator?: string): LoDashWrapper<string>;
+        pop(): LoDashWrapper<T>;
+        push(...items: T[]): void;
+        reverse(): LoDashArrayWrapper<T>;
+        shift(): LoDashWrapper<T>;
+        slice(start: number, end?: number): LoDashArrayWrapper<T>;
+        sort(compareFn?: (a: T, b: T) => number): LoDashArrayWrapper<T>;
+        splice(start: number): LoDashArrayWrapper<T>;
+        splice(start: number, deleteCount: number, ...items: any[]): LoDashArrayWrapper<T>;
+        unshift(...items: any[]): LoDashWrapper<number>;
+    }
+
+    //_.chain
+    interface LoDashStatic {
+        /**
+        * Creates a lodash object that wraps the given value with explicit method chaining enabled.
+        * @param value The value to wrap.
+        * @return The wrapper object.
+        **/
+        chain(value: number): LoDashWrapper<number>;
+        chain(value: string): LoDashWrapper<string>;
+        chain(value: boolean): LoDashWrapper<boolean>;
+        chain<T>(value: Array<T>): LoDashArrayWrapper<T>;
+        chain<T extends {}>(value: T): LoDashObjectWrapper<T>;
+        chain(value: any): LoDashWrapper<any>;
+    }
+
+    interface LoDashWrapperBase<T, TWrapper> {
+        /**
+        * Enables explicit method chaining on the wrapper object.
+        * @see _.chain
+        * @return The wrapper object.
+        **/
+        chain(): TWrapper;
+    }
+
+    //_.tap
+    interface LoDashStatic {
+        /**
+        * Invokes interceptor with the value as the first argument and then returns value. The 
+        * purpose of this method is to "tap into" a method chain in order to perform operations on 
+        * intermediate results within the chain.
+        * @param value The value to provide to interceptor
+        * @param interceptor The function to invoke.
+        * @return value
+        **/
+        tap<T>(
+            value: T,
+            interceptor: (value: T) => void): T;
+    }
+
+    interface LoDashWrapperBase<T, TWrapper> {
+        /**
+        * @see _.tap
+        **/
+        tap(interceptor: (value: T) => void): TWrapper;
+    }
+
+    /*********
+    * Arrays *
+    **********/
+
+    //_.compact
+    interface LoDashStatic {
+        /**
+        * Returns a copy of the array with all falsy values removed. In JavaScript, false, null, 0, "",
+        * undefined and NaN are all falsy.
+        * @param array Array to compact.
+        * @return (Array) Returns a new array of filtered values.
+        **/
+        compact<T>(array: Array<T>): T[];
+
+        /**
+        * @see _.compact
+        **/
+        compact<T>(array: List<T>): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.compact
+        **/
+        compact(): LoDashArrayWrapper<T>;
+    }
+
+    //_.difference
+    interface LoDashStatic {
+        /**
+        * Creates an array excluding all values of the provided arrays using strict equality for comparisons
+        * , i.e. ===.
+        * @param array The array to process
+        * @param others The arrays of values to exclude.
+        * @return Returns a new array of filtered values.
+        **/
+        difference<T>(
+            array: Array<T>,
+            ...others: Array<T>[]): T[];
+        /**
+        * @see _.difference
+        **/
+        difference<T>(
+            array: List<T>,
+            ...others: List<T>[]): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.difference
+        **/
+        difference(
+            ...others: Array<T>[]): LoDashArrayWrapper<T>;
+        /**
+        * @see _.difference
+        **/
+        difference(
+            ...others: List<T>[]): LoDashArrayWrapper<T>;
+    }
+
+    //_.findIndex
+    interface LoDashStatic {
+        /**
+        * This method is like _.find except that it returns the index of the first element that passes 
+        * the callback check, instead of the element itself.
+        * @param array The array to search.
+        * @param {(Function|Object|string)} callback The function called per iteration. If a property name or object is provided it will be 
+        * used to create a ".pluck" or ".where" style callback, respectively.
+        * @param thisArg The this binding of callback.
+        * @return Returns the index of the found element, else -1.
+        **/
+        findIndex<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.findIndex
+        **/
+        findIndex<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.findIndex
+        **/
+        findIndex<T>(
+            array: Array<T>,
+            pluckValue: string): number;
+
+        /**
+        * @see _.findIndex
+        **/
+        findIndex<T>(
+            array: List<T>,
+            pluckValue: string): number;
+
+        /**
+        * @see _.findIndex
+        **/
+        findIndex<W, T>(
+            array: Array<T>,
+            whereDictionary: W): number;
+
+        /**
+        * @see _.findIndex
+        **/
+        findIndex<W, T>(
+            array: List<T>,
+            whereDictionary: W): number;
+    }
+
+    //_.findLastIndex
+    interface LoDashStatic {
+        /**
+        * This method is like _.findIndex except that it iterates over elements of a collection from right to left.
+        * @param array The array to search.
+        * @param {(Function|Object|string)} callback The function called per iteration. If a property name or object is provided it will be 
+        * used to create a ".pluck" or ".where" style callback, respectively.
+        * @param thisArg The this binding of callback.
+        * @return Returns the index of the found element, else -1.
+        **/
+        findLastIndex<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.findLastIndex
+        **/
+        findLastIndex<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.findLastIndex
+        **/
+        findLastIndex<T>(
+            array: Array<T>,
+            pluckValue: string): number;
+
+        /**
+        * @see _.findLastIndex
+        **/
+        findLastIndex<T>(
+            array: List<T>,
+            pluckValue: string): number;
+
+        /**
+        * @see _.findLastIndex
+        **/
+        findLastIndex<T>(
+            array: Array<T>,
+            whereDictionary: Dictionary<any>): number;
+
+        /**
+        * @see _.findLastIndex
+        **/
+        findLastIndex<T>(
+            array: List<T>,
+            whereDictionary: Dictionary<any>): number;
+    }
+
+    //_.first
+    interface LoDashStatic {
+        /**
+        * Gets the first element or first n elements of an array. If a callback is provided 
+        * elements at the beginning of the array are returned as long as the callback returns 
+        * truey. The callback is bound to thisArg and invoked with three arguments; (value, 
+        * index, array).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback 
+        * will return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return ]
+        * true for elements that have the properties of the given object, else false.
+        * @param array Retrieves the first element of this array.
+        * @return Returns the first element of `array`.
+        **/
+        first<T>(array: Array<T>): T;
+
+        /**
+        * @see _.first
+        **/
+        first<T>(array: List<T>): T;
+
+        /**
+        * @see _.first
+        * @param n The number of elements to return.
+        **/
+        first<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.first
+        * @param n The number of elements to return.
+        **/
+        first<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.first
+        * @param callback The function called per element.
+        * @param [thisArg] The this binding of callback.
+        **/
+        first<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.first
+        * @param callback The function called per element.
+        * @param [thisArg] The this binding of callback.
+        **/
+        first<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.first
+        * @param pluckValue "_.pluck" style callback value
+        **/
+        first<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.first
+        * @param pluckValue "_.pluck" style callback value
+        **/
+        first<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.first
+        * @param whereValue "_.where" style callback value
+        **/
+        first<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.first
+        * @param whereValue "_.where" style callback value
+        **/
+        first<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<T>(array: Array<T>): T;
+
+        /**
+        * @see _.first
+        **/
+        head<T>(array: List<T>): T;
+
+        /**
+        * @see _.first
+        **/
+        head<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.first
+        **/
+        head<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<T>(array: Array<T>): T;
+
+        /**
+        * @see _.first
+        **/
+        take<T>(array: List<T>): T;
+
+        /**
+        * @see _.first
+        **/
+        take<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.first
+        **/
+        take<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.first
+        **/
+        first(): T;
+
+        /**
+        * @see _.first
+        * @param n The number of elements to return.
+        **/
+        first(n: number): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param callback The function called per element.
+        * @param [thisArg] The this binding of callback.
+        **/
+        first(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param pluckValue "_.pluck" style callback value
+        **/
+        first(pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param whereValue "_.where" style callback value
+        **/
+        first<W>(whereValue: W): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        **/
+        head(): T;
+
+        /**
+        * @see _.first
+        * @param n The number of elements to return.
+        **/
+        head(n: number): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param callback The function called per element.
+        * @param [thisArg] The this binding of callback.
+        **/
+        head(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param pluckValue "_.pluck" style callback value
+        **/
+        head(pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param whereValue "_.where" style callback value
+        **/
+        head<W>(whereValue: W): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        **/
+        take(): T;
+
+        /**
+        * @see _.first
+        * @param n The number of elements to return.
+        **/
+        take(n: number): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param callback The function called per element.
+        * @param [thisArg] The this binding of callback.
+        **/
+        take(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param pluckValue "_.pluck" style callback value
+        **/
+        take(pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.first
+        * @param whereValue "_.where" style callback value
+        **/
+        take<W>(whereValue: W): LoDashArrayWrapper<T>;
+    }
+
+    //_.flatten
+    interface LoDashStatic {
+        /**
+        * Flattens a nested array (the nesting can be to any depth). If isShallow is truey, the 
+        * array will only be flattened a single level. If a callback is provided each element of 
+        * the array is passed through the callback before flattening. The callback is bound to 
+        * thisArg and invoked with three arguments; (value, index, array).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param array The array to flatten.
+        * @param shallow If true then only flatten one level, optional, default = false.
+        * @return `array` flattened.
+        **/
+        flatten<T>(array: Array<any>, isShallow?: boolean): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(array: List<any>, isShallow?: boolean): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: Array<any>,
+            isShallow: boolean,
+            callback: ListIterator<any, T>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: List<any>,
+            isShallow: boolean,
+            callback: ListIterator<any, T>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: Array<any>,
+            callback: ListIterator<any, T>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: List<any>,
+            callback: ListIterator<any, T>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<W, T>(
+            array: Array<any>,
+            isShallow: boolean,
+            whereValue: W): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<W, T>(
+            array: List<any>,
+            isShallow: boolean,
+            whereValue: W): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<W, T>(
+            array: Array<any>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<W, T>(
+            array: List<any>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: Array<any>,
+            isShallow: boolean,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: List<any>,
+            isShallow: boolean,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: Array<any>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<T>(
+            array: List<any>,
+            pluckValue: string): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.flatten
+        **/
+        flatten<Flat>(isShallow?: boolean): LoDashArrayWrapper<Flat>;
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<Flat>(
+            isShallow: boolean,
+            callback: ListIterator<T, Flat>,
+            thisArg?: any): LoDashArrayWrapper<Flat>;
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<Flat>(
+            callback: ListIterator<T, Flat>,
+            thisArg?: any): LoDashArrayWrapper<Flat>;
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<Flat>(
+            isShallow: boolean,
+            pluckValue: string): LoDashArrayWrapper<Flat>;
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<Flat>(
+            pluckValue: string): LoDashArrayWrapper<Flat>;
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<Flat, W>(
+            isShallow: boolean,
+            whereValue: W): LoDashArrayWrapper<Flat>;
+
+        /**
+        * @see _.flatten
+        **/
+        flatten<Flat, W>(
+            whereValue: W): LoDashArrayWrapper<Flat>;
+    }
+
+    //_.indexOf
+    interface LoDashStatic {
+        /**
+        * Gets the index at which the first occurrence of value is found using strict equality 
+        * for comparisons, i.e. ===. If the array is already sorted providing true for fromIndex 
+        * will run a faster binary search.
+        * @param array The array to search.
+        * @param value The value to search for.
+        * @param fromIndex The index to search from.
+        * @return The index of `value` within `array`.
+        **/
+        indexOf<T>(
+            array: Array<T>,
+            value: T): number;
+
+        /**
+        * @see _.indexOf
+        **/
+        indexOf<T>(
+            array: List<T>,
+            value: T): number;
+
+        /**
+        * @see _.indexOf
+        * @param fromIndex The index to search from
+        **/
+        indexOf<T>(
+            array: Array<T>,
+            value: T,
+            fromIndex: number): number;
+
+        /**
+        * @see _.indexOf
+        * @param fromIndex The index to search from
+        **/
+        indexOf<T>(
+            array: List<T>,
+            value: T,
+            fromIndex: number): number;
+
+        /**
+        * @see _.indexOf
+        * @param isSorted True to perform a binary search on a sorted array.
+        **/
+        indexOf<T>(
+            array: Array<T>,
+            value: T,
+            isSorted: boolean): number;
+
+        /**
+        * @see _.indexOf
+        * @param isSorted True to perform a binary search on a sorted array.
+        **/
+        indexOf<T>(
+            array: List<T>,
+            value: T,
+            isSorted: boolean): number;
+    }
+
+    //_.initial
+    interface LoDashStatic {
+        /**
+        * Gets all but the last element or last n elements of an array. If a callback is provided 
+        * elements at the end of the array are excluded from the result as long as the callback 
+        * returns truey. The callback is bound to thisArg and invoked with three arguments; 
+        * (value, index, array).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param array The array to query.
+        * @param n Leaves this many elements behind, optional.
+        * @return Returns everything but the last `n` elements of `array`.
+        **/
+        initial<T>(
+            array: Array<T>): T[];
+
+        /**
+        * @see _.initial
+        **/
+        initial<T>(
+            array: List<T>): T[];
+
+        /**
+        * @see _.initial
+        * @param n The number of elements to exclude.
+        **/
+        initial<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.initial
+        * @param n The number of elements to exclude.
+        **/
+        initial<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.initial
+        * @param callback The function called per element
+        **/
+        initial<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>): T[];
+
+        /**
+        * @see _.initial
+        * @param callback The function called per element
+        **/
+        initial<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>): T[];
+
+        /**
+        * @see _.initial
+        * @param pluckValue _.pluck style callback
+        **/
+        initial<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.initial
+        * @param pluckValue _.pluck style callback
+        **/
+        initial<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.initial
+        * @param whereValue _.where style callback
+        **/
+        initial<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.initial
+        * @param whereValue _.where style callback
+        **/
+        initial<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+    }
+
+    //_.intersection
+    interface LoDashStatic {
+        /**
+        * Creates an array of unique values present in all provided arrays using strict 
+        * equality for comparisons, i.e. ===.
+        * @param arrays The arrays to inspect.
+        * @return Returns an array of composite values.
+        **/
+        intersection<T>(...arrays: Array<T>[]): T[];
+
+        /**
+        * @see _.intersection
+        **/
+        intersection<T>(...arrays: List<T>[]): T[];
+    }
+
+    //_.last
+    interface LoDashStatic {
+        /**
+        * Gets the last element or last n elements of an array. If a callback is provided 
+        * elements at the end of the array are returned as long as the callback returns truey. 
+        * The callback is bound to thisArg and invoked with three arguments; (value, index, array).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param array The array to query.
+        * @return Returns the last element(s) of array.
+        **/
+        last<T>(array: Array<T>): T;
+
+        /**
+        * @see _.last
+        **/
+        last<T>(array: List<T>): T;
+
+        /**
+        * @see _.last
+        * @param n The number of elements to return
+        **/
+        last<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.last
+        * @param n The number of elements to return
+        **/
+        last<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.last
+        * @param callback The function called per element
+        **/
+        last<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.last
+        * @param callback The function called per element
+        **/
+        last<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.last
+        * @param pluckValue _.pluck style callback
+        **/
+        last<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.last
+        * @param pluckValue _.pluck style callback
+        **/
+        last<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.last
+        * @param whereValue _.where style callback
+        **/
+        last<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.last
+        * @param whereValue _.where style callback
+        **/
+        last<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+    }
+
+    //_.lastIndexOf
+    interface LoDashStatic {
+        /**
+        * Gets the index at which the last occurrence of value is found using strict equality 
+        * for comparisons, i.e. ===. If fromIndex is negative, it is used as the offset from the 
+        * end of the collection.
+        * @param array The array to search.
+        * @param value The value to search for.
+        * @param fromIndex The index to search from.
+        * @return The index of the matched value or -1.
+        **/
+        lastIndexOf<T>(
+            array: Array<T>,
+            value: T,
+            fromIndex?: number): number;
+
+        /**
+        * @see _.lastIndexOf
+        **/
+        lastIndexOf<T>(
+            array: List<T>,
+            value: T,
+            fromIndex?: number): number;
+    }
+
+    //_.pull
+    interface LoDashStatic {
+        /**
+        * Removes all provided values from the given array using strict equality for comparisons, 
+        * i.e. ===.
+        * @param array The array to modify.
+        * @param values The values to remove.
+        * @return array.
+        **/
+        pull(
+            array: Array<any>,
+            ...values: any[]): any[];
+
+        /**
+        * @see _.pull
+        **/
+        pull(
+            array: List<any>,
+            ...values: any[]): any[];
+    }
+
+    //_.range
+    interface LoDashStatic {
+        /**
+        * Creates an array of numbers (positive and/or negative) progressing from start up 
+        * to but not including end. If start is less than stop a zero-length range is created 
+        * unless a negative step is specified.
+        * @param start The start of the range.
+        * @param end The end of the range.
+        * @param step The value to increment or decrement by.
+        * @return Returns a new range array.
+        **/
+        range(
+            start: number,
+            stop: number,
+            step?: number): number[];
+
+        /**
+        * @see _.range
+        * @param end The end of the range.
+        * @return Returns a new range array.
+        * @note If start is not specified the implementation will never pull the step (step = arguments[2] || 0)
+        **/
+        range(stop: number): number[];
+    }
+
+    //_.remove
+    interface LoDashStatic {
+        /**
+        * Removes all elements from an array that the callback returns truey for and returns 
+        * an array of removed elements. The callback is bound to thisArg and invoked with three 
+        * arguments; (value, index, array).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param array The array to modify.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return A new array of removed elements.
+        **/
+        remove(
+            array: Array<any>,
+            callback?: ListIterator<any, boolean>,
+            thisArg?: any): any[];
+
+        /**
+        * @see _.remove
+        **/
+        remove(
+            array: List<any>,
+            callback?: ListIterator<any, boolean>,
+            thisArg?: any): any[];
+
+        /**
+        * @see _.remove
+        * @param pluckValue _.pluck style callback
+        **/
+        remove(
+            array: Array<any>,
+            pluckValue?: string): any[];
+
+        /**
+        * @see _.remove
+        * @param pluckValue _.pluck style callback
+        **/
+        remove(
+            array: List<any>,
+            pluckValue?: string): any[];
+
+        /**
+        * @see _.remove
+        * @param whereValue _.where style callback
+        **/
+        remove(
+            array: Array<any>,
+            wherealue?: Dictionary<any>): any[];
+
+        /**
+        * @see _.remove
+        * @param whereValue _.where style callback
+        **/
+        remove(
+            array: List<any>,
+            wherealue?: Dictionary<any>): any[];
+    }
+
+    //_.rest
+    interface LoDashStatic {
+        /**
+        * The opposite of _.initial this method gets all but the first element or first n elements of 
+        * an array. If a callback function is provided elements at the beginning of the array are excluded 
+        * from the result as long as the callback returns truey. The callback is bound to thisArg and 
+        * invoked with three arguments; (value, index, array).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will return 
+        * the property value of the given element.
+        * 
+        * If an object is provided for callback the created "_.where" style callback will return true 
+        * for elements that have the properties of the given object, else false.
+        * @param array The array to query.
+        * @param {(Function|Object|number|string)} [callback=1] The function called per element or the number 
+        * of elements to exclude. If a property name or object is provided it will be used to create a 
+        * ".pluck" or ".where" style callback, respectively.
+        * @param {*} [thisArg] The this binding of callback.
+        * @return Returns a slice of array.
+        **/
+        rest<T>(array: Array<T>): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<T>(array: List<T>): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.rest
+        **/
+        rest<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(array: Array<T>): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(array: List<T>): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.rest
+        **/
+        drop<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(array: Array<T>): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(array: List<T>): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(
+            array: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(
+            array: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(
+            array: Array<T>,
+            n: number): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(
+            array: List<T>,
+            n: number): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.rest
+        **/
+        tail<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+    }
+
+    //_.sortedIndex
+    interface LoDashStatic {
+        /**
+        * Uses a binary search to determine the smallest index at which a value should be inserted 
+        * into a given sorted array in order to maintain the sort order of the array. If a callback 
+        * is provided it will be executed for value and each element of array to compute their sort 
+        * ranking. The callback is bound to thisArg and invoked with one argument; (value).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param array The sorted list.
+        * @param value The value to determine its index within `list`.
+        * @param callback Iterator to compute the sort ranking of each value, optional.
+        * @return The index at which value should be inserted into array.
+        **/
+        sortedIndex<T, TSort>(
+            array: Array<T>,
+            value: T,
+            callback?: (x: T) => TSort,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sortedIndex
+        **/
+        sortedIndex<T, TSort>(
+            array: List<T>,
+            value: T,
+            callback?: (x: T) => TSort,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sortedIndex
+        * @param pluckValue the _.pluck style callback
+        **/
+        sortedIndex<T>(
+            array: Array<T>,
+            value: T,
+            pluckValue: string): number;
+
+        /**
+        * @see _.sortedIndex
+        * @param pluckValue the _.pluck style callback
+        **/
+        sortedIndex<T>(
+            array: List<T>,
+            value: T,
+            pluckValue: string): number;
+
+        /**
+        * @see _.sortedIndex
+        * @param pluckValue the _.where style callback
+        **/
+        sortedIndex<W, T>(
+            array: Array<T>,
+            value: T,
+            whereValue: W): number;
+
+        /**
+        * @see _.sortedIndex
+        * @param pluckValue the _.where style callback
+        **/
+        sortedIndex<W, T>(
+            array: List<T>,
+            value: T,
+            whereValue: W): number;
+    }
+
+    //_.union
+    interface LoDashStatic {
+        /**
+        * Creates an array of unique values, in order, of the provided arrays using strict 
+        * equality for comparisons, i.e. ===.
+        * @param arrays The arrays to inspect.
+        * @return Returns an array of composite values.
+        **/
+        union<T>(...arrays: Array<T>[]): T[];
+
+        /**
+        * @see _.union
+        **/
+        union<T>(...arrays: List<T>[]): T[];
+    }
+
+    //_.uniq
+    interface LoDashStatic {
+        /**
+        * Creates a duplicate-value-free version of an array using strict equality for comparisons, 
+        * i.e. ===. If the array is sorted, providing true for isSorted will use a faster algorithm. 
+        * If a callback is provided each element of array is passed through the callback before 
+        * uniqueness is computed. The callback is bound to thisArg and invoked with three arguments; 
+        * (value, index, array).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param array Array to remove duplicates from.
+        * @param isSorted True if `array` is already sorted, optiona, default = false.
+        * @param iterator Transform the elements of `array` before comparisons for uniqueness.
+        * @param context 'this' object in `iterator`, optional.
+        * @return Copy of `array` where all elements are unique.
+        **/
+        uniq<T, TSort>(array: Array<T>, isSorted?: boolean): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        uniq<T, TSort>(array: List<T>, isSorted?: boolean): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        uniq<T, TSort>(
+            array: Array<T>,
+            isSorted: boolean,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        uniq<T, TSort>(
+            array: List<T>,
+            isSorted: boolean,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        uniq<T, TSort>(
+            array: Array<T>,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        uniq<T, TSort>(
+            array: List<T>,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        uniq<T>(
+            array: Array<T>,
+            isSorted: boolean,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        uniq<T>(
+            array: List<T>,
+            isSorted: boolean,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        uniq<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        uniq<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        uniq<W, T>(
+            array: Array<T>,
+            isSorted: boolean,
+            whereValue: W): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        uniq<W, T>(
+            array: List<T>,
+            isSorted: boolean,
+            whereValue: W): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        uniq<W, T>(
+            array: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        uniq<W, T>(
+            array: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        unique<T>(array: Array<T>, isSorted?: boolean): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        unique<T>(array: List<T>, isSorted?: boolean): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        unique<T, TSort>(
+            array: Array<T>,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        unique<T, TSort>(
+            array: List<T>,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        unique<T, TSort>(
+            array: Array<T>,
+            isSorted: boolean,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        **/
+        unique<T, TSort>(
+            array: List<T>,
+            isSorted: boolean,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        unique<T>(
+            array: Array<T>,
+            isSorted: boolean,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        unique<T>(
+            array: List<T>,
+            isSorted: boolean,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        unique<T>(
+            array: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        unique<T>(
+            array: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        unique<W, T>(
+            array: Array<T>,
+            whereValue?: W): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        unique<W, T>(
+            array: List<T>,
+            whereValue?: W): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        unique<W, T>(
+            array: Array<T>,
+            isSorted: boolean,
+            whereValue?: W): T[];
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        unique<W, T>(
+            array: List<T>,
+            isSorted: boolean,
+            whereValue?: W): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.uniq
+        **/
+        uniq<TSort>(isSorted?: boolean): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        **/
+        uniq<TSort>(
+            isSorted: boolean,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        **/
+        uniq<TSort>(
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        uniq(
+            isSorted: boolean,
+            pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        uniq(pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        uniq<W>(
+            isSorted: boolean,
+            whereValue: W): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        uniq<W>(
+            whereValue: W): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        **/
+        unique<TSort>(isSorted?: boolean): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        **/
+        unique<TSort>(
+            isSorted: boolean,
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        **/
+        unique<TSort>(
+            callback: ListIterator<T, TSort>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        unique(
+            isSorted: boolean,
+            pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param pluckValue _.pluck style callback
+        **/
+        unique(pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        unique<W>(
+            isSorted: boolean,
+            whereValue: W): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.uniq
+        * @param whereValue _.where style callback
+        **/
+        unique<W>(
+            whereValue: W): LoDashArrayWrapper<T>;        
+    }
+
+    //_.without
+    interface LoDashStatic {
+        /**
+        * Creates an array excluding all provided values using strict equality for comparisons, i.e. ===.
+        * @param array The array to filter.
+        * @param values The value(s) to exclude.
+        * @return A new array of filtered values.
+        **/
+        without<T>(
+            array: Array<T>,
+            ...values: T[]): T[];
+
+        /**
+        * @see _.without
+        **/
+        without<T>(
+            array: List<T>,
+            ...values: T[]): T[];
+    }
+
+    //_.xor
+    interface LoDashStatic {
+        /**
+        * Creates an array that is the symmetric difference of the provided arrays.
+        * @param array The array to process
+        * @param others The arrays of values to calculate the symmetric difference.
+        * @return Returns a new array of filtered values.
+        **/
+        xor<T>(
+            array: Array<T>,
+            ...others: Array<T>[]): T[];
+        /**
+        * @see _.xor
+        **/
+        xor<T>(
+            array: List<T>,
+            ...others: List<T>[]): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.xor
+        **/
+        xor(
+            ...others: Array<T>[]): LoDashArrayWrapper<T>;
+        /**
+        * @see _.xor
+        **/
+        xor(
+            ...others: List<T>[]): LoDashArrayWrapper<T>;
+    }
+    
+    //_.zip
+    interface LoDashStatic {
+        /**
+        * Creates an array of grouped elements, the first of which contains the first 
+        * elements of the given arrays, the second of which contains the second elements 
+        * of the given arrays, and so on.
+        * @param arrays Arrays to process.
+        * @return A new array of grouped elements.
+        **/
+        zip(...arrays: any[][]): any[][];
+
+        /**
+        * @see _.zip
+        **/
+        zip(...arrays: any[]): any[];
+
+        /**
+        * @see _.zip
+        **/
+        unzip(...arrays: any[][]): any[][];
+
+        /**
+        * @see _.zip
+        **/
+        unzip(...arrays: any[]): any[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.zip
+        **/
+        zip(...arrays: any[][]): _.LoDashArrayWrapper<any[][]>;
+
+        /**
+        * @see _.zip
+        **/
+        unzip(...arrays: any[]): _.LoDashArrayWrapper<any[][]>;
+    }
+
+    //_.zipObject
+    interface LoDashStatic {
+        /**
+        * Creates an object composed from arrays of keys and values. Provide either a single 
+        * two dimensional array, i.e. [[key1, value1], [key2, value2]] or two arrays, one of 
+        * keys and one of corresponding values.
+        * @param keys The array of keys.
+        * @param values The array of values.
+        * @return An object composed of the given keys and corresponding values.
+        **/
+        zipObject<TResult extends {}>(
+            keys: List<string>,
+            values: List<any>): TResult;
+
+        /**
+        * @see _.object
+        **/
+        object<TResult extends {}>(
+            keys: List<string>,
+            values: List<any>): TResult;
+    }
+
+    /* *************
+     * Collections *
+     ************* */
+
+    //_.at
+    interface LoDashStatic {
+        /**
+        * Creates an array of elements from the specified indexes, or keys, of the collection. 
+        * Indexes may be specified as individual arguments or as arrays of indexes.
+        * @param collection The collection to iterate over.
+        * @param indexes The indexes of collection to retrieve, specified as individual indexes or 
+        * arrays of indexes.
+        * @return A new array of elements corresponding to the provided indexes.
+        **/
+        at<T>(
+            collection: Array<T>,
+            indexes: number[]): T[];
+
+        /**
+        * @see _.at
+        **/
+        at<T>(
+            collection: List<T>,
+            indexes: number[]): T[];
+
+        /**
+        * @see _.at
+        **/
+        at<T>(
+            collection: Dictionary<T>,
+            indexes: number[]): T[];
+
+        /**
+        * @see _.at
+        **/
+        at<T>(
+            collection: Array<T>,
+            ...indexes: number[]): T[];
+
+        /**
+        * @see _.at
+        **/
+        at<T>(
+            collection: List<T>,
+            ...indexes: number[]): T[];
+
+        /**
+        * @see _.at
+        **/
+        at<T>(
+            collection: Dictionary<T>,
+            ...indexes: number[]): T[];
+    }
+
+    //_.contains
+    interface LoDashStatic {
+        /**
+        * Checks if a given value is present in a collection using strict equality for comparisons, 
+        * i.e. ===. If fromIndex is negative, it is used as the offset from the end of the collection.
+        * @param collection The collection to iterate over.
+        * @param target The value to check for.
+        * @param fromIndex The index to search from.
+        * @return True if the target element is found, else false.
+        **/
+        contains<T>(
+            collection: Array<T>,
+            target: T,
+            fromIndex?: number): boolean;
+
+        /**
+        * @see _.contains
+        **/
+        contains<T>(
+            collection: List<T>,
+            target: T,
+            fromIndex?: number): boolean;
+
+        /**
+        * @see _.contains
+        * @param dictionary The dictionary to iterate over.
+        * @param key The key in the dictionary to search for.
+        **/
+        contains<T>(
+            dictionary: Dictionary<T>,
+            key: string,
+            fromIndex?: number): boolean;
+
+        /**
+        * @see _.contains
+        * @param searchString the string to search
+        * @param targetString the string to search for
+        **/
+        contains(
+            searchString: string,
+            targetString: string,
+            fromIndex?: number): boolean;
+
+        /**
+        * @see _.contains
+        **/
+        include<T>(
+            collection: Array<T>,
+            target: T,
+            fromIndex?: number): boolean;
+
+        /**
+        * @see _.contains
+        **/
+        include<T>(
+            collection: List<T>,
+            target: T,
+            fromIndex?: number): boolean;
+
+        /**
+        * @see _.contains
+        **/
+        include<T>(
+            dictionary: Dictionary<T>,
+            key: string,
+            fromIndex?: number): boolean;
+
+        /**
+        * @see _.contains
+        **/
+        include(
+            searchString: string,
+            targetString: string,
+            fromIndex?: number): boolean;
+    }
+
+    //_.countBy
+    interface LoDashStatic {
+        /**
+        * Creates an object composed of keys generated from the results of running each element 
+        * of collection through the callback. The corresponding value of each key is the number 
+        * of times the key was returned by the callback. The callback is bound to thisArg and 
+        * invoked with three arguments; (value, index|key, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return Returns the composed aggregate object.
+        **/
+        countBy<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): Dictionary<number>;
+
+        /**
+        * @see _.countBy
+        * @param callback Function name
+        **/
+        countBy<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): Dictionary<number>;
+
+        /**
+        * @see _.countBy
+        * @param callback Function name
+        **/
+        countBy<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): Dictionary<number>;
+
+        /**
+        * @see _.countBy
+        * @param callback Function name
+        **/
+        countBy<T>(
+            collection: Array<T>,
+            callback: string,
+            thisArg?: any): Dictionary<number>;
+
+        /**
+        * @see _.countBy
+        * @param callback Function name
+        **/
+        countBy<T>(
+            collection: List<T>,
+            callback: string,
+            thisArg?: any): Dictionary<number>;
+
+        /**
+        * @see _.countBy
+        * @param callback Function name
+        **/
+        countBy<T>(
+            collection: Dictionary<T>,
+            callback: string,
+            thisArg?: any): Dictionary<number>;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.countBy
+        **/
+        countBy(
+            callback?: ListIterator<T, any>,
+            thisArg?: any): LoDashObjectWrapper<Dictionary<number>>;
+
+        /**
+        * @see _.countBy
+        * @param callback Function name
+        **/
+        countBy(
+            callback: string,
+            thisArg?: any): LoDashObjectWrapper<Dictionary<number>>;
+    }
+
+    //_.every
+    interface LoDashStatic {
+        /**
+        * Checks if the given callback returns truey value for all elements of a collection. 
+        * The callback is bound to thisArg and invoked with three arguments; (value, index|key, 
+        * collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return True if all elements passed the callback check, else false.
+        **/
+        every<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        every<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        every<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        every<T>(
+            collection: Array<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        every<T>(
+            collection: List<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        every<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.every
+        * @param whereValue _.where style callback
+        **/
+        every<W, T>(
+            collection: Array<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.every
+        * @param whereValue _.where style callback
+        **/
+        every<W, T>(
+            collection: List<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.every
+        * @param whereValue _.where style callback
+        **/
+        every<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.every
+        **/
+        all<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.every
+        **/
+        all<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.every
+        **/
+        all<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        all<T>(
+            collection: Array<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        all<T>(
+            collection: List<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.every
+        * @param pluckValue _.pluck style callback
+        **/
+        all<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.every
+        * @param whereValue _.where style callback
+        **/
+        all<W, T>(
+            collection: Array<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.every
+        * @param whereValue _.where style callback
+        **/
+        all<W, T>(
+            collection: List<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.every
+        * @param whereValue _.where style callback
+        **/
+        all<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): boolean;
+    }
+
+    //_.filter
+    interface LoDashStatic {
+        /**
+        * Iterates over elements of a collection, returning an array of all elements the 
+        * callback returns truey for. The callback is bound to thisArg and invoked with three 
+        * arguments; (value, index|key, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param context The this binding of callback.
+        * @return Returns a new array of elements that passed the callback check.
+        **/
+        filter<T>(
+            collection: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.filter
+        **/
+        filter<T>(
+            collection: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.filter
+        **/
+        filter<T>(
+            collection: Dictionary<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter<T>(
+            collection: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter<T>(
+            collection: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter<W, T>(
+            collection: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter<W, T>(
+            collection: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.filter
+        **/
+        select<T>(
+            collection: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.filter
+        **/
+        select<T>(
+            collection: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.filter
+        **/
+        select<T>(
+            collection: Dictionary<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select<T>(
+            collection: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select<T>(
+            collection: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select<W, T>(
+            collection: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select<W, T>(
+            collection: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.filter
+        **/
+        filter(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter(
+            pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        filter<W>(
+            whereValue: W): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.filter
+        **/
+        select(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select(
+            pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.filter
+        * @param pluckValue _.pluck style callback
+        **/
+        select<W>(
+            whereValue: W): LoDashArrayWrapper<T>;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.filter
+        **/
+        filter<T extends {}>(
+            callback: ObjectIterator<T, boolean>,
+            thisArg?: any): LoDashObjectWrapper<T>;
+    }
+
+    //_.find
+    interface LoDashStatic {
+        /**
+        * Iterates over elements of a collection, returning the first element that the callback 
+        * returns truey for. The callback is bound to thisArg and invoked with three arguments; 
+        * (value, index|key, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param collection Searches for a value in this list.
+        * @param callback The function called per iteration. 
+        * @param thisArg The this binding of callback.
+        * @return The found element, else undefined.
+        **/
+        find<T>(
+            collection: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        find<T>(
+            collection: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        find<T>(
+            collection: Dictionary<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        find<W, T>(
+            collection: Array<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        find<W, T>(
+            collection: List<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        find<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        find<T>(
+            collection: Array<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        find<T>(
+            collection: List<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        find<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        **/
+        detect<T>(
+            collection: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        detect<T>(
+            collection: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        detect<T>(
+            collection: Dictionary<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        detect<W, T>(
+            collection: Array<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        detect<W, T>(
+            collection: List<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        detect<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        detect<T>(
+            collection: Array<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        detect<T>(
+            collection: List<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        detect<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        **/
+        findWhere<T>(
+            collection: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        findWhere<T>(
+            collection: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        findWhere<T>(
+            collection: Dictionary<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        findWhere<W, T>(
+            collection: Array<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        findWhere<W, T>(
+            collection: List<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        findWhere<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        findWhere<T>(
+            collection: Array<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        findWhere<T>(
+            collection: List<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        findWhere<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.find
+        */
+        find(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+        /**
+        * @see _.find
+        * @param _.where style callback
+        */
+        find<W>(
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        */
+        find(
+            pluckValue: string): T;
+    }
+
+    //_.findLast
+    interface LoDashStatic {
+        /**
+        * This method is like _.find except that it iterates over elements of a collection from 
+        * right to left.
+        * @param collection Searches for a value in this list.
+        * @param callback The function called per iteration. 
+        * @param thisArg The this binding of callback.
+        * @return The found element, else undefined.
+        **/
+        findLast<T>(
+            collection: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        findLast<T>(
+            collection: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        **/
+        findLast<T>(
+            collection: Dictionary<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        findLast<W, T>(
+            collection: Array<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        findLast<W, T>(
+            collection: List<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.pluck style callback
+        **/
+        findLast<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        findLast<T>(
+            collection: Array<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        findLast<T>(
+            collection: List<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.find
+        * @param _.where style callback
+        **/
+        findLast<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.findLast
+        */
+        findLast(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T;
+        /**
+        * @see _.findLast
+        * @param _.where style callback
+        */
+        findLast<W>(
+            whereValue: W): T;
+
+        /**
+        * @see _.findLast
+        * @param _.where style callback
+        */
+        findLast(
+            pluckValue: string): T;
+    }
+
+    //_.groupBy
+    interface LoDashStatic {
+        /**
+        * Creates an object composed of keys generated from the results of running each element 
+        * of a collection through the callback. The corresponding value of each key is an array 
+        * of the elements responsible for generating the key. The callback is bound to thisArg 
+        * and invoked with three arguments; (value, index|key, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return Returns the composed aggregate object.
+        **/
+        groupBy<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): Dictionary<T[]>;
+
+        /**
+        * @see _.groupBy
+        **/
+        groupBy<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): Dictionary<T[]>;
+
+        /**
+        * @see _.groupBy
+        * @param pluckValue _.pluck style callback
+        **/
+        groupBy<T>(
+            collection: Array<T>,
+            pluckValue: string): Dictionary<T[]>;
+
+        /**
+        * @see _.groupBy
+        * @param pluckValue _.pluck style callback
+        **/
+        groupBy<T>(
+            collection: List<T>,
+            pluckValue: string): Dictionary<T[]>;
+
+        /**
+        * @see _.groupBy
+        * @param whereValue _.where style callback
+        **/
+        groupBy<W, T>(
+            collection: Array<T>,
+            whereValue: W): Dictionary<T[]>;
+
+        /**
+        * @see _.groupBy
+        * @param whereValue _.where style callback
+        **/
+        groupBy<W, T>(
+            collection: List<T>,
+            whereValue: W): Dictionary<T[]>;
+
+        /**
+        * @see _.groupBy
+        **/
+        groupBy<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): Dictionary<T[]>;
+
+        /**
+        * @see _.groupBy
+        * @param pluckValue _.pluck style callback
+        **/
+        groupBy<TValue>(
+            collection: Dictionary<TValue>,
+            pluckValue: string): Dictionary<TValue[]>;
+
+        /**
+        * @see _.groupBy
+        * @param whereValue _.where style callback
+        **/
+        groupBy<W, TValue>(
+            collection: Dictionary<TValue>,
+            whereValue: W): Dictionary<TValue[]>;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.groupBy
+        **/
+        groupBy(
+            callback: ListIterator<T, any>,
+            thisArg?: any): _.LoDashObjectWrapper<_.Dictionary<T[]>>;
+
+        /**
+        * @see _.groupBy
+        **/
+        groupBy(
+            pluckValue: string): _.LoDashObjectWrapper<_.Dictionary<T[]>>;
+
+        /**
+        * @see _.groupBy
+        **/
+        groupBy<W>(
+            whereValue: W): _.LoDashObjectWrapper<_.Dictionary<T[]>>;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.groupBy
+        **/
+        groupBy<TValue>(
+            callback: ListIterator<TValue, any>,
+            thisArg?: any): _.LoDashObjectWrapper<_.Dictionary<TValue[]>>;
+
+        /**
+        * @see _.groupBy
+        **/
+        groupBy<TValue>(
+            pluckValue: string): _.LoDashObjectWrapper<_.Dictionary<TValue[]>>;
+
+        /**
+        * @see _.groupBy
+        **/
+        groupBy<W, TValue>(
+            whereValue: W): _.LoDashObjectWrapper<_.Dictionary<TValue[]>>;
+    }
+
+    //_.indexBy
+    interface LoDashStatic {
+        /**
+        * Creates an object composed of keys generated from the results of running each element 
+        * of the collection through the given callback. The corresponding value of each key is 
+        * the last element responsible for generating the key. The callback is bound to thisArg 
+        * and invoked with three arguments; (value, index|key, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return Returns the composed aggregate object.
+        **/
+        indexBy<T>(
+            list: Array<T>,
+            iterator: ListIterator<T, any>,
+            context?: any): Dictionary<T>;
+
+        /**
+        * @see _.indexBy
+        **/
+        indexBy<T>(
+            list: List<T>,
+            iterator: ListIterator<T, any>,
+            context?: any): Dictionary<T>;
+
+        /**
+        * @see _.indexBy
+        * @param pluckValue _.pluck style callback
+        **/
+        indexBy<T>(
+            collection: Array<T>,
+            pluckValue: string): Dictionary<T>;
+
+        /**
+        * @see _.indexBy
+        * @param pluckValue _.pluck style callback
+        **/
+        indexBy<T>(
+            collection: List<T>,
+            pluckValue: string): Dictionary<T>;
+
+        /**
+        * @see _.indexBy
+        * @param whereValue _.where style callback
+        **/
+        indexBy<W, T>(
+            collection: Array<T>,
+            whereValue: W): Dictionary<T>;
+
+        /**
+        * @see _.indexBy
+        * @param whereValue _.where style callback
+        **/
+        indexBy<W, T>(
+            collection: List<T>,
+            whereValue: W): Dictionary<T>;
+    }
+
+    //_.invoke
+    interface LoDashStatic {
+        /**
+        * Invokes the method named by methodName on each element in the collection returning 
+        * an array of the results of each invoked method. Additional arguments will be provided 
+        * to each invoked method. If methodName is a function it will be invoked for, and this 
+        * bound to, each element in the collection.
+        * @param collection The collection to iterate over.
+        * @param methodName The name of the method to invoke.
+        * @param args Arguments to invoke the method with.
+        **/
+        invoke<T extends {}>(
+            collection: Array<T>,
+            methodName: string,
+            ...args: any[]): any;
+
+        /**
+        * @see _.invoke
+        **/
+        invoke<T extends {}>(
+            collection: List<T>,
+            methodName: string,
+            ...args: any[]): any;
+
+        /**
+        * @see _.invoke
+        **/
+        invoke<T extends {}>(
+            collection: Dictionary<T>,
+            methodName: string,
+            ...args: any[]): any;
+
+        /**
+        * @see _.invoke
+        **/
+        invoke<T extends {}>(
+            collection: Array<T>,
+            method: Function,
+            ...args: any[]): any;
+
+        /**
+        * @see _.invoke
+        **/
+        invoke<T extends {}>(
+            collection: List<T>,
+            method: Function,
+            ...args: any[]): any;
+
+        /**
+        * @see _.invoke
+        **/
+        invoke<T extends {}>(
+            collection: Dictionary<T>,
+            method: Function,
+            ...args: any[]): any;
+    }
+
+    //_.map
+    interface LoDashStatic {
+        /**
+        * Creates an array of values by running each element in the collection through the callback. 
+        * The callback is bound to thisArg and invoked with three arguments; (value, index|key, 
+        * collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will return 
+        * the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return true 
+        * for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param theArg The this binding of callback.
+        * @return The mapped array result.
+        **/
+        map<T, TResult>(
+            collection: Array<T>,
+            callback: ListIterator<T, TResult>,
+            thisArg?: any): TResult[];
+
+        /**
+        * @see _.map
+        **/
+        map<T, TResult>(
+            collection: List<T>,
+            callback: ListIterator<T, TResult>,
+            thisArg?: any): TResult[];
+
+        /**
+        * @see _.map
+        * @param object The object to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg `this` object in `iterator`, optional.
+        * @return The mapped object result.
+        **/
+        map<T extends {}, TResult>(
+            object: Dictionary<T>,
+            callback: ObjectIterator<T, TResult>,
+            thisArg?: any): TResult[];
+
+        /**
+        * @see _.map
+        * @param pluckValue _.pluck style callback
+        **/
+        map<T, TResult>(
+            collection: Array<T>,
+            pluckValue: string): TResult[];
+
+        /**
+        * @see _.map
+        * @param pluckValue _.pluck style callback
+        **/
+        map<T, TResult>(
+            collection: List<T>,
+            pluckValue: string): TResult[];
+
+        /**
+        * @see _.map
+        **/
+        collect<T, TResult>(
+            collection: Array<T>,
+            callback: ListIterator<T, TResult>,
+            thisArg?: any): TResult[];
+
+        /**
+        * @see _.map
+        **/
+        collect<T, TResult>(
+            collection: List<T>,
+            callback: ListIterator<T, TResult>,
+            thisArg?: any): TResult[];
+
+        /**
+        * @see _.map
+        **/
+        collect<T extends {}, TResult>(
+            object: Dictionary<T>,
+            callback: ObjectIterator<T, TResult>,
+            thisArg?: any): TResult[];
+
+        /**
+        * @see _.map
+        **/
+        collect<T, TResult>(
+            collection: Array<T>,
+            pluckValue: string): TResult[];
+
+        /**
+        * @see _.map
+        **/
+        collect<T, TResult>(
+            collection: List<T>,
+            pluckValue: string): TResult[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.map
+        **/
+        map<TResult>(
+            callback: ListIterator<T, TResult>,
+            thisArg?: any): LoDashArrayWrapper<TResult>;
+
+        /**
+        * @see _.map
+        * @param pluckValue _.pluck style callback
+        **/
+        map<TResult>(
+            pluckValue: string): LoDashArrayWrapper<TResult>;
+
+        /**
+        * @see _.map
+        **/
+        collect<TResult>(
+            callback: ListIterator<T, TResult>,
+            thisArg?: any): LoDashArrayWrapper<TResult>;
+
+        /**
+        * @see _.map
+        **/
+        collect<TResult>(
+            pluckValue: string): LoDashArrayWrapper<TResult>;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.map
+        **/
+        map<T extends {}, TResult>(
+            callback: ObjectIterator<T, TResult>,
+            thisArg?: any): LoDashArrayWrapper<TResult>;
+
+        /**
+        * @see _.map
+        **/
+        collect<T extends {}, TResult>(
+            callback: ObjectIterator<T, TResult>,
+            thisArg?: any): LoDashArrayWrapper<TResult>;
+    }
+
+    //_.max
+    interface LoDashStatic {
+        /**
+        * Retrieves the maximum value of a collection. If the collection is empty or falsey -Infinity is 
+        * returned. If a callback is provided it will be executed for each value in the collection to 
+        * generate the criterion by which the value is ranked. The callback is bound to thisArg and invoked 
+        * with three arguments; (value, index, collection).
+        * 
+        * If a property name is provided for callback the created "_.pluck" style callback will return the 
+        * property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return true for 
+        * elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return Returns the maximum value.
+        **/
+        max<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.max
+        **/
+        max<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.max
+        **/
+        max<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.max
+        * @param pluckValue _.pluck style callback
+        **/
+        max<T>(
+            collection: Array<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.max
+        * @param pluckValue _.pluck style callback
+        **/
+        max<T>(
+            collection: List<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.max
+        * @param pluckValue _.pluck style callback
+        **/
+        max<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.max
+        * @param whereValue _.where style callback
+        **/
+        max<W, T>(
+            collection: Array<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.max
+        * @param whereValue _.where style callback
+        **/
+        max<W, T>(
+            collection: List<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.max
+        * @param whereValue _.where style callback
+        **/
+        max<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.max
+        **/
+        max(
+            callback?: ListIterator<T, any>,
+            thisArg?: any): LoDashWrapper<T>;
+
+        /**
+        * @see _.max
+        * @param pluckValue _.pluck style callback
+        **/
+        max(
+            pluckValue: string): LoDashWrapper<T>;
+
+        /**
+        * @see _.max
+        * @param whereValue _.where style callback
+        **/
+        max<W>(
+            whereValue: W): LoDashWrapper<T>;
+    }
+
+    //_.min
+    interface LoDashStatic {
+        /**
+        * Retrieves the minimum value of a collection. If the collection is empty or falsey 
+        * Infinity is returned. If a callback is provided it will be executed for each value 
+        * in the collection to generate the criterion by which the value is ranked. The callback 
+        * is bound to thisArg and invoked with three arguments; (value, index, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback 
+        * will return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will 
+        * return true for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return Returns the maximum value.
+        **/
+        min<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.min
+        **/
+        min<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.min
+        **/
+        min<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, any>,
+            thisArg?: any): T;
+
+        /**
+        * @see _.min
+        * @param pluckValue _.pluck style callback
+        **/
+        min<T>(
+            collection: Array<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.min
+        * @param pluckValue _.pluck style callback
+        **/
+        min<T>(
+            collection: List<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.min
+        * @param pluckValue _.pluck style callback
+        **/
+        min<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T;
+
+        /**
+        * @see _.min
+        * @param whereValue _.where style callback
+        **/
+        min<W, T>(
+            collection: Array<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.min
+        * @param whereValue _.where style callback
+        **/
+        min<W, T>(
+            collection: List<T>,
+            whereValue: W): T;
+
+        /**
+        * @see _.min
+        * @param whereValue _.where style callback
+        **/
+        min<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.min
+        **/
+        min(
+            callback?: ListIterator<T, any>,
+            thisArg?: any): LoDashWrapper<T>;
+
+        /**
+        * @see _.min
+        * @param pluckValue _.pluck style callback
+        **/
+        min(
+            pluckValue: string): LoDashWrapper<T>;
+
+        /**
+        * @see _.min
+        * @param whereValue _.where style callback
+        **/
+        min<W>(
+            whereValue: W): LoDashWrapper<T>;
+    }
+
+    //_.sum
+    interface LoDashStatic {
+        /**
+        * Gets the sum of the values in collection.
+        *
+        * @param collection The collection to iterate over.
+        * @param iteratee The function invoked per iteration.
+        * @param thisArg The this binding of iteratee.
+        * @return Returns the sum.
+        **/
+        sum(
+            collection: Array<number>): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            collection: List<number>): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            collection: Dictionary<number>): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum<T>(
+            collection: Array<T>,
+            iteratee: ListIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum<T>(
+            collection: List<T>,
+            iteratee: ListIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum<T>(
+            collection: Dictionary<T>,
+            iteratee: ObjectIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum<T>(
+            collection: Array<T>,
+            property: string): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum<T>(
+            collection: List<T>,
+            property: string): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum<T>(
+            collection: Dictionary<T>,
+            property: string): number;
+    }
+
+    interface LoDashNumberArrayWrapper {
+        /**
+        * @see _.sum
+        **/
+        sum(): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            iteratee: ListIterator<number, number>,
+            thisArg?: any): number;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.sum
+        **/
+        sum(): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            iteratee: ListIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum(
+            property: string): number;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.sum
+        **/
+        sum(): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            iteratee: ObjectIterator<any, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum(
+            property: string): number;
+    }
+
+    //_.pluck
+    interface LoDashStatic {
+        /**
+        * Retrieves the value of a specified property from all elements in the collection.
+        * @param collection The collection to iterate over.
+        * @param property The property to pluck.
+        * @return A new array of property values.
+        **/
+        pluck<T extends {}>(
+            collection: Array<T>,
+            property: string): any[];
+
+        /**
+        * @see _.pluck
+        **/
+        pluck<T extends {}>(
+            collection: List<T>,
+            property: string): any[];
+
+        /**
+        * @see _.pluck
+        **/
+        pluck<T extends {}>(
+            collection: Dictionary<T>,
+            property: string): any[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.pluck
+        **/
+        pluck<TResult>(
+            property: string): LoDashArrayWrapper<TResult>;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.pluck
+        **/
+        pluck<TResult>(
+            property: string): LoDashArrayWrapper<TResult>;
+    }
+
+    //_.reduce
+    interface LoDashStatic {
+        /**
+        * Reduces a collection to a value which is the accumulated result of running each 
+        * element in the collection through the callback, where each successive callback execution 
+        * consumes the return value of the previous execution. If accumulator is not provided the 
+        * first element of the collection will be used as the initial accumulator value. The callback 
+        * is bound to thisArg and invoked with four arguments; (accumulator, value, index|key, collection).
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param accumulator Initial value of the accumulator.
+        * @param thisArg The this binding of callback.
+        * @return Returns the accumulated value.
+        **/
+        reduce<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        reduce<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        reduce<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        reduce<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        reduce<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        reduce<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+    }
+
+    interface LoDashArrayWrapper<T> {
+         /**
+        * @see _.reduce
+        **/
+        reduce<TResult>(
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        reduce<TResult>(
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<TResult>(
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<TResult>(
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<TResult>(
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<TResult>(
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+    }
+
+    interface LoDashObjectWrapper<T> {
+         /**
+        * @see _.reduce
+        **/
+        reduce<TValue, TResult>(
+            callback: MemoIterator<TValue, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        reduce<TValue, TResult>(
+            callback: MemoIterator<TValue, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<TValue, TResult>(
+            callback: MemoIterator<TValue, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        inject<TValue, TResult>(
+            callback: MemoIterator<TValue, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<TValue, TResult>(
+            callback: MemoIterator<TValue, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduce
+        **/
+        foldl<TValue, TResult>(
+            callback: MemoIterator<TValue, TResult>,
+            thisArg?: any): TResult;
+    }
+
+    //_.reduceRight
+    interface LoDashStatic {
+        /**
+        * This method is like _.reduce except that it iterates over elements of a collection from 
+        * right to left.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param accumulator Initial value of the accumulator.
+        * @param thisArg The this binding of callback.
+        * @return The accumulated value.
+        **/
+        reduceRight<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        reduceRight<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        reduceRight<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        reduceRight<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        reduceRight<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        reduceRight<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        foldr<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        foldr<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        foldr<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            accumulator: TResult,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        foldr<T, TResult>(
+            collection: Array<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        foldr<T, TResult>(
+            collection: List<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.reduceRight
+        **/
+        foldr<T, TResult>(
+            collection: Dictionary<T>,
+            callback: MemoIterator<T, TResult>,
+            thisArg?: any): TResult;
+    }
+
+    //_.reject
+    interface LoDashStatic {
+        /**
+        * The opposite of _.filter this method returns the elements of a collection that 
+        * the callback does not return truey for.
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback 
+        * will return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will 
+        * return true for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return A new array of elements that failed the callback check.
+        **/
+        reject<T>(
+            collection: Array<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.reject
+        **/
+        reject<T>(
+            collection: List<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.reject
+        **/
+        reject<T>(
+            collection: Dictionary<T>,
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.reject
+        * @param pluckValue _.pluck style callback
+        **/
+        reject<T>(
+            collection: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.reject
+        * @param pluckValue _.pluck style callback
+        **/
+        reject<T>(
+            collection: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.reject
+        * @param pluckValue _.pluck style callback
+        **/
+        reject<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.reject
+        * @param whereValue _.where style callback
+        **/
+        reject<W, T>(
+            collection: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.reject
+        * @param whereValue _.where style callback
+        **/
+        reject<W, T>(
+            collection: List<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.reject
+        * @param whereValue _.where style callback
+        **/
+        reject<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.reject
+        **/
+        reject(
+            callback: ListIterator<T, boolean>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.reject
+        * @param pluckValue _.pluck style callback
+        **/
+        reject(pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.reject
+        * @param whereValue _.where style callback
+        **/
+        reject<W>(whereValue: W): LoDashArrayWrapper<T>;
+    }
+
+    //_.sample
+    interface LoDashStatic {
+        /**
+        * Retrieves a random element or n random elements from a collection.
+        * @param collection The collection to sample.
+        * @return Returns the random sample(s) of collection.
+        **/
+        sample<T>(collection: Array<T>): T;
+
+        /**
+        * @see _.sample
+        **/
+        sample<T>(collection: List<T>): T;
+
+        /**
+        * @see _.sample
+        **/
+        sample<T>(collection: Dictionary<T>): T;
+
+        /**
+        * @see _.sample
+        * @param n The number of elements to sample.
+        **/
+        sample<T>(collection: Array<T>, n: number): T[];
+
+        /**
+        * @see _.sample
+        * @param n The number of elements to sample.
+        **/
+        sample<T>(collection: List<T>, n: number): T[];
+
+        /**
+        * @see _.sample
+        * @param n The number of elements to sample.
+        **/
+        sample<T>(collection: Dictionary<T>, n: number): T[];
+    }
+
+    //_.shuffle
+    interface LoDashStatic {
+        /**
+        * Creates an array of shuffled values, using a version of the Fisher-Yates shuffle. 
+        * See http://en.wikipedia.org/wiki/Fisher-Yates_shuffle.
+        * @param collection The collection to shuffle.
+        * @return Returns a new shuffled collection.
+        **/
+        shuffle<T>(collection: Array<T>): T[];
+
+        /**
+        * @see _.shuffle
+        **/
+        shuffle<T>(collection: List<T>): T[];
+
+        /**
+        * @see _.shuffle
+        **/
+        shuffle<T>(collection: Dictionary<T>): T[];
+    }
+
+    //_.size
+    interface LoDashStatic {
+        /**
+        * Gets the size of the collection by returning collection.length for arrays and array-like 
+        * objects or the number of own enumerable properties for objects.
+        * @param collection The collection to inspect.
+        * @return collection.length
+        **/
+        size<T>(collection: Array<T>): number;
+
+        /**
+        * @see _.size
+        **/
+        size<T>(collection: List<T>): number;
+
+        /**
+        * @see _.size
+        * @param object The object to inspect
+        * @return The number of own enumerable properties.
+        **/
+        size<T extends {}>(object: T): number;
+
+        /**
+        * @see _.size
+        * @param aString The string to inspect
+        * @return The length of aString
+        **/
+        size(aString: string): number;
+    }
+
+    //_.some
+    interface LoDashStatic {
+        /**
+        * Checks if the callback returns a truey value for any element of a collection. The function 
+        * returns as soon as it finds a passing value and does not iterate over the entire collection. 
+        * The callback is bound to thisArg and invoked with three arguments; (value, index|key, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will return 
+        * the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return true for 
+        * elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return True if any element passed the callback check, else false.
+        **/
+        some<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.some
+        **/
+        some<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.some
+        **/
+        some<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+         * @see _.some
+         **/
+        some(
+            collection: {},
+            callback?: ListIterator<{}, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.some
+        * @param pluckValue _.pluck style callback
+        **/
+        some<T>(
+            collection: Array<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.some
+        * @param pluckValue _.pluck style callback
+        **/
+        some<T>(
+            collection: List<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.some
+        * @param pluckValue _.pluck style callback
+        **/
+        some<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.some
+        * @param whereValue _.where style callback
+        **/
+        some<W, T>(
+            collection: Array<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.some
+        * @param whereValue _.where style callback
+        **/
+        some<W, T>(
+            collection: List<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.some
+        * @param whereValue _.where style callback
+        **/
+        some<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.some
+        **/
+        any<T>(
+            collection: Array<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.some
+        **/
+        any<T>(
+            collection: List<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.some
+        **/
+        any<T>(
+            collection: Dictionary<T>,
+            callback?: ListIterator<T, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+         * @see _.some
+         **/
+        any(
+            collection: {},
+            callback?: ListIterator<{}, boolean>,
+            thisArg?: any): boolean;
+
+        /**
+        * @see _.some
+        * @param pluckValue _.pluck style callback
+        **/
+        any<T>(
+            collection: Array<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.some
+        * @param pluckValue _.pluck style callback
+        **/
+        any<T>(
+            collection: List<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.some
+        * @param pluckValue _.pluck style callback
+        **/
+        any<T>(
+            collection: Dictionary<T>,
+            pluckValue: string): boolean;
+
+        /**
+        * @see _.some
+        * @param whereValue _.where style callback
+        **/
+        any<W, T>(
+            collection: Array<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.some
+        * @param whereValue _.where style callback
+        **/
+        any<W, T>(
+            collection: List<T>,
+            whereValue: W): boolean;
+
+        /**
+        * @see _.some
+        * @param whereValue _.where style callback
+        **/
+        any<W, T>(
+            collection: Dictionary<T>,
+            whereValue: W): boolean;
+    }
+
+    //_.sortBy
+    interface LoDashStatic {
+        /**
+        * Creates an array of elements, sorted in ascending order by the results of running each 
+        * element in a collection through the callback. This method performs a stable sort, that 
+        * is, it will preserve the original sort order of equal elements. The callback is bound 
+        * to thisArg and invoked with three arguments; (value, index|key, collection).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will 
+        * return the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return 
+        * true for elements that have the properties of the given object, else false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return A new array of sorted elements.
+        **/
+        sortBy<T, TSort>(
+            collection: Array<T>,
+            callback?: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.sortBy
+        **/
+        sortBy<T, TSort>(
+            collection: List<T>,
+            callback?: ListIterator<T, TSort>,
+            thisArg?: any): T[];
+
+        /**
+        * @see _.sortBy
+        * @param pluckValue _.pluck style callback
+        **/
+        sortBy<T>(
+            collection: Array<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.sortBy
+        * @param pluckValue _.pluck style callback
+        **/
+        sortBy<T>(
+            collection: List<T>,
+            pluckValue: string): T[];
+
+        /**
+        * @see _.sortBy
+        * @param whereValue _.where style callback
+        **/
+        sortBy<W, T>(
+            collection: Array<T>,
+            whereValue: W): T[];
+
+        /**
+        * @see _.sortBy
+        * @param whereValue _.where style callback
+        **/
+        sortBy<W, T>(
+            collection: List<T>,
+            whereValue: W): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.sortBy
+        **/
+        sortBy<TSort>(
+            callback?: ListIterator<T, TSort>,
+            thisArg?: any): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.sortBy
+        * @param pluckValue _.pluck style callback
+        **/
+        sortBy(pluckValue: string): LoDashArrayWrapper<T>;
+
+        /**
+        * @see _.sortBy
+        * @param whereValue _.where style callback
+        **/
+        sortBy<W>(whereValue: W): LoDashArrayWrapper<T>;
+    }
+
+    //_.toArray
+    interface LoDashStatic {
+        /**
+        * Converts the collection to an array.
+        * @param collection The collection to convert.
+        * @return The new converted array.
+        **/
+        toArray<T>(collection: Array<T>): T[];
+
+        /**
+        * @see _.toArray
+        **/
+        toArray<T>(collection: List<T>): T[];
+
+        /**
+        * @see _.toArray
+        **/
+        toArray<T>(collection: Dictionary<T>): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.toArray
+        **/
+        toArray(): LoDashArrayWrapper<T>;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.toArray
+        **/
+        toArray<TValue>(): LoDashArrayWrapper<TValue>;
+    }
+
+    //_.toPlainObject
+    interface LoDashStatic {
+        /**
+         * Converts value to a plain object flattening inherited enumerable properties of value to own properties
+         * of the plain object.
+         *
+         * @param value The value to convert.
+         * @return Returns the converted plain object.
+         */
+        toPlainObject<TResult extends {}>(value?: any): TResult;
+    }
+
+    //_.where
+    interface LoDashStatic {
+        /**
+        * Performs a deep comparison of each element in a collection to the given properties 
+        * object, returning an array of all elements that have equivalent property values.
+        * @param collection The collection to iterate over.
+        * @param properties The object of property values to filter by.
+        * @return A new array of elements that have the given properties.
+        **/
+        where<T, U extends {}>(
+            list: Array<T>,
+            properties: U): T[];
+
+        /**
+        * @see _.where
+        **/
+        where<T, U extends {}>(
+            list: List<T>,
+            properties: U): T[];
+
+        /**
+        * @see _.where
+        **/
+        where<T, U extends {}>(
+            list: Dictionary<T>,
+            properties: U): T[];
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.where
+        **/
+        where<T, U extends {}>(properties: U): LoDashArrayWrapper<T>;
+    }
+
+    /*************
+     * Functions *
+     *************/
+
+    //_.after
+    interface LoDashStatic {
+        /**
+        * Creates a function that executes func, with the this binding and arguments of the 
+        * created function, only after being called n times.
+        * @param n The number of times the function must be called before func is executed.
+        * @param func The function to restrict.
+        * @return The new restricted function.
+        **/
+        after(
+            n: number,
+            func: Function): Function;
+    }
+
+    interface LoDashWrapper<T> {
+        /**
+        * @see _.after
+        **/
+        after(func: Function): LoDashObjectWrapper<Function>;
+    }
+
+    //_.bind
+    interface LoDashStatic {
+        /**
+        * Creates a function that, when called, invokes func with the this binding of thisArg 
+        * and prepends any additional bind arguments to those provided to the bound function.
+        * @param func The function to bind.
+        * @param thisArg The this binding of func.
+        * @param args Arguments to be partially applied.
+        * @return The new bound function.
+        **/
+        bind(
+            func: Function,
+            thisArg: any,
+            ...args: any[]): () => any;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.bind
+        **/
+        bind(
+            thisArg: any,
+            ...args: any[]): LoDashObjectWrapper<() => any>;
+    }
+
+    //_.bindAll
+    interface LoDashStatic {
+        /**
+        * Binds methods of an object to the object itself, overwriting the existing method. Method 
+        * names may be specified as individual arguments or as arrays of method names. If no method 
+        * names are provided all the function properties of object will be bound.
+        * @param object The object to bind and assign the bound methods to.
+        * @param methodNames The object method names to bind, specified as individual method names 
+        * or arrays of method names.
+        * @return object
+        **/
+        bindAll<T>(
+            object: T,
+            ...methodNames: string[]): T;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.bindAll
+        **/
+        bindAll(...methodNames: string[]): LoDashWrapper<T>;
+    }
+
+    //_.bindKey
+    interface LoDashStatic {
+        /**
+        * Creates a function that, when called, invokes the method at object[key] and prepends any 
+        * additional bindKey arguments to those provided to the bound function. This method differs 
+        * from _.bind by allowing bound functions to reference methods that will be redefined or don't 
+        * yet exist. See http://michaux.ca/articles/lazy-function-definition-pattern.
+        * @param object The object the method belongs to.
+        * @param key The key of the method.
+        * @param args Arguments to be partially applied.
+        * @return The new bound function.
+        **/
+        bindKey<T>(
+            object: T,
+            key: string,
+            ...args: any[]): Function;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.bindKey
+        **/
+        bindKey(
+            key: string,
+            ...args: any[]): LoDashObjectWrapper<Function>;
+    }
+
+    //_.compose
+    interface LoDashStatic {
+        /**
+        * Creates a function that is the composition of the provided functions, where each function 
+        * consumes the return value of the function that follows. For example, composing the functions 
+        * f(), g(), and h() produces f(g(h())). Each function is executed with the this binding of the 
+        * composed function.
+        * @param funcs Functions to compose.
+        * @return The new composed function.
+        **/
+        compose(...funcs: Function[]): Function;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.compose
+        **/
+        compose(...funcs: Function[]): LoDashObjectWrapper<Function>;
+    }
+
+    //_.createCallback
+    interface LoDashStatic {
+        /**
+        * Produces a callback bound to an optional thisArg. If func is a property name the created 
+        * callback will return the property value for a given element. If func is an object the created 
+        * callback will return true for elements that contain the equivalent object properties, 
+        * otherwise it will return false.
+        * @param func The value to convert to a callback.
+        * @param thisArg The this binding of the created callback.
+        * @param argCount The number of arguments the callback accepts.
+        * @return A callback function.
+        **/
+        createCallback(
+            func: string,
+            thisArg?: any,
+            argCount?: number): () => any;
+
+        /**
+        * @see _.createCallback
+        **/
+        createCallback(
+            func: Dictionary<any>,
+            thisArg?: any,
+            argCount?: number): () => boolean;
+    }
+
+    interface LoDashWrapper<T> {
+        /**
+        * @see _.createCallback
+        **/
+        createCallback(
+            thisArg?: any,
+            argCount?: number): LoDashObjectWrapper<() => any>;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.createCallback
+        **/
+        createCallback(
+            thisArg?: any,
+            argCount?: number): LoDashObjectWrapper<() => any>;
+    }
+
+    //_.curry
+    interface LoDashStatic {
+        /**
+        * Creates a function which accepts one or more arguments of func that when invoked either 
+        * executes func returning its result, if all func arguments have been provided, or returns 
+        * a function that accepts one or more of the remaining func arguments, and so on. The arity 
+        * of func can be specified if func.length is not sufficient.
+        * @param func The function to curry.
+        * @param arity The arity of func.
+        * @return The new curried function.
+        **/
+        curry(
+            func: Function,
+            arity?: number): Function;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.curry
+        **/
+        curry(arity?: number): LoDashObjectWrapper<Function>;
+    }
+
+    //_.debounce
+    interface LoDashStatic {
+        /**
+        * Creates a function that will delay the execution of func until after wait milliseconds have 
+        * elapsed since the last time it was invoked. Provide an options object to indicate that func 
+        * should be invoked on the leading and/or trailing edge of the wait timeout. Subsequent calls 
+        * to the debounced function will return the result of the last func call.
+        *
+        * Note: If leading and trailing options are true func will be called on the trailing edge of 
+        * the timeout only if the the debounced function is invoked more than once during the wait 
+        * timeout.
+        * @param func The function to debounce.
+        * @param wait The number of milliseconds to delay.
+        * @param options The options object.
+        * @param options.leading Specify execution on the leading edge of the timeout.
+        * @param options.maxWait The maximum time func is allowed to be delayed before it’s called.
+        * @param options.trailing Specify execution on the trailing edge of the timeout.
+        * @return The new debounced function.
+        **/
+        debounce<T extends Function>(
+            func: T,
+            wait: number,
+            options?: DebounceSettings): T;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.debounce
+        **/
+        debounce(
+            wait: number,
+            options?: DebounceSettings): LoDashObjectWrapper<Function>;
+    }
+
+    interface DebounceSettings {
+        /**
+        * Specify execution on the leading edge of the timeout.
+        **/
+        leading?: boolean;
+
+        /**
+        * The maximum time func is allowed to be delayed before it’s called.
+        **/
+        maxWait?: number;
+
+        /**
+        * Specify execution on the trailing edge of the timeout.
+        **/
+        trailing?: boolean;
+    }
+
+    //_.defer
+    interface LoDashStatic {
+        /**
+        * Defers executing the func function until the current call stack has cleared. Additional 
+        * arguments will be provided to func when it is invoked.
+        * @param func The function to defer.
+        * @param args Arguments to invoke the function with.
+        * @return The timer id.
+        **/
+        defer(
+            func: Function,
+            ...args: any[]): number;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.defer
+        **/
+        defer(...args: any[]): LoDashWrapper<number>;
+    }
+
+    //_.delay
+    interface LoDashStatic {
+        /**
+        * Executes the func function after wait milliseconds. Additional arguments will be provided 
+        * to func when it is invoked.
+        * @param func The function to delay.
+        * @param wait The number of milliseconds to delay execution.
+        * @param args Arguments to invoke the function with.
+        * @return The timer id.
+        **/
+        delay(
+            func: Function,
+            wait: number,
+            ...args: any[]): number;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.delay
+        **/
+        delay(
+            wait: number,
+            ...args: any[]): LoDashWrapper<number>;
+    }
+
+    //_.memoize
+    interface LoDashStatic {
+        /**
+        * Creates a function that memoizes the result of func. If resolver is provided it will be 
+        * used to determine the cache key for storing the result based on the arguments provided to 
+        * the memoized function. By default, the first argument provided to the memoized function is 
+        * used as the cache key. The func is executed with the this binding of the memoized function. 
+        * The result cache is exposed as the cache property on the memoized function.
+        * @param func Computationally expensive function that will now memoized results.
+        * @param resolver Hash function for storing the result of `fn`.
+        * @return Returns the new memoizing function.
+        **/
+        memoize<T extends Function>(
+            func: T,
+            resolver?: Function): T;
+    }
+
+    //_.once
+    interface LoDashStatic {
+        /**
+        * Creates a function that is restricted to execute func once. Repeat calls to the function 
+        * will return the value of the first call. The func is executed with the this binding of the 
+        * created function.
+        * @param func Function to only execute once.
+        * @return The new restricted function.
+        **/
+        once<T extends Function>(func: T): T;
+    }
+
+    //_.partial
+    interface LoDashStatic {
+        /**
+        * Creates a function that, when called, invokes func with any additional partial arguments 
+        * prepended to those provided to the new function. This method is similar to _.bind except 
+        * it does not alter the this binding.
+        * @param func The function to partially apply arguments to.
+        * @param args Arguments to be partially applied.
+        * @return The new partially applied function.
+        **/
+        partial(
+            func: Function,
+            ...args: any[]): Function;
+    }
+
+    //_.partialRight
+    interface LoDashStatic {
+        /**
+        * This method is like _.partial except that partial arguments are appended to those provided 
+        * to the new function.
+        * @param func The function to partially apply arguments to.
+        * @param args Arguments to be partially applied.
+        * @return The new partially applied function.
+        **/
+        partialRight(
+            func: Function,
+            ...args: any[]): Function;
+    }
+
+    //_.throttle
+    interface LoDashStatic {
+        /**
+        * Creates a function that, when executed, will only call the func function at most once per 
+        * every wait milliseconds. Provide an options object to indicate that func should be invoked 
+        * on the leading and/or trailing edge of the wait timeout. Subsequent calls to the throttled 
+        * function will return the result of the last func call.
+        *
+        * Note: If leading and trailing options are true func will be called on the trailing edge of 
+        * the timeout only if the the throttled function is invoked more than once during the wait timeout.
+        * @param func The function to throttle.
+        * @param wait The number of milliseconds to throttle executions to.
+        * @param options The options object.
+        * @param options.leading Specify execution on the leading edge of the timeout.
+        * @param options.trailing Specify execution on the trailing edge of the timeout.
+        * @return The new throttled function.
+        **/
+        throttle<T extends Function>(
+            func: T,
+            wait: number,
+            options?: ThrottleSettings): T;
+    }
+
+    interface ThrottleSettings {
+
+        /**
+        * If you'd like to disable the leading-edge call, pass this as false.
+        **/
+        leading?: boolean;
+
+        /**
+        * If you'd like to disable the execution on the trailing-edge, pass false.
+        **/
+        trailing?: boolean;
+    }
+
+    //_.wrap
+    interface LoDashStatic {
+        /**
+        * Creates a function that provides value to the wrapper function as its first argument. 
+        * Additional arguments provided to the function are appended to those provided to the 
+        * wrapper function. The wrapper is executed with the this binding of the created function.
+        * @param value The value to wrap.
+        * @param wrapper The wrapper function.
+        * @return The new function.
+        **/
+        wrap(
+            value: any,
+            wrapper: (func: Function, ...args: any[]) => any): Function;
+    }
+
+    /*************
+     * Objects   *
+     *************/
+
+    //_.assign
+    interface LoDashStatic {
+        /**
+        * Assigns own enumerable properties of source object(s) to the destination object. Subsequent 
+        * sources will overwrite property assignments of previous sources. If a callback is provided 
+        * it will be executed to produce the assigned values. The callback is bound to thisArg and 
+        * invoked with two arguments; (objectValue, sourceValue).
+        * @param object The destination object.
+        * @param s1-8 The source object(s)
+        * @param callback The function to customize merging properties.
+        * @param thisArg The this binding of callback.
+        * @return The destination object.
+        **/
+        assign<P, T, S1, Value, Result>(
+            object: T,
+            s1: S1,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.assign
+        **/
+        assign<P, T, S1, S2, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.assign
+        **/
+        assign<P, T, S1, S2, S3, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.assign
+        **/
+        assign<P, T, S1, S2, S3, S4, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            s4: S4,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.assign
+        **/
+        extend<P, T, S1, Value, Result>(
+            object: T,
+            s1: S1,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.assign
+        **/
+        extend<P, T, S1, S2, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.assign
+        **/
+        extend<P, T, S1, S2, S3, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.assign
+        **/
+        extend<P, T, S1, S2, S3, S4, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            s4: S4,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.assign
+        **/
+        assign<S1, Value, TResult>(
+            s1: S1,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.assign
+        **/
+        assign<S1, S2, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+        /**
+        * @see _.assign
+        **/
+        assign<S1, S2, S3, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+        /**
+        * @see _.assign
+        **/
+        assign<S1, S2, S3, S4, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            s4: S4,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+        /**
+        * @see _.assign
+        **/
+        assign<S1, S2, S3, S4, S5, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            s4: S4,
+            s5: S5,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.assign
+        **/
+        extend<S1, Value, TResult>(
+            s1: S1,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+
+        /**
+        * @see _.assign
+        **/
+        extend<S1, S2, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+        /**
+        * @see _.assign
+        **/
+        extend<S1, S2, S3, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+        /**
+        * @see _.assign
+        **/
+        extend<S1, S2, S3, S4, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            s4: S4,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+        /**
+        * @see _.assign
+        **/
+        extend<S1, S2, S3, S4, S5, Value, TResult>(
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            s4: S4,
+            s5: S5,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): TResult;
+
+    }
+
+    //_.clone
+    interface LoDashStatic {
+        /**
+        * Creates a clone of value. If deep is true nested objects will also be cloned, otherwise 
+        * they will be assigned by reference. If a callback is provided it will be executed to produce 
+        * the cloned values. If the callback returns undefined cloning will be handled by the method 
+        * instead. The callback is bound to thisArg and invoked with one argument; (value).
+        * @param value The value to clone.
+        * @param deep Specify a deep clone.
+        * @param callback The function to customize cloning values.
+        * @param thisArg The this binding of callback.
+        * @return The cloned value.
+        **/
+        clone<T>(
+            value: T,
+            deep?: boolean,
+            callback?: (value: any) => any,
+            thisArg?: any): T;
+    }
+
+    //_.cloneDeep
+    interface LoDashStatic {
+        /**
+        * Creates a deep clone of value. If a callback is provided it will be executed to produce the 
+        * cloned values. If the callback returns undefined cloning will be handled by the method instead. 
+        * The callback is bound to thisArg and invoked with one argument; (value).
+        *
+        * Note: This method is loosely based on the structured clone algorithm. Functions and DOM nodes 
+        * are not cloned. The enumerable properties of arguments objects and objects created by constructors 
+        * other than Object are cloned to plain Object objects. 
+        * See http://www.w3.org/TR/html5/infrastructure.html#internal-structured-cloning-algorithm.
+        * @param value The value to clone.
+        * @param callback The function to customize cloning values.
+        * @param thisArg The this binding of callback.
+        * @return The cloned value.
+        **/
+        cloneDeep<T>(
+            value: T,
+            callback?: (value: any) => any,
+            thisArg?: any): T;
+    }
+
+    //_.defaults
+    interface LoDashStatic {
+        /**
+        * Assigns own enumerable properties of source object(s) to the destination object for all 
+        * destination properties that resolve to undefined. Once a property is set, additional defaults 
+        * of the same property will be ignored.
+        * @param object The destination object.
+        * @param sources The source objects.
+        * @return The destination object.
+        **/
+        defaults<T, TResult>(
+            object: T,
+            ...sources: any[]): TResult;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.defaults
+        **/
+        defaults<T, TResult>(...sources: any[]): LoDashObjectWrapper<TResult>
+    }
+
+    //_.findKey
+    interface LoDashStatic {
+        /**
+        * This method is like _.findIndex except that it returns the key of the first element that 
+        * passes the callback check, instead of the element itself.
+        * @param object The object to search.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return The key of the found element, else undefined.
+        **/
+        findKey(
+            object: any,
+            callback: (value: any) => boolean,
+            thisArg?: any): string;
+
+        /**
+        * @see _.findKey
+        * @param pluckValue _.pluck style callback
+        **/
+        findKey(
+            object: any,
+            pluckValue: string): string;
+
+        /**
+        * @see _.findKey
+        * @param whereValue _.where style callback
+        **/
+        findKey<W extends Dictionary<any>, T>(
+            object: T,
+            whereValue: W): string;
+    }
+
+    //_.findLastKey
+    interface LoDashStatic {
+        /**
+        * This method is like _.findKey except that it iterates over elements of a collection in the opposite order.
+        * @param object The object to search.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return The key of the found element, else undefined.
+        **/
+        findLastKey(
+            object: any,
+            callback: (value: any) => boolean,
+            thisArg?: any): string;
+
+        /**
+        * @see _.findLastKey
+        * @param pluckValue _.pluck style callback
+        **/
+        findLastKey(
+            object: any,
+            pluckValue: string): string;
+
+        /**
+        * @see _.findLastKey
+        * @param whereValue _.where style callback
+        **/
+        findLastKey<W extends Dictionary<any>, T>(
+            object: T,
+            whereValue: W): string;
+    }
+
+    //_.forOwn
+    interface LoDashStatic {
+        /**
+        * Iterates over own enumerable properties of an object, executing the callback for each 
+        * property. The callback is bound to thisArg and invoked with three arguments; (value, key, 
+        * object). Callbacks may exit iteration early by explicitly returning false.
+        * @param object The object to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return object
+        **/
+        forOwn<T extends {}>(
+            object: Dictionary<T>,
+            callback?: ObjectIterator<T, void>,
+            thisArg?: any): Dictionary<T>;
+
+        /**
+        * @see _.forOwn
+        **/
+        forOwn<T extends {}>(
+            object: T,
+            callback?: ObjectIterator<any, void>,
+            thisArg?: any): T;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.forOwn
+        **/
+        forOwn<T extends {}>(
+            callback: ObjectIterator<T, void>,
+            thisArg?: any): _.LoDashObjectWrapper<T>;
+    }
+
+    //_.forOwnRight
+    interface LoDashStatic {
+        /**
+        * This method is like _.forOwn except that it iterates over elements of a collection in the 
+        * opposite order.
+        * @param object The object to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return object
+        **/
+        forOwnRight<T extends {}>(
+            object: Dictionary<T>,
+            callback?: ObjectIterator<T, void>,
+            thisArg?: any): Dictionary<T>;
+        /**
+        * @see _.forOwnRight
+        **/
+        forOwnRight<T extends {}>(
+            object: T,
+            callback?: ObjectIterator<any, void>,
+            thisArg?: any): T;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.forOwnRight
+        **/
+        forOwnRight<T extends {}>(
+            callback: ObjectIterator<T, void>,
+            thisArg?: any): _.LoDashObjectWrapper<T>;
+    }
+
+    //_.functions
+    interface LoDashStatic {
+        /**
+        * Creates a sorted array of property names of all enumerable properties, own and inherited, of 
+        * object that have function values.
+        * @param object The object to inspect.
+        * @return An array of property names that have function values.
+        **/
+        functions(object: any): string[];
+
+        /**
+        * @see _functions
+        **/
+        methods(object: any): string[];
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.functions
+        **/
+        functions(): _.LoDashArrayWrapper<string>;
+
+        /**
+        * @see _.functions
+        **/
+        methods(): _.LoDashArrayWrapper<string>;
+    }
+
+    //_.has
+    interface LoDashStatic {
+        /**
+        * Checks if the specified object property exists and is a direct property, instead of an 
+        * inherited property.
+        * @param object The object to check.
+        * @param property The property to check for.
+        * @return True if key is a direct property, else false.
+        **/
+        has(object: any, property: string): boolean;
+    }
+
+    //_.invert
+    interface LoDashStatic {
+        /**
+        * Creates an object composed of the inverted keys and values of the given object.
+        * @param object The object to invert.
+        * @return The created inverted object.
+        **/
+        invert(object: any): any;
+    }
+
+    //_.isArguments
+    interface LoDashStatic {
+        /**
+        * Checks if value is an arguments object.
+        * @param value The value to check.
+        * @return True if the value is an arguments object, else false.
+        **/
+        isArguments(value: any): boolean;
+    }
+
+    //_.isArray
+    interface LoDashStatic {
+        /**
+        * Checks if value is an array.
+        * @param value The value to check.
+        * @return True if the value is an array, else false.
+        **/
+        isArray(value: any): boolean;
+    }
+
+    //_.isBoolean
+    interface LoDashStatic {
+        /**
+        * Checks if value is a boolean value.
+        * @param value The value to check.
+        * @return True if the value is a boolean value, else false.
+        **/
+        isBoolean(value: any): value is boolean;
+    }
+
+    //_.isDate
+    interface LoDashStatic {
+        /**
+        * Checks if value is a date.
+        * @param value The value to check.
+        * @return True if the value is a date, else false.
+        **/
+        isDate(value: any): value is Date;
+    }
+
+    //_.isElement
+    interface LoDashStatic {
+        /**
+        * Checks if value is a DOM element.
+        * @param value The value to check.
+        * @return True if the value is a DOM element, else false.
+        **/
+        isElement(value: any): value is HTMLElement;
+    }
+
+    //_.isEmpty
+    interface LoDashStatic {
+        /**
+        * Checks if value is empty. Arrays, strings, or arguments objects with a length of 0 and objects 
+        * with no own enumerable properties are considered "empty".
+        * @param value The value to inspect.
+        * @return True if the value is empty, else false.
+        **/
+        isEmpty(value: any[]): boolean;
+
+        /**
+        * @see _.isEmpty
+        **/
+        isEmpty(value: Dictionary<any>): boolean;
+
+        /**
+        * @see _.isEmpty
+        **/
+        isEmpty(value: string): boolean;
+
+        /**
+        * @see _.isEmpty
+        **/
+        isEmpty(value: any): boolean;
+    }
+
+    //_.isEqual
+    interface LoDashStatic {
+        /**
+        * Performs a deep comparison between two values to determine if they are equivalent to each 
+        * other. If a callback is provided it will be executed to compare values. If the callback 
+        * returns undefined comparisons will be handled by the method instead. The callback is bound to 
+        * thisArg and invoked with two arguments; (a, b).
+        * @param a The value to compare.
+        * @param b The other value to compare.
+        * @param callback The function to customize comparing values.
+        * @param thisArg The this binding of callback.
+        * @return True if the values are equivalent, else false.
+        **/
+        isEqual(
+            a: any,
+            b: any,
+            callback?: (a: any, b: any) => boolean,
+            thisArg?: any): boolean;
+    }
+
+    //_.isFinite
+    interface LoDashStatic {
+        /**
+        * Checks if value is, or can be coerced to, a finite number.
+        *
+        * Note: This is not the same as native isFinite which will return true for booleans and empty 
+        * strings. See http://es5.github.io/#x15.1.2.5.
+        * @param value The value to check.
+        * @return True if the value is finite, else false.
+        **/
+        isFinite(value: any): boolean;
+    }
+
+    //_.isFunction
+    interface LoDashStatic {
+        /**
+        * Checks if value is a function.
+        * @param value The value to check.
+        * @return True if the value is a function, else false.
+        **/
+        isFunction(value: any): value is Function;
+    }
+
+    //_.isNaN
+    interface LoDashStatic {
+        /**
+        * Checks if value is NaN.
+        *
+        * Note: This is not the same as native isNaN which will return true for undefined and other 
+        * non-numeric values. See http://es5.github.io/#x15.1.2.4.
+        * @param value The value to check.
+        * @return True if the value is NaN, else false.
+        **/
+        isNaN(value: any): boolean;
+    }
+
+    //_.isNumber
+    interface LoDashStatic {
+        /**
+        * Checks if value is a number.
+        *
+        * Note: NaN is considered a number. See http://es5.github.io/#x8.5.
+        * @param value The value to check.
+        * @return True if the value is a number, else false.
+        **/
+        isNumber(value: any): value is Number;
+    }
+
+    //_.isObject
+    interface LoDashStatic {
+        /**
+        * Checks if value is the language type of Object. (e.g. arrays, functions, objects, regexes, 
+        * new Number(0), and new String(''))
+        * @param value The value to check.
+        * @return True if the value is an object, else false.
+        **/
+        isObject(value: any): value is Object;
+    }
+
+    //_.isPlainObject
+    interface LoDashStatic {
+        /**
+        * Checks if value is an object created by the Object constructor.
+        * @param value The value to check.
+        * @return True if value is a plain object, else false.
+        **/
+        isPlainObject(value: any): value is Object;
+    }
+
+    //_.isRegExp
+    interface LoDashStatic {
+        /**
+        * Checks if value is a regular expression.
+        * @param value The value to check.
+        * @return True if the value is a regular expression, else false.
+        **/
+        isRegExp(value: any): value is RegExp;
+    }
+
+    //_.isString
+    interface LoDashStatic {
+        /**
+        * Checks if value is a string.
+        * @param value The value to check.
+        * @return True if the value is a string, else false.
+        **/
+        isString(value: any): value is string;
+    }
+
+    //_.keys
+    interface LoDashStatic {
+        /**
+        * Creates an array composed of the own enumerable property names of an object.
+        * @param object The object to inspect.
+        * @return An array of property names.
+        **/
+        keys(object: any): string[];
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.keys
+        **/
+        keys(): LoDashArrayWrapper<string>
+    }
+
+    //_.mapValues
+    interface LoDashStatic {
+        /**
+        * Creates an object with the same keys as object and values generated by running each own
+        * enumerable property of object through the callback. The callback is bound to thisArg and
+        * invoked with three arguments; (value, key, object).
+        *
+        * If a property name is provided for callback the created "_.pluck" style callback will return
+        * the property value of the given element.
+        *
+        * If an object is provided for callback the created "_.where" style callback will return true
+        * for elements that have the properties of the given object, else false.
+        *
+        * @param object The object to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg `this` object in `iterator`, optional.
+        * @return Returns a new object with values of the results of each callback execution.
+        */
+        mapValues<T, TResult>(obj: Dictionary<T>, callback: ObjectIterator<T, TResult>, thisArg?: any): Dictionary<TResult>;
+        mapValues<T>(obj: Dictionary<T>, where: Dictionary<T>): Dictionary<boolean>;
+        mapValues<T, TMapped>(obj: T, pluck: string): TMapped;
+        mapValues<T>(obj: T, callback: ObjectIterator<any, any>, thisArg?: any): T;
+    }
+
+    //_.merge
+    interface LoDashStatic {
+        /**
+        * Recursively merges own enumerable properties of the source object(s), that don't resolve 
+        * to undefined into the destination object. Subsequent sources will overwrite property 
+        * assignments of previous sources. If a callback is provided it will be executed to produce 
+        * the merged values of the destination and source properties. If the callback returns undefined 
+        * merging will be handled by the method instead. The callback is bound to thisArg and invoked 
+        * with two arguments; (objectValue, sourceValue).
+        * @param object The destination object.
+        * @param s1-8 The source object(s)
+        * @param callback The function to customize merging properties.
+        * @param thisArg The this binding of callback.
+        * @return The destination object.
+        **/
+        merge<P, T, S1, Value, Result>(
+            object: T,
+            s1: S1,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.merge
+        **/
+        merge<P, T, S1, S2, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.merge
+        **/
+        merge<P, T, S1, S2, S3, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+
+        /**
+        * @see _.merge
+        **/
+        merge<P, T, S1, S2, S3, S4, Value, Result>(
+            object: T,
+            s1: S1,
+            s2: S2,
+            s3: S3,
+            s4: S4,
+            callback?: (objectValue: Value, sourceValue: Value) => Value,
+            thisArg?: any): Result;
+    }
+
+    //_.omit
+    interface LoDashStatic {
+        /**
+        * Creates a shallow clone of object excluding the specified properties. Property names may be 
+        * specified as individual arguments or as arrays of property names. If a callback is provided 
+        * it will be executed for each property of object omitting the properties the callback returns 
+        * truey for. The callback is bound to thisArg and invoked with three arguments; (value, key, 
+        * object).
+        * @param object The source object.
+        * @param keys The properties to omit.
+        * @return An object without the omitted properties.
+        **/
+        omit<Omitted, T>(
+            object: T,
+            ...keys: string[]): Omitted;
+
+        /**
+        * @see _.omit
+        **/
+        omit<Omitted, T>(
+            object: T,
+            keys: string[]): Omitted;
+
+        /**
+        * @see _.omit
+        **/
+        omit<Omitted, T>(
+            object: T,
+            callback: ObjectIterator<any, boolean>,
+            thisArg?: any): Omitted;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.omit
+        **/
+        omit<Omitted>(
+            ...keys: string[]): LoDashObjectWrapper<Omitted>;
+
+        /**
+        * @see _.omit
+        **/
+        omit<Omitted>(
+            keys: string[]): LoDashObjectWrapper<Omitted>;
+
+        /**
+        * @see _.omit
+        **/
+        omit<Omitted>(
+            callback: ObjectIterator<any, boolean>,
+            thisArg?: any): LoDashObjectWrapper<Omitted>;
+    }
+
+    //_.pairs
+    interface LoDashStatic {
+        /**
+        * Creates a two dimensional array of an object’s key-value pairs, 
+        * i.e. [[key1, value1], [key2, value2]].
+        * @param object The object to inspect.
+        * @return Aew array of key-value pairs.
+        **/
+        pairs(object: any): any[][];
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.pairs
+        **/
+        pairs(): LoDashArrayWrapper<any[]>;
+    }
+
+    //_.picks
+    interface LoDashStatic {
+        /**
+        * Creates a shallow clone of object composed of the specified properties. Property names may be 
+        * specified as individual arguments or as arrays of property names. If a callback is provided 
+        * it will be executed for each property of object picking the properties the callback returns 
+        * truey for. The callback is bound to thisArg and invoked with three arguments; (value, key, 
+        * object).
+        * @param object Object to strip unwanted key/value pairs.
+        * @param keys Property names to pick
+        * @return An object composed of the picked properties.
+        **/
+        pick<Picked, T>(
+            object: T,
+            ...keys: string[]): Picked;
+
+        /**
+        * @see _.pick
+        **/
+        pick<Picked, T>(
+            object: T,
+            keys: string[]): Picked;
+
+        /**
+        * @see _.pick
+        **/
+        pick<Picked, T>(
+            object: T,
+            callback: ObjectIterator<any, boolean>,
+            thisArg?: any): Picked;
+    }
+
+    //_.transform
+    interface LoDashStatic {
+        /**
+        * An alternative to _.reduce this method transforms object to a new accumulator object which is 
+        * the result of running each of its elements through a callback, with each callback execution 
+        * potentially mutating the accumulator object. The callback is bound to thisArg and invoked with 
+        * four arguments; (accumulator, value, key, object). Callbacks may exit iteration early by 
+        * explicitly returning false.
+        * @param collection The collection to iterate over.
+        * @param callback The function called per iteration.
+        * @param accumulator The custom accumulator value.
+        * @param thisArg The this binding of callback.
+        * @return The accumulated value.
+        **/
+        transform<T, Acc>(
+            collection: Array<T>,
+            callback: MemoVoidIterator<T, Acc>,
+            accumulator: Acc,
+            thisArg?: any): Acc;
+
+        /**
+        * @see _.transform
+        **/
+        transform<T, Acc>(
+            collection: List<T>,
+            callback: MemoVoidIterator<T, Acc>,
+            accumulator: Acc,
+            thisArg?: any): Acc;
+
+        /**
+        * @see _.transform
+        **/
+        transform<T, Acc>(
+            collection: Dictionary<T>,
+            callback: MemoVoidIterator<T, Acc>,
+            accumulator: Acc,
+            thisArg?: any): Acc;
+
+        /**
+        * @see _.transform
+        **/
+        transform<T, Acc>(
+            collection: Array<T>,
+            callback?: MemoVoidIterator<T, Acc>,
+            thisArg?: any): Acc;
+
+        /**
+        * @see _.transform
+        **/
+        transform<T, Acc>(
+            collection: List<T>,
+            callback?: MemoVoidIterator<T, Acc>,
+            thisArg?: any): Acc;
+
+        /**
+        * @see _.transform
+        **/
+        transform<T, Acc>(
+            collection: Dictionary<T>,
+            callback?: MemoVoidIterator<T, Acc>,
+            thisArg?: any): Acc;
+    }
+
+    //_.values
+    interface LoDashStatic {
+        /**
+        * Creates an array composed of the own enumerable property values of object.
+        * @param object The object to inspect.
+        * @return Returns an array of property values.
+        **/
+        values(object: any): any[];
+    }
+
+    /**********
+     * String *
+     **********/
+
+    interface LoDashStatic {
+        camelCase(str?: string): string;
+        capitalize(str?: string): string;
+        deburr(str?: string): string;
+        endsWith(str?: string, target?: string, position?: number): boolean;
+        escape(str?: string): string;
+        escapeRegExp(str?: string): string;
+        kebabCase(str?: string): string;
+        pad(str?: string, length?: number, chars?: string): string;
+        padLeft(str?: string, length?: number, chars?: string): string;
+        padRight(str?: string, length?: number, chars?: string): string;
+        repeat(str?: string, n?: number): string;
+        snakeCase(str?: string): string;
+        startCase(str?: string): string;
+        startsWith(str?: string, target?: string, position?: number): boolean;
+        trim(str?: string, chars?: string): string;
+        trimLeft(str?: string, chars?: string): string;
+        trimRight(str?: string, chars?: string): string;
+        trunc(str?: string, len?: number): string;
+        trunc(str?: string, options?: { length?: number; omission?: string; separator?: string }): string;
+        trunc(str?: string, options?: { length?: number; omission?: string; separator?: RegExp }): string;
+        words(str?: string, pattern?: string): string[];
+        words(str?: string, pattern?: RegExp): string[];
+    }
+
+    //_.parseInt
+    interface LoDashStatic {
+        /**
+        * Converts the given value into an integer of the specified radix. If radix is undefined or 0 a 
+        * radix of 10 is used unless the value is a hexadecimal, in which case a radix of 16 is used.
+        *
+        * Note: This method avoids differences in native ES3 and ES5 parseInt implementations. See 
+        * http://es5.github.io/#E.
+        * @param value The value to parse.
+        * @param radix The radix used to interpret the value to parse.
+        * @return The new integer value.
+        **/
+        parseInt(value: string, radix?: number): number;
+    }
+
+    /*************
+     * Utilities *
+     *************/
+    //_.escape
+    interface LoDashStatic {
+        /**
+        * Converts the characters &, <, >, ", and ' in string to their corresponding HTML entities.
+        * @param string The string to escape.
+        * @return The escaped string.
+        **/
+        escape(str: string): string;
+    }
+
+    //_.identity
+    interface LoDashStatic {
+        /**
+        * This method returns the first argument provided to it.
+        * @param value Any value.
+        * @return value.
+        **/
+        identity<T>(value: T): T;
+    }
+
+    //_.mixin
+    interface LoDashStatic {
+        /**
+        * Adds function properties of a source object to the lodash function and chainable wrapper.
+        * @param object The object of function properties to add to lodash.
+        **/
+        mixin(object: Dictionary<(value: any) => any>): void;
+    }
+
+    //_.noConflict
+    interface LoDashStatic {
+        /**
+        * Reverts the '_' variable to its previous value and returns a reference to the lodash function.
+        * @return The lodash function.
+        **/
+        noConflict(): typeof _;
+    }
+
+    //_.property
+    interface LoDashStatic {
+        /**
+         * # Ⓢ
+         * Creates a "_.pluck" style function, which returns the key value of a given object.
+         * @param key (string)
+         * @return the value of that key on the object
+         **/
+        property<T,RT>(key: string): (obj: T) => RT;
+    }
+
+    //_.random
+    interface LoDashStatic {
+        /**
+        * Produces a random number between min and max (inclusive). If only one argument is provided a 
+        * number between 0 and the given number will be returned. If floating is truey or either min or 
+        * max are floats a floating-point number will be returned instead of an integer.
+        * @param max The maximum possible value.
+        * @param floating Specify returning a floating-point number.
+        * @return A random number.
+        **/
+        random(max: number, floating?: boolean): number;
+
+        /**
+        * @see _.random
+        * @param min The minimum possible value.
+        * @return A random number between `min` and `max`.
+        **/
+        random(min: number, max: number, floating?: boolean): number;
+    }
+
+    //_.result
+    interface LoDashStatic {
+        /**
+        * Resolves the value of property on object. If property is a function it will be invoked with 
+        * the this binding of object and its result returned, else the property value is returned. If 
+        * object is falsey then undefined is returned.
+        * @param object The object to inspect.
+        * @param property The property to get the value of.
+        * @return The resolved value.
+        **/
+        result(object: any, property: string): any;
+    }
+
+    //_.runInContext
+    interface LoDashStatic {
+        /**
+        * Create a new lodash function using the given context object.
+        * @param context The context object
+        * @returns The lodash function.
+        **/
+        runInContext(context: any): typeof _;
+    }
+
+    //_.template
+    interface LoDashStatic {
+        /**
+        * A micro-templating method that handles arbitrary delimiters, preserves whitespace, and 
+        * correctly escapes quotes within interpolated code.
+        *
+        * Note: In the development build, _.template utilizes sourceURLs for easier debugging. See 
+        * http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-sourceurl
+        *
+        * For more information on precompiling templates see:
+        * http://lodash.com/#custom-builds
+        *
+        * For more information on Chrome extension sandboxes see:
+        * http://developer.chrome.com/stable/extensions/sandboxingEval.html
+        * @param text The template text.
+        * @param data The data object used to populate the text.
+        * @param options The options object.
+        * @param options.escape The "escape" delimiter.
+        * @param options.evaluate The "evaluate" delimiter.
+        * @param options.import An object to import into the template as local variables.
+        * @param options.interpolate The "interpolate" delimiter.
+        * @param sourceURL The sourceURL of the template’s compiled source.
+        * @param variable The data object variable name.
+        * @return Returns the compiled Lo-Dash HTML template or a TemplateExecutor if no data is passed.
+        **/
+        template(
+            text: string): TemplateExecutor;
+
+        /**
+        * @see _.template
+        **/
+        template(
+            text: string,
+            data: any,
+            options?: TemplateSettings,
+            sourceURL?: string,
+            variable?: string): any /* string or TemplateExecutor*/;
+    }
+
+    interface TemplateExecutor {
+        (...data: any[]): string;
+        source: string;
+    }
+
+    //_.times
+    interface LoDashStatic {
+        /**
+        * Executes the callback n times, returning an array of the results of each callback execution. 
+        * The callback is bound to thisArg and invoked with one argument; (index).
+        * @param n The number of times to execute the callback.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        **/
+        times<TResult>(
+            n: number,
+            callback: (num: number) => TResult,
+            context?: any): TResult[];
+    }
+
+    //_.unescape
+    interface LoDashStatic {
+        /**
+        * The inverse of _.escape this method converts the HTML entities &amp;, <, &gt;, &quot;, and 
+        * &#39; in string to their corresponding characters.
+        * @param string The string to unescape.
+        * @return The unescaped string.
+        **/
+        unescape(
+            string: string): string;
+    }
+
+    //_.uniqueId
+    interface LoDashStatic {
+        /**
+        * Generates a unique ID. If prefix is provided the ID will be appended to it.
+        * @param prefix The value to prefix the ID with.
+        * @return Returns the unique ID.
+        **/
+        uniqueId(prefix?: string): string;
+    }
+    
+    //_.noop
+    interface LoDashStatic {
+        /**
+         * A no-operation function.
+         **/
+        noop(): void;
+    }
+
+    //_.constant
+    interface LoDashStatic {
+        /**
+         * Creates a function that returns value..
+         **/
+        constant<T>(value: T): () => T;
+    }
+
+    //_.create
+    interface LoDashStatic {
+        /**
+         * Creates an object that inherits from the given prototype object. If a properties object is provided its own enumerable properties are assigned to the created object.
+         * @param prototype The object to inherit from.
+         * @param properties The properties to assign to the object.
+         */
+        create<T>(prototype: Object, properties?: Object): Object;
+    }
+    
+    interface ListIterator<T, TResult> {
+        (value: T, index: number, list: T[]): TResult;
+    }
+
+    interface ObjectIterator<T, TResult> {
+        (element: T, key: string, list: any): TResult;
+    }
+
+    interface MemoVoidIterator<T, TResult> {
+        (prev: TResult, curr: T, indexOrKey: any, list?: T[]): void;
+    }
+    interface MemoIterator<T, TResult> {
+        (prev: TResult, curr: T, indexOrKey: any, list?: T[]): TResult;
+    }
+    /*
+    interface MemoListIterator<T, TResult> {
+        (prev: TResult, curr: T, index: number, list?: T[]): TResult;
+    }
+    interface MemoObjectIterator<T, TResult> {
+        (prev: TResult, curr: T, index: string, object?: Dictionary<T>): TResult;
+    }
+    */
+
+    //interface Collection<T> {}
+
+    // Common interface between Arrays and jQuery objects
+    interface List<T> {
+        [index: number]: T;
+        length: number;
+    }
+
+    interface Dictionary<T> {
+        [index: string]: T;
+    }
+}
+
+declare module "lodash" {
+    export = _;
+}
+
 // Type definitions for d3JS
 // Project: http://d3js.org/
 // Definitions by: Boris Yankov <https://github.com/borisyankov>
@@ -4003,6 +11163,7 @@ declare module D3 {
         keyCode: number;
         altKey: any;
         ctrlKey: any;
+        shiftKey: any;
         type: string;
     }
 
@@ -4743,6 +11904,12 @@ declare module D3 {
         * except operators animate smoothly over time rather than applying instantaneously.
         */
         transition(): Transition.Transition;
+
+        /**
+         * Interrupts the active transition of the provided name. Does not cancel scheduled transitions.
+         * @param name the transition name (defaults to "")
+         */
+        interrupt(name?: string): Selection;
 
         /**
         * Sorts the elements in the current selection according to the specified comparator

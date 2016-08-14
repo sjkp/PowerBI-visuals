@@ -24,23 +24,35 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
-interface ScriptErrorInfo {
-    message: string;
-    sourceUrl: string;
-    lineNumber: number;
-    columnNumber: number;
-    stack: string;
-}
+module powerbi {
+    export interface ScriptErrorInfo {
+        message: string;
+        sourceUrl: string;
+        lineNumber: number;
+        columnNumber: number;
+        stack: string;
+    }
 
-interface ErrorInfoKeyValuePair {
-    errorInfoKey: string;
-    errorInfoValue: string;
-}
+    export interface ErrorInfoKeyValuePair {
+        errorInfoKey: string;
+        errorInfoValue: string;
+    }
 
-interface ErrorDetails {
-    message: string;
-    additionalErrorInfo: ErrorInfoKeyValuePair[];
-    helpLink?: string;
+    export const enum ErrorType {
+        VisualNotSupported = 1,
+    }
+
+    export interface ErrorDetails {
+        message: string;
+        displayableErrorInfo: ErrorInfoKeyValuePair[];
+        /**
+         * This is a collection of unlocalized properties that could be used for error reporting.
+         * These should not be displayed to the user.
+         */
+        debugErrorInfo?: ErrorInfoKeyValuePair[];
+        helpLink?: string;
+        errorType?: ErrorType;
+    }
 }

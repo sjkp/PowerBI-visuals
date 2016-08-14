@@ -60,8 +60,13 @@ module jsCommon {
         ]
     };
 
-    export function ensureMap(action: () => void): void {
-        requires(MapPackage, action);
+    export function ensureMap(locale: string, action: () => void): void {
+        let mapPackageWithLocale = powerbi.Prototype.inherit(MapPackage);
+        if (!_.isEmpty(locale)) {
+            let localeSplit = locale.split('-', 2);
+            mapPackageWithLocale.javaScriptFilesWithCallback[0].javascriptFile = MSMapcontrol.concat('&mkt=' + locale + '&ur=' + (localeSplit.length > 1 ? localeSplit[1] : locale));
+        }
+        requires(mapPackageWithLocale, action);
     }
 
 	export function mapControlLoaded(): void {
@@ -85,8 +90,10 @@ module jsCommon {
 	}
 }
 
+declare let globalMapControlLoaded: Function;
+
 /* tslint:disable:no-unused-variable */
-let globalMapControlLoaded = function() {
+globalMapControlLoaded = function() {
 	// Map requires a function in the global namespace to callback once loaded
 	jsCommon.mapControlLoaded();
 };

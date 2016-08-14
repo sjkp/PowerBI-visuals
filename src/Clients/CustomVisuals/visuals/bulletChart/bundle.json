@@ -1,0 +1,30 @@
+{
+    "dateAdded": "2015-10-19T03:16:18.000Z",
+    "dateLastUpdated": "2016-02-24T20:54:49.000Z",
+    "package": {
+        "name": "BulletChart",
+        "displayName": "Bullet Chart",
+        "guid": "BulletChart1443347686880",
+        "version": "1.3.5",
+        "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "description": "A bullet chart that includes four orientations and a few customization options. Use to feature a single measure against a qualitative range.",
+            "images": {
+            "icon": "icon.svg",
+            "screenshots": ["1.png", "2.png"],
+            "thumbnail": "thumb.png"
+        },
+        "code": {
+            "typeScript": "BulletChart.ts",
+            "javaScript": "BulletChart.js",
+            "css": "BulletChart.css"
+        }
+    }
+}

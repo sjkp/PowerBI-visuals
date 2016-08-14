@@ -1,0 +1,8 @@
+{
+    "uglifyJs": true,
+    "nonminJs": true,
+    "minifyCss": true,
+    "generateMaps": true,
+    "tslintOnBuild": false,
+    "tslintOnChange": false
+}

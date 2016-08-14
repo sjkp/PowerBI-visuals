@@ -1,0 +1,31 @@
+{
+    "dateAdded": "2015-12-11T15:59:29.000Z",
+    "dateLastUpdated": "2016-02-24T20:54:49.000Z",
+    "videoUrl": "https://www.youtube.com/watch?v=WWP9wVUHGaA",
+    "package": {
+        "name": "SankeyDiagram",
+        "displayName": "Sankey",
+        "guid": "SankeyDiagram1446463184954",
+        "version": "0.0.9",
+        "description": "Sankey is a type of flow diagram in which the width of the series is in proportion to the quantity of the flow.  Use it to find major contributions to an overall flow.",
+        "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["screenshot.png"],
+            "thumbnail": "thumb.png"
+        },
+        "code": {
+            "typeScript": "sankeyDiagram.ts",
+            "javaScript": "sankeyDiagram.js",
+            "css": "sankeyDiagram.css"
+        }
+    }
+}

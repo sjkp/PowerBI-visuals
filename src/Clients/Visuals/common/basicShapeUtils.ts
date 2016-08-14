@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Power BI Visualizations
 *
 *  Copyright (c) Microsoft Corporation
@@ -25,6 +25,7 @@
 */
 
 /// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
     export module ShapeFactory {
 
@@ -131,7 +132,7 @@ module powerbi.visuals {
                 .style({
                     'vector-effect': 'non-scaling-stroke',
                     'stroke-width': data.lineWeight + 'px',
-                    'stroke-opacity': data.lineTransparency / 100,
+                    'stroke-opacity': (100 - data.lineTransparency) / 100,
                     'stroke': data.lineColor
                 });
         }
@@ -227,9 +228,9 @@ module powerbi.visuals {
                     'vector-effect': 'non-scaling-stroke',
                     'stroke-width': data.lineWeight + 'px',
                     'stroke': data.lineColor,
-                    'stroke-opacity': data.lineTransparency / 100,
+                    'stroke-opacity': (100 - data.lineTransparency) / 100,
                     'fill': data.fillColor,
-                    'fill-opacity': data.showFill === true ? data.shapeTransparency / 100 : 0
+                    'fill-opacity': data.showFill === true ? ((100 - data.shapeTransparency) / 100) : 0
                 });
         }
 

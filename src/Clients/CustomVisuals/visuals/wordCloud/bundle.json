@@ -1,0 +1,31 @@
+{
+    "dateAdded": "2015-11-10T01:40:27.000Z",
+    "dateLastUpdated": "2016-06-01T16:08:49.000Z",
+    "videoUrl": "https://www.youtube.com/watch?v=AblTenl9fqo",
+    "package": {
+        "name": "WordCloud",
+        "displayName": "WordCloud",
+        "version": "1.2.0",
+        "guid": "WordCloud1447959067750",
+        "description": "Word Cloud is a visual representation of word frequency and value. Use it to get instant insight into the most important terms in a set.",
+        "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["WordCloudSS.png"],
+            "thumbnail": "Word_Cloud.png"
+        },
+        "code": {
+            "typeScript": "WordCloud.ts",
+            "javaScript": "WordCloud.js",
+            "css": "WordCloud.css"
+        }
+    }
+}

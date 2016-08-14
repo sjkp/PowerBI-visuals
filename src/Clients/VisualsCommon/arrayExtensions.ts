@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module jsCommon {
     export interface ArrayIdItems<T> extends Array<T> {
@@ -33,6 +33,22 @@ module jsCommon {
 
     export interface ArrayNamedItems<T> extends Array<T> {
         withName(name: string): T;
+    }
+
+    /**
+     * Compares two objects and returns a value indicating whether one is less than, equal to, or greater than the other.
+     */
+    export interface IComparer<T> {
+        /**
+         * Returns a signed number that indicates the relative values of x and y, as shown in the following table.
+         * 
+         *         Value     |       Meaning
+         * ------------------|--------------------
+         * Less than zero    | a is less than b
+         * Zero              | a equals b
+         * Greater than zero | a is greater than b
+         */
+        (a: T, b: T): number;            
     }
 
     export module ArrayExtensions {
@@ -136,6 +152,10 @@ module jsCommon {
          */
         export function sequenceEqual<T>(left: T[], right: T[], comparison: (x: T, y: T) => boolean): boolean {
             debug.assertValue(comparison, 'comparison');
+
+            // Normalize falsy to null
+            if (!left) { left = null; }
+            if (!right) { right = null; }
 
             if (left === right) {
                 return true;
@@ -252,6 +272,49 @@ module jsCommon {
         }
 
         /**
+         * Inserts a number in sorted order into a list of numbers already in sorted order.
+         * @returns True if the item was added, false if it already existed.
+         */
+        export function insertSorted(list: number[], value: number): boolean {
+            debug.assertValue(list, 'list');
+            debug.assertValue(value, 'value');
+
+            let len = list.length;
+
+            // NOTE: iterate backwards because incoming values tend to be sorted already.
+            for (let i = len - 1; i >= 0; i--) {
+                let diff = list[i] - value;
+
+                if (diff === 0)
+                    return false;
+
+                if (diff > 0)
+                    continue;
+
+                // diff < 0
+                list.splice(i + 1, 0, value);
+                return true;
+            }
+
+            list.unshift(value);
+            return true;
+        }
+
+        /**
+         * Removes the first occurrence of a value from a list if it exists.
+         * @returns True if the value was removed, false if it did not exist in the list.
+         */
+        export function removeFirst<T>(list: T[], value: T): boolean {
+            let index = list.indexOf(value);
+            if (index < 0)
+                return false;
+
+            list.splice(index, 1);
+
+            return true;
+        }
+
+        /**
          * Finds and returns the first item with a matching name.
          */
         function withName<T>(name: string): T {
@@ -263,8 +326,11 @@ module jsCommon {
          * Deletes all items from the array.
          */
         export function clear(array: any[]): void {
-            // Not using splice due to the array creation involved in it. 
-            array.length = 0;
+            if (!array)
+                return;
+
+            while (array.length > 0)
+                array.pop();
         }
 
         export function isUndefinedOrEmpty(array: any[]): boolean {
@@ -274,14 +340,63 @@ module jsCommon {
             return false;
         }
 
-        export function isArray(object: any): boolean {
-            return Object.prototype.toString.call(object) === '[object Array]';
-        }
-
         export function swap<T>(array: T[], firstIndex: number, secondIndex: number): void {
             let temp = array[firstIndex];
             array[firstIndex] = array[secondIndex];
             array[secondIndex] = temp;
+        }
+
+        export function isInArray<T>(array: T[], lookupItem: T, compareCallback: (item1: T, item2: T) => boolean): boolean {
+            return _.any(array, item => compareCallback(item, lookupItem));
+        }
+
+        /** Checks if the given object is an Array, and looking all the way up the prototype chain. */
+        export function isArrayOrInheritedArray(obj: {}): obj is Array<any> {
+            debug.assertValue(obj, 'obj');
+
+            let nextPrototype = obj;
+            while (nextPrototype != null) {
+                if (_.isArray(nextPrototype))
+                    return true;
+
+                nextPrototype = Object.getPrototypeOf(nextPrototype);
+            }
+
+            return false;
+        }
+        
+        /**
+         * Returns true if the specified values array is sorted in an order as determined by the specified compareFunction.
+         */
+        export function isSorted<T>(values: T[], compareFunction: IComparer<T>): boolean {
+            debug.assertValue(values, 'values');
+            debug.assertValue(compareFunction, 'compareFunction');
+
+            let ilen = values.length;
+            if (ilen >= 2) {
+                for (let i = 1; i < ilen; i++) {
+                    if (compareFunction(values[i - 1], values[i]) > 0) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;            
+        }
+        
+        /**
+         * Returns true if the specified number values array is sorted in ascending order
+         * (or descending order if the specified descendingOrder is truthy).
+         */
+        export function isSortedNumeric(values: number[], descendingOrder?: boolean): boolean {
+            debug.assertValue(values, 'values');
+            debug.assertAnyValue(descendingOrder, 'descendingOrder');
+            
+            let compareFunction: IComparer<number> = descendingOrder ?
+                (a, b) => b - a :
+                (a, b) => a - b;
+                
+            return isSorted(values, compareFunction);            
         }
     }
 } 

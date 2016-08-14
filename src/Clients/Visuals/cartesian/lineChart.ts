@@ -2,7 +2,7 @@
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,14 +11,14 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
@@ -34,6 +34,12 @@ module powerbi.visuals {
 
     export interface LineChartConstructorOptions extends CartesianVisualConstructorOptions {
         chartType?: LineChartType;
+        tooltipBucketEnabled?: boolean;
+        advancedLineLabelsEnabled?: boolean;
+    }
+
+    export interface LineChartDataLabelsSettings extends PointDataLabelsSettings {
+        labelDensity: string;
     }
 
     export interface ILineChartConfiguration {
@@ -42,27 +48,33 @@ module powerbi.visuals {
         margin: any;
     }
 
-    export interface LineChartCategoriesData extends LineChartDataPoint { }
+    export interface LineChartCategoriesData extends LineChartDataPoint {}
 
     export interface LineChartData extends CartesianData {
         series: LineChartSeries[];
         isScalar?: boolean;
-        dataLabelsSettings: PointDataLabelsSettings;
+        scalarMetadata?: DataViewMetadataColumn;
+        scalarKeyCount?: number;
+        dataLabelsSettings: LineChartDataLabelsSettings;
         axesLabels: ChartAxesLabels;
         hasDynamicSeries?: boolean;
         defaultSeriesColor?: string;
         categoryData?: LineChartCategoriesData[];
+        seriesDisplayName?: string;
+        hasValues?: boolean;
+        categoryIdentities?: SelectionId[]; // TODO: Make this non-optional once real time line chart code is merged into this line chart (may also need to update pulse chart)
     }
 
     export interface LineChartSeries extends CartesianSeries, SelectableDataPoint {
         displayName: string;
+        dynamicDisplayName?: string;
         key: string;
         lineIndex: number;
         color: string;
         xCol: DataViewMetadataColumn;
         yCol: DataViewMetadataColumn;
         data: LineChartDataPoint[];
-        labelSettings: VisualDataLabelsSettings;
+        labelSettings: LineChartDataLabelsSettings;
     }
 
     export interface LineChartDataPoint extends CartesianDataPoint, TooltipEnabledDataPoint, SelectableDataPoint, LabelEnabledDataPoint {
@@ -70,17 +82,23 @@ module powerbi.visuals {
         categoryIndex: number;
         seriesIndex: number;
         key: string;
-        labelSettings: VisualDataLabelsSettings;
+        labelSettings: LineChartDataLabelsSettings;
         pointColor?: string;
         stackedValue?: number;
+        extraTooltipInfo?: TooltipDataItem[];
+        specificIdentity: SelectionId; // Identity (from SelectableDataPoint) is for selection and is purely series while specificIdentity here is category+series used for onSelecting
     }
 
     export interface HoverLineDataPoint {
         color: string;
-        label: string;
+        seriesDisplayName?: string;
+        seriesName?: string;
         category: string;
+        measureDisplayName: string;
         measure: any;
         value: number;
+        stackedValue: number;
+        extraTooltipInfo: TooltipDataItem[];
     }
 
     export const enum LineChartType {
@@ -91,14 +109,14 @@ module powerbi.visuals {
         stackedArea = 1 << 4
     }
 
-    enum LineChartRelativePosition {
-        none,
-        equal,
-        lesser,
-        greater,
+    const enum LineChartRelativePosition {
+        None,
+        Equal,
+        Lesser,
+        Greater,
     };
 
-    /** 
+    /**
      * Renders a data series as a line visual.
      */
     export class LineChart implements ICartesianVisual {
@@ -109,19 +127,24 @@ module powerbi.visuals {
         private static CategoryPointSelector: ClassAndSelector = createClassAndSelector('point');
         private static CategoryAreaSelector: ClassAndSelector = createClassAndSelector('catArea');
         private static HoverLineCircleDot: ClassAndSelector = createClassAndSelector('circle-item');
+        private static LineClassSelector: ClassAndSelector = createClassAndSelector('line');
         private static PointRadius = 5;
-        private static HorizontalShift = 0;
         private static CircleRadius = 4;
         private static PathElementName = 'path';
         private static CircleElementName = 'circle';
         private static CircleClassName = 'selection-circle';
         private static LineElementName = 'line';
         private static RectOverlayName = 'rect';
+        private static ScalarOuterPadding = 10;
+        private static interactivityStrokeWidth = 10;
+        private static minimumLabelsToRender = 4;
         public static AreaFillOpacity = 0.4;
         public static DimmedAreaFillOpacity = 0.2;
 
         private isInteractiveChart: boolean;
         private isScrollable: boolean;
+        private tooltipsEnabled: boolean;
+        private lineClassAndSelector: ClassAndSelector;
 
         private element: JQuery;
         private cartesainSVG: D3.Selection;
@@ -147,35 +170,94 @@ module powerbi.visuals {
         private dragHandle: D3.Selection;
         private hoverLine: D3.Selection;
         private lastInteractiveSelectedColumnIndex: number;
+        private scaleDetector: SVGScaleDetector;
 
         private interactivityService: IInteractivityService;
         private animator: IGenericAnimator;
-        private seriesLabelFormattingEnabled: boolean;
 
-        private static validLabelPositions = [NewPointLabelPosition.Above];
+        private previousCategoryCount: number;
+        private pathXAdjustment: number = 0;
+
+        private tooltipBucketEnabled: boolean;
+        private advancedLineLabelsEnabled: boolean;
+
         private static validStackedLabelPositions = [RectLabelPosition.InsideCenter, RectLabelPosition.InsideEnd, RectLabelPosition.InsideBase];
 
         private overlayRect: D3.Selection;
         private isComboChart: boolean;
+
+        private previousCategoryIds: SelectionId[];
+        private suppressAnimation: boolean;
+
+        private lastDragMoveXPosition: number;
+        private deferDragMoveOperation = jsCommon.DeferUtility.deferUntilNextFrame(() => {
+            if (this.lastDragMoveXPosition) {
+                let index: number = this.findIndex(this.lastDragMoveXPosition - this.margin.left);
+                this.selectColumn(index);
+                this.lastDragMoveXPosition = undefined;
+            }
+        });
 
         public static customizeQuery(options: CustomizeQueryOptions): void {
             let dataViewMapping = options.dataViewMappings[0];
             if (!dataViewMapping || !dataViewMapping.categorical || !dataViewMapping.categorical.categories)
                 return;
 
-            let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
-            let categoryItems = dataViewCategories.for.in.items;
-            if (!_.isEmpty(categoryItems)) {
-                let categoryType = categoryItems[0].type;
+            dataViewMapping.categorical.dataVolume = 4;
 
-                let objects: DataViewObjects;
-                if (dataViewMapping.metadata)
-                    objects = dataViewMapping.metadata.objects;
+                let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
 
-                if (CartesianChart.getIsScalar(objects, lineChartProps.categoryAxis.axisType, categoryType)) {
-                    dataViewCategories.dataReductionAlgorithm = { sample: {} };
+            // Opt in to scalar key
+            let usingScalarKey = false;
+                let roleItems = dataViewCategories.for.in.items;
+            if (roleItems && LineChart.shouldUseScalarKey(dataViewMapping, roleItems)) {
+                    for (let item of roleItems) {
+                        if (item.hasScalarKey) {
+                            item.scalarKeyMinProperty = lineChartProps.scalarKey.scalarKeyMin;
+                            usingScalarKey = true;
+                            break;
+                        }
+                    }
+                }
+
+            if (CartesianChart.detectScalarMapping(dataViewMapping) || usingScalarKey) {
+                dataViewCategories.dataReductionAlgorithm = { sample: {} };
+
+                let values = <data.CompiledDataViewGroupedRoleMapping>dataViewMapping.categorical.values;
+
+                if(values && values.group){
+                    values.group.dataReductionAlgorithm = { top: {} };
                 }
             }
+            else {
+                _.remove(options.dataViewMappings, (dataViewMapping) => dataViewMapping.usage && dataViewMapping.usage.forecast);
+                CartesianChart.expandCategoryWindow([dataViewMapping]);
+            }
+        }
+
+        private static shouldUseScalarKey(dataViewMapping: data.CompiledDataViewMapping, categoryRoleItems: data.CompiledDataViewRoleItem[]): boolean {
+
+            // If explicitly categorical axis, no scalar keys
+            let axisTypeValue = DataViewObjects.getValue(dataViewMapping.metadata.objects, lineChartProps.categoryAxis.axisType);
+            if (axisTypeValue === axisType.categorical)
+                return false;
+
+            // If we are sorting by something other than this group, the scalar key is of no value
+            let columns = dataViewMapping.metadata && dataViewMapping.metadata.columns;
+            let sortedColumns: DataViewMetadataColumn[];
+            if (columns)
+                sortedColumns = _.filter(columns, (c) => c.sort !== undefined);
+            if (!_.isEmpty(sortedColumns)) {
+                // If we are sorting by something other than category, we won't be positioning by scalar key
+                if (_.any(sortedColumns, (c) => !_.find(categoryRoleItems, (ri) => c.queryName === ri.queryName)))
+                    return false;
+
+                // Make sure all of the sorted items are in the same direction, otherwise a scalar key won't make sense
+                if (_.any(sortedColumns, (c) => c.sort !== sortedColumns[0].sort))
+                    return false;
+            }
+
+            return true;
         }
 
         public static getSortableRoles(options: VisualSortableOptions): string[] {
@@ -194,10 +276,10 @@ module powerbi.visuals {
                     objects = dataViewMapping.metadata.objects;
 
                 //TODO: line chart should be sortable by X if it has scalar axis
-                // But currently it doesn't support this. Always return 'category' 
+                // But currently it doesn't support this. Always return 'category'
                 // once it is supported.
                 if (!CartesianChart.getIsScalar(objects, lineChartProps.categoryAxis.axisType, categoryType))
-                    return ['Category'];
+                    return ['Category', 'Y'];
             }
 
             return null;
@@ -209,7 +291,12 @@ module powerbi.visuals {
             colors: IDataColorPalette,
             isScalar: boolean,
             interactivityService?: IInteractivityService,
-            shouldCalculateStacked?: boolean): LineChartData {
+            shouldCalculateStacked?: boolean,
+            isComboChart?: boolean,
+            tooltipsEnabled: boolean = true,
+            tooltipBucketEnabled: boolean = false): LineChartData {
+            let reader = powerbi.data.createIDataViewCategoricalReader(dataView);
+            let valueRoleName = isComboChart ? 'Y2' : 'Y';
             let categorical = dataView.categorical;
             let category = categorical.categories && categorical.categories.length > 0
                 ? categorical.categories[0]
@@ -221,26 +308,42 @@ module powerbi.visuals {
 
             let xAxisCardProperties = CartesianHelper.getCategoryAxisProperties(dataView.metadata);
             isScalar = CartesianHelper.isScalar(isScalar, xAxisCardProperties);
+            let scalarKeys = LineChart.getScalarKeys(category);
+            let useScalarKeys = isScalar && scalarKeys && !_.isEmpty(scalarKeys.values);
+
+            // if scalar and scalar keys defined, use scalar keys for xAxis labels
+            let scalarMetadataColumn: DataViewMetadataColumn;
+            if (useScalarKeys)
+                scalarMetadataColumn = {
+                    displayName: null,
+                    type: {
+                        dateTime: true
+                    },
+                };
+
             categorical = ColumnUtil.applyUserMinMax(isScalar, categorical, xAxisCardProperties);
 
             let formatStringProp = lineChartProps.general.formatString;
             let categoryType: ValueType = AxisHelper.getCategoryValueType(category.source, isScalar);
             let isDateTime = AxisHelper.isDateTime(categoryType);
             let categoryValues = category.values;
-            let categoryData = [];
+            let categoryData: LineChartDataPoint[] = [];
+            let categoryIdentities: SelectionId[] = [];
             let series: LineChartSeries[] = [];
-            let seriesLen = categorical.values ? categorical.values.length : 0;
+            let seriesCount = reader.getSeriesCount(valueRoleName);
             let hasDynamicSeries = !!(categorical.values && categorical.values.source);
             let values = categorical.values;
-            let defaultLabelSettings: PointDataLabelsSettings = dataLabelUtils.getDefaultPointLabelSettings();
+            let defaultLabelSettings: LineChartDataLabelsSettings = dataLabelUtils.getDefaultLineChartLabelSettings(isComboChart);
             let defaultSeriesColor: string;
 
             if (dataView.metadata && dataView.metadata.objects) {
                 let objects = dataView.metadata.objects;
-                defaultSeriesColor = DataViewObjects.getFillColor(objects, lineChartProps.dataPoint.defaultColor);
+
+                // If the line layer is in a combo chart, the "Default Column Color" slice's value (lineChartProps.dataPoint.defaultColor) will not affect the line series as well
+                defaultSeriesColor = isComboChart ? undefined : DataViewObjects.getFillColor(objects, lineChartProps.dataPoint.defaultColor);
 
                 let labelsObj = <DataLabelObject>objects['labels'];
-                dataLabelUtils.updateLabelSettingsFromLabelsObject(labelsObj, defaultLabelSettings);
+                dataLabelUtils.updateLineChartLabelSettingsFromLabelsObject(labelsObj, defaultLabelSettings);
             }
 
             let colorHelper = new ColorHelper(colors, lineChartProps.dataPoint.fill, defaultSeriesColor);
@@ -248,100 +351,168 @@ module powerbi.visuals {
             let grouped: DataViewValueColumnGroup[];
             if (dataView.categorical.values)
                 grouped = dataView.categorical.values.grouped();
-            
+
             let stackedValues;
             if (shouldCalculateStacked) {
-                //initialize array with zeros            
+                //initialize array with zeros
                 stackedValues = categorical.values && categorical.values.length > 0 ? _.times(categorical.values[0].values.length, () => 0) : [];
-            }         
+            }
 
-            for (let seriesIndex = 0; seriesIndex < seriesLen; seriesIndex++) {
-                let column = categorical.values[seriesIndex];
-                let valuesMetadata = column.source;
-                let dataPoints: LineChartDataPoint[] = [];
-                let groupedIdentity = grouped[seriesIndex];
-                let identity = hasDynamicSeries && groupedIdentity ?
-                    SelectionId.createWithIdAndMeasure(groupedIdentity.identity, column.source.queryName) :
-                    SelectionId.createWithMeasure(column.source.queryName);
-                let key = identity.getKey();
-                let color = this.getColor(colorHelper, hasDynamicSeries, values, grouped, seriesIndex, groupedIdentity);
-                let seriesLabelSettings: VisualDataLabelsSettings;
+            if (reader.hasValues(valueRoleName)) {
+                for (let seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+                    let column = reader.getValueColumn(valueRoleName, seriesIndex);
+                    let valuesMetadata = column.source;
+                    let dataPoints: LineChartDataPoint[] = [];
+                    let groupedIdentity = grouped[seriesIndex];
+                    let identity = SelectionIdBuilder.builder()
+                        .withSeries(categorical.values, column)
+                        .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
+                        .createSelectionId();
+                    let key = identity.getKey();
+                    let color = this.getColor(colorHelper, hasDynamicSeries, values, grouped, seriesIndex, groupedIdentity);
+                    let seriesLabelSettings: LineChartDataLabelsSettings;
 
-                if (!hasDynamicSeries) {
-                    let labelsSeriesGroup = grouped && grouped.length > 0 && grouped[0].values ? grouped[0].values[seriesIndex] : null;
-                    let labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject> labelsSeriesGroup.source.objects['labels'] : null;
-                    if (labelObjects) {
-                        seriesLabelSettings = Prototype.inherit(defaultLabelSettings);
-                        dataLabelUtils.updateLabelSettingsFromLabelsObject(labelObjects, seriesLabelSettings);
-                    }
-                }
-
-                let dataPointLabelSettings = (seriesLabelSettings) ? seriesLabelSettings : defaultLabelSettings;
-
-                for (let categoryIndex = 0, len = column.values.length; categoryIndex < len; categoryIndex++) {
-                    let categoryValue = categoryValues[categoryIndex];
-                    let value = AxisHelper.normalizeNonFiniteNumber(column.values[categoryIndex]);
-
-                    // When Scalar, skip null categories and null values so we draw connected lines and never draw isolated dots.
-                    if (isScalar && (categoryValue == null || value == null))
-                        continue;
-
-                    let categorical: DataViewCategorical = dataView.categorical;
-                    let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value, null, null, seriesIndex);
-                    
-                    let dataPoint: LineChartDataPoint = {
-                        categoryValue: isDateTime && categoryValue ? categoryValue.getTime() : categoryValue,
-                        value: value,
-                        categoryIndex: categoryIndex,
-                        seriesIndex: seriesIndex,
-                        tooltipInfo: tooltipInfo,
-                        selected: false,
-                        identity: identity,
-                        key: JSON.stringify({ ser: key, catIdx: categoryIndex }),
-                        labelFill: dataPointLabelSettings.labelColor,
-                        labelFormatString: valuesMetadata.format,
-                        labelSettings: dataPointLabelSettings 
-                    };
-                    
-                    if (shouldCalculateStacked) {
-                        stackedValues[categoryIndex] += value;
-                        dataPoint.stackedValue = stackedValues[categoryIndex];
+                    if (!hasDynamicSeries) {
+                        let labelsSeriesGroup = grouped && grouped.length > 0 && grouped[0].values ? grouped[0].values[seriesIndex] : null;
+                        let labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject>labelsSeriesGroup.source.objects['labels'] : null;
+                        if (labelObjects) {
+                            seriesLabelSettings = Prototype.inherit(defaultLabelSettings);
+                            dataLabelUtils.updateLineChartLabelSettingsFromLabelsObject(labelObjects, seriesLabelSettings);
+                        }
                     }
 
-                    if (category.objects && category.objects[categoryIndex]) {
-                        dataPoint['pointColor'] = DataViewObjects.getFillColor(category.objects[categoryIndex], lineChartProps.dataPoint.fill);
+                    let dataPointLabelSettings = (seriesLabelSettings) ? seriesLabelSettings : defaultLabelSettings;
+
+                    let useHighlightValues = column.highlights && column.highlights.length > 0;
+                    let categoryCount = reader.hasCategories() ? reader.getCategoryCount() : 1;
+                    // NOTE: line capabilities don't allow highlights, but comboChart does - so only use highlight values if we are in "combo" mode
+                    for (let categoryIndex = 0; categoryIndex < categoryCount; categoryIndex++) {
+                        let categoryValue = categoryValues[categoryIndex];
+                        let xAxisValue = useScalarKeys ? scalarKeys.values[categoryIndex].min : categoryValue;
+                        let value = AxisHelper.normalizeNonFiniteNumber(useHighlightValues ? reader.getHighlight(valueRoleName, categoryIndex, seriesIndex) : reader.getValue(valueRoleName, categoryIndex, seriesIndex));
+
+                        // When Scalar, skip null categories and null values so we draw connected lines and never draw isolated dots.
+                        if (isScalar && (xAxisValue == null || value == null))
+                            continue;
+
+                        // ignore variant measures
+                        if (isDateTime && categoryValue != null && !(categoryValue instanceof Date))
+                            continue;
+
+                        let categorical: DataViewCategorical = dataView.categorical;
+                        let tooltipInfo: TooltipDataItem[];
+                        let extraTooltipInfo: TooltipDataItem[];
+
+                        if (tooltipsEnabled) {
+                            // This tooltip is using in combo chart and mobile tooltip.
+                            tooltipInfo = [];
+
+                            if (category.source) {
+                                tooltipInfo.push({
+                                    displayName: category.source.displayName,
+                                    value: converterHelper.formatFromMetadataColumn(categoryValue, category.source, formatStringProp),
+                                });
+                            }
+
+                            // This dynamicSeries tooltip is only using in mobile tooltip.
+                            if (hasDynamicSeries) {
+                                if (!category.source || category.source !== categorical.values.source) {
+                                    // Category/series on the same column -- don't repeat its value in the tooltip.
+                                    tooltipInfo.push({
+                                        displayName: categorical.values.source.displayName,
+                                        value: converterHelper.formatFromMetadataColumn(grouped[seriesIndex].name, categorical.values.source, formatStringProp),
+                                    });
+                                }
+                            }
+                            if (value != null) {
+                                tooltipInfo.push({
+                                    displayName: valuesMetadata.displayName,
+                                    value: converterHelper.formatFromMetadataColumn(value, valuesMetadata, formatStringProp),
+                                });
+                            }
+
+                            if (tooltipBucketEnabled) {
+                                extraTooltipInfo = [];
+                                TooltipBuilder.addTooltipBucketItem(reader, extraTooltipInfo, categoryIndex, hasDynamicSeries ? seriesIndex : undefined);
+                            }
+                        }
+
+                        let idBuilder = new SelectionIdBuilder();
+                        if (reader.hasCategories()) {
+                            idBuilder = idBuilder.withCategory(reader.getCategoryColumn("Category"), categoryIndex);
+                        }
+                        if (hasDynamicSeries) {
+                            idBuilder = idBuilder.withSeries(dataView.categorical.values, reader.getValueColumn(valueRoleName, seriesIndex));
+                        }
+                        let specificIdentity = idBuilder
+                            .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
+                            .createSelectionId();
+                        let categoryKey = category && !_.isEmpty(category.identity) && category.identity[categoryIndex] ? category.identity[categoryIndex].key : categoryIndex;
+
+                        let dataPoint: LineChartDataPoint = {
+                            categoryValue: ((isDateTime || useScalarKeys) && xAxisValue) ? (<Date>xAxisValue).getTime() : xAxisValue,
+                            value: value,
+                            categoryIndex: categoryIndex,
+                            seriesIndex: seriesIndex,
+                            tooltipInfo: tooltipInfo,
+                            selected: false,
+                            identity: identity,
+                            specificIdentity: specificIdentity,
+                            key: JSON.stringify({ series: key, category: categoryKey }),
+                            labelFill: dataPointLabelSettings.labelColor,
+                            labelFormatString: valuesMetadata.format,
+                            labelSettings: dataPointLabelSettings,
+                            extraTooltipInfo: extraTooltipInfo,
+                        };
+
+                        if (shouldCalculateStacked) {
+                            stackedValues[categoryIndex] += value;
+                            dataPoint.stackedValue = stackedValues[categoryIndex];
+                        }
+
+                        if (category.objects && category.objects[categoryIndex]) {
+                            dataPoint['pointColor'] = DataViewObjects.getFillColor(category.objects[categoryIndex], lineChartProps.dataPoint.fill);
+                        }
+
+                        dataPoints.push(dataPoint);
+
+                        if (!categoryData[categoryIndex]) {
+                            categoryData[categoryIndex] = dataPoint;
+                        }
+                        if (!categoryIdentities[categoryIndex] && reader.hasCategories()) {
+                            let categoryIdBuilder = new SelectionIdBuilder();
+                            categoryIdentities[categoryIndex] = categoryIdBuilder
+                                .withCategory(reader.getCategoryColumn("Category"), categoryIndex)
+                                .withMeasure(reader.getValueMetadataColumn(valueRoleName, seriesIndex).queryName)
+                                .createSelectionId();
+                        }
                     }
 
-                    dataPoints.push(dataPoint);
-
-                    if (!categoryData[categoryIndex]) {
-                        categoryData[categoryIndex] = dataPoint;
+                    if (interactivityService) {
+                        interactivityService.applySelectionStateToData(dataPoints);
                     }
-                }
 
-                if (interactivityService) {
-                    interactivityService.applySelectionStateToData(dataPoints);
-                }
-
-                if (dataPoints.length > 0) {
-                    series.push({
-                        displayName: valuesMetadata.displayName,
-                        key: key,
-                        lineIndex: seriesIndex,
-                        color: color,
-                        xCol: category.source,
-                        yCol: column.source,
-                        data: dataPoints,
-                        identity: identity,
-                        selected: false,
-                        labelSettings: seriesLabelSettings,
-                    });
+                    if (dataPoints.length > 0) {
+                        series.push({
+                            displayName: converterHelper.formatFromMetadataColumn(reader.getValueDisplayName(valueRoleName, seriesIndex), reader.getValueMetadataColumn(valueRoleName, seriesIndex), formatStringProp),
+                            dynamicDisplayName: hasDynamicSeries ? converterHelper.formatFromMetadataColumn(reader.getSeriesName(seriesIndex), reader.getSeriesMetadataColumn(), formatStringProp) : undefined,
+                            key: key,
+                            lineIndex: seriesIndex,
+                            color: color,
+                            xCol: useScalarKeys ? scalarMetadataColumn : category.source,
+                            yCol: reader.getValueMetadataColumn(valueRoleName, seriesIndex),
+                            data: dataPoints,
+                            identity: identity,
+                            selected: false,
+                            labelSettings: seriesLabelSettings,
+                        });
+                    }
                 }
             }
 
             xAxisCardProperties = CartesianHelper.getCategoryAxisProperties(dataView.metadata);
             let valueAxisProperties = CartesianHelper.getValueAxisProperties(dataView.metadata);
-             
+
             // Convert to DataViewMetadataColumn
             let valuesMetadataArray: powerbi.DataViewMetadataColumn[] = [];
             if (values) {
@@ -365,8 +536,13 @@ module powerbi.visuals {
                 axesLabels: { x: axesLabels.xAxisLabel, y: axesLabels.yAxisLabel },
                 hasDynamicSeries: hasDynamicSeries,
                 categoryMetadata: category.source,
+                scalarMetadata: scalarMetadataColumn,
+                scalarKeyCount: useScalarKeys ? scalarKeys.values.length : undefined,
                 categories: categoryValues,
-                categoryData: categoryData
+                categoryData: categoryData,
+                seriesDisplayName: hasDynamicSeries && reader.hasValues(valueRoleName) ? converterHelper.formatFromMetadataColumn(reader.getSeriesDisplayName(), reader.getSeriesMetadataColumn(), formatStringProp) : undefined,
+                hasValues: reader.hasValues(valueRoleName),
+                categoryIdentities: categoryIdentities,
             };
         }
 
@@ -391,7 +567,7 @@ module powerbi.visuals {
                 objects = values[seriesIndex].source.objects;
             }
 
-            return hasDynamicSeries && groupedIdentity 
+            return hasDynamicSeries && groupedIdentity
                 ? colorHelper.getColorForSeriesValue(objects, values.identityFields, groupedIdentity.name)
                 : colorHelper.getColorForMeasure(objects, values[seriesIndex].source.queryName);
         }
@@ -409,28 +585,31 @@ module powerbi.visuals {
 
         constructor(options: LineChartConstructorOptions) {
             this.isScrollable = options.isScrollable ? options.isScrollable : false;
+            this.tooltipsEnabled = options.tooltipsEnabled;
             this.lineType = options.chartType ? options.chartType : LineChartType.default;
             this.interactivityService = options.interactivityService;
             this.animator = options.animator;
-            this.seriesLabelFormattingEnabled = options.seriesLabelFormattingEnabled;
+            this.lineClassAndSelector = LineChart.LineClassSelector;
+            this.tooltipBucketEnabled = options.tooltipBucketEnabled;
+            this.advancedLineLabelsEnabled = options.advancedLineLabelsEnabled;
         }
 
         public init(options: CartesianVisualInitOptions) {
             this.options = options;
-            let element = this.element = options.element;
+            this.element = options.element;
             this.cartesainSVG = options.svg;
             this.host = options.host;
             this.currentViewport = options.viewport;
             this.colors = options.style.colorPalette.dataColors;
             this.isInteractiveChart = options.interactivity && options.interactivity.isInteractiveLegend;
             this.cartesianVisualHost = options.cartesianHost;
+            this.scaleDetector = new SVGScaleDetector(this.cartesainSVG);
 
             let chartType = options.chartType;
             this.isComboChart = chartType === CartesianChartType.ComboChart || chartType === CartesianChartType.LineClusteredColumnCombo || chartType === CartesianChartType.LineStackedColumnCombo;
 
-            element.addClass(LineChart.ClassName);
-
             let svg = options.svg;
+            svg.classed(LineChart.ClassName, true);
 
             let graphicsContextParent = this.mainGraphicsSVG = svg.append('svg')
                 .classed('lineChartSVG', true);
@@ -455,16 +634,11 @@ module powerbi.visuals {
             if (this.isInteractiveChart) {
                 hoverLine.classed('interactive', true);
             }
+            hoverLine.style('opacity', SVGUtil.AlmostZero);
 
-            // define circles object - which will hold the handle circles. 
+            // define circles object - which will hold the handle circles.
             // this object will be populated on render() function, with number of circles which matches the nubmer of lines.
             this.selectionCircles = [];
-
-            let callout = AxisHelper.ToolTip.createCallout();
-            this.element.append(callout);
-
-            hoverLine.style('opacity', SVGUtil.AlmostZero);
-            callout.css('opacity', SVGUtil.AlmostZero);
 
             this.xAxisProperties = {
                 axis: null,
@@ -480,31 +654,40 @@ module powerbi.visuals {
             if (this.isInteractiveChart) {
                 let rootSvg: EventTarget = LineChart.getInteractiveLineChartDomElement(this.element);
                 let dragMove = () => {
-                    let x: number = d3.mouse(rootSvg)[0];
-
-                    let index: number = this.findIndex(x - this.margin.left);
-                    this.selectColumn(index);
+                    this.lastDragMoveXPosition = d3.mouse(rootSvg)[0];
+                    this.deferDragMoveOperation();
                 };
 
                 // assign drag and onClick events
                 let drag = d3.behavior.drag()
                     .origin(Object)
                     .on("drag", dragMove);
+                d3.select(rootSvg)
+                    .style('touch-action', 'none')
+                    .call(drag)
+                    .on('click', dragMove);
+            }
 
-                d3.select(rootSvg).call(drag);
-                d3.select(rootSvg).on('click', dragMove);
+            // Internet Explorer and Edge use the stroke edge, not the path edge for the mouse coordinate's origin.
+            //   We need to adjust mouse events on the interactivity lines to account for this.
+            if (jsCommon.BrowserUtils.isInternetExplorerOrEdge()) {
+                this.pathXAdjustment = 5;
+            }
+            else if (jsCommon.BrowserUtils.isFirefox()) {
+                this.pathXAdjustment = LineChart.interactivityStrokeWidth * 2;
             }
         }
 
         public setData(dataViews: DataView[]): void {
             this.data = {
                 series: [],
-                dataLabelsSettings: dataLabelUtils.getDefaultPointLabelSettings(),
+                dataLabelsSettings: dataLabelUtils.getDefaultLineChartLabelSettings(this.isComboChart),
                 axesLabels: { x: null, y: null },
                 hasDynamicSeries: false,
                 categories: [],
                 categoryMetadata: undefined,
                 categoryData: [],
+                categoryIdentities: [],
             };
 
             if (dataViews.length > 0) {
@@ -514,25 +697,47 @@ module powerbi.visuals {
                     if (dataView.categorical) {
                         let dataViewCat = this.dataViewCat = dataView.categorical;
                         let dvCategories = dataViewCat.categories;
-                        let categoryType = ValueType.fromDescriptor({ text: true });
-                        if (dvCategories && dvCategories.length > 0 && dvCategories[0].source && dvCategories[0].source.type)
-                            categoryType = dvCategories[0].source.type;
+                        let categoryType: ValueTypeDescriptor = { text: true };
+                        let scalarKeys: ScalarKeys;
+                        if (dvCategories && !_.isEmpty(dvCategories)) {
+                            if (dvCategories[0].source && dvCategories[0].source.type)
+                                categoryType = dvCategories[0].source.type;
+                            scalarKeys = LineChart.getScalarKeys(dvCategories[0]);
+                        }
 
                         let convertedData = LineChart.converter(
                             dataView,
                             valueFormatter.format(null),
                             this.cartesianVisualHost.getSharedColors(),
-                            CartesianChart.getIsScalar(dataView.metadata ? dataView.metadata.objects : null, lineChartProps.categoryAxis.axisType, categoryType),
+                            CartesianChart.getIsScalar(dataView.metadata ? dataView.metadata.objects : null, lineChartProps.categoryAxis.axisType, categoryType, scalarKeys),
                             this.interactivityService,
-                            EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea));
+                            EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea),
+                            this.isComboChart,
+                            this.tooltipsEnabled,
+                            this.tooltipBucketEnabled);
                         this.data = convertedData;
+                        
+                        let previousCategoryIds = this.previousCategoryIds;
+                        let currentCategoryIds = convertedData.categoryIdentities;
+                        if (previousCategoryIds != null && !(previousCategoryIds.length > AnimatorCommon.MaxDataPointsToAnimate || currentCategoryIds.length > AnimatorCommon.MaxDataPointsToAnimate)) {
+                            this.suppressAnimation = false;
+
+                            for (let categoryIndex = 0, categoryCount = Math.min(previousCategoryIds.length, currentCategoryIds.length); categoryIndex < categoryCount; categoryIndex++) {
+                                if (!previousCategoryIds[categoryIndex].equals(currentCategoryIds[categoryIndex])) {
+                                    this.suppressAnimation = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        this.previousCategoryIds = currentCategoryIds;
                     }
                 }
             }
         }
 
         public calculateLegend(): LegendData {
-            return this.createLegendDataPoints(0); // start with index 0 
+            return this.createLegendDataPoints(0); // start with index 0
         }
 
         public hasLegend(): boolean {
@@ -557,18 +762,11 @@ module powerbi.visuals {
             let origCatgSize = data.series && data.series.length > 0 ? data.series[0].data.length : 0;
             let categoryWidth = CartesianChart.MinOrdinalRectThickness;
             let isScalar = this.data.isScalar;
-
+            let trimOrdinalDataOnOverflow = options.trimOrdinalDataOnOverflow;
             let preferredPlotArea = this.getPreferredPlotArea(isScalar, origCatgSize, categoryWidth);
 
-            /* preferredPlotArea would be same as currentViewport width when there is no scrollbar. 
-              In that case we want to calculate the available plot area for the shapes by subtracting the margin from available viewport */
-            if (preferredPlotArea.width === this.currentViewport.width) {
-                preferredPlotArea.width -= (margin.left + margin.right);
-            }
-            preferredPlotArea.height -= (margin.top + margin.bottom);
-
             this.clippedData = undefined;
-            if (data && !isScalar && !this.isScrollable) {
+            if (data && !isScalar && !this.isScrollable && trimOrdinalDataOnOverflow) {
                 // trim data that doesn't fit on dashboard
                 let categoryCount = this.getCategoryCount(origCatgSize);
                 let catgSize = Math.min(origCatgSize, categoryCount);
@@ -588,38 +786,41 @@ module powerbi.visuals {
 
             let valueDomain = EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea) ? LineChart.createStackedValueDomain(data.series) : AxisHelper.createValueDomain(data.series, false);
             let hasZeroValueInYDomain = options.valueAxisScaleType === axisScale.log && !AxisHelper.isLogScalePossible(valueDomain);
-            let combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, valueDomain);
+            let combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, valueDomain, options.ensureYDomain);
             this.yAxisProperties = AxisHelper.createAxis({
                 pixelSpan: preferredPlotArea.height,
                 dataDomain: combinedDomain,
                 metaDataColumn: yMetaDataColumn,
-                formatStringProp: lineChartProps.general.formatString,
+                formatString: valueFormatter.getFormatString(yMetaDataColumn, lineChartProps.general.formatString),
                 outerPadding: 0,
                 isScalar: true,
                 isVertical: true,
                 forcedTickCount: options.forcedTickCount,
                 useTickIntervalForDisplayUnits: true,
                 isCategoryAxis: false,
-                shouldClamp: AxisHelper.scaleShouldClamp(combinedDomain, valueDomain),
                 scaleType: options.valueAxisScaleType,
                 axisDisplayUnits: options.valueAxisDisplayUnits,
-                axisPrecision: options.valueAxisPrecision
+                axisPrecision: options.valueAxisPrecision,
+                shouldClamp: false, // clamping causes incorrect lines when you have axis extents specified, do not enable this.
             });
 
-            let xDomain = AxisHelper.createDomain(data.series, this.xAxisProperties.axisType, this.data.isScalar, options.forcedXDomain);
-            let hasZeroValueInXDomain = options.valueAxisScaleType === axisScale.log && !AxisHelper.isLogScalePossible(xDomain);
+            let metaDataColumn = data.scalarMetadata ? data.scalarMetadata : data.categoryMetadata;
+            let xAxisDataType: ValueTypeDescriptor = AxisHelper.getCategoryValueType(metaDataColumn);
+            let xDomain = AxisHelper.createDomain(data.series, xAxisDataType, this.data.isScalar, options.forcedXDomain, options.ensureXDomain);
+            let hasZeroValueInXDomain = options.categoryAxisScaleType === axisScale.log && !AxisHelper.isLogScalePossible(xDomain);
             this.xAxisProperties = AxisHelper.createAxis({
                 pixelSpan: preferredPlotArea.width,
                 dataDomain: xDomain,
                 metaDataColumn: xMetaDataColumn,
-                formatStringProp: lineChartProps.general.formatString,
-                outerPadding: 0,
+                formatString: valueFormatter.getFormatString(xMetaDataColumn, lineChartProps.general.formatString),
+                outerPadding: this.data.isScalar ? LineChart.ScalarOuterPadding : 0,
                 isScalar: this.data.isScalar,
                 isVertical: false,
                 forcedTickCount: options.forcedTickCount,
+                maxTickCount: data.scalarKeyCount,
                 useTickIntervalForDisplayUnits: true,
-                getValueFn: (index, type) => this.lookupXValue(index, type),
-                categoryThickness: CartesianChart.getCategoryThickness(data.series, origCatgSize, this.getAvailableWidth(), xDomain, isScalar),
+                getValueFn: (index, type) => CartesianHelper.lookupXValue(this.data, index, type, this.data.isScalar),
+                categoryThickness: CartesianChart.getCategoryThickness(data.series, origCatgSize, this.getAvailableWidth(), xDomain, isScalar, trimOrdinalDataOnOverflow),
                 isCategoryAxis: true,
                 scaleType: options.categoryAxisScaleType,
                 axisDisplayUnits: options.categoryAxisDisplayUnits,
@@ -631,7 +832,7 @@ module powerbi.visuals {
 
             this.xAxisProperties.hasDisallowedZeroInDomain = hasZeroValueInXDomain;
             this.yAxisProperties.hasDisallowedZeroInDomain = hasZeroValueInYDomain;
-        
+
             return [this.xAxisProperties, this.yAxisProperties];
         }
 
@@ -674,7 +875,7 @@ module powerbi.visuals {
             let data = this.data,
                 labelSettings = this.data.dataLabelsSettings,
                 seriesCount = data.series.length,
-                showLabelPerSeries = !data.hasDynamicSeries && (seriesCount > 1 || !data.categoryMetadata) && this.seriesLabelFormattingEnabled;
+                showLabelPerSeries = this.showLabelPerSeries();
 
             //Draw default settings
             dataLabelUtils.enumerateDataLabels(this.getLabelSettingsOptions(enumeration, labelSettings, null, showLabelPerSeries));
@@ -686,7 +887,7 @@ module powerbi.visuals {
             if (showLabelPerSeries && labelSettings.showLabelPerSeries) {
                 for (let i = 0; i < seriesCount; i++) {
                     let series = data.series[i],
-                        labelSettings: VisualDataLabelsSettings = (series.labelSettings) ? series.labelSettings : this.data.dataLabelsSettings;
+                        labelSettings: LineChartDataLabelsSettings = (series.labelSettings) ? series.labelSettings : this.data.dataLabelsSettings;
 
                     enumeration.pushContainer({ displayName: series.displayName });
                     dataLabelUtils.enumerateDataLabels(this.getLabelSettingsOptions(enumeration, labelSettings, series));
@@ -695,7 +896,30 @@ module powerbi.visuals {
             }
         }
 
-        private getLabelSettingsOptions(enumeration: ObjectEnumerationBuilder, labelSettings: VisualDataLabelsSettings, series?: LineChartSeries, showAll?: boolean): VisualDataLabelsSettingsOptions {
+        public supportsTrendLine(): boolean {
+            let isScalar = this.data ? this.data.isScalar : false;
+            return !EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea) && isScalar && this.data.hasValues;
+        }
+
+        public supportsForecast(): boolean {
+            let isScalar = this.data ? this.data.isScalar : false;
+            return !EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea) && isScalar && this.data.hasValues && this.data.series.length === 1;
+        }
+	
+        public isStacked(): boolean {
+            return EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea);
+        }
+
+        public shouldSuppressAnimation(): boolean {
+            return !!this.suppressAnimation;
+        }
+
+        private showLabelPerSeries(): boolean {
+            let data = this.data;
+            return !data.hasDynamicSeries && (data.series.length > 1 || !data.categoryMetadata);
+        }
+
+        private getLabelSettingsOptions(enumeration: ObjectEnumerationBuilder, labelSettings: LineChartDataLabelsSettings, series?: LineChartSeries, showAll?: boolean): VisualDataLabelsSettingsOptions {
             return {
                 enumeration: enumeration,
                 dataLabelsSettings: labelSettings,
@@ -705,6 +929,7 @@ module powerbi.visuals {
                 selector: series && series.identity ? series.identity.getSelector() : null,
                 showAll: showAll,
                 fontSize: true,
+                labelDensity: (this.isComboChart ? this.data.series.length > 0 : true) && this.advancedLineLabelsEnabled && this.data.isScalar,
             };
         }
 
@@ -719,6 +944,10 @@ module powerbi.visuals {
 
         public render(suppressAnimations: boolean): CartesianVisualRenderResult {
             let duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
+            if (this.suppressAnimation) {
+                duration = 0;
+            }
+            this.previousCategoryCount = this.data.categoryData.length;
             let result: CartesianVisualRenderResult;
             if (!this.isInteractiveChart) // If we're not a mobile interactive chart, use the new render path
                 result = this.renderNew(duration);
@@ -735,6 +964,13 @@ module powerbi.visuals {
             let data = this.clippedData ? this.clippedData : this.data;
             if (!data)
                 return;
+
+            let dataPointCount = data.categories.length * data.series.length;
+            if (dataPointCount > AnimatorCommon.MaxDataPointsToAnimate) {
+                // Too many data points to animate.
+                duration = 0;
+            }
+
             let isStackedArea = EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea);
             let margin = this.margin;
             let viewport = this.currentViewport;
@@ -742,16 +978,23 @@ module powerbi.visuals {
             let width = viewport.width - (margin.left + margin.right);
             let xScale = this.xAxisProperties.scale;
             let yScale = this.yAxisProperties.scale;
-            let horizontalOffset = LineChart.HorizontalShift + this.extraLineShift();
+            let horizontalOffset = this.getXOfFirstCategory();
 
             let hasSelection = this.interactivityService && this.interactivityService.hasSelection();
             let renderAreas: boolean = EnumExtensions.hasFlag(this.lineType, LineChartType.area) || EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea);
-            let area;
-            let yDomain = yScale.domain();
             let xPosition = (d: LineChartDataPoint) => { return xScale(this.getXValue(d)) + horizontalOffset; };
-            let y0Position = isStackedArea ? (d: LineChartDataPoint) => { return yScale(Math.max(d.stackedValue - d.value, yDomain[0])); } : (d: LineChartDataPoint) => height;
-            let yPosition = isStackedArea ? (d: LineChartDataPoint) => { return yScale(d.stackedValue); } : (d: LineChartDataPoint) => { return yScale(d.value); };
-            
+
+            let y0Position, yPosition;
+            if (isStackedArea) {
+                y0Position = (d: LineChartDataPoint) => { return yScale(d.stackedValue - d.value); };
+                yPosition = (d: LineChartDataPoint) => { return yScale(d.stackedValue); };
+            }
+            else {
+                y0Position = yScale(0);
+                yPosition = (d: LineChartDataPoint) => { return yScale(d.value); };
+            }
+
+            let area;
             if (renderAreas) {
                 area = d3.svg.area()
                     .x(xPosition)
@@ -774,7 +1017,7 @@ module powerbi.visuals {
                 }
             }
 
-            this.mainGraphicsContext
+            this.mainGraphicsSVG
                 .attr('height', height)
                 .attr('width', width);
             let areas = undefined;
@@ -794,12 +1037,12 @@ module powerbi.visuals {
                 areas.exit()
                     .remove();
             }
-            
+
             // Render Lines
-            let lines = this.mainGraphicsContext.selectAll(".line").data(data.series, (d: LineChartSeries) => d.identity.getKey());
+            let lines = this.mainGraphicsContext.selectAll(this.lineClassAndSelector.selector).data(data.series, (d: LineChartSeries) => d.identity.getKey());
             lines.enter()
                 .append(LineChart.PathElementName)
-                .classed('line', true);
+                .classed(this.lineClassAndSelector.class, true);
             lines
                 .style('stroke', (d: LineChartSeries) => d.color)
                 .style('stroke-opacity', (d: LineChartSeries) => ColumnUtil.getFillOpacity(d.selected, false, hasSelection, false))
@@ -810,22 +1053,20 @@ module powerbi.visuals {
                     return line(d.data);
                 });
             lines.exit()
-                .remove();            
+                .remove();
 
             // Render extra lines that are wider and invisible used for better interactivity
-            let interactivityLines;
-            if (this.interactivityService) {
-                interactivityLines = this.mainGraphicsContext.selectAll(".interactivity-line").data(data.series, (d: LineChartSeries) => d.identity.getKey());
-                interactivityLines.enter()
-                    .append(LineChart.PathElementName)
-                    .classed('interactivity-line', true);
-                interactivityLines
-                    .attr('d', (d: LineChartSeries) => {
-                        return line(d.data);
-                    });
-                interactivityLines.exit()
-                    .remove();
-            }
+            let interactivityLines = this.mainGraphicsContext.selectAll(".interactivity-line").data(data.series, (d: LineChartSeries) => d.identity.getKey());
+            interactivityLines.enter()
+                .append(LineChart.PathElementName)
+                .classed('interactivity-line', true)
+                .style('stroke-width', LineChart.interactivityStrokeWidth);
+            interactivityLines
+                .attr('d', (d: LineChartSeries) => {
+                    return line(d.data);
+                });
+            interactivityLines.exit()
+                .remove();
 
             // Prepare grouping for dots
             let dotGroups = this.mainGraphicsContext.selectAll(LineChart.CategorySelector.selector)
@@ -861,42 +1102,41 @@ module powerbi.visuals {
                 .duration(duration)
                 .attr({
                     cx: (d: LineChartDataPoint, i: number) => xScale(this.getXValue(d)) + horizontalOffset,
-                    cy: (d: LineChartDataPoint, i: number) => yScale(d.value),
+                    cy: (d: LineChartDataPoint, i: number) => yScale(isStackedArea ? d.stackedValue : d.value),
                     r: LineChart.CircleRadius
                 });
             dots.exit()
                 .remove();
 
-            // Render highlights
-            let highlights = dotGroups.selectAll(LineChart.CategoryPointSelector.selector)
-                .data((series: LineChartSeries) => {
-                    return _.filter(series.data, (value: LineChartDataPoint) => { return value.pointColor != null; });
-                }, (d: LineChartDataPoint) => d.key);
-            highlights.enter()
-                .append(LineChart.CircleElementName)
-                .classed(LineChart.CategoryPointSelector.class, true);
-            highlights
-                .style('fill', (d: LineChartDataPoint) => d.pointColor)
-                .transition()
-                .duration(duration)
-                .attr({
-                    cx: (d: LineChartDataPoint) => xScale(this.getXValue(d)),
-                    cy: (d: LineChartDataPoint) => yScale(d.value),
-                    r: LineChart.PointRadius
-                });
-            highlights.exit()
-                .remove();
-            
-            // Add data labels
-            let labelDataPoints: LabelDataPoint[] = [];
-            if (data.dataLabelsSettings.show) {
-                labelDataPoints = this.createLabelDataPoints();
+            // Render explicit dots
+            let explicitDots: D3.UpdateSelection;
+            if (!this.isComboChart) {
+                explicitDots = dotGroups.selectAll(LineChart.CategoryPointSelector.selector)
+                    .data((series: LineChartSeries) => {
+                        return _.filter(series.data, (value: LineChartDataPoint) => { return value.pointColor != null; });
+                    }, (d: LineChartDataPoint) => d.key);
+                explicitDots.enter()
+                    .append(LineChart.CircleElementName)
+                    .classed(LineChart.CategoryPointSelector.class, true);
+                explicitDots
+                    .style('fill', (d: LineChartDataPoint) => d.pointColor)
+                    .transition()
+                    .duration(duration)
+                    .attr({
+                        cx: (d: LineChartDataPoint) => xScale(this.getXValue(d)),
+                        cy: (d: LineChartDataPoint) => yScale(isStackedArea ? d.stackedValue : d.value),
+                        r: LineChart.PointRadius
+                    });
+                explicitDots.exit()
+                    .remove();
             }
 
-            let dataPointsToBind: SelectableDataPoint[] = undefined;
-            let behaviorOptions: LineChartBehaviorOptions = undefined;
-            if (this.interactivityService) {
-                // Add tooltips
+            // Add data labels
+            let labelDataPointGroups: LabelDataPointGroup[];
+            if (data.dataLabelsSettings.show)
+                labelDataPointGroups = this.createLabelDataPoints();
+
+            if (this.tooltipsEnabled) {
                 if (!this.isComboChart) {
                     this.overlayRect
                         .attr({
@@ -907,28 +1147,34 @@ module powerbi.visuals {
 
                     let seriesTooltipApplier = (tooltipEvent: TooltipEvent) => {
                         let pointX: number = tooltipEvent.elementCoordinates[0];
-                        let index: number = this.findIndex(pointX);
-                        let categoryData = this.selectColumnForToolTip(index);
+                        let index = this.getCategoryIndexFromTooltipEvent(tooltipEvent, pointX);
+                        let categoryData = this.selectColumnForTooltip(index);
                         return this.getSeriesTooltipInfo(categoryData);
                     };
-                    
+
                     let clearHoverLine = () => {
                         this.hoverLine.style('opacity', SVGUtil.AlmostZero);
                         this.hoverLineContext.selectAll(LineChart.HoverLineCircleDot.selector).remove();
                     };
-
                     TooltipManager.addTooltip(this.mainGraphicsSVG, seriesTooltipApplier, true, clearHoverLine);
                 } else {
                     let seriesTooltipApplier = (tooltipEvent: TooltipEvent) => {
                         let pointX: number = tooltipEvent.elementCoordinates[0];
-                        return this.getTooltipInfoByPointX(tooltipEvent.data, pointX);
+                        return this.getTooltipInfoForCombo(tooltipEvent, pointX);
                     };
 
-                    TooltipManager.addTooltip(interactivityLines, seriesTooltipApplier, true);
-                    TooltipManager.addTooltip(dots, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo, true);
-                    TooltipManager.addTooltip(highlights, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo, true);
-                }
+                    if (interactivityLines)
+                        TooltipManager.addTooltip(interactivityLines, seriesTooltipApplier, true);
 
+                    TooltipManager.addTooltip(dots, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo, true);
+                    if (explicitDots)
+                        TooltipManager.addTooltip(explicitDots, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo, true);
+                }
+            }
+
+            let dataPointsToBind: SelectableDataPoint[] = undefined;
+            let behaviorOptions: LineChartBehaviorOptions = undefined;
+            if (this.interactivityService) {
                 // Register interactivity
                 dataPointsToBind = data.series.slice();
 
@@ -942,10 +1188,20 @@ module powerbi.visuals {
                     dots: dots,
                     areas: areas,
                     tooltipOverlay: this.overlayRect,
+                    getCategoryIndex: (seriesData, pointX) => {
+                        return this.getCategoryIndexFromSeriesAndPointX(seriesData, pointX);
+                    },
+                    categoryIdentities: data.categoryIdentities,
                 };
             }
 
-            return { dataPoints: dataPointsToBind, behaviorOptions: behaviorOptions, labelDataPoints: labelDataPoints, labelsAreNumeric: true };
+            return {
+                dataPoints: dataPointsToBind,
+                behaviorOptions: behaviorOptions,
+                labelDataPoints: [],
+                labelsAreNumeric: true,
+                labelDataPointGroups: labelDataPointGroups,
+            };
         }
 
         private renderOld(duration: number): CartesianVisualRenderResult {
@@ -988,13 +1244,13 @@ module powerbi.visuals {
                 }
             }
 
-            let extraLineShift = this.extraLineShift();
+            let firstCategoryOffset = this.getXOfFirstCategory();
 
-            this.mainGraphicsContext.attr('transform', SVGUtil.translate(LineChart.HorizontalShift + extraLineShift, 0));
-            
-            this.mainGraphicsContext.attr('height', this.getAvailableHeight())
+            this.mainGraphicsContext.attr('transform', SVGUtil.translate(firstCategoryOffset, 0));
+
+            this.mainGraphicsSVG.attr('height', this.getAvailableHeight())
                 .attr('width', this.getAvailableWidth());
-            this.hoverLineContext.attr('transform', SVGUtil.translate(LineChart.HorizontalShift + extraLineShift, 0));
+            this.hoverLineContext.attr('transform', SVGUtil.translate(firstCategoryOffset, 0));
 
             if (EnumExtensions.hasFlag(this.lineType, LineChartType.area)) {
                 let catAreaSelect = this.mainGraphicsContext.selectAll(LineChart.CategoryAreaSelector.selector)
@@ -1049,7 +1305,7 @@ module powerbi.visuals {
                     .classed('drag-handle', true);
             }
 
-            // Create the selection circles 
+            // Create the selection circles
             let linesCount = catSelect.data().length; // number of lines plotted
             while (this.selectionCircles.length < linesCount) {
                 let addedCircle = this.hoverLineContext.append(LineChart.CircleElementName)
@@ -1065,7 +1321,7 @@ module powerbi.visuals {
             let catUpdate = this.mainGraphicsContext.selectAll(LineChart.CategorySelector.selector);
 
             let lineSelection = catUpdate.select(LineChart.PathElementName)
-                .classed('line', true)
+                .classed(this.lineClassAndSelector.class, true)
                 .style('stroke', (d: LineChartSeries) => d.color)
                 .style('stroke-opacity', (d: LineChartSeries) => ColumnUtil.getFillOpacity(d.selected, false, hasSelection, false));
             lineSelection
@@ -1110,68 +1366,173 @@ module powerbi.visuals {
                 let selectionSize = updateSelection.size();
                 let endedTransitionCount = 0;
                 transitions.each('end', () => {
-                    // When transitions finish, and it's an interactive chart - select the first column (draw the legend and the handle)
+                    // When transitions finish, and it's an interactive chart - select the last column (draw the legend and the handle)
                     endedTransitionCount++;
                     if (endedTransitionCount === selectionSize) { // all transitions had finished
-                        this.selectColumn(0, true);
+                        this.selectColumn(CartesianHelper.findMaxCategoryIndex(data.series), true);
                     }
                 });
             }
 
+            let dataPoints: LineChartDataPoint[] = null;
             if (data.dataLabelsSettings.show) {
-                let layout = dataLabelUtils.getLineChartLabelLayout(xScale, yScale, data.dataLabelsSettings, data.isScalar, this.yAxisProperties.formatter);
-                let dataPoints: LineChartDataPoint[] = [];
-
+                dataPoints = [];
                 for (let i = 0, ilen = data.series.length; i < ilen; i++) {
                     Array.prototype.push.apply(dataPoints, data.series[i].data);
                 }
-
-                dataLabelUtils.drawDefaultLabelsForDataPointChart(dataPoints, this.mainGraphicsSVG, layout, this.currentViewport);
-                this.mainGraphicsSVG.select('.labels').attr('transform', SVGUtil.translate(LineChart.HorizontalShift + extraLineShift, 0));
             }
-            else {
-                dataLabelUtils.cleanDataLabels(this.mainGraphicsSVG);
-            }
-
-            TooltipManager.addTooltip(this.cartesainSVG, (tooltipEvent: TooltipEvent) => {
-                let pointX: number = tooltipEvent.elementCoordinates[0];
-                return this.getTooltipInfoByPointX(tooltipEvent.data, pointX);
-            }, true);
 
             catSelect.exit().remove();
 
-            return null; // This render path doesn't use the interactivity service
+            // # Code from here is taken from renderNew:
+
+            // Add data labels
+            let labelDataPointsGroups: LabelDataPointGroup[];
+            if (data.dataLabelsSettings.show)
+                labelDataPointsGroups = this.createLabelDataPoints();
+
+            return dataPoints == null ? null : {
+                dataPoints: dataPoints,
+                behaviorOptions: null,
+                labelDataPoints: null,
+                labelsAreNumeric: null,
+                labelDataPointGroups: labelDataPointsGroups
+            };
         }
 
         /**
-         * Note: Static for tests.
+         * Note: Public for tests.
          */
         public getSeriesTooltipInfo(pointData: HoverLineDataPoint[]): TooltipDataItem[] {
-
+            if (_.isEmpty(pointData)) {
+                return null;
+            }
+            let transparentColor = "#000000";
+            let hiddenItemOpacity = "0";
             let tooltipinfo: TooltipDataItem[] = [];
-            let maxNumberOfItems = 10; // to limit the number of rows we display
-            
+            const maxNumberOfItems = 10; // to limit the number of rows we display
+            let hasDynamicSeries = !_.isEmpty(pointData) && pointData[0].seriesDisplayName;
+
             // count to the maximum number of rows we can display
             let count = 0;
-            for (let point of pointData) {
-                if (count >= maxNumberOfItems) break;
-                if (point.value) {
-                    tooltipinfo.push({
-                        header: point.category,
-                        color: point.color,
-                        displayName: point.label,
-                        value: point.measure
-                    });
-                    count++;
+
+            if (!_.any(pointData, (point: HoverLineDataPoint) => !_.isEmpty(point.extraTooltipInfo))) {
+                for (let point of pointData) {
+                    if (count >= maxNumberOfItems) break;
+                    if (point.value != null) {
+                        tooltipinfo.push({
+                            header: point.category,
+                            color: point.color,
+                            displayName: point.seriesName || point.measureDisplayName,
+                            value: point.measure
+                        });
+                        count++;
+                    }
                 }
             }
+            else {
+                for (let point of pointData) {
+                    if (count >= maxNumberOfItems) break;
+                    if (point.value != null) {
+                        // Add series data
+                        if (hasDynamicSeries) {
+                            tooltipinfo.push({
+                                header: point.category,
+                                displayName: point.seriesDisplayName,
+                                value: point.seriesName,
+                            });
+                        }
+                        // Add value data
+                        tooltipinfo.push({
+                            header: point.category,
+                            color: point.color,
+                            displayName: point.measureDisplayName,
+                            value: point.measure
+                        });
+                        count += 2;
+                        // Add tooltip bucket data for each point for dynamic series
+                        if (hasDynamicSeries && !_.isEmpty(point.extraTooltipInfo)) {
+                            for (let extraTooltipInfo of point.extraTooltipInfo) {
+                                if (count >= maxNumberOfItems) break;
+                                tooltipinfo.push({
+                                    header: point.category,
+                                    color: transparentColor,
+                                    displayName: extraTooltipInfo.displayName,
+                                    value: extraTooltipInfo.value,
+                                    opacity: hiddenItemOpacity,
+                                });
+                                count++;
+                            }
+                        }
+                    }
+                }
+
+                // Add tooltip bucket data to the end once for static series
+                if (!hasDynamicSeries) {
+                    for (let extraTooltipInfo of pointData[0].extraTooltipInfo) {
+                        if (count >= maxNumberOfItems) break;
+                        tooltipinfo.push({
+                            header: pointData[0].category,
+                            color: transparentColor,
+                            displayName: extraTooltipInfo.displayName,
+                            value: extraTooltipInfo.value,
+                            opacity: hiddenItemOpacity,
+                        });
+                        count++;
+                    }
+                }
+            }
+
+            if (tooltipinfo.length === 0)
+                return null; //don't draw an empty tooltip container
 
             return tooltipinfo;
         }
 
-        public getTooltipInfoByPointX(pointData: any, pointX: number): TooltipDataItem[] {
-            let index: number = this.findIndex(pointX);
-            return pointData.data[index].tooltipInfo;
+        /**
+         * Note: Public for tests.
+         */
+        public getTooltipInfoForCombo(tooltipEvent: TooltipEvent, pointX: number): TooltipDataItem[] {
+            // update pointX, the mouse coordinate, with the left-offset of the SVGRect from the x-scale space so we can use the d3.scale to get the index.
+            let categoryIndex = this.getCategoryIndexFromTooltipEvent(tooltipEvent, pointX);
+            let seriesData = <LineChartSeries>tooltipEvent.data;
+
+            let dataPoint: LineChartDataPoint;
+            if (seriesData && seriesData.data && seriesData.data.length) {
+                dataPoint = _.find(seriesData.data, (dp: LineChartDataPoint) => dp.categoryIndex === categoryIndex);
+            }
+            if (dataPoint)
+                return dataPoint.tooltipInfo;
+            // return undefined so we don't show an empty tooltip
+        }
+
+        /**
+         * Note: Public for tests.
+         */
+        public getCategoryIndexFromTooltipEvent(tooltipEvent: TooltipEvent, pointX: number): number {
+            if (tooltipEvent.data && tooltipEvent.data.categoryIndex != null) {
+                // Tooltip originated with a dot; simply return the categoryIndex from the dot's bound data
+                return tooltipEvent.data.categoryIndex;
+            }
+
+            let seriesData = <LineChartSeries>tooltipEvent.data;
+            return this.getCategoryIndexFromSeriesAndPointX(seriesData, pointX);
+        }
+
+        public getCategoryIndexFromSeriesAndPointX(seriesData: LineChartSeries, pointX: number): number {
+            let offsetX = 0; // Offset based on the firstCategoryOffset (since lines don't start at x = 0) as well as the offset due to lines that may not start at the first category
+            if (seriesData && !_.isEmpty(seriesData.data) && this.xAxisProperties) {
+                // Tooltip originated from a path; determine series offset from the first point that is part of a path
+                pointX = this.adjustPathXCoordinate(pointX);
+                let firstPathPoint = _.find(seriesData.data, (dataPoint: LineChartDataPoint, index: number, dataPoints: LineChartDataPoint[]) => {
+                    let nextDataPoint = dataPoints[index + 1];
+                    return dataPoint.value != null && nextDataPoint && nextDataPoint.value != null;
+                });
+                debug.assertValue(firstPathPoint, "If there is data on the tooltipEvent but no categoryIndex, there should always be two consecutive non-null values");
+                offsetX = this.xAxisProperties.scale(this.getXValue(firstPathPoint)) + this.getXOfFirstCategory();
+            }
+            // else: Tooltip originated from the background; no offsetX is needed
+            return this.findIndex(pointX, offsetX);
         }
 
         public getVisualCategoryAxisIsScalar(): boolean {
@@ -1180,10 +1541,14 @@ module powerbi.visuals {
 
         public getSupportedCategoryAxisType(): string {
             let dvCategories = this.dataViewCat ? this.dataViewCat.categories : undefined;
-            let categoryType = ValueType.fromDescriptor({ text: true });
-            if (dvCategories && dvCategories.length > 0 && dvCategories[0].source && dvCategories[0].source.type)
-                categoryType = dvCategories[0].source.type;
-
+            let categoryType: ValueTypeDescriptor = { text: true };
+            if (!_.isEmpty(dvCategories)) {
+                let scalarKeys = LineChart.getScalarKeys(dvCategories[0]);
+                if (scalarKeys && !_.isEmpty(scalarKeys.values))
+                    return axisType.both;
+                if (dvCategories[0].source && dvCategories[0].source.type)
+                    categoryType = dvCategories[0].source.type;
+            }
             let isOrdinal = AxisHelper.isOrdinal(categoryType);
             return isOrdinal ? axisType.categorical : axisType.both;
         }
@@ -1194,7 +1559,9 @@ module powerbi.visuals {
                 categoryThickness,
                 this.currentViewport,
                 this.isScrollable,
-                isScalar);
+                isScalar,
+                this.margin,
+                true);
         }
 
         private getCategoryCount(origCatgSize): number {
@@ -1223,13 +1590,40 @@ module powerbi.visuals {
             return newSeries;
         }
 
-        private extraLineShift(): number {
+        private static getScalarKeys(dataViewCategoryColumn: DataViewCategoryColumn): ScalarKeys {
+            let categoryColumnObjects: DataViewObjects[];
+            if (dataViewCategoryColumn)
+                categoryColumnObjects = dataViewCategoryColumn.objects;
+
+            if (!_.isEmpty(categoryColumnObjects)) {
+                let scalarKeys: ScalarKeys;
+                let categoryObjectsLength = categoryColumnObjects.length;
+
+                for (let i = 0; i < categoryObjectsLength; i++) {
+                    let categoryObjects: DataViewObjects = categoryColumnObjects[i];
+                    let scalarKey = DataViewObjects.getValue<PrimitiveValue>(categoryObjects, lineChartProps.scalarKey.scalarKeyMin);
+                    if (scalarKey !== undefined) {
+                        if (!scalarKeys) {
+                            scalarKeys = {
+                                values: new Array<PrimitiveValueRange>(categoryObjectsLength)
+                            };
+                        }
+                        let key: PrimitiveValueRange = { min: scalarKey };
+                        scalarKeys.values[i] = key;
+                    }
+                }
+                return scalarKeys;
+            }
+        }
+
+        private getXOfFirstCategory(): number {
             if (!this.data.isScalar) {
                 // This will place the line points in the middle of the bands
                 // So they center with Labels when scale is ordinal.
                 let xScale = <D3.Scale.OrdinalScale>this.xAxisProperties.scale;
-                if (xScale.rangeBand)
+                if (xScale.rangeBand) {
                     return xScale.rangeBand() / 2;
+                }
             }
             return 0;
         }
@@ -1242,31 +1636,6 @@ module powerbi.visuals {
                     return true;
             }
             return false;
-        }
-
-        private lookupXValue(index: number, type: ValueType): any {
-            debug.assertValue(this.data, 'this.data');
-
-            let isDateTime = AxisHelper.isDateTime(type);
-            if (isDateTime && this.data.isScalar)
-                return new Date(index);
-
-            if (this.data && this.data.series && this.data.series.length > 0) {
-                let firstSeries = this.data.series[0];
-                if (firstSeries) {
-                    let data = firstSeries.data;
-                    if (data) {
-                        let dataAtIndex = data[index];
-                        if (dataAtIndex) {
-                            if (isDateTime)
-                                return new Date(dataAtIndex.categoryValue);
-                            return dataAtIndex.categoryValue;
-                        }
-                    }
-                }
-            }
-
-            return index;
         }
 
         private getXValue(d: LineChartDataPoint): any {
@@ -1296,18 +1665,19 @@ module powerbi.visuals {
             return false;
         }
 
-        public selectColumnForToolTip(columnIndex: number, force: boolean = false) {
-            let horizontalOffset = LineChart.HorizontalShift + this.extraLineShift();
-            let x = this.getChartX(columnIndex) + horizontalOffset;
+        public selectColumnForTooltip(columnIndex: number, force: boolean = false): HoverLineDataPoint[] {
+            let x = this.getChartX(columnIndex) + this.getXOfFirstCategory();
 
             let dataPoints = this.createTooltipDataPoints(columnIndex);
-            this.setHoverLineForToolTip(x);
-            this.setDotsForToolTip(x, dataPoints);
+            if (dataPoints.length > 0) {
+                this.setHoverLineForTooltip(x);
+            }
+            this.setDotsForTooltip(x, dataPoints);
 
             return dataPoints;
         }
 
-        private setHoverLineForToolTip(chartX: number) {
+        private setHoverLineForTooltip(chartX: number) {
             chartX = chartX || 0;
             this.hoverLine
                 .attr('x1', chartX)
@@ -1317,7 +1687,9 @@ module powerbi.visuals {
                 .style('opacity', 1);
         }
 
-        private setDotsForToolTip(chartX: number, dataPoints: HoverLineDataPoint[]) {
+        private setDotsForTooltip(chartX: number, dataPoints: HoverLineDataPoint[]) {
+            let isStackedArea = EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea);
+            let dotYPosition = isStackedArea ? d => this.yAxisProperties.scale(d.stackedValue) : d => this.yAxisProperties.scale(d.value);
             let tooltipDots = this.hoverLineContext.selectAll(LineChart.HoverLineCircleDot.selector).data(dataPoints);
             tooltipDots
                 .enter()
@@ -1328,7 +1700,7 @@ module powerbi.visuals {
                 .attr('fill', d => d.color)
                 .attr("r", 3)
                 .attr("cx", chartX)
-                .attr("cy", d => this.yAxisProperties.scale(d.value));
+                .attr("cy", dotYPosition);
             tooltipDots.exit().remove();
         }
 
@@ -1341,12 +1713,13 @@ module powerbi.visuals {
 
             this.lastInteractiveSelectedColumnIndex = columnIndex;
             let x = this.getChartX(columnIndex);
-            this.setHoverLine(x);
+            this.setHoverLine(x, columnIndex);
             let legendItems = this.createLegendDataPoints(columnIndex);
-            this.options.cartesianHost.updateLegend(legendItems);
+            if (legendItems)
+                this.options.cartesianHost.updateLegend(legendItems);
         }
 
-        private setHoverLine(chartX: number) {
+        private setHoverLine(chartX: number, columnIndex: number) {
             this.hoverLine
                 .attr('x1', chartX)
                 .attr('x2', chartX)
@@ -1361,59 +1734,67 @@ module powerbi.visuals {
                     // Get the item color for the handle dots
                     let color = series.color;
                     let circleToChange = that.selectionCircles[series.lineIndex];
-
-                    circleToChange
-                        .attr({
-                            'cx': chartX,
-                            'cy': () => {
-                                let pathElement = d3.select(this).node<D3.D3Element>();
-                                let pos = that.getPosition(chartX, pathElement);
-                                return pos.y;
-                            }
-                        })
-                        .style({
-                            'opacity': 1,
-                            'fill': color
-                        });
+                    if (circleToChange) {
+                        circleToChange
+                            .attr({
+                                'cx': chartX,
+                                'cy': () => {
+                                    let pathElement = d3.select(this).node<D3.D3Element>();
+                                    let pos = that.getPosition(chartX, pathElement);
+                                    return pos.y;
+                                }
+                            })
+                            .style({
+                                'opacity': () => _.some(series.data, (value) => value.categoryIndex === columnIndex) ? 1 : 0,
+                                'fill': color
+                            });
+                    }
 
                     if (that.dragHandle) that.dragHandle.attr('cx', chartX);
                 });
         }
 
-        private getChartX(columnIndex: number) {
-            let x: number;
+        private getChartX(columnIndex: number): number {
+            let x: number = 0;
             if (this.data.isScalar) {
-                x = Math.max(0, this.xAxisProperties.scale(this.data.categoryData[columnIndex].categoryValue));
+                if (columnIndex >= 0 && columnIndex < this.data.categoryData.length)
+                    x = Math.max(0, this.xAxisProperties.scale(this.data.categoryData[columnIndex].categoryValue));
             } else {
                 x = Math.max(0, this.xAxisProperties.scale(columnIndex));
             }
 
             let rangeEnd = powerbi.visuals.AxisHelper.extent(this.xAxisProperties.scale)[1];
-
             x = Math.min(x, rangeEnd);
-            if (isNaN(x)) {
-                return;
-            }
-            return x;
+            if (!isNaN(x))
+                return x;
+            return 0;
         }
 
         /**
          * Finds the index of the category of the given x coordinate given.
+         * pointX is in non-scaled screen-space, and offsetX is in render-space.
+         * offsetX does not need any scaling adjustment.
+         * @param {number} pointX The mouse coordinate in screen-space, without scaling applied
+         * @param {number} offsetX Any left offset in d3.scale render-space
+         * @return {number}
          */
-        private findIndex(pointX: number): number {
+        private findIndex(pointX: number, offsetX?: number): number {
             // we are using mouse coordinates that do not know about any potential CSS transform scale
-            let svgNode = <SVGSVGElement>(this.mainGraphicsSVG.node());
-            let ratios = SVGUtil.getTransformScaleRatios(svgNode);
-            if (ratios.x > 1.00001 || ratios.x < 0.99999 ) {
-                pointX = pointX / ratios.x;
+            let xScale = this.scaleDetector.getScale().x;
+            if (!Double.equalWithPrecision(xScale, 1.0, 0.00001)) {
+                pointX = pointX / xScale;
+            }
+            if (offsetX) {
+                pointX += offsetX;
             }
 
-            let scaleX = powerbi.visuals.AxisHelper.invertScale(this.xAxisProperties.scale, pointX);
+            let index = powerbi.visuals.AxisHelper.invertScale(this.xAxisProperties.scale, pointX);
             if (this.data.isScalar) {
-                scaleX = AxisHelper.findClosestXAxisIndex(scaleX, this.data.categoryData);
+                // When we have scalar data the inverted scale produces a category value, so we need to search for the closest index.
+                index = AxisHelper.findClosestXAxisIndex(index, this.data.categoryData);
             }
-            
-            return scaleX;
+
+            return index;
         }
 
         private getPosition(x: number, pathElement: D3.D3Element): SVGPoint {
@@ -1437,47 +1818,62 @@ module powerbi.visuals {
 
         private createTooltipDataPoints(columnIndex: number): HoverLineDataPoint[] {
             let data = this.data;
-            if (!data || data.series.length === 0)
-                return null;
+            if (!data || data.series.length === 0 || !data.categories || !data.categoryData)
+                return [];
 
             let dataPoints: HoverLineDataPoint[] = [];
             let category: any;
 
+            debug.assert(columnIndex < data.categoryData.length, 'category index out of range (categoryData)');
+            debug.assert(columnIndex < data.categories.length, 'category index out of range (categories)');
+
             let categoryDataPoint: LineChartDataPoint = data.categoryData[columnIndex];
-            let isDateTime: boolean = AxisHelper.isDateTime(this.xAxisProperties.axisType);
             if (this.data.isScalar) {
-                if (isDateTime) {
-                    category = this.lookupXValue(categoryDataPoint.categoryValue, this.xAxisProperties.axisType);
-                }
-                else {
-                    category = categoryDataPoint.categoryValue;
+                if (categoryDataPoint) {
+                    if (AxisHelper.isDateTime(this.xAxisProperties.axisType) && !data.scalarMetadata) {
+                        category = CartesianHelper.lookupXValue(this.data, categoryDataPoint.categoryValue, this.xAxisProperties.axisType, this.data.isScalar);
+                    }
+                    else {
+                        category = data.categories[columnIndex];
+                    }
                 }
             }
             else {
-                category = this.lookupXValue(columnIndex, this.xAxisProperties.axisType);
+                category = CartesianHelper.lookupXValue(this.data, columnIndex, this.xAxisProperties.axisType, this.data.isScalar);
             }
 
             let formatStringProp = lineChartProps.general.formatString;
 
             for (let series of data.series) {
                 let lineData = series.data;
-                let lineDataPoint = lineData.filter((data) => {
-                    if (this.data.isScalar)
-                        return data.categoryValue === categoryDataPoint.categoryValue;
-                    else
-                        return data.categoryIndex === columnIndex;
-                })[0];
+                let lineDataPoint: LineChartDataPoint;
+                if (this.data.isScalar) {
+                    if (categoryDataPoint) {
+                        lineDataPoint = lineData.filter((data) => {
+                            return data.categoryValue === categoryDataPoint.categoryValue;
+                        })[0];
+                    }
+                }
+                else {
+                    lineDataPoint = lineData[columnIndex];
+                }
 
-                let measure = lineDataPoint && lineDataPoint.value;
-                if (measure) {
-                    let label = converterHelper.getFormattedLegendLabel(series.yCol, this.dataViewCat.values, formatStringProp);
-                    dataPoints.push({
+                let value = lineDataPoint && lineDataPoint.value;
+                if (value != null) {
+                    let dataPoint: HoverLineDataPoint = {
                         color: series.color,
-                        label: label,
                         category: valueFormatter.format(category, valueFormatter.getFormatString(series.xCol, formatStringProp)),
-                        measure: valueFormatter.format(measure, valueFormatter.getFormatString(series.yCol, formatStringProp)),
-                        value: measure
-                    });
+                        measureDisplayName: series.displayName,
+                        measure: valueFormatter.format(value, valueFormatter.getFormatString(series.yCol, formatStringProp)),
+                        value: value,
+                        stackedValue: lineDataPoint.stackedValue,
+                        extraTooltipInfo: lineDataPoint.extraTooltipInfo,
+                    };
+                    if (data.hasDynamicSeries) {
+                        dataPoint.seriesDisplayName = data.seriesDisplayName;
+                        dataPoint.seriesName = series.dynamicDisplayName;
+                    }
+                    dataPoints.push(dataPoint);
                 }
             }
 
@@ -1487,7 +1883,7 @@ module powerbi.visuals {
         private createLegendDataPoints(columnIndex: number): LegendData {
             let data = this.data;
             if (!data || !data.series || data.series.length < 1)
-                return null;
+                return;
 
             let legendDataPoints: LegendDataPoint[] = [];
             let category: any;
@@ -1497,12 +1893,11 @@ module powerbi.visuals {
             if (this.isInteractiveChart && categoryDataPoint) {
                 if (this.data.isScalar) {
                     category = categoryDataPoint.categoryValue;
-                    let isDateTime = AxisHelper.isDateTime(this.xAxisProperties.axisType);
-                    if (isDateTime)
+                    if (AxisHelper.isDateTime(this.xAxisProperties.axisType))
                         category = new Date(category);
                 }
                 else {
-                    category = this.lookupXValue(columnIndex, this.xAxisProperties.axisType);
+                    category = CartesianHelper.lookupXValue(this.data, columnIndex, this.xAxisProperties.axisType, this.data.isScalar);
                 }
             }
 
@@ -1518,17 +1913,20 @@ module powerbi.visuals {
                 if (this.isInteractiveChart) {
                     let lineDataPoint;
                     if (this.data.isScalar) {
-                        // TODO: search for matching x-value
-                        let targetCategoryValue = categoryDataPoint.categoryValue;
-                        for (let i = 0; i < lineData.length; i++) {
-                            if (lineData[i].categoryValue === targetCategoryValue) {
-                                lineDataPoint = lineData[i];
-                                break;
+                        // Scalar series skip null values, and therefore do not share the same category index
+                        // Search this series for the categoryValue - it may not exist
+                        if (categoryDataPoint) {
+                            let targetCategoryValue = categoryDataPoint.categoryValue;
+                            for (let i = 0; i < lineData.length; i++) {
+                                if (lineData[i].categoryValue === targetCategoryValue) {
+                                    lineDataPoint = lineData[i];
+                                    break;
+                                }
                             }
                         }
                     }
                     else {
-                        // ordinal series share x-indicies
+                        // ordinal series all share the same x-indicies
                         lineDataPoint = lineData[columnIndex];
                     }
                     measure = lineDataPoint && lineDataPoint.value;
@@ -1552,35 +1950,52 @@ module powerbi.visuals {
             let title = dvValues && dvValues.source ? dvValues.source.displayName : "";
             return {
                 title: title,
-                dataPoints: legendDataPoints
+                dataPoints: legendDataPoints,
+                grouped: data.hasDynamicSeries,
             };
         }
 
-        private createLabelDataPoints(): LabelDataPoint[] {
+        private createLabelDataPoints(): LabelDataPointGroup[] {
             let xScale = this.xAxisProperties.scale;
             let yScale = this.yAxisProperties.scale;
-            let horizontalOffset = LineChart.HorizontalShift + this.extraLineShift();
-            let labelDataPoints: LabelDataPoint[] = [];
+            let lineshift = this.getXOfFirstCategory();
             let data = this.data;
-            let series = data.series;
-            let formattersCache = NewDataLabelUtils.createColumnFormatterCacheManager();        
+            let series = this.clippedData ? this.clippedData.series : data.series;
+            let baseLabelSettings = data.dataLabelsSettings;
+            let formattersCache = NewDataLabelUtils.createColumnFormatterCacheManager();
             let isStackedArea = EnumExtensions.hasFlag(this.lineType, LineChartType.stackedArea);
-            
-            for (let currentSeries of series) {
-                let labelSettings = (currentSeries.labelSettings) ? currentSeries.labelSettings : data.dataLabelsSettings;
-                if (!labelSettings.show)
-                    continue;
+            let labelDataPointGroups: LabelDataPointGroup[] = [];
+            let labelSettings: LineChartDataLabelsSettings;
+            let axisFormatter: number;
+            let seriesLabelDataPoints: LabelDataPoint[];
+            let seriesDataPointsCandidates: LineChartDataPoint[];
+            let seriesIndex: number;
+            let seriesCount: number;
+            let currentSeries: LineChartSeries;
 
-                let axisFormatter: number = NewDataLabelUtils.getDisplayUnitValueFromAxisFormatter(this.yAxisProperties.formatter, labelSettings);
+            for (seriesIndex = 0, seriesCount = series.length; seriesIndex < seriesCount; seriesIndex++) {
+                currentSeries = series[seriesIndex];
+                labelSettings = currentSeries.labelSettings || baseLabelSettings;
+                let densityAtMax = labelSettings.labelDensity === "100";
+                let maxNumberOfLabels = this.advancedLineLabelsEnabled && !densityAtMax && data.isScalar ? LineChart.getNumberOfLabelsToRender(this.currentViewport.width, _.parseInt(labelSettings.labelDensity)) : currentSeries.data.length;
+                if (!labelSettings.show) {
+                    labelDataPointGroups[seriesIndex] = {
+                        labelDataPoints: [],
+                        maxNumberOfLabels: 0,
+                    };
+                    continue;
+                }
+
+                axisFormatter = NewDataLabelUtils.getDisplayUnitValueFromAxisFormatter(this.yAxisProperties.formatter, labelSettings);
                 let dataPoints = currentSeries.data;
-                let categoryIndex = 0;
-                for (let dataPoint of dataPoints) {
-                    if (dataPoint.value === null || dataPoint.value === undefined) {
-                        categoryIndex++;
-                        continue;
-                    }
-                    let formatString = "";
-                    formatString = dataPoint.labelFormatString;
+                seriesLabelDataPoints = [];
+                seriesDataPointsCandidates = [];
+
+                let createLabelDataPoint: (dataPoint: LineChartDataPoint, categoryIndex: number) => LabelDataPoint = (dataPoint: LineChartDataPoint, categoryIndex: number) => {
+                    if (dataPoint.value == null)
+                        return null;
+
+                    let formatString = dataPoint.labelFormatString;
                     let formatter = formattersCache.getOrCreate(formatString, labelSettings, axisFormatter);
                     let text = NewDataLabelUtils.getLabelFormattedText(formatter.format(dataPoint.value));
 
@@ -1590,18 +2005,21 @@ module powerbi.visuals {
                         fontSize: PixelConverter.fromPoint(labelSettings.fontSize),
                         fontWeight: NewDataLabelUtils.LabelTextProperties.fontWeight,
                     };
-                    let textWidth = TextMeasurementService.measureSvgTextWidth(properties);
-                    let textHeight = TextMeasurementService.estimateSvgTextHeight(properties, true /* tightFitForNumeric */);   
+                    let textWidth = TextMeasurementService.measureSvgTextWidth(properties) + NewDataLabelUtils.LabelDensityPadding;
+                    let textHeight = TextMeasurementService.estimateSvgTextHeight(properties, true /* tightFitForNumeric */);
                     let parentShape: LabelParentRect | LabelParentPoint;
                     let isParentRect: boolean = false;
 
-                    if (isStackedArea) { 
+                    if (isStackedArea) {
+                        let bottomPos = Math.max(dataPoint.stackedValue - dataPoint.value, yScale.domain()[0]); //this is to make sure the bottom position doesn't go below the domain
+                        let areaWidth = this.currentViewport.width; // Conceptually, we allow line labels to fill the full plot area, so the width is equal to the plot area
+
                         parentShape = {
                             rect: {
-                                left: xScale(this.getXValue(dataPoint)),
+                                left: xScale(this.getXValue(dataPoint)) - areaWidth / 2,
                                 top: yScale(Math.max(dataPoint.stackedValue, dataPoint.stackedValue - dataPoint.value)),
-                                width: horizontalOffset * 2,
-                                height: Math.abs(yScale(dataPoint.stackedValue) - yScale(dataPoint.stackedValue - dataPoint.value))
+                                width: areaWidth,
+                                height: Math.abs(yScale(dataPoint.stackedValue) - yScale(bottomPos))
                             },
                             orientation: dataPoint.value >= 0 ? NewRectOrientation.VerticalBottomBased : NewRectOrientation.VerticalTopBased,
                             validPositions: LineChart.validStackedLabelPositions,
@@ -1612,16 +2030,16 @@ module powerbi.visuals {
                     else {
                         parentShape = {
                             point: {
-                                x: xScale(this.getXValue(dataPoint)) + horizontalOffset,
+                                x: xScale(this.getXValue(dataPoint)) + lineshift,
                                 y: yScale(dataPoint.value),
                             },
                             radius: 0,
-                            validPositions: LineChart.validLabelPositions,
-                        };                        
+                            validPositions: densityAtMax ? [NewPointLabelPosition.Above] : this.getValidLabelPositions(currentSeries, categoryIndex),
+                        };
                     }
-                    
-                    labelDataPoints.push({
-                        isPreferred: true,
+
+                    let labelDataPoint: LabelDataPoint = {
+                        isPreferred: false,
                         text: text,
                         textSize: {
                             width: textWidth,
@@ -1629,22 +2047,81 @@ module powerbi.visuals {
                         },
                         outsideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultLabelColor,
                         insideFill: labelSettings.labelColor && isStackedArea ? labelSettings.labelColor : NewDataLabelUtils.defaultInsideLabelColor,
-                        isParentRect: isParentRect,
+                        parentType: isParentRect ? LabelDataPointParentType.Rectangle : LabelDataPointParentType.Point,
                         parentShape: parentShape,
                         fontSize: labelSettings.fontSize,
-                        identity: undefined,
-                    });
+                        identity: dataPoint.identity,
+                        key: dataPoint.key,
+                    };
+                    return labelDataPoint;
+                };
 
-                    categoryIndex++;
+                if (!_.isEmpty(dataPoints)) {
+                    for (let categoryIndex = 0, categoryCount = dataPoints.length; categoryIndex < categoryCount; categoryIndex++) {
+                        let labelDataPoint = createLabelDataPoint(dataPoints[categoryIndex], categoryIndex);
+                        if (labelDataPoint)
+                            seriesLabelDataPoints.push(labelDataPoint);
+                    }
                 }
+
+                labelDataPointGroups[seriesIndex] = {
+                    labelDataPoints: seriesLabelDataPoints,
+                    maxNumberOfLabels: maxNumberOfLabels,
+                };
             }
 
-            return labelDataPoints;
+            if (this.advancedLineLabelsEnabled && this.lineType !== LineChartType.stackedArea) {
+                let sorter = new MinMaxLabelDataPointSorter({
+                    unsortedLabelDataPointGroups: labelDataPointGroups,
+                    series: series,
+                    viewport: this.currentViewport,
+                    yAxisProperties: this.yAxisProperties,
+                });
+
+                return sorter.getSortedDataLabels();
+            }
+            return labelDataPointGroups;
         }
-        
+
+        private static getNumberOfLabelsToRender(viewPortWidth: number, labelDensity: number): number {
+            if (labelDensity == null || labelDensity === 0) {
+                return LineChart.minimumLabelsToRender;
+            }
+            let parsedAndNormalizedDensity = labelDensity / 100;
+            let maxNumberForViewport = Math.ceil(viewPortWidth / MinMaxLabelDataPointSorter.estimatedLabelWidth);
+            if (parsedAndNormalizedDensity === 1) {
+                return maxNumberForViewport;
+            }
+            return LineChart.minimumLabelsToRender + Math.floor(parsedAndNormalizedDensity * (maxNumberForViewport - LineChart.minimumLabelsToRender));
+        }
+
+        /**
+         * Adjust a mouse coordinate originating from a path; used to fix
+         * an inconsistency between Internet Explorer and other browsers.
+         *
+         * Internet explorer places the origin for the coordinate system of
+         * mouse events based on the stroke, so that the very edge of the stroke
+         * is zero.  Chrome places the 0 on the edge of the path so that the
+         * edge of the stroke is -(strokeWidth / 2).  We adjust coordinates
+         * to match Chrome.
+         *
+         * @param value The x coordinate to be adjusted
+         */
+        private adjustPathXCoordinate(x: number): number {
+            let xScale = this.scaleDetector.getScale().x;
+            if (!Double.equalWithPrecision(xScale, 1.0, 0.00001)) {
+                x -= this.pathXAdjustment * xScale;
+            }
+            else {
+                x -= this.pathXAdjustment;
+            }
+            
+            return x;
+        }
+
         /**
          * Obtains the pointLabelPosition for the category index within the given series
-         * 
+         *
          * Rules for line chart data labels:
          * 1. Top and bottom > left and right
          * 2. Top > bottom unless we're at a local minimum
@@ -1652,82 +2129,103 @@ module powerbi.visuals {
          *    a. There is no data point to the left and there is one to the right
          *    b. There is an equal data point to the right, but not to the left
          */
-        //private getValidLabelPositions(series: LineChartSeries, categoryIndex: number): NewPointLabelPosition[]{
-        //    let data = series.data;
-        //    let dataLength = data.length;
-        //    let isLastPoint = categoryIndex === (dataLength - 1);
-        //    let isFirstPoint = categoryIndex === 0;
-            
-        //    let currentValue = data[categoryIndex].value;
-        //    let previousValue = !isFirstPoint ? data[categoryIndex - 1].value : undefined;
-        //    let nextValue = !isLastPoint ? data[categoryIndex + 1].value : undefined;
-        //    let previousRelativePosition = LineChartRelativePosition.equal;
-        //    let nextRelativePosition = LineChartRelativePosition.equal;
-        //    if (previousValue === null || previousValue === undefined) {
-        //        previousRelativePosition = LineChartRelativePosition.none;
-        //    }
-        //    else if (previousValue > currentValue) {
-        //        previousRelativePosition = LineChartRelativePosition.greater;
-        //    }
-        //    else if (previousValue < currentValue) {
-        //        previousRelativePosition = LineChartRelativePosition.lesser;
-        //    }
-        //    if (nextValue === null || nextValue === undefined) {
-        //        nextRelativePosition = LineChartRelativePosition.none;
-        //    }
-        //    else if (nextValue > currentValue) {
-        //        nextRelativePosition = LineChartRelativePosition.greater;
-        //    }
-        //    else if (nextValue < currentValue) {
-        //        nextRelativePosition = LineChartRelativePosition.lesser;
-        //    }
+        private getValidLabelPositions(series: LineChartSeries, categoryIndex: number): NewPointLabelPosition[] {
+            if (!this.advancedLineLabelsEnabled) {
+                return [NewPointLabelPosition.Above];
+            }
 
-        //    switch (previousRelativePosition) {
-        //        case LineChartRelativePosition.none:
-        //            switch (nextRelativePosition) {
-        //                case LineChartRelativePosition.none:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.equal:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
-        //                case LineChartRelativePosition.greater:
-        //                    return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
-        //                case LineChartRelativePosition.lesser:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
-        //            }
-        //        case LineChartRelativePosition.equal:
-        //            switch (nextRelativePosition) {
-        //                case LineChartRelativePosition.none:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.equal:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.greater:
-        //                    return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.lesser:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //            }
-        //        case LineChartRelativePosition.greater:
-        //            switch (nextRelativePosition) {
-        //                case LineChartRelativePosition.none:
-        //                    return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.equal:
-        //                    return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
-        //                case LineChartRelativePosition.greater:
-        //                    return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.lesser:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //            }
-        //        case LineChartRelativePosition.lesser:
-        //            switch (nextRelativePosition) {
-        //                case LineChartRelativePosition.none:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.equal:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
-        //                case LineChartRelativePosition.greater:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //                case LineChartRelativePosition.lesser:
-        //                    return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
-        //            }
-        //    }
-        //}
+            let data = series.data;
+            let dataLength = data.length;
+            let isLastPoint = categoryIndex === (dataLength - 1);
+            let isFirstPoint = categoryIndex === 0;
+
+            let currentValue = data[categoryIndex].value;
+            let previousValue = !isFirstPoint ? data[categoryIndex - 1].value : undefined;
+            let nextValue = !isLastPoint ? data[categoryIndex + 1].value : undefined;
+            let previousRelativePosition = LineChartRelativePosition.Equal;
+            let nextRelativePosition = LineChartRelativePosition.Equal;
+            if (previousValue == null) {
+                previousRelativePosition = LineChartRelativePosition.None;
+            }
+            else if (previousValue > currentValue) {
+                previousRelativePosition = LineChartRelativePosition.Greater;
+            }
+            else if (previousValue < currentValue) {
+                previousRelativePosition = LineChartRelativePosition.Lesser;
+            }
+            if (nextValue === null) {
+                nextRelativePosition = LineChartRelativePosition.None;
+            }
+            else if (nextValue > currentValue) {
+                nextRelativePosition = LineChartRelativePosition.Greater;
+            }
+            else if (nextValue < currentValue) {
+                nextRelativePosition = LineChartRelativePosition.Lesser;
+            }
+
+            if (isFirstPoint) {
+                switch (nextRelativePosition) {
+                    case LineChartRelativePosition.Greater:
+                        return [NewPointLabelPosition.Below, NewPointLabelPosition.Above];
+                    default:
+                        return [NewPointLabelPosition.Above, NewPointLabelPosition.Below];
+                }
+            }
+            if (isLastPoint) {
+                switch (previousRelativePosition) {
+                    case LineChartRelativePosition.Greater:
+                        return [NewPointLabelPosition.Below, NewPointLabelPosition.Above];
+                    default:
+                        return [NewPointLabelPosition.Above, NewPointLabelPosition.Below];
+                }
+            }
+
+            switch (previousRelativePosition) {
+                case LineChartRelativePosition.None:
+                    switch (nextRelativePosition) {
+                        case LineChartRelativePosition.None:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Equal:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
+                        case LineChartRelativePosition.Greater:
+                            return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
+                        case LineChartRelativePosition.Lesser:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
+                    }
+                case LineChartRelativePosition.Equal:
+                    switch (nextRelativePosition) {
+                        case LineChartRelativePosition.None:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Equal:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Greater:
+                            return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Lesser:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                    }
+                case LineChartRelativePosition.Greater:
+                    switch (nextRelativePosition) {
+                        case LineChartRelativePosition.None:
+                            return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Equal:
+                            return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
+                        case LineChartRelativePosition.Greater:
+                            return [NewPointLabelPosition.Below, NewPointLabelPosition.Above, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Lesser:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                    }
+                case LineChartRelativePosition.Lesser:
+                    switch (nextRelativePosition) {
+                        case LineChartRelativePosition.None:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Equal:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Left, NewPointLabelPosition.Right];
+                        case LineChartRelativePosition.Greater:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                        case LineChartRelativePosition.Lesser:
+                            return [NewPointLabelPosition.Above, NewPointLabelPosition.Below, NewPointLabelPosition.Right, NewPointLabelPosition.Left];
+                    }
+            }
+        }
     }
 }

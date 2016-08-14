@@ -1,4 +1,4 @@
-﻿ /*
+/*
 *  Power BI Visualizations
 *
 *  Copyright (c) Microsoft Corporation
@@ -31,14 +31,34 @@ module powerbi.visuals {
         export const none: string = 'None';
         export const bottomOnly: string = 'BottomOnly';
         export const topOnly: string = 'TopOnly';
+        export const leftOnly: string = 'LeftOnly';
+        export const rightOnly: string = 'RightOnly';
         export const topBottom: string = 'TopBottom';
         export const leftRight: string = 'LeftRight';
         export const frame: string = 'Frame';
+
+        export function showTop(outline: string): boolean {
+            return [topOnly, topBottom, frame].some((o) => o === outline);
+        }
+
+        export function showRight(outline: string): boolean {
+            return [rightOnly, leftRight, frame].some((o) => o === outline);
+        }
+
+        export function showBottom(outline: string): boolean {
+            return [bottomOnly, topBottom, frame].some((o) => o === outline);
+        }
+
+        export function showLeft(outline: string): boolean {
+            return [leftOnly, leftRight, frame].some((o) => o === outline);
+        }
 
         export const type: IEnumType = createEnumType([
             { value: none, displayName: resources => resources.get('Visual_Outline_none') },
             { value: bottomOnly, displayName: resources => resources.get('Visual_Outline_bottom_only') },
             { value: topOnly, displayName: resources => resources.get('Visual_Outline_top_only') },
+            { value: leftOnly, displayName: resources => resources.get('Visual_Outline_LeftOnly') },
+            { value: rightOnly, displayName: resources => resources.get('Visual_Outline_RightOnly') },
             { value: topBottom, displayName: resources => resources.get('Visual_Outline_top_Bottom') },
             { value: leftRight, displayName: resources => resources.get('Visual_Outline_leftRight') },
             { value: frame, displayName: resources => resources.get('Visual_Outline_frame') }

@@ -55,7 +55,7 @@ module powerbitests {
     describe("basicShape Tests", () => {
 
         it('registered capabilities', () => {
-            let pluginCapabilities = powerbi.visuals.visualPluginFactory.create().getPlugin('basicShape').capabilities;
+            let pluginCapabilities = powerbi.visuals.plugins.basicShape.capabilities;
             expect(pluginCapabilities.toString()).toBe(basicShapeCapabilities.toString());
         });
 
@@ -64,7 +64,11 @@ module powerbitests {
         });
 
         it('registered capabilities: objects', () => {
-            expect(powerbi.visuals.visualPluginFactory.create().getPlugin('basicShape').capabilities.objects).toBeDefined();
+            expect(powerbi.visuals.plugins.basicShape.capabilities.objects).toBeDefined();
+        });
+
+        it('capabilities should suppressDefaultPadding', () => {
+            expect(basicShapeCapabilities.suppressDefaultPadding).toBeTruthy();
         });
 
         describe('rendering', () => {
@@ -106,7 +110,7 @@ module powerbitests {
 
                 helpers.assertColorsMatch(rect.css('stroke'), BasicShapeVisual.DefaultStrokeColor); // lineColor
                 helpers.assertColorsMatch(rect.css('fill'), BasicShapeVisual.DefaultFillColor); // fillColor
-                expect(rect.css('fill-opacity')).toBe((BasicShapeVisual.DefaultFillTransValue / 100).toString()); // shapeTransparency
+                expect(rect.css('fill-opacity')).toBe(((100 - BasicShapeVisual.DefaultFillTransValue) / 100).toString()); // shapeTransparency
             });
 
             it('rect', () => {
@@ -121,9 +125,9 @@ module powerbitests {
                 let rect = element.find('rect');
                 helpers.assertColorsMatch(rect.css('stroke'), "#00b8ad"); // lineColor
                 helpers.assertColorsMatch(rect.css('fill'), "#e6e6e4"); // fillColor
-                expect(rect.css('stroke-opacity')).toBe("0.75"); // lineTransparency
+                expect(rect.css('stroke-opacity')).toBe("0.25"); // lineTransparency
                 expect(rect.css('stroke-width')).toBe("15px"); // weight
-                expect(rect.css('fill-opacity')).toBeCloseTo("0.65", 1); // shapeTransparency
+                expect(rect.css('fill-opacity')).toBeCloseTo(0.35, 1); // shapeTransparency
             });
 
             it('revert to default', () => {
@@ -138,9 +142,9 @@ module powerbitests {
                 let rect = element.find('rect');
                 helpers.assertColorsMatch(rect.css('stroke'), "#00b8ad"); // lineColor
                 helpers.assertColorsMatch(rect.css('fill'), "#e6e6e4"); // fillColor
-                expect(rect.css('stroke-opacity')).toBe("0.75"); // lineTransparency
+                expect(rect.css('stroke-opacity')).toBe("0.25"); // lineTransparency
                 expect(rect.css('stroke-width')).toBe("15px"); // weight
-                expect(rect.css('fill-opacity')).toBeCloseTo("0.65", 1); // shapeTransparency
+                expect(rect.css('fill-opacity')).toBeCloseTo(0.35, 1); // shapeTransparency
 
                 visualUpdateOptions = BasicShapeHelpers.buildUpdateOptions(viewport, {
                     general: { shapeType: 'rectangle' },

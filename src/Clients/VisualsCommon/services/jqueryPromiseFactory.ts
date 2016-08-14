@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -60,6 +60,36 @@ module powerbi {
             });
 
             return new JQueryPromiseWrapper($.when.apply($, unwrappedPromises));
+        }
+
+        public allSettled<T>(promises: IPromise2<any, any>[]): IPromise<IPromiseResult<T>[]> {
+            let deferred = this.defer();
+            let promiseCount = promises.length;
+            if (promiseCount > 0) {
+                let resolvedCount = 0;
+                let results: IPromiseResult<T>[] = [];
+                for (let i = 0; i < promiseCount; i++) {
+                    promises[i].then(result => {
+                        results[i] = {
+                            value: result,
+                            type: PromiseResultType.Success
+                        };
+                    }).catch(result => {
+                        results[i] = {
+                            value: result,
+                            type: PromiseResultType.Failure
+                        };
+                    }).finally(() => {
+                        resolvedCount++;
+                        if (resolvedCount === promiseCount) {
+                            deferred.resolve(results);
+                        }
+                    });
+                }
+            } else {
+                deferred.resolve([]);
+            }
+            return deferred.promise;
         }
 
         public when<T>(value: T | IPromise<T>): IPromise<T>;
@@ -141,4 +171,3 @@ module powerbi {
         }
     }
 }
- 

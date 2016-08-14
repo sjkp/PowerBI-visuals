@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -40,7 +40,7 @@ module jsCommon {
         const SPACE = ' ';
         const BREAKERS_REGEX = /[\s\n]+/g;
 
-        function search(index: number, content: string, backward: boolean) {
+        function search(index: number, content: string, backward: boolean): number {
             if (backward) {
                 for (let i = index - 1; i > -1; i--) {
                     if (hasBreakers(content[i]))
@@ -187,8 +187,10 @@ module jsCommon {
                 usedWidth += wordWidth;
             }
 
-            // Push remaining words onto result
-            result.push(truncate(wordsInLine.join(SPACE), properties, truncator, maxWidth));
+            // Push remaining words onto result (if any)
+            if (!_.isEmpty(wordsInLine)) {
+                result.push(truncate(wordsInLine.join(SPACE), properties, truncator, maxWidth));
+            }
 
             return result;
         }

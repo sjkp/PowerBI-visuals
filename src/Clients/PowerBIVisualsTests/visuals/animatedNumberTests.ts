@@ -27,13 +27,13 @@
 /// <reference path="../_references.ts"/>
 
 module powerbitests {
-    import AnimatedNumber = powerbi.visuals.AnimatedNumber;
+    import AnimatedNumber = powerbi.visuals.AnimatedNumber; 
     import animatedNumberCapabilities = powerbi.visuals.animatedNumberCapabilities;
 
     describe("AnimatedNumber", () => {
 
         it("AnimatedNumber registered capabilities", () => {
-            expect(powerbi.visuals.visualPluginFactory.create().getPlugin("animatedNumber").capabilities).toBe(animatedNumberCapabilities);
+            expect(powerbi.visuals.plugins.animatedNumber.capabilities).toBe(animatedNumberCapabilities);
         });
 
         it("FormatString property should match calculated", () => {

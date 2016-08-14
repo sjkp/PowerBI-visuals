@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -41,35 +41,51 @@ module powerbi.data {
                 originalFromKeys = originalFrom.keys();
             for (let i = 0, len = originalFromKeys.length; i < len; i++) {
                 let keyName = originalFromKeys[i],
-                    originalEntityRef = originalFrom.entity(keyName),
-                    originalEntityExpr = SQExprBuilder.entity(originalEntityRef.schema, originalEntityRef.entity, keyName),
-                    updatedEntityExpr = <SQEntityExpr>originalEntityExpr.accept(this.exprRewriter);
-                
-                fromContents[keyName] = {
-                    schema: updatedEntityExpr.schema,
-                    entity: updatedEntityExpr.entity,
-                };
+                    originalSource = originalFrom.source(keyName);
+                // Note: Add a visitor when adding the rewrites for subqueries
+                if (isSQFromEntitySource(originalSource)) {
+                    let originalEntityExpr = SQExprBuilder.entity(originalSource.schema, originalSource.entity, keyName),
+                        updatedEntityExpr = <SQEntityExpr>originalEntityExpr.accept(this.exprRewriter);
+
+                    fromContents[keyName] = new SQFromEntitySource(updatedEntityExpr.schema, updatedEntityExpr.entity);
+                } else if (isSQFromSubquerySource(originalSource))
+                    // Note: Add a visitor when adding the rewrites for subqueries
+                    debug.assert(false, "rewrite subqueries");
+                else
+                    debug.assertFail("unknown source type");
             }
             return new SQFrom(fromContents);
         }
 
-        public rewriteSelect(selectItems: NamedSQExpr[], from: SQFrom): NamedSQExpr[]{
+        public rewriteSelect(selectItems: NamedSQExpr[], from: SQFrom): NamedSQExpr[] {
             debug.assertValue(selectItems, 'selectItems');
             debug.assertValue(from, 'from');
 
-            let select: NamedSQExpr[] = [];
-            for (let i = 0, len = selectItems.length; i < len; i++) {
-                let item = selectItems[i];
-                select.push({
-                    name: item.name,
-                    expr: SQExprRewriterWithSourceRenames.rewrite(item.expr.accept(this.exprRewriter), from)
-                });
-            }
-
-            return select;
+            return this.rewriteNamedSQExpressions(selectItems, from);
         }
 
-        public rewriteOrderBy(orderByItems: SQSortDefinition[], from: SQFrom): SQSortDefinition[]{
+        public rewriteGroupBy(groupByitems: NamedSQExpr[], from: SQFrom): NamedSQExpr[] {
+            debug.assertAnyValue(groupByitems, 'groupByitems');
+            debug.assertValue(from, 'from');
+
+            if (_.isEmpty(groupByitems))
+                return;
+
+            return this.rewriteNamedSQExpressions(groupByitems, from);
+        }
+
+        private rewriteNamedSQExpressions(expressions: NamedSQExpr[], from: SQFrom): NamedSQExpr[] {
+            debug.assertValue(expressions, 'expressions');
+
+            return _.map(expressions, item => {
+                return {
+                    name: item.name,
+                    expr: SQExprRewriterWithSourceRenames.rewrite(item.expr.accept(this.exprRewriter), from)
+                };
+            });
+        }
+
+        public rewriteOrderBy(orderByItems: SQSortDefinition[], from: SQFrom): SQSortDefinition[] {
             debug.assertAnyValue(orderByItems, 'orderByItems');
             debug.assertValue(from, 'from');
 
@@ -81,15 +97,15 @@ module powerbi.data {
                 let item = orderByItems[i],
                     updatedExpr = SQExprRewriterWithSourceRenames.rewrite(item.expr.accept(this.exprRewriter), from);
                 orderBy.push({
-                        direction: item.direction,
-                        expr: updatedExpr,
-                    });
+                    direction: item.direction,
+                    expr: updatedExpr,
+                });
             }
 
             return orderBy;
         }
 
-        public rewriteWhere(whereItems: SQFilter[], from: SQFrom): SQFilter[]{
+        public rewriteWhere(whereItems: SQFilter[], from: SQFrom): SQFilter[] {
             debug.assertAnyValue(whereItems, 'whereItems');
             debug.assertValue(from, 'from');
 
@@ -111,6 +127,50 @@ module powerbi.data {
             }
 
             return where;
+        }
+
+        public rewriteTransform(transformItems: SQTransform[], from: SQFrom): SQTransform[] {
+            debug.assertAnyValue(transformItems, 'transformItems');
+            debug.assertAnyValue(from, 'from');
+
+            if (_.isEmpty(transformItems))
+                return;
+
+            let transforms: SQTransform[] = [];
+            for (let transformItem of transformItems) {
+                let inputColumns: SQTransformTableColumn[];
+                if (transformItem.input.table && !_.isEmpty(transformItem.input.table.columns)) {
+                    inputColumns = _.map(transformItem.input.table.columns, c => {
+                        return {
+                            role: c.role,
+                            expression: {
+                                name: c.expression.name,
+                                expr: SQExprRewriterWithSourceRenames.rewrite(c.expression.expr.accept(this.exprRewriter), from)
+                            }
+                        };
+                    });
+                }
+
+                let newTransform: SQTransform = {
+                    name: transformItem.name,
+                    algorithm: transformItem.algorithm,
+                    input: {
+                        parameters: transformItem.input.parameters,
+                    },
+                    output: transformItem.output
+                };
+
+                if (transformItem.input.table) {
+                    newTransform.input.table = {
+                        name: transformItem.input.table.name,
+                        columns: inputColumns
+                    };
+                }
+
+                transforms.push(newTransform);
+            }
+
+            return transforms;
         }
     }
 } 

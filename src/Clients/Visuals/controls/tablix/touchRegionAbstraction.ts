@@ -73,7 +73,7 @@ module powerbi.visuals.controls.TouchUtils {
         }
     }
 
-    export enum SwipeDirection {
+    export const enum SwipeDirection {
         /**
          * Swipe gesture moves along the y-axis at an angle within an established threshold.
          */
@@ -118,6 +118,7 @@ module powerbi.visuals.controls.TouchUtils {
      * A simple touch event class that's abstracted away from any platform specific traits.
      */
     export class TouchEvent {
+        /* tslint:disable:no-underscore-prefix-for-variables*/
         /**
          * X-axis (not neccessarily in pixels (see IPixelToItem)).
          */
@@ -137,11 +138,11 @@ module powerbi.visuals.controls.TouchUtils {
          * Delta of y-axis (not neccessarily in pixels (see IPixelToItem)).
          */
         private _dy: number;
-        
+        /* tslint:enable:no-underscore-prefix-for-variables*/
         /**
          * Determines if the mouse button is pressed.
          */
-        private _isMouseDown: boolean;
+        private isMouseButtonDown: boolean;
 
         /**
          * @constructor
@@ -154,7 +155,7 @@ module powerbi.visuals.controls.TouchUtils {
         constructor(x: number, y: number, isMouseDown: boolean, dx?: number, dy?: number) {
             this._x = x;
             this._y = y;
-            this._isMouseDown = isMouseDown;
+            this.isMouseButtonDown = isMouseDown;
             this._dx = dx || 0;
             this._dy = dy || 0;
         }
@@ -182,7 +183,7 @@ module powerbi.visuals.controls.TouchUtils {
          * otherwise false.
          */
         public get isMouseDown(): boolean {
-            return this._isMouseDown;
+            return this.isMouseButtonDown;
         }
     }
 
@@ -207,32 +208,32 @@ module powerbi.visuals.controls.TouchUtils {
         /**
          * List of touch regions and their correlating data memebers.
          */
-        private _touchList: ITouchHandlerSet[];
+        private touchList: ITouchHandlerSet[];
         
         /**
          * Boolean to enable thresholds for fixing to an axis when scrolling.
          */
-        private _scrollThreshold: boolean;
+        private scrollThreshold: boolean;
         
         /**
          * Boolean to enable locking to an axis when gesture is fixed to an axis.
          */
-        private _lockThreshold: boolean;
+        private lockThreshold: boolean;
         
         /**
          * The current direction of the swipe.
          */
-        private _swipeDirection: SwipeDirection;
+        private swipeDirection: SwipeDirection;
         
         /**
          * The count of consecutive events match the current swipe direction.
          */
-        private _matchingDirectionCount: number;
+        private matchingDirectionCount: number;
         
         /**
          * The last recieved mouse event.
          */
-        private _lastEvent: TouchEvent;
+        private lastTouchEvent: TouchEvent;
 
         /**
          * Default constructor.
@@ -240,17 +241,17 @@ module powerbi.visuals.controls.TouchUtils {
          * The default behavior is to enable thresholds and lock to axis.
          */
         constructor() {
-            this._touchList = [];
-            this._swipeDirection = SwipeDirection.FreeForm;
-            this._matchingDirectionCount = 0;
+            this.touchList = [];
+            this.swipeDirection = SwipeDirection.FreeForm;
+            this.matchingDirectionCount = 0;
 
-            this._lockThreshold = true;
-            this._scrollThreshold = true;
-            this._lastEvent = new TouchEvent(0, 0, false);
+            this.lockThreshold = true;
+            this.scrollThreshold = true;
+            this.lastTouchEvent = new TouchEvent(0, 0, false);
         }
 
         public get lastEvent(): TouchEvent {
-            return this._lastEvent;
+            return this.lastTouchEvent;
         }
 
         /**
@@ -268,7 +269,7 @@ module powerbi.visuals.controls.TouchUtils {
                 converter: converter
             };
 
-            this._touchList = this._touchList.concat([item]);
+            this.touchList = this.touchList.concat([item]);
         }
 
         /**
@@ -278,20 +279,20 @@ module powerbi.visuals.controls.TouchUtils {
             let eventPoint: TouchEvent;
             let length: number;
 
-            length = this._touchList.length;
+            length = this.touchList.length;
             for (let i = 0; i < length; i++) {
-                if (this._touchList[i].lastPoint.isMouseDown) {
-                    eventPoint = this._touchList[i].converter.getPixelToItem(this._touchList[i].lastPoint.x,
-                                                                             this._touchList[i].lastPoint.y,
-                                                                             0, 0, false);
-                    this._touchList[i].handler.touchEvent(eventPoint);
+                if (this.touchList[i].lastPoint.isMouseDown) {
+                    eventPoint = this.touchList[i].converter.getPixelToItem(this.touchList[i].lastPoint.x,
+                        this.touchList[i].lastPoint.y,
+                        0, 0, false);
+                    this.touchList[i].handler.touchEvent(eventPoint);
                 }
 
-                this._touchList[i].lastPoint = new TouchEvent(this._touchList[i].lastPoint.x,
-                                                           this._touchList[i].lastPoint.y, false);
+                this.touchList[i].lastPoint = new TouchEvent(this.touchList[i].lastPoint.x,
+                    this.touchList[i].lastPoint.y, false);
             }
 
-            this._lastEvent = new TouchEvent(0, 0, false);
+            this.lastTouchEvent = new TouchEvent(0, 0, false);
         }
 
         public touchEvent(e: TouchEvent): void {
@@ -310,14 +311,14 @@ module powerbi.visuals.controls.TouchUtils {
             list = this._getActive();
 
             //if this is the start of a mouse drag event, repopulate the list with touched regions
-            if (!this._lastEvent.isMouseDown && e.isMouseDown) {
+            if (!this.lastTouchEvent.isMouseDown && e.isMouseDown) {
                 list = this._findRegions(e);
             }
 
             //determine the delta values and update last event (delta ignored on first mouse down event)
-            dx = this._lastEvent.x - e.x;
-            dy = this._lastEvent.y - e.y;
-            this._lastEvent = new TouchEvent(e.x, e.y, e.isMouseDown, dx, dy);
+            dx = this.lastTouchEvent.x - e.x;
+            dy = this.lastTouchEvent.y - e.y;
+            this.lastTouchEvent = new TouchEvent(e.x, e.y, e.isMouseDown, dx, dy);
 
             //go through the list
             length = list.length;
@@ -333,13 +334,13 @@ module powerbi.visuals.controls.TouchUtils {
                     //calculate the absolute angle from the horizontal axis
                     angle = Math.abs(180 / Math.PI * Math.atan(dy / dx));
 
-                    if (this._scrollThreshold) {
+                    if (this.scrollThreshold) {
                         //is the gesture already locked? (6 prior events within the threshold)
-                        if (this._lockThreshold && (this._matchingDirectionCount > 5)) {
-                            if (this._swipeDirection === SwipeDirection.Horizontal) {
+                        if (this.lockThreshold && (this.matchingDirectionCount > 5)) {
+                            if (this.swipeDirection === SwipeDirection.Horizontal) {
                                 dy = 0;
                             }
-                            else if (this._swipeDirection === SwipeDirection.Vertical) {
+                            else if (this.swipeDirection === SwipeDirection.Vertical) {
                                 dx = 0;
                             }
                         }
@@ -347,12 +348,12 @@ module powerbi.visuals.controls.TouchUtils {
                             //is it within the horizontal threshold?
                             if (angle < 20) {
                                 dy = 0;
-                                if (this._swipeDirection === SwipeDirection.Horizontal) {
-                                    this._matchingDirectionCount++;
+                                if (this.swipeDirection === SwipeDirection.Horizontal) {
+                                    this.matchingDirectionCount++;
                                 }
                                 else {
-                                    this._matchingDirectionCount = 1;
-                                    this._swipeDirection = SwipeDirection.Horizontal;
+                                    this.matchingDirectionCount = 1;
+                                    this.swipeDirection = SwipeDirection.Horizontal;
                                 }
                             }
                             else {
@@ -363,21 +364,21 @@ module powerbi.visuals.controls.TouchUtils {
                                 if (angle < 20) {
                                     dx = 0;
 
-                                    if (this._swipeDirection === SwipeDirection.Vertical) {
-                                        this._matchingDirectionCount++;
+                                    if (this.swipeDirection === SwipeDirection.Vertical) {
+                                        this.matchingDirectionCount++;
                                     }
                                     else {
-                                        this._matchingDirectionCount = 1;
-                                        this._swipeDirection = SwipeDirection.Vertical;
+                                        this.matchingDirectionCount = 1;
+                                        this.swipeDirection = SwipeDirection.Vertical;
                                     }
                                 }
                                 else {
-                                    if (this._swipeDirection === SwipeDirection.FreeForm) {
-                                        this._matchingDirectionCount++;
+                                    if (this.swipeDirection === SwipeDirection.FreeForm) {
+                                        this.matchingDirectionCount++;
                                     }
                                     else {
-                                        this._swipeDirection = SwipeDirection.FreeForm;
-                                        this._matchingDirectionCount = 1;
+                                        this.swipeDirection = SwipeDirection.FreeForm;
+                                        this.matchingDirectionCount = 1;
                                     }
                                 }
                             }
@@ -388,8 +389,8 @@ module powerbi.visuals.controls.TouchUtils {
                 else {
                     dx = 0;
                     dy = 0;
-                    this._swipeDirection = SwipeDirection.FreeForm;
-                    this._matchingDirectionCount = 0;
+                    this.swipeDirection = SwipeDirection.FreeForm;
+                    this.matchingDirectionCount = 0;
                 }
 
                 list[i].lastPoint = new TouchEvent(x, y, e.isMouseDown, dx, dy);
@@ -407,10 +408,10 @@ module powerbi.visuals.controls.TouchUtils {
             let list: ITouchHandlerSet[] = [];
             let length: number;
 
-            length = this._touchList.length;
+            length = this.touchList.length;
             for (let i = 0; i < length; i++) {
-                if (this._touchList[i].region.contains(new Point(e.x, e.y))) {
-                    list = list.concat([this._touchList[i]]);
+                if (this.touchList[i].region.contains(new Point(e.x, e.y))) {
+                    list = list.concat([this.touchList[i]]);
                 }
             }
 
@@ -424,16 +425,29 @@ module powerbi.visuals.controls.TouchUtils {
             let list: ITouchHandlerSet[] = [];
             let length: number;
 
-            length = this._touchList.length;
+            length = this.touchList.length;
             for (let i = 0; i < length; i++) {
-                if (this._touchList[i].lastPoint.isMouseDown) {
-                    list = list.concat([this._touchList[i]]);
+                if (this.touchList[i].lastPoint.isMouseDown) {
+                    list = list.concat([this.touchList[i]]);
                 }
             }
 
             return list;
         }
     }
+
+    /**
+    * This interface defines the swipe data.
+    */
+    interface ISwipeInfo {
+        direction: number;
+        distance: number;
+        endTime: number;
+        time: number;
+    }
+
+    const MinDistanceForSwipe = 80;
+    const MaxTimeForSwipe = 600;
 
     /**
      * This class is responsible for establishing connections to handle touch events
@@ -445,65 +459,86 @@ module powerbi.visuals.controls.TouchUtils {
         /**
          * HTML element that touch events are drawn from.
          */
-        private _touchPanel: HTMLElement;
+        private touchPanel: HTMLElement;
         
         /**
          * Boolean enabling mouse drag.
          */
-        private _allowMouseDrag: boolean;
+        private allowMouseDrag: boolean;
         
         /**
          * Touch events are interpreted and passed on this manager.
          */
-        private _manager: TouchManager;
+        private manager: TouchManager;
         
         /**
          * @see TablixLayoutManager. 
          */
-        private _scale: number;
+        private scale: number;
         
         /**
          * Used for mouse location when a secondary div is used along side the primary with this one being the primary.
          */
-        private _touchReferencePoint: HTMLElement;
+        private touchReferencePoint: HTMLElement;
         
         /** 
          * Rectangle containing the targeted Div.
          */
-        private _rect: ClientRect;
+        private rect: ClientRect;
 
-        private _documentMouseMoveWrapper: any;
-        private _documentMouseUpWrapper: any;
+        private documentMouseMoveWrapper: any;
+        private documentMouseUpWrapper: any;
+
+        /**
+         * Those setting related to swipe detection  
+         * touchStartTime - the time that the user touched down the screen.
+         */
+        private touchStartTime: number;
+        /**
+         * The page y value of the touch event when the user touched down.
+         */
+        private touchStartPageY: number;
+        /**
+         * The last page y value befoer the user raised up his finger.
+         */
+        private touchLastPageY: number;
+        /**
+         * The last page x value befoer the user raised up his finger.
+         */
+        private touchLastPageX: number;
+        /**
+         * An indicator whether we are now running the slide affect.
+         */
+        private sliding: boolean;
 
         constructor(manager: TouchManager) {
-            this._manager = manager;
-            this._allowMouseDrag = true;
-            this._touchPanel = null;
-            this._scale = 1;
-            this._documentMouseMoveWrapper = null;
-            this._documentMouseUpWrapper = null;
+            this.manager = manager;
+            this.allowMouseDrag = true;
+            this.touchPanel = null;
+            this.scale = 1;
+            this.documentMouseMoveWrapper = null;
+            this.documentMouseUpWrapper = null;
+            this.sliding = false;
         }
 
         public initTouch(panel: HTMLElement, touchReferencePoint?: HTMLElement, allowMouseDrag?: boolean): void {
             panel.style.setProperty("-ms-touch-action", "pinch-zoom");
 
-            this._touchReferencePoint = touchReferencePoint;
+            this.touchReferencePoint = touchReferencePoint;
 
-            this._touchPanel = panel;
-            this._allowMouseDrag = allowMouseDrag === undefined ? true : allowMouseDrag;
+            this.touchPanel = panel;
+            this.allowMouseDrag = allowMouseDrag === undefined ? true : allowMouseDrag;
             if ("ontouchmove" in panel) {
                 panel.addEventListener("touchstart", e => this.onTouchStart(e));
                 panel.addEventListener("touchend", e => this.onTouchEnd(e));
             }
-            else
-            {
+            else {
                 panel.addEventListener("mousedown", e => this.onTouchMouseDown(<MouseEvent>e));
                 panel.addEventListener("mouseup", e => this.onTouchMouseUp(<MouseEvent>e));
             }
         }
 
-        private getXYByClient(event: MouseEvent): Point {
-            let rect: any = this._rect;
+        private getXYByClient(pageX: number, pageY: number, rect: ClientRect): Point {
             let x: number = rect.left;
             let y: number = rect.top;
 
@@ -514,7 +549,7 @@ module powerbi.visuals.controls.TouchUtils {
             }
 
             let point: Point = new Point(0, 0);
-            point.offset(event.pageX - x, event.pageY - y);
+            point.offset(pageX - x, pageY - y);
 
             return point;
         }
@@ -522,7 +557,12 @@ module powerbi.visuals.controls.TouchUtils {
         public onTouchStart(e: any): void {
             if (e.touches.length === 1) {
                 e.cancelBubble = true;
-                this.onTouchMouseDown(e.touches[0]);
+
+                let mouchEvent: MouseEvent = e.touches[0];
+                this.touchStartTime = new Date().getTime();
+                this.touchStartPageY = mouchEvent.pageY;
+
+                this.onTouchMouseDown(mouchEvent);
             }
         }
 
@@ -532,54 +572,70 @@ module powerbi.visuals.controls.TouchUtils {
                     e.preventDefault();
                 }
 
-                this.onTouchMouseMove(e.touches[0]);
+                let mouchEvent: MouseEvent = e.touches[0];
+                this.touchLastPageY = mouchEvent.pageY;
+                this.touchLastPageX = mouchEvent.pageX;
+                // while sliding ignore the touch move event 
+                if (!this.sliding) {
+                    this.onTouchMouseMove(mouchEvent);
+                }
             }
         }
 
         public onTouchEnd(e: any): void {
-            this.onTouchMouseUp(e.touches.length === 1 ? e.touches[0] : e, true);
+            this.clearTouchEvents();
+
+            let swipeInfo = this.getSwipeInfo();
+            if (this.didUserSwipe(swipeInfo)) {
+                this.startSlideAffect(swipeInfo);
+            }
+            // in case this is not a swipe - we need to reset the rect and the touches 
+            else if (!this.sliding) {
+                this.upAllTouches();
+            }
         }
 
         public onTouchMouseDown(e: MouseEvent): void {
-            this._scale = HTMLElementUtils.getAccumulatedScale(this._touchPanel);
+            this.scale = HTMLElementUtils.getAccumulatedScale(this.touchPanel);
 
             //any prior touch scrolling that produced a selection outside Tablix will prevent the next touch scroll (1262519)
             document.getSelection().removeAllRanges();
 
-            this._rect = (this._touchReferencePoint ? this._touchReferencePoint : this._touchPanel).getBoundingClientRect();
+            this.rect = (this.touchReferencePoint ? this.touchReferencePoint : this.touchPanel).getBoundingClientRect();
 
-            if ("ontouchmove" in this._touchPanel) {
-                this._documentMouseMoveWrapper = e => this.onTouchMove(e);
-                document.addEventListener("touchmove", this._documentMouseMoveWrapper);
-                this._documentMouseUpWrapper = e => this.onTouchEnd(e);
-                document.addEventListener("touchend", this._documentMouseUpWrapper);
+            if ("ontouchmove" in this.touchPanel) {
+                this.documentMouseMoveWrapper = e => this.onTouchMove(e);
+                document.addEventListener("touchmove", this.documentMouseMoveWrapper);
+                this.documentMouseUpWrapper = e => this.onTouchEnd(e);
+                document.addEventListener("touchend", this.documentMouseUpWrapper);
             }
             else {
-                this._documentMouseMoveWrapper = e => this.onTouchMouseMove(e);
-                document.addEventListener("mousemove", this._documentMouseMoveWrapper);
-                this._documentMouseUpWrapper = e => this.onTouchMouseUp(e);
-                document.addEventListener("mouseup", this._documentMouseUpWrapper);
+                this.documentMouseMoveWrapper = e => this.onTouchMouseMove(e);
+                document.addEventListener("mousemove", this.documentMouseMoveWrapper);
+                this.documentMouseUpWrapper = e => this.onTouchMouseUp(e);
+                document.addEventListener("mouseup", this.documentMouseUpWrapper);
             }
 
-            if ("setCapture" in this._touchPanel) {
-                this._touchPanel.setCapture();
+            if ("setCapture" in this.touchPanel) {
+                this.touchPanel.setCapture();
             }
         }
-        
+
         public onTouchMouseMove(e: MouseEvent): void {
             let event: TouchEvent;
             let point: Point;
 
-            let validMouseDragEvent: boolean = (this._rect !== null) && (e.which !== MouseButton.NoClick);
+            let rect = this.rect;
+            let validMouseDragEvent: boolean = (rect !== null) && (e.which !== MouseButton.NoClick);
 
             // Ignore events that are not part of a drag event
-            if (!validMouseDragEvent)
+            if (!validMouseDragEvent || this.sliding)
                 return;
 
-            point = this.getXYByClient(e);
-            event = new TouchEvent(point.x / this._scale, point.y / this._scale, validMouseDragEvent);
+            point = this.getXYByClient(e.pageX, e.pageY, rect);
+            event = new TouchEvent(point.x / this.scale, point.y / this.scale, validMouseDragEvent);
 
-            this._manager.touchEvent(event);
+            this.manager.touchEvent(event);
 
             if (e.preventDefault)
                 e.preventDefault();
@@ -588,28 +644,101 @@ module powerbi.visuals.controls.TouchUtils {
         }
 
         public onTouchMouseUp(e: MouseEvent, bubble?: boolean): void {
-            this._rect = null;
+            this.upAllTouches();
+            this.clearTouchEvents();
+        }
 
-            this._manager.upAllTouches();
+        private getSwipeInfo(): ISwipeInfo {
+            let touchEndTime = new Date().getTime();
+            let touchTime = touchEndTime - this.touchStartTime;
+            let touchDist = this.touchLastPageY - this.touchStartPageY;
+            let touchDirection = touchDist < 0 ? -1 : 1;
 
-            if ("releaseCapture" in this._touchPanel) {
-                this._touchPanel.releaseCapture();
+            return {
+                direction: touchDirection,
+                distance: touchDist,
+                endTime: touchEndTime,
+                time: touchTime,
+            };
+        }
+
+        private didUserSwipe(swipeInfo: ISwipeInfo): boolean {
+            return swipeInfo.time < MaxTimeForSwipe && swipeInfo.distance * swipeInfo.direction > MinDistanceForSwipe;
+        }
+
+        /**
+         * In case of swipe - auto advance to the swipe direction in 2 steps.
+         */
+        private startSlideAffect(swipeInfo: ISwipeInfo): void {
+            if (this.sliding) {
+                return;
             }
 
-            if (this._documentMouseMoveWrapper === null)
+            this.sliding = true;
+            let point = this.getXYByClient(this.touchLastPageX, this.touchLastPageY, this.rect);
+            this.slide(point, 300, swipeInfo);
+
+            // second step
+            requestAnimationFrame(() => {
+                // in case the user is now scrolling in the opposite direction stop the slide
+                if (!this.didUserChangeDirection(swipeInfo)) {
+                    this.slide(point, 200, swipeInfo);
+                }
+                this.clearSlide();
+            });
+        }
+
+        private didUserChangeDirection(swipeInfo: ISwipeInfo): boolean {
+            if (this.touchStartTime <= swipeInfo.endTime) {
+                return false;
+            }
+
+            let updatedDist = this.touchLastPageY - this.touchStartPageY;
+            let updatedDirection = updatedDist < 0 ? -1 : 1;
+            return updatedDirection !== swipeInfo.direction;
+        }
+
+        private slide(point: Point, slideDist: number, swipeInfo: ISwipeInfo): void {
+            let updatedDist = this.touchStartTime > swipeInfo.endTime ? this.touchLastPageY - this.touchStartPageY : 0;
+
+            point.y += slideDist * swipeInfo.direction + updatedDist;
+            let event = new TouchEvent(point.x / this.scale, point.y / this.scale, true);
+
+            this.manager.touchEvent(event);
+        }
+
+        private clearSlide(): void {
+            this.sliding = false;
+            this.upAllTouches();
+        }
+
+        private upAllTouches(): void {
+            if (this.documentMouseMoveWrapper !== null)
                 return;
 
-            if ("ontouchmove" in this._touchPanel) {
-                document.removeEventListener("touchmove", this._documentMouseMoveWrapper);
-                document.removeEventListener("touchend", this._documentMouseUpWrapper);
-            }
-            else {
-                document.removeEventListener("mousemove", this._documentMouseMoveWrapper);
-                document.removeEventListener("mouseup", this._documentMouseUpWrapper);
+            this.rect = null;
+            this.manager.upAllTouches();
+        }
+
+        private clearTouchEvents(): void {
+            if ("releaseCapture" in this.touchPanel) {
+                this.touchPanel.releaseCapture();
             }
 
-            this._documentMouseMoveWrapper = null;
-            this._documentMouseUpWrapper = null;
+            if (this.documentMouseMoveWrapper === null)
+                return;
+
+            if ("ontouchmove" in this.touchPanel) {
+                document.removeEventListener("touchmove", this.documentMouseMoveWrapper);
+                document.removeEventListener("touchend", this.documentMouseUpWrapper);
+            }
+            else {
+                document.removeEventListener("mousemove", this.documentMouseMoveWrapper);
+                document.removeEventListener("mouseup", this.documentMouseUpWrapper);
+            }
+
+            this.documentMouseMoveWrapper = null;
+            this.documentMouseUpWrapper = null;
         }
     }
 }

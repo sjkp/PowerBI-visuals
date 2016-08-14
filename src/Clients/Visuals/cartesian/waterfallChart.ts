@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -12,7 +12,7 @@
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
  *   
- *  The above copyright notice and this permission notice shall be included in 
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
  *   
  *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
@@ -91,10 +91,13 @@ module powerbi.visuals {
         private xAxisProperties: IAxisProperties;
         private yAxisProperties: IAxisProperties;
         private currentViewport: IViewport;
+        private margin: IMargin;
         private data: WaterfallChartData;
         private element: JQuery;
         private isScrollable: boolean;
-        
+        private tooltipsEnabled: boolean;
+        private tooltipBucketEnabled: boolean;
+
         /**
          * Note: If we overflowed horizontally then this holds the subset of data we should render.
          */
@@ -105,13 +108,14 @@ module powerbi.visuals {
         private hostServices: IVisualHostServices;
         private cartesianVisualHost: ICartesianVisualHost;
         private interactivity: InteractivityOptions;
-        private margin: IMargin;
         private options: CartesianVisualInitOptions;
         private interactivityService: IInteractivityService;
         private layout: WaterfallLayout;
 
         constructor(options: WaterfallChartConstructorOptions) {
             this.isScrollable = options.isScrollable;
+            this.tooltipsEnabled = options.tooltipsEnabled;
+            this.tooltipBucketEnabled = options.tooltipBucketEnabled;
             this.interactivityService = options.interactivityService;
         }
 
@@ -119,6 +123,7 @@ module powerbi.visuals {
             debug.assertValue(options, 'options');
 
             this.svg = options.svg;
+            this.svg.classed(WaterfallChart.WaterfallClassName, true);
             this.style = options.style;
             this.currentViewport = options.viewport;
             this.hostServices = options.host;
@@ -127,7 +132,6 @@ module powerbi.visuals {
             this.options = options;
             this.element = options.element;
             this.colors = this.style.colorPalette.dataColors;
-            this.element.addClass(WaterfallChart.WaterfallClassName);
             this.mainGraphicsSVG = this.svg.append('svg');
             this.mainGraphicsContext = this.mainGraphicsSVG.append('g')
                 .classed(WaterfallChart.MainGraphicsContextClassName, true);
@@ -141,8 +145,12 @@ module powerbi.visuals {
             hostServices: IVisualHostServices,
             dataLabelSettings: VisualDataLabelsSettings,
             sentimentColors: WaterfallChartSentimentColors,
-            interactivityService: IInteractivityService): WaterfallChartData {
+            interactivityService: IInteractivityService,
+            tooltipsEnabled: boolean = true,
+            tooltipBucketEnabled?: boolean): WaterfallChartData {
             debug.assertValue(palette, 'palette');
+
+            let reader = data.createIDataViewCategoricalReader(dataView);
 
             let formatStringProp = WaterfallChart.formatStringProp;
             let categories = dataView.categorical.categories || [];
@@ -185,15 +193,21 @@ module powerbi.visuals {
             let dataPoints: WaterfallChartDataPoint[] = [];
             let categoryValues: any[] = [];
             let categoryMetadata: DataViewMetadataColumn;
-            let values = dataView.categorical.values;
-            let valuesMetadata = undefined;
-            if (!_.isEmpty(values)) {
-                let column = values[0];
-                valuesMetadata = column.source;
+            let valuesMetadata: DataViewMetadataColumn = undefined;
+
+            let totalTooltips: number[];
+            let tooltipsCount: number;
+            let tooltipMetadataColumns: DataViewMetadataColumn[];
+            if (reader.hasValues("Tooltips")) {
+                tooltipMetadataColumns = reader.getAllValueMetadataColumnsForRole("Tooltips", undefined);
+            }
+
+            if (reader.hasValues("Y")) {
+                valuesMetadata = reader.getValueMetadataColumn("Y");
                 let labelFormatString = valuesMetadata.format;
                 if (_.isEmpty(categories)) {
                     // We have values but no category, just show the total bar.
-                    pos = posMax = column.values[0];
+                    pos = posMax = reader.getValue("Y", 0);
                     posMin = 0;
                 }
                 else {
@@ -202,14 +216,51 @@ module powerbi.visuals {
                     categoryValues = categoryColumn.values.slice();
                     categoryValues.push(totalLabel);
 
-                    for (var categoryIndex = 0, catLen = column.values.length; categoryIndex < catLen; categoryIndex++) {
+                    if (reader.hasValues("Tooltips")) {
+                        tooltipsCount = reader.getSeriesCount("Tooltips");
+                        totalTooltips = _.map(new Array(tooltipsCount), () => 0);
+                    }
+                    for (var categoryIndex = 0, catLen = reader.getCategoryCount(); categoryIndex < catLen; categoryIndex++) {
                         let category = categoryValues[categoryIndex];
-                        let value = column.values[categoryIndex] || 0;
+                        let value = reader.getValue("Y", categoryIndex) || 0;
                         let identity = SelectionIdBuilder.builder()
                             .withCategory(categoryColumn, categoryIndex)
+                            .withMeasure(valuesMetadata.queryName)
                             .createSelectionId();
 
-                        let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, dataView.categorical, category, value);
+                        let tooltipInfo: TooltipDataItem[];
+
+                        if (tooltipsEnabled) {
+                            tooltipInfo = [];
+
+                            tooltipInfo.push({
+                                displayName: categoryMetadata.displayName,
+                                value: converterHelper.formatFromMetadataColumn(category, categoryMetadata, formatStringProp),
+                            });
+
+                            if (value != null) {
+                                tooltipInfo.push({
+                                    displayName: valuesMetadata.displayName,
+                                    value: converterHelper.formatFromMetadataColumn(value, valuesMetadata, formatStringProp),
+                                });
+                            }
+                            if (tooltipBucketEnabled) {
+                                let tooltipValues = reader.getAllValuesForRole("Tooltips", categoryIndex);
+                                if (tooltipValues && tooltipMetadataColumns) {
+                                    for (let i = 0; i < tooltipValues.length; i++) {
+                                        totalTooltips[i] += tooltipValues[i];
+                                    }
+                                    for (let j = 0; j < tooltipValues.length; j++) {
+                                        if (tooltipValues[j] != null && tooltipMetadataColumns[j]) {
+                                            tooltipInfo.push({
+                                                displayName: tooltipMetadataColumns[j].displayName,
+                                                value: converterHelper.formatFromMetadataColumn(tooltipValues[j], tooltipMetadataColumns[j], formatStringProp),
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         let color = value > 0 ? increaseColor : decreaseColor;
 
                         dataPoints.push({
@@ -236,6 +287,38 @@ module powerbi.visuals {
                     }
                 }
 
+                let tooltipInfo: TooltipDataItem[];
+
+                if (tooltipsEnabled) {
+                    tooltipInfo = [];
+                    if (categoryMetadata) {
+                        tooltipInfo.push({
+                            displayName: categoryMetadata.displayName,
+                            value: totalLabel,
+                        });
+                    }
+                    if (pos != null) {
+                        tooltipInfo.push({
+                            displayName: valuesMetadata.displayName,
+                            value: converterHelper.formatFromMetadataColumn(pos, valuesMetadata, formatStringProp),
+                        });
+                    }
+
+                    if (tooltipBucketEnabled) {
+                        let tooltipValues = reader.getAllValuesForRole("Tooltips", 0, undefined);
+                        totalTooltips = totalTooltips ? totalTooltips : tooltipValues;
+                        if (tooltipValues && tooltipMetadataColumns) {
+                            for (let j = 0; j < totalTooltips.length; j++) {
+                                if (totalTooltips[j] != null) {
+                                    tooltipInfo.push({
+                                        displayName: tooltipMetadataColumns[j].displayName,
+                                        value: converterHelper.formatFromMetadataColumn(totalTooltips[j], tooltipMetadataColumns[j], formatStringProp),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
                 let totalIdentity = SelectionId.createNull();
                 dataPoints.push({
                     value: pos,
@@ -248,7 +331,7 @@ module powerbi.visuals {
                     selected: false,
                     highlight: false,
                     key: totalIdentity.getKey(),
-                    tooltipInfo: TooltipBuilder.createTooltipInfo(formatStringProp, dataView.categorical, totalLabel, pos),
+                    tooltipInfo: tooltipInfo,
                     labelFill: dataLabelSettings.labelColor,
                     labelFormatString: labelFormatString,
                     isTotal: true,
@@ -299,22 +382,22 @@ module powerbi.visuals {
                 axesLabels: { x: null, y: null },
             };
 
-                if (dataView) {
-                    if (dataView.metadata && dataView.metadata.objects) {
-                        let objects = dataView.metadata.objects;
+            if (dataView) {
+                if (dataView.metadata && dataView.metadata.objects) {
+                    let objects = dataView.metadata.objects;
 
-                        let labelsObj = <DataLabelObject>objects['labels'];
-                        if (labelsObj) {
-                            dataLabelUtils.updateLabelSettingsFromLabelsObject(labelsObj, this.data.dataLabelsSettings);
-                        }
-                        sentimentColors = this.getSentimentColorsFromObjects(objects);
+                    let labelsObj = <DataLabelObject>objects['labels'];
+                    if (labelsObj) {
+                        dataLabelUtils.updateLabelSettingsFromLabelsObject(labelsObj, this.data.dataLabelsSettings);
                     }
+                    sentimentColors = this.getSentimentColorsFromObjects(objects);
+                }
 
-                    if (dataView.categorical) {
-                        this.data = WaterfallChart.converter(dataView, this.colors, this.hostServices, this.data.dataLabelsSettings, sentimentColors, this.interactivityService);
-                    }
+                if (dataView.categorical) {
+                    this.data = WaterfallChart.converter(dataView, this.colors, this.hostServices, this.data.dataLabelsSettings, sentimentColors, this.interactivityService, this.tooltipsEnabled, this.tooltipBucketEnabled); 
                 }
             }
+        }
 
         public enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, options: EnumerateVisualObjectInstancesOptions): void {
             switch (options.objectName) {
@@ -376,17 +459,10 @@ module powerbi.visuals {
             debug.assertValue(options, 'options');
 
             this.currentViewport = options.viewport;
-            let margin = this.margin = options.margin;
+            this.margin = options.margin;
             let data = this.clippedData = this.data;
             let categoryCount = data.categories.length;
-
-            /* preferredPlotArea would be same as currentViewport width when there is no scrollbar. 
-             In that case we want to calculate the available plot area for the shapes by subtracting the margin from available viewport */
             let preferredPlotArea = this.getPreferredPlotArea(false, categoryCount, CartesianChart.MinOrdinalRectThickness);
-            if (preferredPlotArea.width === this.currentViewport.width) {
-                preferredPlotArea.width -= (margin.left + margin.right);
-            }
-            preferredPlotArea.height -= (margin.top + margin.bottom);
 
             let cartesianLayout = CartesianChart.getLayout(
                 null,
@@ -395,7 +471,8 @@ module powerbi.visuals {
                     categoryCount: categoryCount,
                     domain: null,
                     isScalar: false,
-                    isScrollable: this.isScrollable
+                    isScrollable: this.isScrollable,
+                    trimOrdinalDataOnOverflow: options.trimOrdinalDataOnOverflow
                 });
 
             // In the case that we have overflowed horizontally we want to clip the data and use that to calculate the axes on the dashboard.           
@@ -451,18 +528,12 @@ module powerbi.visuals {
 
         private static lookupXValue(data: WaterfallChartData, index: number, type: ValueType): any {
             let dataPoints: WaterfallChartDataPoint[] = data.series[0].data;
-            let point = dataPoints[index];
 
-            if (point && point.categoryValue) {
-                if (index === dataPoints.length - 1)
-                    return point.categoryValue;
-                else if (AxisHelper.isDateTime(type))
-                    return new Date(point.categoryValue);
-                else
-                    return point.categoryValue;
-            }
-
-            return index;
+            if (index === dataPoints.length - 1)
+                // Total
+                return dataPoints[index].categoryValue;
+            else
+                return CartesianHelper.lookupXValue(data, index, type, false);
         }
 
         public static getXAxisCreationOptions(data: WaterfallChartData, width: number, layout: CategoryLayout, options: CalculateScaleAndDomainOptions): CreateAxisOptions {
@@ -471,7 +542,7 @@ module powerbi.visuals {
 
             let categoryDataType: ValueType = AxisHelper.getCategoryValueType(data.categoryMetadata);
 
-            let domain = AxisHelper.createDomain(data.series, categoryDataType, /* isScalar */ false, options.forcedXDomain);
+            let domain = AxisHelper.createDomain(data.series, categoryDataType, /* isScalar */ false, options.forcedXDomain, options.ensureXDomain);
 
             let categoryThickness = layout.categoryThickness;
             let outerPadding = categoryThickness * layout.outerPaddingRatio;
@@ -480,7 +551,7 @@ module powerbi.visuals {
                 pixelSpan: width,
                 dataDomain: domain,
                 metaDataColumn: data.categoryMetadata,
-                formatStringProp: WaterfallChart.formatStringProp,
+                formatString: valueFormatter.getFormatString(data.categoryMetadata, WaterfallChart.formatStringProp),
                 isScalar: false,
                 outerPadding: outerPadding,
                 categoryThickness: categoryThickness,
@@ -496,7 +567,7 @@ module powerbi.visuals {
             debug.assertValue(data, 'data');
             debug.assertValue(options, 'options');
 
-            let combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, [data.positionMin, data.positionMax]);
+            let combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, [data.positionMin, data.positionMax], options.ensureYDomain);
 
             return <CreateAxisOptions> {
                 pixelSpan: height,
@@ -504,7 +575,7 @@ module powerbi.visuals {
                 isScalar: true,
                 isVertical: true,
                 metaDataColumn: data.valuesMetadata,
-                formatStringProp: WaterfallChart.formatStringProp,
+                formatString: valueFormatter.getFormatString(data.valuesMetadata, WaterfallChart.formatStringProp),
                 outerPadding: 0,
                 forcedTickCount: options.forcedTickCount,
                 useTickIntervalForDisplayUnits: true,
@@ -520,7 +591,8 @@ module powerbi.visuals {
                 categoryThickness,
                 this.currentViewport,
                 this.isScrollable,
-                isScalar);
+                isScalar,
+                this.margin);
         }
 
         public getVisualCategoryAxisIsScalar(): boolean {
@@ -576,7 +648,8 @@ module powerbi.visuals {
             let bars = this.createRects(dataPoints);
             let connectors = this.createConnectors(dataPoints);
 
-            TooltipManager.addTooltip(bars, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo);
+            if (this.tooltipsEnabled)
+                TooltipManager.addTooltip(bars, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo);
 
             let hasSelection = this.interactivityService && this.interactivityService.hasSelection();
 
@@ -618,8 +691,7 @@ module powerbi.visuals {
             let behaviorOptions: WaterfallChartBehaviorOptions = undefined;
             if (this.interactivityService) {
                 behaviorOptions = {
-                    bars: bars,
-                    datapoints: dataPoints,
+                    bars: bars
                 };
             }
 
@@ -714,7 +786,7 @@ module powerbi.visuals {
                         },
                         outsideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultLabelColor,
                         insideFill: NewDataLabelUtils.defaultInsideLabelColor,
-                        isParentRect: true,
+                        parentType: LabelDataPointParentType.Rectangle,
                         parentShape: {
                             rect: parentRect,
                             orientation: dataPoint.value >= 0 ? NewRectOrientation.VerticalBottomBased : NewRectOrientation.VerticalTopBased,

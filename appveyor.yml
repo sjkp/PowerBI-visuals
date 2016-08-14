@@ -27,15 +27,15 @@
 
 os: Windows Server 2012
 
+environment:
+  nodejs_version: "4.4.5"
+
 # build platform, i.e. x86, x64, Any CPU. This setting is optional.
 platform: Any CPU
 
-# build cache to preserve files/folders between builds
-cache:
-  - node_modules # local npm modules
-
 # scripts that run after cloning repository
 install:
+  - npm install -g gulp
   - npm install
 
 build_script:
@@ -46,5 +46,4 @@ build_script:
 #---------------------------------#
 
 test_script:
-  - gulp build:visualsTests
-  - gulp run:test:visuals
+  - gulp run:tests

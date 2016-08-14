@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -41,6 +41,16 @@ module powerbi.data {
             return ArrayExtensions.emptyToNull(extractor.keys);
         }
 
+        export function getValues(expr: SQExpr): SQExpr[] {
+            let extractor = new ScopeIdExtractorImpl();
+            expr.accept(extractor);
+
+            if (extractor.malformed)
+                return null;
+
+            return ArrayExtensions.emptyToNull(extractor.values);
+        }
+
         export function getInExpr(expr: SQExpr): SQInExpr{
             let extractor = new ScopeIdExtractorImpl();
             expr.accept(extractor);
@@ -72,7 +82,7 @@ module powerbi.data {
             }
 
             public visitCompare(expr: SQCompareExpr): void {
-                if (expr.kind !== QueryComparisonKind.Equal) {
+                if (expr.comparison !== QueryComparisonKind.Equal) {
                     this.visitDefault(expr);
                     return;
                 }
@@ -91,6 +101,10 @@ module powerbi.data {
 
             public visitConstant(expr: SQConstantExpr): void {
                 this.values.push(expr);
+            }
+
+            public visitArithmetic(expr: SQArithmeticExpr): void {
+                this.keys.push(expr);
             }
 
             public visitDefault(expr: SQExpr): void {

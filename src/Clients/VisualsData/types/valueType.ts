@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -29,68 +29,10 @@
 module powerbi {
     import EnumExtensions = jsCommon.EnumExtensions;
 
-    /** Describes instances of value type objects. */
-    export type PrimitiveValue = string | number | boolean | Date;
-
-    /** Describes a data value type in the client type system. Can be used to get a concrete ValueType instance. */
     export interface ValueTypeDescriptor {
-        // Simplified primitive types
-        text?: boolean;
-        numeric?: boolean;
-        integer?: boolean;
-        bool?: boolean;
-        dateTime?: boolean;
-        duration?: boolean;
-        binary?: boolean;
-        none?: boolean; //TODO: 5005022 remove none type when we introduce property categories.
-
-        // Extended types
-        temporal?: TemporalTypeDescriptor;
-        geography?: GeographyTypeDescriptor;
-        misc?: MiscellaneousTypeDescriptor;
-        formatting?: FormattingTypeDescriptor;
         extendedType?: ExtendedType;
-        enumeration?: IEnumType;
-        scripting?: ScriptTypeDescriptor;
     }
-
-    export interface ScriptTypeDescriptor {
-        source?: boolean;
-    }
-
-    export interface TemporalTypeDescriptor {
-        year?: boolean;
-        month?: boolean;
-    }
-
-    export interface GeographyTypeDescriptor {
-        address?: boolean;
-        city?: boolean;
-        continent?: boolean;
-        country?: boolean;
-        county?: boolean;
-        region?: boolean;
-        postalCode?: boolean;
-        stateOrProvince?: boolean;
-        place?: boolean;
-        latitude?: boolean;
-        longitude?: boolean;
-    }
-
-    export interface MiscellaneousTypeDescriptor {
-        image?: boolean;
-        imageUrl?: boolean;
-        webUrl?: boolean;
-    }
-
-    export interface FormattingTypeDescriptor {
-        color?: boolean;
-        formatString?: boolean;
-        alignment?: boolean;
-        labelDisplayUnits?: boolean;
-        fontSize?: boolean;
-    }
-
+    
     /** Describes a data value type, including a primitive type and extended type if any (derived from data category). */
     export class ValueType implements ValueTypeDescriptor {
         private static typeCache: { [id: string]: ValueType } = {};
@@ -154,8 +96,9 @@ module powerbi {
             }
             if (descriptor.enumeration) return ValueType.fromEnum(descriptor.enumeration);
             if (descriptor.temporal) {
-                if (descriptor.temporal.year) return ValueType.fromExtendedType(ExtendedType.Year_Integer);
-                if (descriptor.temporal.month) return ValueType.fromExtendedType(ExtendedType.Month_Integer);
+                if (descriptor.temporal.year) return ValueType.fromExtendedType(ExtendedType.Years_Integer);
+                if (descriptor.temporal.month) return ValueType.fromExtendedType(ExtendedType.Months_Integer);
+                if (descriptor.temporal.paddedDateTableDate) return ValueType.fromExtendedType(ExtendedType.PaddedDateTableDates);
             }
             if (descriptor.geography) {
                 if (descriptor.geography.address) return ValueType.fromExtendedType(ExtendedType.Address);
@@ -174,6 +117,7 @@ module powerbi {
                 if (descriptor.misc.image) return ValueType.fromExtendedType(ExtendedType.Image);
                 if (descriptor.misc.imageUrl) return ValueType.fromExtendedType(ExtendedType.ImageUrl);
                 if (descriptor.misc.webUrl) return ValueType.fromExtendedType(ExtendedType.WebUrl);
+                if (descriptor.misc.barcode) return ValueType.fromExtendedType(ExtendedType.Barcode_Text);
             }
             if (descriptor.formatting) {
                 if (descriptor.formatting.color) return ValueType.fromExtendedType(ExtendedType.Color);
@@ -181,9 +125,13 @@ module powerbi {
                 if (descriptor.formatting.alignment) return ValueType.fromExtendedType(ExtendedType.Alignment);
                 if (descriptor.formatting.labelDisplayUnits) return ValueType.fromExtendedType(ExtendedType.LabelDisplayUnits);
                 if (descriptor.formatting.fontSize) return ValueType.fromExtendedType(ExtendedType.FontSize);
+                if (descriptor.formatting.labelDensity) return ValueType.fromExtendedType(ExtendedType.LabelDensity);
             }
             if (descriptor.extendedType) {
                 return ValueType.fromExtendedType(descriptor.extendedType);
+            }
+            if (descriptor.operations) {
+                if (descriptor.operations.searchEnabled) return ValueType.fromExtendedType(ExtendedType.SearchEnabled);
             }
 
             return ValueType.fromExtendedType(ExtendedType.Null);
@@ -220,16 +168,41 @@ module powerbi {
             return new ValueType(ExtendedType.Enumeration, null, enumType);
         }
 
+        /** Determines if the specified type is compatible from at least one of the otherTypes. */
+        public static isCompatibleTo(type: ValueTypeDescriptor, otherTypes: ValueTypeDescriptor[]): boolean {
+            debug.assertValue(type, 'type');
+            debug.assertValue(otherTypes, 'otherTypes');
+
+            let valueType = ValueType.fromDescriptor(type);
+            for (let otherType of otherTypes) {
+                let otherValueType = ValueType.fromDescriptor(otherType);
+
+                if (otherValueType.isCompatibleFrom(valueType))
+                    return true;
+            }
+
+            return false;
+        }
+
         /** Determines if the instance ValueType is convertable from the 'other' ValueType. */
         public isCompatibleFrom(other: ValueType): boolean {
             debug.assertValue(other, 'other');
-            
+
             let otherPrimitiveType = other.primitiveType;
             if (this === other ||
                 this.primitiveType === otherPrimitiveType ||
                 otherPrimitiveType === PrimitiveType.Null)
                 return true;
             return false;
+        }
+
+        /**
+         * Determines if the instance ValueType is equal to the 'other' ValueType
+         * @param {ValueType} other the other ValueType to check equality against
+         * @returns True if the instance ValueType is equal to the 'other' ValueType
+         */
+        public equals(other: ValueType): boolean {
+            return _.isEqual(this, other);
         }
 
         /** Gets the exact primitive type of this ValueType. */
@@ -253,28 +226,34 @@ module powerbi {
         public get text(): boolean {
             return this.primitiveType === PrimitiveType.Text;
         }
+
         /** Indicates whether the type represents any numeric value. */
         public get numeric(): boolean {
             return EnumExtensions.hasFlag(this.underlyingType, ExtendedType.Numeric);
         }
+
         /** Indicates whether the type represents integer numeric values. */
         public get integer(): boolean {
             return this.primitiveType === PrimitiveType.Integer;
         }
+
         /** Indicates whether the type represents Boolean values. */
         public get bool(): boolean {
             return this.primitiveType === PrimitiveType.Boolean;
         }
+
         /** Indicates whether the type represents any date/time values. */
         public get dateTime(): boolean {
             return this.primitiveType === PrimitiveType.DateTime ||
                 this.primitiveType === PrimitiveType.Date ||
                 this.primitiveType === PrimitiveType.Time;
         }
+
         /** Indicates whether the type represents duration values. */
         public get duration(): boolean {
             return this.primitiveType === PrimitiveType.Duration;
         }
+
         /** Indicates whether the type represents binary values. */
         public get binary(): boolean {
             return this.primitiveType === PrimitiveType.Binary;
@@ -284,24 +263,29 @@ module powerbi {
         public get none(): boolean {
             return this.primitiveType === PrimitiveType.None;
         }
+
         // Extended types
 
         /** Returns an object describing temporal values represented by the type, if it represents a temporal type. */
         public get temporal(): TemporalType {
             return this.temporalType;
         }
+
         /** Returns an object describing geographic values represented by the type, if it represents a geographic type. */
         public get geography(): GeographyType {
             return this.geographyType;
         }
+
         /** Returns an object describing the specific values represented by the type, if it represents a miscellaneous extended type. */
         public get misc(): MiscellaneousType {
             return this.miscType;
         }
+
         /** Returns an object describing the formatting values represented by the type, if it represents a formatting type. */
         public get formatting(): FormattingType {
             return this.formattingType;
         }
+
         /** Returns an object describing the enum values represented by the type, if it represents an enumeration type. */
         public get enum(): IEnumType {
             return this.enumType;
@@ -334,10 +318,13 @@ module powerbi {
         }
 
         public get year(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Year);
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Years);
         }
         public get month(): boolean {
-            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Month);
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Months);
+        }
+        public get paddedDateTableDate(): boolean {
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.PaddedDateTableDates);
         }
     }
 
@@ -401,6 +388,9 @@ module powerbi {
         public get webUrl(): boolean {
             return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.WebUrl);
         }
+        public get barcode(): boolean {
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.Barcode);
+        }
     }
 
     export class FormattingType implements FormattingTypeDescriptor {
@@ -429,6 +419,10 @@ module powerbi {
 
         public get fontSize(): boolean {
             return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.FontSize);
+        }
+
+        public get labelDensity(): boolean {
+            return matchesExtendedTypeWithAnyPrimitive(this.underlyingType, ExtendedType.LabelDensity);
         }
     }
 
@@ -478,16 +472,17 @@ module powerbi {
 
         // Extended types (0-32767 << 16 range [0xFFFF0000] | corresponding primitive type | flags)
         // Temporal
-        Year = Temporal | (1 << 16),
-        Year_Text = Year | Text,
-        Year_Integer = Year | Integer,
-        Year_Date = Year | Date,
-        Year_DateTime = Year | DateTime,
-        Month = Temporal | (2 << 16),
-        Month_Text = Month | Text,
-        Month_Integer = Month | Integer,
-        Month_Date = Month | Date,
-        Month_DateTime = Month | DateTime,
+        Years = Temporal | (1 << 16),
+        Years_Text = Years | Text,
+        Years_Integer = Years | Integer,
+        Years_Date = Years | Date,
+        Years_DateTime = Years | DateTime,
+        Months = Temporal | (2 << 16),
+        Months_Text = Months | Text,
+        Months_Integer = Months | Integer,
+        Months_Date = Months | Date,
+        Months_DateTime = Months | DateTime,
+        PaddedDateTableDates = Temporal | DateTime | (3 << 16),
         // Geography
         Address = Text | Geography | (100 << 16),
         City = Text | Geography | (101 << 16),
@@ -510,23 +505,31 @@ module powerbi {
         Image = Binary | Miscellaneous | (200 << 16),
         ImageUrl = Text | Miscellaneous | (201 << 16),
         WebUrl = Text | Miscellaneous | (202 << 16),
+        Barcode =  Miscellaneous | (203 << 16),
+        Barcode_Text = Barcode | Text,
+        Barcode_Integer = Barcode | Integer,
+
         // Formatting
         Color = Text | Formatting | (300 << 16),
         FormatString = Text | Formatting | (301 << 16),
         Alignment = Text | Formatting | (306 << 16),
         LabelDisplayUnits = Text | Formatting | (307 << 16),
         FontSize = Double | Formatting | (308 << 16),
+        LabelDensity = Double | Formatting | (309 << 16),
         // Enumeration
         Enumeration = Text | 400 << 16,
         // Scripting
         ScriptSource = Text | Scripting | (500 << 16),        
         // NOTE: To avoid confusion, underscores should be used only to delimit primitive type variants of an extended type
         // (e.g. Year_Integer or Latitude_Double above)
+
+        //Operations
+        SearchEnabled = Boolean | (1 << 16),
     }
 
-    const PrimitiveTypeMask = 0xFF; 
-    const PrimitiveTypeWithFlagsMask = 0xFFFF; 
-    const PrimitiveTypeFlagsExcludedMask = 0xFFFF0000; 
+    const PrimitiveTypeMask = 0xFF;
+    const PrimitiveTypeWithFlagsMask = 0xFFFF;
+    const PrimitiveTypeFlagsExcludedMask = 0xFFFF0000;
 
     function getPrimitiveType(extendedType: ExtendedType): PrimitiveType {
         return extendedType & PrimitiveTypeMask;

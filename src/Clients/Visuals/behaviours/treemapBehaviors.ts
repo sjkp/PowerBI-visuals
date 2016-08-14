@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -48,16 +48,15 @@ module powerbi.visuals {
             let minorLabels = options.minorLabels;
             this.hasHighlights = options.hasHighlights;
 
-            let clickHandler = (d: TreemapNode) => {
-                selectionHandler.handleSelection(d, d3.event.ctrlKey);
-            };
+            InteractivityUtils.registerStandardInteractivityHandlers(shapes, selectionHandler);
+            InteractivityUtils.registerStandardInteractivityHandlers(highlightShapes, selectionHandler);
 
-            shapes.on('click', clickHandler);
-            highlightShapes.on('click', clickHandler);
-            if (majorLabels)
-                majorLabels.on('click', clickHandler);
-            if (minorLabels)
-                minorLabels.on('click', clickHandler);
+            if (majorLabels) {
+                InteractivityUtils.registerStandardInteractivityHandlers(majorLabels, selectionHandler);
+            }
+            if (minorLabels) {
+                InteractivityUtils.registerStandardInteractivityHandlers(minorLabels, selectionHandler);
+            }
         }
 
         public renderSelection(hasSelection: boolean): void {

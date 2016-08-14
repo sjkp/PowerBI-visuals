@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,300 +27,431 @@
 /// <reference path="../../_references.ts"/>
 
 module powerbi.visuals.controls {
-    export const AutoSizeColumnWidthDefault: boolean = true;
+    import PropAutoSizeWidth = internal.TablixObjects.PropGeneralAutoSizeColumns;
+    import getMetadataObjects = internal.TablixObjects.getMetadadataObjects;
 
-    export interface TablixColumnWidthObject {
+    /**
+     * Column Width Object identifying a certain column and its width
+     */
+    export interface ColumnWidthObject {
+        /**
+        * QueryName of the Column
+        */
         queryName: string;
-        width: number;
+
+        /**
+        * Flag indicating whether the Column should have a fixed size or fit its size to the contents
+        */
+        isFixed: boolean;
+
+        /**
+        * Width of the column in px.
+        * If isFixed=False, undefined always
+        * If isFixed=True, undefined if unknown
+        */
+        width?: number;
+    }
+
+    /**
+     * Collection of Column Widths indexed by Column's queryName
+    */
+    export interface ColumnWidthCollection {
+        [queryName: string]: ColumnWidthObject;
+    }
+
+     /**
+     * Handler for Column Width Changed event
+     */
+    export interface ColumnWidthChangedCallback {
+        (columnWidthChangedEventArgs: ColumnWidthObject): void;
+    }
+
+    /**
+     * Handler for requesting host to persist Column Width Objects
+     */
+    export interface HostPersistCallBack {
+        (visualObjectInstances: VisualObjectInstancesToPersist): void;
     }
 
     export class TablixColumnWidthManager {
-        public static columnWidthProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'columnWidth' };
-        public static autoSizeWidthProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'autoSizeColumnWidth' };
+        /**
+        * PropertyID for Column Widths (General > columnWidth)
+        */
+        private static columnWidthProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'columnWidth' };
 
-        private columnWidths: number[];
-        private tablixColumnWidthsObject: controls.TablixColumnWidthObject[];
-        private previousAutoColumnSizePropertyValue: boolean;
-        private tablixQueryNames: string[];
-        private dataView: DataView;
+        /**
+        * Array holding widths for all columns. Index is the queryName of the column
+        */
+        private columnWidthObjects: ColumnWidthCollection;
+
+        /**
+        * Visual Object Instances to be persisted. Containing autoSizeProperty and any width to remove/merge
+        */
         private visualObjectInstancesToPersist: VisualObjectInstancesToPersist;
-        private matrixLeafNodes: MatrixVisualNode[];
-        // TODO: Can we remove isMatrix and suppresNotification flag?
+
+        /**
+         * True if the Tablix is a Matrix
+         */
         private isMatrix: boolean;
-        private suppressNotification: boolean;
-        private currentPersistedWidths: number[];
-        private callHostPersistProperties: boolean;
-        private dataViewUpdated: boolean;
-        private columnResizeCallback: ColumnWidthCallbackType;
+        /**
+        * Array of all leaf nodes (Row Groupings + Columns/Values instances)
+        */
+        private matrixLeafNodes: MatrixVisualNode[];
+        /**
+        * Current DataView
+        */
+        private currentDataView: DataView;
+        /**
+        * Current value of AutoSizeColumns after last DataView Update
+        */
+        private currentAutoColumnSizePropertyValue: boolean;
 
-        constructor(dataView: DataView, isMatrix: boolean, matrixLeafNodes?: MatrixVisualNode[]) {
-            this.columnWidths = [];
-            this.tablixColumnWidthsObject = [];
-            this.tablixQueryNames = [];
-            this.dataView = dataView;
-            this.matrixLeafNodes = matrixLeafNodes;
+        /**
+        * Previous DataView
+        */
+        private previousDataView: DataView;
+        /**
+        * Previous value of AutoSizeColumns before last DataView Update
+        */
+        private previousAutoColumnSizePropertyValue: boolean;
+
+        /**
+        * Handler for requesting host to persist Column Width Objects
+        */
+        private hostPersistCallBack: HostPersistCallBack;
+
+        constructor(dataView: DataView, isMatrix: boolean, hostPersistCallBack: HostPersistCallBack, matrixLeafNodes?: MatrixVisualNode[]) {
+            this.columnWidthObjects = {};
             this.isMatrix = isMatrix;
-            this.suppressNotification = false;
-            this.currentPersistedWidths = [];
-            this.visualObjectInstancesToPersist = [];
-            this.callHostPersistProperties = false;
-            this.dataViewUpdated = false;
+            this.updateDataView(dataView, matrixLeafNodes);
+            this.hostPersistCallBack = hostPersistCallBack;
+            this.visualObjectInstancesToPersist = { merge: [], remove: [] };
         }
 
-        public getColumnWidths(): number[] {
-            return this.columnWidths;
-        }
-
-        public getTablixColumnWidthsObject(): controls.TablixColumnWidthObject[] {
-            return this.tablixColumnWidthsObject;
-        }
-
+        // #region Update DataView
+        /**
+         * Update the current DataView
+         * @param {dataView} DataView new DataView
+         * @param {MatrixVisualNode[]} matrixLeafNodes? (Optional)Matrix Leaf Nodes
+         */
         public updateDataView(dataView: DataView, matrixLeafNodes?: MatrixVisualNode[]): void {
-            this.dataView = dataView;
+            this.previousDataView = this.currentDataView;
+            if (this.previousDataView)
+                this.previousAutoColumnSizePropertyValue = PropAutoSizeWidth.getValue<boolean>(getMetadataObjects(this.previousDataView));
+            else
+                this.previousAutoColumnSizePropertyValue = undefined;
+
+            this.currentDataView = dataView;
+            if (this.currentDataView)
+                this.currentAutoColumnSizePropertyValue = PropAutoSizeWidth.getValue<boolean>(getMetadataObjects(this.currentDataView));
+            else
+                this.currentAutoColumnSizePropertyValue = undefined;
+
             this.matrixLeafNodes = matrixLeafNodes;
-            this.dataViewUpdated = true;
+            
+            this.updateColumnsMetadata();
+
+            this.updateTablixColumnWidths();
         }
 
-        public getVisualObjectInstancesToPersist(): VisualObjectInstancesToPersist {
-            return this.visualObjectInstancesToPersist;
+        /**
+        * Destroy columnWidthObjects and construct it again from the currently displayed Columns with initial width undefined
+        */
+        private updateColumnsMetadata(): void {
+            this.columnWidthObjects = {};
+
+            if (this.isMatrix)
+                this.updateMatrixColumnsMetadata();
+            else
+                this.updateTableColumnsMetadata();
         }
 
-        public persistColumnWidthsOnHost(): boolean {
-            return this.callHostPersistProperties;
+        private updateTableColumnsMetadata(): void {
+            if (this.currentDataView && this.currentDataView.table) {
+                let columnMetaData = this.currentDataView.table.columns;
+                for (let i = 0, len = columnMetaData.length; i < len; i++) {
+                    let queryName = columnMetaData[i].queryName;
+                    if (queryName)
+                        this.columnWidthObjects[queryName] = {
+                            queryName: queryName,
+                            width: undefined,
+                            isFixed: false
+                        };
+                }
+            }
         }
 
-        public getTablixQueryNames(): string[]{
-            return this.tablixQueryNames;
+        private updateMatrixColumnsMetadata(): void {
+            // Matrix visual columns are row headers and column hierarchy leaves
+
+            if (this.currentDataView && this.currentDataView.matrix && this.currentDataView.matrix.rows) {
+                // Get query names of row groups (row headers)
+                // queryName is undefined for composite-group
+                for (let i = 0, len = this.currentDataView.matrix.rows.levels.length; i < len; i++) {
+                    let rowGroup = this.currentDataView.matrix.rows.levels[i];
+                    if (rowGroup.sources.length === 1) { // Only handle non-composite groups
+                        let queryName = rowGroup.sources[0].queryName;
+                        if (queryName)
+                            this.columnWidthObjects[queryName] = {
+                                queryName: queryName,
+                                width: undefined,
+                                isFixed: false
+                            };
+                    }
+                }
+            }
+
+            // Get query names of columns leaves or values
+            // queryName is undefined for composite-group
+            if (this.matrixLeafNodes) {
+                for (let i = 0, len = this.matrixLeafNodes.length; i < len; i++) {
+                    let queryName = this.matrixLeafNodes[i].queryName;
+                    if (queryName)
+                        this.columnWidthObjects[queryName] = {
+                            queryName: queryName,
+                            width: undefined,
+                            isFixed: false
+                        };
+                }
+            }
         }
 
-        public get suppressOnDataChangedNotification(): boolean {
-            return this.suppressNotification;
-        }
-
-        public set suppressOnDataChangedNotification(notify: boolean) {
-            this.suppressNotification = notify;
-        }
-
-        public get columnWidthResizeCallback(): ColumnWidthCallbackType {
-            return this.columnResizeCallback;
-        }
-
-        public set columnWidthResizeCallback(colWidthResizeCallback: ColumnWidthCallbackType) {
-            this.columnResizeCallback = colWidthResizeCallback;
-        }
-
-        public getPersistedCellWidth(index: number): number {
-            let widths = this.getColumnWidths();
-            if (!_.isEmpty(widths) && index < widths.length)
-                return widths[index];
-        }
-
-        public deserializeTablixColumnWidths(): void {
-            let columnMetaData = this.dataView && this.dataView.metadata && this.dataView.metadata.columns;
+        /**
+         * Update the column widths after a dataViewChange
+         */
+        public updateTablixColumnWidths(): void {
+            let columnMetaData = this.currentDataView && this.currentDataView.metadata && this.currentDataView.metadata.columns;
             if (columnMetaData) {
-                let autoSize = this.shouldAutoSizeColumnWidth();
-                if (this.previousAutoColumnSizePropertyValue !== undefined && !this.previousAutoColumnSizePropertyValue && this.previousAutoColumnSizePropertyValue !== autoSize) {
-                    // Auto-Size false to true. In this case blow away any saved widths and revert back to default of calculating column sizes
-                    this.columnWidths = [];
-                    this.removePersistedVisualObjectInstances();
-                    this.tablixColumnWidthsObject = [];
-                    this.callHostPersistProperties = true;
-                }
-                else {
-                    this.deserializeColumnWidths(columnMetaData);
-                    this.callHostPersistProperties = false;
-                }
-
-                this.previousAutoColumnSizePropertyValue = autoSize;
-            }
-        }
-
-        public columnWidthChanged(index: number, width: number): void {
-            this.populateTablixQueryNames();
-            if (this.tablixQueryNames.length === 0)
-                return;
-            // Only persist manually resized columns
-            let colIndex = this.isMatrix ? index : Math.max(index - 1, 0); // Table indices are offset with an empty header.
-            let newColumnWidthObj = {
-                queryName: this.tablixQueryNames[colIndex],
-                width: width
-            };
-
-            let objExists = false;
-            for (let i = 0, len = this.tablixColumnWidthsObject.length; i < len; i++) {
-                if (this.tablixColumnWidthsObject[i].queryName === newColumnWidthObj.queryName) {
-                    this.tablixColumnWidthsObject[i] = newColumnWidthObj;
-                    objExists = true;
-                }
-            }
-            if (!objExists)
-                this.tablixColumnWidthsObject.push(newColumnWidthObj);
-
-            // Let onDataChanged call pass through so all instances of resized column gets updated for the matrix
-            this.suppressNotification = !this.isMatrix;
-            this.generateVisualObjectInstancesToPersist();
-            this.callHostPersistProperties = true;
-            // Keep all persisted column widths in sync
-            if (!this.shouldAutoSizeColumnWidth() && this.currentPersistedWidths.length > 0 && index < this.currentPersistedWidths.length)
-                this.currentPersistedWidths[index] = width;
-        }
-
-        public persistAllColumnWidths(widthsToPersist: number[]): void {
-            if (!this.shouldAutoSizeColumnWidth() && this.dataViewUpdated) {
-                let shouldPersist = true;
-                if (!_.isEqual(widthsToPersist, this.currentPersistedWidths)) {
-                    this.currentPersistedWidths = widthsToPersist;
-                    this.suppressNotification = true;
-                }
-                else {
-                    shouldPersist = false;
-                }
-                // Persist all column widths
-                let widths = this.isMatrix ? widthsToPersist
-                    : widthsToPersist.slice(1, widthsToPersist.length); // Table indices are offset with an empty header. 
-                let savedColumnWidths: controls.TablixColumnWidthObject[] = [];
-
-                if (this.tablixQueryNames.length !== widths.length) {
-                    shouldPersist = false;
-                }
-
-                if (!shouldPersist) {
-                    this.suppressNotification = false;
-                    this.callHostPersistProperties = false;
+                // Auto-Size false to true.
+                // Blow away any saved widths and revert back to default of calculating column sizes
+                if (this.shouldClearAllColumnWidths()) {
+                    this.autoSizeAllColumns();
                     return;
                 }
 
-                for (let colIndex = 0, len = widths.length; colIndex < len; colIndex++) {
-                    let widthObj = {
-                        queryName: this.tablixQueryNames[colIndex],
-                        width: widths[colIndex]
-                    };
-
-                    for (let columnWidthObject of this.tablixColumnWidthsObject) {
-                        if (columnWidthObject.queryName === widthObj.queryName)
-                            widthObj.width = columnWidthObject.width;
-                    }
-                    savedColumnWidths.push(widthObj);
+                // Normal new data -> Get new column widths
+                else {
+                    this.deserializeColumnsWidth(columnMetaData);
                 }
-
-                this.tablixColumnWidthsObject = savedColumnWidths;
-                this.generateVisualObjectInstancesToPersist();
-                this.callHostPersistProperties = true;
             }
         }
 
-        public shouldAutoSizeColumnWidth(): boolean {
-            let objects = this.dataView.metadata.objects;
-            if (objects && objects[TablixColumnWidthManager.autoSizeWidthProp.objectName]) {
-                return objects[TablixColumnWidthManager.autoSizeWidthProp.objectName][TablixColumnWidthManager.autoSizeWidthProp.propertyName] !== false;
+        /**
+         * Remove all persisted columns widths and Update visualObjectInstancesToPersist
+         */
+        private autoSizeAllColumns(): void {
+            for (let queryName in this.columnWidthObjects) {
+                this.visualObjectInstancesToPersist.remove.push(this.generateColumnWidthObjectToPersist(queryName, undefined));
             }
 
-            // Auto adjust is turned on by default
-            return AutoSizeColumnWidthDefault;
+            this.callHostToPersist();
         }
 
-        private getAutoSizeColumnWidthObject(): VisualObjectInstance {
-            return {
-                selector: null,
-                objectName: 'general',
-                properties: {
-                    autoSizeColumnWidth: this.shouldAutoSizeColumnWidth()
+        /**
+         * Read the Column Widths from the Columns metadata
+         * @param {DataViewMetadataColumn[]} columnMetadata Columns metadata
+         */
+        private deserializeColumnsWidth(columnsMetadata: DataViewMetadataColumn[]): void {
+            // Clear existing widths
+            for (let colObj in this.columnWidthObjects) {
+                this.columnWidthObjects[colObj].isFixed = !this.currentAutoColumnSizePropertyValue;
+                this.columnWidthObjects[colObj].width = undefined;
+            }
+
+            for (let i = 0, len = columnsMetadata.length; i < len; i++) {
+                let column = columnsMetadata[i];
+                let queryName = column.queryName;
+                let width = DataViewObjects.getValue<number>(column.objects, TablixColumnWidthManager.columnWidthProp);
+
+                if (this.columnWidthObjects.hasOwnProperty(queryName) && width != null) {
+                    this.columnWidthObjects[queryName].width = width;
+                    this.columnWidthObjects[queryName].isFixed = true;
                 }
-            };
+            }
+        }
+        // #endregion
+
+        // #region AutoSize toggle
+        /**
+         * Returns a value indicating that autoSizeColumns was flipped from true to false
+         */
+        public shouldPersistAllColumnWidths(): boolean {
+            // We don't have a previous DataView -> Don't persist
+            if (!this.previousDataView)
+                return false;
+
+            // We had a DataView before -> return true if Autosize switched from true to false
+            else
+                return !this.currentAutoColumnSizePropertyValue && this.previousAutoColumnSizePropertyValue;
         }
 
-        private generateVisualObjectInstancesToPersist(): void {
-            this.visualObjectInstancesToPersist = {
-                merge: [this.getAutoSizeColumnWidthObject()]
-            };
+        /**
+         * Returns a value indicating that autoSizeColumns was flipped from false to true
+         */
+        public shouldClearAllColumnWidths(): boolean {
+            return this.previousDataView != null && this.previousAutoColumnSizePropertyValue === false
+                && this.currentDataView != null && this.currentAutoColumnSizePropertyValue === true;
+        }
+        // #endregion
 
-            // Column Widths
-            for (let columnWidthObject of this.tablixColumnWidthsObject) {
-                let queryNameSelector = columnWidthObject.queryName;
-                // Only persist width if we have a valid queryName to use as selector
-                if (!queryNameSelector)
-                    continue;
-                this.visualObjectInstancesToPersist.merge.push({
-                    selector: { metadata: queryNameSelector },
-                    objectName: 'general',
-                    properties: {
-                        columnWidth: columnWidthObject.width
-                    }
-                });
+         /**
+         * Gets the QueryName associated with a Column (Column Header or Corner Item)
+         * @param {internal.TablixColumn} column TablixColumn
+         * @returns queryName
+         */
+        public static getColumnQueryName(column: internal.TablixColumn): string {
+            let headerCell = column.getTablixCell();
+
+            switch (headerCell.type) {
+                case TablixCellType.CornerCell:
+                    if (headerCell.item == null                 // Corner item for Table hidden column
+                        || headerCell.item.metadata == null)    // Corner item for Matrix with no row groups
+                        return undefined;
+
+                    return headerCell.item.metadata.queryName;
+
+                case TablixCellType.ColumnHeader:
+                    debug.assert(headerCell.item != null, "Tablix Column without a ColumnMetadata");
+                    return headerCell.item.queryName;
+
+                default:
+                    debug.assertFail("getColumnQueryName called with cellType: " + headerCell.type);
+                    return undefined;
             }
         }
 
-        private removePersistedVisualObjectInstances(): void {
+        /**
+         * Returns the current columnWidthObjects
+         * @returns current columnWidthObjects including undefined widths for autosized or unknown columns
+         */
+        public getColumnWidthObjects(): ColumnWidthCollection {
+            return this.columnWidthObjects;
+        }
+
+        /**
+         * Returns the current columnWidthObjects for only the fixed-size columns
+         * @returns Returns the current columnWidthObjects excluding auto-sized columns
+         */
+        public getFixedColumnWidthObjects(): ColumnWidthCollection {
+            let fixedOnly: ColumnWidthCollection = {};
+
+            for (let queryName in this.columnWidthObjects) {
+                let obj = this.columnWidthObjects[queryName];
+                if (obj.isFixed) {
+                    fixedOnly[queryName] = obj;
+                }
+            }
+
+            return fixedOnly;
+        }
+
+        /**
+         * Get the persisted width of a certain column in px, or undefined if the columns is set to autosize or queryName is not found
+         * @param {string} queryName queryName of the Column
+         * @returns Column persisted width in pixel
+         */
+        public getPersistedColumnWidth(queryName: string): number {
+            let obj = this.columnWidthObjects[queryName];
+            return obj && obj.width;
+        }
+
+        /**
+         * Call the host to persist the data
+         * @param {boolean} generateInstances
+         */
+        private callHostToPersist() {
+            if (this.hostPersistCallBack) {
+                this.hostPersistCallBack(this.visualObjectInstancesToPersist);
+            }
+
+            // Clears persisted objects list
             this.visualObjectInstancesToPersist = {
-                merge: [this.getAutoSizeColumnWidthObject()],
+                merge: [],
                 remove: [],
             };
-
-            for (let columnWidthObject of this.tablixColumnWidthsObject) {
-                this.visualObjectInstancesToPersist.remove.push({
-                    selector: { metadata: columnWidthObject.queryName },
-                    objectName: 'general',
-                    properties: {
-                        columnWidth: undefined
-                    }
-                });
-            }
         }
 
-        private deserializeColumnWidths(columnMetaData: DataViewMetadataColumn[]): void {
-            this.columnWidths.length = 0;
-            this.tablixColumnWidthsObject.length = 0;
-            this.populateTablixQueryNames();
-            if (this.tablixQueryNames.length === 0)
+        /**
+         * Handler for a column width change by the user
+         * @param {string} queryName queryName of the Column
+         * @param {number} width new width
+         */
+        public onColumnWidthChanged(queryName: string, width: number): void {
+            // Resizing an invalid column
+            if (queryName == null || this.columnWidthObjects[queryName] == null)
                 return;
-            for (let column of columnMetaData) {
-                let columnWidthPropValue = DataViewObjects.getValue<number>(column.objects, TablixColumnWidthManager.columnWidthProp);
-                if (columnWidthPropValue === null || columnWidthPropValue === undefined)
-                    continue;
-                for (let colIndex = 0, len = this.tablixQueryNames.length; colIndex < len; colIndex++) {
-                    let propertySelector = this.tablixQueryNames[colIndex];
-                    if (column.queryName === propertySelector) {
-                        let columnWidth = columnWidthPropValue;
-                        let index = this.isMatrix ? colIndex : colIndex + 1; // Table indices are offset with an empty header.
-                        this.columnWidths[index] = columnWidth;
-                        this.tablixColumnWidthsObject.push({
-                            queryName: propertySelector,
-                            width: columnWidth
-                        });
+
+            let resizedColumn = this.columnWidthObjects[queryName];
+
+            if (width === -1) { // Column Autosize
+                // If AutoSize option is ON, remove the persisted value
+                // Else, set value to unknown and expect to be called again soon
+                resizedColumn.width = undefined;
+                resizedColumn.isFixed = !this.currentAutoColumnSizePropertyValue;
+
+                // Call persist anyway, if isFixed is true, it will be assined to the rendered width
+                this.visualObjectInstancesToPersist.remove.push(this.generateColumnWidthObjectToPersist(resizedColumn.queryName, undefined));
+                this.callHostToPersist();
+            }
+            else { // Column Resize
+                resizedColumn.width = width;
+                resizedColumn.isFixed = true;
+
+                this.visualObjectInstancesToPersist.merge.push(this.generateColumnWidthObjectToPersist(queryName, width));
+                this.callHostToPersist();
+            }
+        }
+
+        /**
+         * Event handler after rendering all columns. Setting any unknown column width.
+         * Returns True if it calls persist
+         * @param renderedColumns Rendered Columns
+         */
+        public onColumnsRendered(renderedColumns: ColumnWidthObject[]): boolean {
+            // Pick the maximum width for each queryName
+            // This will ensure going from autoSize ON to OFF will not show any ellipsis
+            let maxWidths: ColumnWidthCollection = {};
+            for (let i = 0, len = renderedColumns.length; i < len; i++) {
+                let queryName = renderedColumns[i].queryName;
+                let newWidth = renderedColumns[i].width;
+
+                if (maxWidths[queryName] == null) {
+                    maxWidths[queryName] = {
+                        queryName: queryName,
+                        width: newWidth,
+                        isFixed: false // Unused
+                    };
+                }
+                else if (newWidth > maxWidths[queryName].width) {
+                    maxWidths[queryName].width = newWidth;
+                }
+            }
+
+            let widthChanged = false;
+            for (let queryName in this.columnWidthObjects) {
+                if (maxWidths[queryName]) { // Needs to check here. renderedColumns only have visualized ones
+                    let colWidthObj = this.columnWidthObjects[queryName];
+
+                    if (colWidthObj.isFixed && colWidthObj.width == null) {
+                        colWidthObj.width = maxWidths[queryName].width;
+                        this.visualObjectInstancesToPersist.merge.push(this.generateColumnWidthObjectToPersist(queryName, colWidthObj.width));
+                        widthChanged = true;
                     }
                 }
             }
+
+            if (widthChanged)
+                this.callHostToPersist();
+
+            return widthChanged;
         }
 
-        private populateTablixQueryNames(): void {
-            if (this.isMatrix)
-                this.getMatrixQueryNames();
-            else
-                this.getTableQueryNames();
-        }
-
-        private getTableQueryNames(): void {
-            this.tablixQueryNames.length = 0;
-            let columnMetaData = this.dataView.table.columns;
-            for (let column of columnMetaData) {
-                this.tablixQueryNames.push(column.queryName);
-            }
-        }
-
-        private getMatrixQueryNames(): void {
-            this.tablixQueryNames.length = 0;
-            let matrixRows = this.dataView.matrix.rows;
-            for (let level of matrixRows.levels) {
-                for (let source of level.sources) {
-                    this.tablixQueryNames.push(source.queryName);
-                }
-            }
-
-            if (this.matrixLeafNodes) {
-                for (let leafNode of this.matrixLeafNodes) {
-                    this.tablixQueryNames.push(leafNode.queryName);
-                }
-            }
+        private generateColumnWidthObjectToPersist(queryName: string, width: number): VisualObjectInstance {
+            return {
+                selector: { metadata: queryName },
+                objectName: 'general',
+                properties: { columnWidth: width }
+            };
         }
     }
 }

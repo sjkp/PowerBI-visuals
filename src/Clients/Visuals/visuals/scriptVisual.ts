@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,114 +27,92 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    import Utility = jsCommon.Utility;
-
     export interface ScriptVisualDataViewObjects extends DataViewObjects {
-        lastSavedImage: ScriptVisualDataViewObject;
         script: ScriptObject;
-    }
-
-    export interface ScriptVisualDataViewObject extends DataViewObject {
-        imageUrl: string;
-        viewportHeight: number;
-        viewportWidth: number;
     }
 
     export interface ScriptObject extends DataViewObject {
         provider: string;
         source: string;
-        imageFormat: string;
     }
-    
+
+    export interface ScriptVisualOptions {
+        canRefresh: boolean;
+    }
+
     export class ScriptVisual implements IVisual {
         private element: JQuery;
         private imageBackgroundElement: JQuery;
+        private imageElement: JQuery;
         private hostServices: IVisualHostServices;
+        private canRefresh: boolean;
+
+        public constructor(options: ScriptVisualOptions) {
+            this.canRefresh = options.canRefresh;
+        }
 
         public init(options: VisualInitOptions): void {
             this.element = options.element;
             this.hostServices = options.host;
+
+            if (!this.canRefresh) {
+                this.hostServices.setWarnings([new ScriptVisualRefreshWarning()]);
+            }
         }
 
         public update(options: VisualUpdateOptions): void {
             debug.assertValue(options, 'options');
-            
-            let dataViews = options.dataViews;
+
+            let dataViews: DataView[] = options.dataViews;
             if (!dataViews || dataViews.length === 0)
                 return;
 
-            let dataView = dataViews[0];
+            let dataView: DataView = dataViews[0];
             if (!dataView || !dataView.metadata)
                 return;
 
-            let imageUrl;
-            let saveScriptResult = true;
-            if (!dataView.scriptResult || !dataView.scriptResult.imageBase64) {
-                imageUrl = this.getLastSavedImage(dataView);
-                saveScriptResult = false;
-            }
-            else {
-                imageUrl = "data:image/svg+xml;base64," + dataView.scriptResult.imageBase64;
+            let imageUrl: string = null;
+            if (dataView.scriptResult && dataView.scriptResult.imageBase64) {
+                imageUrl = "data:image/png;base64," + dataView.scriptResult.imageBase64;
             }
 
+            this.ensureHtmlElement();
+            let img = this.ensureImageElement();
+
+            if (imageUrl) {
+                img.attr("src", imageUrl);
+            } else {
+                img.removeAttr("src");
+            }
+
+            this.onResizing(options.viewport, options.resizeMode || ResizeMode.Resized);
+        }
+
+        public onResizing(finalViewport: IViewport, resizeMode?: ResizeMode): void {
+            let div = this.ensureHtmlElement();
+            div.css({ height: finalViewport.height, width: finalViewport.width });
+        }
+
+        private ensureHtmlElement(): JQuery {
             let div: JQuery = this.imageBackgroundElement;
             if (!div) {
-                div = $("<div class='imageBackground' />");
+                div = $("<div class='autoScaleImageContainer'/>");
                 this.imageBackgroundElement = div;
                 this.imageBackgroundElement.appendTo(this.element);
             }
 
-            if (imageUrl && Utility.isValidImageDataUrl(imageUrl)) {
-                let viewport = options.viewport;
-                div.css({ height: viewport.height, width: viewport.width, 'background-image': 'url(' + imageUrl + ')' });
-
-                if (saveScriptResult)
-                    this.updateLastSavedImage(dataView, imageUrl, options.viewport);
-            }
-            else {
-                div.css({ 'background-image': 'none' });
-            }
+            return div;
         }
 
-        private getLastSavedImage(dataView: DataView): string {
-            debug.assertValue(dataView, 'dataView');
+        private ensureImageElement(): JQuery {
+            let img: JQuery = this.imageElement;
+            if (!img) {
+                img = $("<img class='autoScaleImage'/>");
+                this.imageElement = img;
+                this.imageElement.appendTo(this.imageBackgroundElement);
+            }
 
-            let defaultImageUrl = null;
-            if (!dataView || !dataView.metadata)
-                return defaultImageUrl;
-
-            let objects = <ScriptVisualDataViewObjects>dataView.metadata.objects;
-            if (!objects || !objects.lastSavedImage)
-                return defaultImageUrl;
-
-            let imageUrl = objects.lastSavedImage.imageUrl;
-            if (!Utility.isValidImageDataUrl(imageUrl))
-                return defaultImageUrl;
-
-            return imageUrl;
-        }
-
-        private updateLastSavedImage(dataView: DataView, imageUrl: string, viewport: IViewport): void {
-            debug.assertValue(imageUrl, 'dataView');
-            debug.assertValue(imageUrl, 'imageUrl');
-
-            if (!Utility.isValidImageDataUrl(imageUrl))
-                return;
-
-            if (!dataView || !dataView.metadata)
-                return;
-
-            let changes: VisualObjectInstance[] = [{
-                objectName: 'lastSavedImage',
-                properties: {
-                    imageUrl: imageUrl,
-                    viewportHeight: viewport.height,
-                    viewportWidth: viewport.width,
-                },
-                selector: null,
-            }];
-
-            this.hostServices.persistProperties(changes);
+            return img;
         }
     }
-} 
+}

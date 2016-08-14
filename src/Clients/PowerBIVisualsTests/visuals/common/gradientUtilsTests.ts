@@ -28,10 +28,14 @@
 
 module powerbitests {
     import buildSelector = powerbitests.helpers.buildSelectorForColumn;
+    import DataViewObjectDefinitions = powerbi.data.DataViewObjectDefinitions;
+    import DataViewObjectDescriptors = powerbi.data.DataViewObjectDescriptors;
+    import GradientSettings = powerbi.visuals.GradientSettings;
+    import GradientUtils = powerbi.visuals.GradientUtils;
 
     describe("GradientUtils", () => {
         it("getFillRuleRole with fillRule", () => {
-            let desc: powerbi.data.DataViewObjectDescriptors = {
+            let desc: DataViewObjectDescriptors = {
                 test: {
                     displayName: "displayName",
                     properties: {
@@ -45,11 +49,11 @@ module powerbitests {
                     }
                 }
             };
-            expect(powerbi.visuals.GradientUtils.getFillRuleRole(desc)).toBe("inputRoleValue");
+            expect(GradientUtils.getFillRuleRole(desc)).toBe("inputRoleValue");
         });
 
         it("getFillRuleRole without fillRule", () => {
-            let desc: powerbi.data.DataViewObjectDescriptors = {
+            let desc: DataViewObjectDescriptors = {
                 test: {
                     displayName: "displayName",
                     properties: {
@@ -60,11 +64,11 @@ module powerbitests {
                     }
                 }
             };
-            expect(powerbi.visuals.GradientUtils.getFillRuleRole(desc)).toBeUndefined();
+            expect(GradientUtils.getFillRuleRole(desc)).toBeUndefined();
         });
 
         it("getFillRule", () => {
-            let objectDefns: powerbi.data.DataViewObjectDefinitions = {
+            let objectDefns: DataViewObjectDefinitions = {
                 dataPoint: [
                     { properties: { fill: { solid: { color: "#FF0000" } } } },
                     { properties: { fill: { solid: { color: "#00FF00" } } } },
@@ -72,7 +76,7 @@ module powerbitests {
                     { properties: { fill: { solid: { color: "#000000" } } } }
                 ]
             };
-            let fillRule = powerbi.visuals.GradientUtils.getFillRule(objectDefns);
+            let fillRule = GradientUtils.getFillRule(objectDefns);
             expect(fillRule).toBeUndefined();
 
             let fillRuleDefinition = {
@@ -85,24 +89,46 @@ module powerbitests {
             objectDefns = {
                 dataPoint: [
                     { properties: { fillRule: fillRuleDefinition } },
-                    { properties: { fill: { solid: { color: "#00FF00" } } }, selector: buildSelector("q", "data1") },
-                    { properties: { fill: { solid: { color: "#0000FF" } } }, selector: buildSelector("q", "data2") },
-                    { properties: { fill: { solid: { color: "#000000" } } }, selector: buildSelector("q", "data3") }
+                    { properties: { fill: { solid: { color: "#00FF00" } } }, selector: buildSelector("q", mocks.dataViewScopeIdentity("data1")) },
+                    { properties: { fill: { solid: { color: "#0000FF" } } }, selector: buildSelector("q", mocks.dataViewScopeIdentity("data2")) },
+                    { properties: { fill: { solid: { color: "#000000" } } }, selector: buildSelector("q", mocks.dataViewScopeIdentity("data3")) }
                 ]
             };
-            fillRule = powerbi.visuals.GradientUtils.getFillRule(objectDefns);
+            fillRule = GradientUtils.getFillRule(objectDefns);
             expect(fillRule).toBeDefined();
 
             objectDefns = {
                 dataPoint: [
-                    { properties: { fill: { solid: { color: "#FF0000" } } }, selector: buildSelector("q", "data1") },
-                    { properties: { fill: { solid: { color: "#00FF00" } } }, selector: buildSelector("q", "data2") },
-                    { properties: { fill: { solid: { color: "#0000FF" } } }, selector: buildSelector("q", "data3") },
+                    { properties: { fill: { solid: { color: "#FF0000" } } }, selector: buildSelector("q", mocks.dataViewScopeIdentity("data1")) },
+                    { properties: { fill: { solid: { color: "#00FF00" } } }, selector: buildSelector("q", mocks.dataViewScopeIdentity("data2")) },
+                    { properties: { fill: { solid: { color: "#0000FF" } } }, selector: buildSelector("q", mocks.dataViewScopeIdentity("data3")) },
                     { properties: { fillRule: fillRuleDefinition } }
                 ]
             };
-            fillRule = powerbi.visuals.GradientUtils.getFillRule(objectDefns);
+            fillRule = GradientUtils.getFillRule(objectDefns);
             expect(fillRule).toBeDefined();
+        });
+        
+        it('getGradientBarColors - non-diverging midColor is ignored', () => {
+            let settings: GradientSettings = {
+                diverging: false,
+                minColor: '#ffffff',
+                midColor: '#777777',
+                maxColor: '#000000',
+            };
+            
+            expect(GradientUtils.getGradientBarColors(settings)).toBe('#ffffff,#000000');
+        });
+        
+        it('getGradientBarColors - Diverging', () => {
+            let settings: GradientSettings = {
+                diverging: true,
+                minColor: '#ffffff',
+                midColor: '#777777',
+                maxColor: '#000000',
+            };
+            
+            expect(GradientUtils.getGradientBarColors(settings)).toBe('#ffffff,#777777,#000000');
         });
     });
 }

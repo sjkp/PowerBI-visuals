@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -48,7 +48,7 @@ module powerbi.visuals {
             this.interactivityService = options.interactivityService;
             this.settings = options.settings;
 
-            SlicerWebBehavior.bindSlicerEvents(options.slicerContainer, slicers, options.clear, selectionHandler, this.settings, this.interactivityService);
+            SlicerWebBehavior.bindSlicerEvents(options, slicers, selectionHandler, this.settings, this.interactivityService);
         }
 
         public renderSelection(hasSelection: boolean): void {

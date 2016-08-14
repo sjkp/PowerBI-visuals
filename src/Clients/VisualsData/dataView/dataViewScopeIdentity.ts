@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,16 +27,6 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi {
-    import ArrayExtensions = jsCommon.ArrayExtensions;
-
-    /** Encapsulates the identity of a data scope in a DataView. */
-    export interface DataViewScopeIdentity {
-        /** Predicate expression that identifies the scope. */
-        expr: data.SQExpr;
-
-        /** Key string that identifies the DataViewScopeIdentity to a string, which can be used for equality comparison. */
-        key: string;
-    }
 
     export module DataViewScopeIdentity {
         /** Compares the two DataViewScopeIdentity values for equality. */
@@ -54,23 +44,23 @@ module powerbi {
             debug.assertValue(x, 'x');
             debug.assertValue(y, 'y');
 
-            return data.SQExpr.equals(x.expr, y.expr, ignoreCase);
+            return data.SQExpr.equals(<data.SQExpr>x.expr, <data.SQExpr>y.expr, ignoreCase);
         }
 
         export function filterFromIdentity(identities: DataViewScopeIdentity[], isNot?: boolean): data.SemanticFilter {
-            if (ArrayExtensions.isUndefinedOrEmpty(identities))
+            if (_.isEmpty(identities))
                 return;
             
             let exprs: data.SQExpr[] = [];
             for (let identity of identities) {
-                exprs.push(identity.expr);
+                exprs.push(<data.SQExpr>identity.expr);
             }
 
             return filterFromExprs(exprs, isNot);
         }
 
         export function filterFromExprs(orExprs: data.SQExpr[], isNot?: boolean): data.SemanticFilter {
-            if (ArrayExtensions.isUndefinedOrEmpty(orExprs))
+            if (_.isEmpty(orExprs))
                 return;
 
             let resultExpr: data.SQExpr;

@@ -27,6 +27,10 @@
 /// <reference path="../../_references.ts"/>
 
 module powerbitests {
+    import converterHelper = powerbi.visuals.converterHelper;
+    import ValueType = powerbi.ValueType;
+    import PrimitiveType = powerbi.PrimitiveType;
+
     describe("converterHelper tests", () => {
         let dataViewBuilder: DataViewBuilder;
         let dataView: powerbi.DataViewCategorical;
@@ -37,26 +41,26 @@ module powerbitests {
         });
 
         it("categoryIsAlsoSeriesRole default", () => {
-            expect(powerbi.visuals.converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBeFalsy();
+            expect(converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBeFalsy();
 
             // Only a "Series" role prevents us from using the Default strategy
             dataViewBuilder.buildWithUpdateRoles({ "Category": true });
-            expect(powerbi.visuals.converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBeFalsy();
+            expect(converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBeFalsy();
 
             dataView = dataViewBuilder.buildWithUpdateRoles({ "E === mc^2": true });
-            expect(powerbi.visuals.converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBeFalsy();
+            expect(converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBeFalsy();
         });
 
         it("categoryIsAlsoSeriesRole series and category", () => {
             dataView = dataViewBuilder.buildWithUpdateRoles({ "Series": true, "Category": true });
-            expect(powerbi.visuals.converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBe(true);
+            expect(converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBe(true);
 
             dataView = dataViewBuilder.buildWithUpdateRoles({ "Series": true, "F === ma": true, "Category": true });
-            expect(powerbi.visuals.converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBe(true);
+            expect(converterHelper.categoryIsAlsoSeriesRole(dataView, "Series", "Category")).toBe(true);
         });
 
         it("getPivotedCategories default", () => {
-            let categoryInfo = powerbi.visuals.converterHelper.getPivotedCategories(dataView, formatStringProp());
+            let categoryInfo = converterHelper.getPivotedCategories(dataView, formatStringProp());
 
             // Note: Since the result includes a function property we can"t perform a toEqual directly on the result, so check each part individually.
             expect(categoryInfo.categories).toEqual(["a", "b"]);
@@ -67,7 +71,7 @@ module powerbitests {
             // Empty the categories array
             dataView.categories = [];
 
-            let categoryInfo = powerbi.visuals.converterHelper.getPivotedCategories(dataView, formatStringProp());
+            let categoryInfo = converterHelper.getPivotedCategories(dataView, formatStringProp());
             validateEmptyCategoryInfo(categoryInfo);
         });
 
@@ -75,9 +79,27 @@ module powerbitests {
             // Empty the category values array
             dataView.categories[0].values = [];
 
-            let categoryInfo = powerbi.visuals.converterHelper.getPivotedCategories(dataView, formatStringProp());
+            let categoryInfo = converterHelper.getPivotedCategories(dataView, formatStringProp());
             expect(categoryInfo.categories).toEqual([]);
             expect(categoryInfo.categoryIdentities).toBeUndefined();
+        });
+
+        it('isWebUrlColumn', () => {
+            let webUrlColumnMetadata: powerbi.DataViewMetadataColumn = {
+                displayName: "webUrl",
+                type: new powerbi.ValueType(powerbi.ExtendedType.WebUrl, "WebUrl")
+            };
+
+            converterHelper.isWebUrlColumn(webUrlColumnMetadata);
+        });
+
+        it('isImageUrlColumn', () => {
+            let imageColumnMetadata: powerbi.DataViewMetadataColumn = {
+                displayName: "imageUrl",
+                type: new powerbi.ValueType(powerbi.ExtendedType.ImageUrl, "ImageUrl")
+            };
+
+            converterHelper.isImageUrlColumn(imageColumnMetadata);
         });
 
         function validateEmptyCategoryInfo(categoryInfo: powerbi.visuals.PivotedCategoryInfo): void {
@@ -89,6 +111,24 @@ module powerbitests {
         function formatStringProp(): powerbi.DataViewObjectPropertyIdentifier {
             return { objectName: "general", propertyName: "formatString" };
         }
+
+        it('formatFromMetadataColumn', () => {
+            function formatStringProp(): powerbi.DataViewObjectPropertyIdentifier {
+                return { objectName: "general", propertyName: "formatString" };
+            }
+            let value = -200.32;
+            let measure1Column: powerbi.DataViewMetadataColumn = { displayName: 'sales', queryName: 'selectSales', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer), objects: { general: { formatString: "\$#,0.##;(\$#,0.##);\$#,0.##" } }, roles: { Y: true } };
+            let measure2Column: powerbi.DataViewMetadataColumn = { displayName: 'tax', queryName: 'selectTax', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double), format: '$0', roles: { Y: true } };
+            let measure3Column: powerbi.DataViewMetadataColumn = { displayName: 'number', queryName: 'selectNum', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double), objects: { general: { formatString: "#,0" } }, roles: { Y: true } };
+
+            let formated1 = converterHelper.formatFromMetadataColumn(value, measure1Column, formatStringProp());
+            let formated2 = converterHelper.formatFromMetadataColumn(value, measure2Column, formatStringProp());
+            let formated3 = converterHelper.formatFromMetadataColumn(value, measure3Column, formatStringProp());
+
+            expect(formated1).toBe("($200.32)");
+            expect(formated2).toBe("-$200");
+            expect(formated3).toBe("-200");
+        });
     });
 
     class DataViewBuilder {

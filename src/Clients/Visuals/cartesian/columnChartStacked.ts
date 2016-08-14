@@ -56,6 +56,7 @@ module powerbi.visuals {
         private viewportHeight: number;
         private viewportWidth: number;
         private layout: IColumnLayout;
+        private isComboChart: boolean;
 
         public setupVisualProps(columnChartProps: ColumnChartContext): void {
             this.graphicsContext = columnChartProps;
@@ -67,13 +68,14 @@ module powerbi.visuals {
             this.interactivityService = columnChartProps.interactivityService;
             this.viewportHeight = columnChartProps.viewportHeight;
             this.viewportWidth = columnChartProps.viewportWidth;
+            this.isComboChart = columnChartProps.isComboChart;
         }
 
         public setData(data: ColumnChartData) {
             this.data = data;
         }
 
-        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, xReferenceLineValue?: number): IAxisProperties {
             let width = this.width;
 
             let forcedXMin, forcedXMax;
@@ -92,25 +94,42 @@ module powerbi.visuals {
                 forcedXMax,
                 axisScaleType,
                 axisDisplayUnits,
-                axisPrecision);
+                axisPrecision,
+                xReferenceLineValue);
 
             return props;
         }
 
-        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, y1ReferenceLineValue?: number): IAxisProperties {
             let height = this.viewportHeight;
-            let yProps = this.yProps = StackedUtil.getValueAxis(
-                this.data,
-                is100Pct,
-                height,
-                [height, 0],
-                forcedTickCount,
-                forcedYDomain,
-                axisScaleType,
-                axisDisplayUnits,
-                axisPrecision);
+            let valueDomain = StackedUtil.calcValueDomain(this.data.series, is100Pct);
+            let valueDomainArr = [valueDomain.min, valueDomain.max];
+            let combinedDomain = AxisHelper.combineDomain(forcedYDomain, valueDomainArr, y1ReferenceLineValue);
+            let shouldClamp = AxisHelper.scaleShouldClamp(combinedDomain, valueDomainArr);
+            let metadataColumn = this.data.valuesMetadata[0];
+            let formatString = is100Pct ?
+                this.graphicsContext.hostService.getLocalizedString('Percentage')
+                : valueFormatter.getFormatString(metadataColumn, columnChartProps.general.formatString);
 
-            return yProps;
+            this.yProps = AxisHelper.createAxis({
+                pixelSpan: height,
+                dataDomain: combinedDomain,
+                metaDataColumn: metadataColumn,
+                formatString: formatString,
+                outerPadding: 0,
+                isScalar: true,
+                isVertical: true,
+                forcedTickCount: forcedTickCount,
+                useTickIntervalForDisplayUnits: true,
+                isCategoryAxis: false,
+                scaleType: axisScaleType,
+                axisDisplayUnits: axisDisplayUnits,
+                axisPrecision: axisPrecision,
+                is100Pct: is100Pct,
+                shouldClamp: shouldClamp,
+            });
+
+            return this.yProps;
         }
 
         public drawColumns(useAnimation: boolean): ColumnChartDrawInfo {
@@ -155,6 +174,7 @@ module powerbi.visuals {
             ColumnUtil.applyInteractivity(shapes, this.graphicsContext.onDragStart);
 
             return {
+                eventGroup: this.graphicsContext.mainGraphicsContext,
                 shapesSelection: shapes,
                 viewport: { height: this.height, width: this.width },
                 axisOptions,
@@ -193,8 +213,14 @@ module powerbi.visuals {
             let columnCenters = this.getColumnsCenters();
             let x = columnCenters[selectedColumnIndex];
 
+            let hoverLine = d3.select('.interactive-hover-line');
+            if (!hoverLine.empty() && !this.columnSelectionLineHandle) {
+
+                this.columnSelectionLineHandle = d3.select(hoverLine.node().parentNode);
+            }
+
             if (!this.columnSelectionLineHandle) {
-                let handle = this.columnSelectionLineHandle = this.graphicsContext.mainGraphicsContext.append('g');
+                let handle = this.columnSelectionLineHandle = this.graphicsContext.unclippedGraphicsContext.append('g');
                 handle.append('line')
                     .classed('interactive-hover-line', true)
                     .attr({
@@ -224,29 +250,31 @@ module powerbi.visuals {
             let isScalar = axisOptions.isScalar;
             let xScale = axisOptions.xScale;
             let yScale = axisOptions.yScale;
-            let scaledY0 = yScale(0);
             let xScaleOffset = 0;
-
             if (isScalar)
                 xScaleOffset = columnWidth / 2;
+
+            // d.position is the top left corner (for drawing) - set in columnChart.converter
+            // for positive values, this is the previous stack position + the new value,
+            // for negative values it is just the previous stack position
 
             return {
                 shapeLayout: {
                     width: (d: ColumnChartDataPoint) => columnWidth,
                     x: (d: ColumnChartDataPoint) => xScale(isScalar ? d.categoryValue : d.categoryIndex) - xScaleOffset,
-                    y: (d: ColumnChartDataPoint) => scaledY0 + AxisHelper.diffScaled(yScale, d.position, 0),
-                    height: (d: ColumnChartDataPoint) => StackedUtil.getSize(yScale, d.valueAbsolute)
+                    y: (d: ColumnChartDataPoint) => yScale(d.position),
+                    height: (d: ColumnChartDataPoint) => yScale(d.position - d.valueAbsolute) - yScale(d.position),
                 },
                 shapeLayoutWithoutHighlights: {
                     width: (d: ColumnChartDataPoint) => columnWidth,
                     x: (d: ColumnChartDataPoint) => xScale(isScalar ? d.categoryValue : d.categoryIndex) - xScaleOffset,
-                    y: (d: ColumnChartDataPoint) => scaledY0 + AxisHelper.diffScaled(yScale, d.originalPosition, 0),
-                    height: (d: ColumnChartDataPoint) => StackedUtil.getSize(yScale, d.originalValueAbsolute)
+                    y: (d: ColumnChartDataPoint) => yScale(d.originalPosition),
+                    height: (d: ColumnChartDataPoint) => yScale(d.originalPosition - d.originalValueAbsolute) - yScale(d.originalPosition),
                 },
                 zeroShapeLayout: {
                     width: (d: ColumnChartDataPoint) => columnWidth,
                     x: (d: ColumnChartDataPoint) => xScale(isScalar ? d.categoryValue : d.categoryIndex) - xScaleOffset,
-                    y: (d: ColumnChartDataPoint) => scaledY0 + AxisHelper.diffScaled(yScale, d.position, 0) + StackedUtil.getSize(yScale, d.valueAbsolute),
+                    y: (d: ColumnChartDataPoint) => d.value >= 0 ? yScale(d.position - d.valueAbsolute) : yScale(d.position),
                     height: (d: ColumnChartDataPoint) => 0
                 },
             };
@@ -258,7 +286,6 @@ module powerbi.visuals {
             let series = data.series;
             let formattersCache = NewDataLabelUtils.createColumnFormatterCacheManager();
             let shapeLayout = this.layout.shapeLayout;
-            let validLabelPositions = series && series.length > 1 ? ColumnChart.stackedValidLabelPositions : ColumnChart.clusteredValidLabelPositions;
 
             for (let currentSeries of series) {
                 let labelSettings = currentSeries.labelSettings ? currentSeries.labelSettings : data.labelSettings;
@@ -307,13 +334,13 @@ module powerbi.visuals {
                             width: textWidth,
                             height: textHeight,
                         },
-                        outsideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultLabelColor,
-                        insideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultInsideLabelColor,
-                        isParentRect: true,
+                        outsideFill: ColumnChart.getLabelFill(labelSettings.labelColor, false, this.isComboChart),
+                        insideFill: ColumnChart.getLabelFill(labelSettings.labelColor, true, this.isComboChart),
+                        parentType: LabelDataPointParentType.Rectangle,
                         parentShape: {
                             rect: parentRect,
                             orientation: dataPoint.value >= 0 ? NewRectOrientation.VerticalBottomBased : NewRectOrientation.VerticalTopBased,
-                            validPositions: validLabelPositions,
+                            validPositions: ColumnChart.stackedValidLabelPositions,
                         },
                         identity: dataPoint.identity,
                         fontSize: labelSettings.fontSize || NewDataLabelUtils.DefaultLabelFontSizeInPt,
@@ -351,6 +378,7 @@ module powerbi.visuals {
         private viewportHeight: number;
         private viewportWidth: number;
         private layout: IColumnLayout;
+        private isComboChart: boolean;
 
         public setupVisualProps(barChartProps: ColumnChartContext): void {
             this.graphicsContext = barChartProps;
@@ -362,13 +390,14 @@ module powerbi.visuals {
             this.interactivityService = barChartProps.interactivityService;
             this.viewportHeight = barChartProps.viewportHeight;
             this.viewportWidth = barChartProps.viewportWidth;
+            this.isComboChart = barChartProps.isComboChart;
         }
 
         public setData(data: ColumnChartData) {
             this.data = data;
         }
 
-        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureYDomain?: NumberRange): IAxisProperties {
             let height = this.height;
 
             let forcedYMin, forcedYMax;
@@ -387,30 +416,46 @@ module powerbi.visuals {
                 forcedYMax,
                 axisScaleType,
                 axisDisplayUnits,
-                axisPrecision);
+                axisPrecision,
+                ensureYDomain);
 
             return props;
         }
 
-        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureXDomain?: NumberRange): IAxisProperties {
             debug.assert(forcedTickCount === undefined, 'Cannot have stacked bar chart as combo chart.');
 
-            let height = this.viewportHeight;
+            let width = this.width;
+            let valueDomain = StackedUtil.calcValueDomain(this.data.series, is100Pct);
+            let valueDomainArr = [valueDomain.min, valueDomain.max];
+            let combinedDomain = AxisHelper.combineDomain(forcedXDomain, valueDomainArr, ensureXDomain);
+            let shouldClamp = AxisHelper.scaleShouldClamp(combinedDomain, valueDomainArr);
+            let metadataColumn = this.data.valuesMetadata[0];
+            let formatString = is100Pct ?
+                this.graphicsContext.hostService.getLocalizedString('Percentage')
+                : valueFormatter.getFormatString(metadataColumn, columnChartProps.general.formatString);
 
-            let xProps = this.xProps = StackedUtil.getValueAxis(
-                this.data,
-                is100Pct,
-                this.width,
-                [0, this.width],
-                undefined,
-                forcedXDomain,
-                axisScaleType,
-                axisDisplayUnits,
-                axisPrecision);
+            this.xProps = AxisHelper.createAxis({
+                pixelSpan: width,
+                dataDomain: combinedDomain,
+                metaDataColumn: metadataColumn,
+                formatString: formatString,
+                outerPadding: 0,
+                isScalar: true,
+                isVertical: false,
+                forcedTickCount: forcedTickCount,
+                useTickIntervalForDisplayUnits: true,
+                isCategoryAxis: false,
+                scaleType: axisScaleType,
+                axisDisplayUnits: axisDisplayUnits,
+                axisPrecision: axisPrecision,
+                is100Pct: is100Pct,
+                shouldClamp: shouldClamp,
+            });
 
-            xProps.axis.tickSize(-height, 0);
+            this.xProps.axis.tickSize(-this.viewportHeight, 0);
 
-            return xProps;
+            return this.xProps;
         }
 
         public drawColumns(useAnimation: boolean): ColumnChartDrawInfo {
@@ -455,6 +500,7 @@ module powerbi.visuals {
             ColumnUtil.applyInteractivity(shapes, this.graphicsContext.onDragStart);
 
             return {
+                eventGroup: this.graphicsContext.mainGraphicsContext,
                 shapesSelection: shapes,
                 viewport: { height: this.height, width: this.width },
                 axisOptions: axisOptions,
@@ -492,9 +538,15 @@ module powerbi.visuals {
         private moveHandle(selectedColumnIndex: number) {
             let barCenters = this.getBarsCenters();
             let y = barCenters[selectedColumnIndex];
+            
+            let hoverLine = d3.select('.interactive-hover-line');
+            if (!hoverLine.empty() && !this.columnSelectionLineHandle) {
+
+                this.columnSelectionLineHandle = d3.select(hoverLine.node().parentNode);
+            }
 
             if (!this.columnSelectionLineHandle) {
-                let handle = this.columnSelectionLineHandle = this.graphicsContext.mainGraphicsContext.append('g');
+                let handle = this.columnSelectionLineHandle = this.graphicsContext.unclippedGraphicsContext.append('g');
                 handle.append('line')
                     .classed('interactive-hover-line', true)
                     .attr({
@@ -524,29 +576,31 @@ module powerbi.visuals {
             let isScalar = axisOptions.isScalar;
             let xScale = axisOptions.xScale;
             let yScale = axisOptions.yScale;
-            let scaledX0 = xScale(0);
-            let xScaleOffset = 0;
-
+            let yScaleOffset = 0;
             if (isScalar)
-                xScaleOffset = columnWidth / 2;
+                yScaleOffset = columnWidth / 2;
+
+            // d.position is the top right corner for bars - set in columnChart.converter
+            // for positive values, this is the previous stack position + the new value,
+            // for negative values it is just the previous stack position
 
             return {
                 shapeLayout: {
-                    width: (d: ColumnChartDataPoint) => -StackedUtil.getSize(xScale, d.valueAbsolute),
-                    x: (d: ColumnChartDataPoint) => scaledX0 + AxisHelper.diffScaled(xScale, d.position - d.valueAbsolute, 0),
-                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) - xScaleOffset,
+                    width: (d: ColumnChartDataPoint) => xScale(d.position) - xScale(d.position - d.valueAbsolute),
+                    x: (d: ColumnChartDataPoint) => xScale(d.position - d.valueAbsolute),
+                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) - yScaleOffset,
                     height: (d: ColumnChartDataPoint) => columnWidth,
                 },
                 shapeLayoutWithoutHighlights: {
-                    width: (d: ColumnChartDataPoint) => -StackedUtil.getSize(xScale, d.originalValueAbsolute),
-                    x: (d: ColumnChartDataPoint) => scaledX0 + AxisHelper.diffScaled(xScale, d.originalPosition - d.originalValueAbsolute, 0),
-                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) - xScaleOffset,
+                    width: (d: ColumnChartDataPoint) => xScale(d.originalPosition) - xScale(d.originalPosition - d.originalValueAbsolute),
+                    x: (d: ColumnChartDataPoint) => xScale(d.originalPosition - d.originalValueAbsolute),
+                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) - yScaleOffset,
                     height: (d: ColumnChartDataPoint) => columnWidth,
                 },
                 zeroShapeLayout: {
                     width: (d: ColumnChartDataPoint) => 0,
-                    x: (d: ColumnChartDataPoint) => scaledX0 + AxisHelper.diffScaled(xScale, d.position - d.valueAbsolute, 0),
-                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) - xScaleOffset,
+                    x: (d: ColumnChartDataPoint) => d.value >= 0 ? xScale(d.position - d.valueAbsolute) : xScale(d.position),
+                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) - yScaleOffset,
                     height: (d: ColumnChartDataPoint) => columnWidth,
                 },
             };
@@ -558,7 +612,6 @@ module powerbi.visuals {
             let series = data.series;
             let formattersCache = NewDataLabelUtils.createColumnFormatterCacheManager();
             let shapeLayout = this.layout.shapeLayout;
-            let validLabelPositions = series && series.length > 1 ? ColumnChart.stackedValidLabelPositions : ColumnChart.clusteredValidLabelPositions;
 
             for (let currentSeries of series) {
                 let labelSettings = currentSeries.labelSettings ? currentSeries.labelSettings : data.labelSettings;
@@ -567,7 +620,7 @@ module powerbi.visuals {
 
                 let axisFormatter: number = NewDataLabelUtils.getDisplayUnitValueFromAxisFormatter(this.yProps.formatter, labelSettings);
                 for (let dataPoint of currentSeries.data) {
-                    if ((this.interactivityService && this.interactivityService.hasSelection() && !dataPoint.selected) || (data.hasHighlights && !dataPoint.highlight) || dataPoint.value == null) {
+                    if ((data.hasHighlights && !dataPoint.highlight) || dataPoint.value == null) {
                         continue;
                     }
 
@@ -607,13 +660,13 @@ module powerbi.visuals {
                             width: textWidth,
                             height: textHeight,
                         },
-                        outsideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultLabelColor,
-                        insideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultInsideLabelColor,
-                        isParentRect: true,
+                        outsideFill: ColumnChart.getLabelFill(labelSettings.labelColor, false, this.isComboChart),
+                        insideFill: ColumnChart.getLabelFill(labelSettings.labelColor, true, this.isComboChart),
+                        parentType: LabelDataPointParentType.Rectangle,
                         parentShape: {
                             rect: parentRect,
                             orientation: dataPoint.value >= 0 ? NewRectOrientation.HorizontalLeftBased : NewRectOrientation.HorizontalRightBased,
-                            validPositions: validLabelPositions,
+                            validPositions: ColumnChart.stackedValidLabelPositions,
                         },
                         identity: dataPoint.identity,
                         fontSize: labelSettings.fontSize || NewDataLabelUtils.DefaultLabelFontSizeInPt,

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module jsCommon {
     import Double = powerbi.Double;
@@ -41,7 +41,7 @@ module jsCommon {
             return hexString(rotatedRgb);
         }
 
-        export function normalizeToHexString(color: string) {
+        export function normalizeToHexString(color: string): string {
             let rgb = parseColorString(color);
             return hexString(rgb);
         }
@@ -257,6 +257,81 @@ module jsCommon {
 
         export function hexString(color: RgbColor): string {
             return "#" + componentToHex(color.R) + componentToHex(color.G) + componentToHex(color.B);
+        }
+
+        /**
+         * Overlays a color with opacity over a background color
+         * @param {string} foreColor Color to overlay
+         * @param {number} opacity number between 0 (transparent) to 1 (opaque)
+         * @param {string} backColor Background color
+         * @returns Result color
+         */
+        export function hexBlend(foreColor: string, opacity: number, backColor: string): string {
+            return hexString(rgbBlend(
+                parseColorString(foreColor),
+                opacity,
+                parseColorString(backColor)));
+        }
+
+        /**
+         * Overlays a color with opacity over a background color. Any alpha-channel is ignored.
+         * @param {RgbColor} foreColor Color to overlay
+         * @param {number} opacity number between 0 (transparent) to 1 (opaque). Any value out of range will be corrected.
+         * @param {RgbColor} backColor Background color
+         * @returns
+         */
+        export function rgbBlend(foreColor: RgbColor, opacity: number, backColor: RgbColor): RgbColor {
+            // correct opacity
+            opacity = Double.ensureInRange(opacity, 0, 1);
+
+            return {
+                R: channelBlend(foreColor.R, opacity, backColor.R),
+                G: channelBlend(foreColor.G, opacity, backColor.G),
+                B: channelBlend(foreColor.B, opacity, backColor.B)
+            };
+        }
+
+        /**
+         * Blend a single channel for two colors
+         * @param {number} foreChannel Channel of foreground color. Will be enforced to be between 0 and 255.
+         * @param {number} opacity opacity of the foreground color. Will be enforced to be between 0 and 1.
+         * @param {number} backChannel channel of the background color. Will be enforced to be between 0 and 255.
+         * @returns result channel value
+         */
+        export function channelBlend(foreChannel: number, opacity: number, backChannel: number): number {
+            opacity = Double.ensureInRange(opacity, 0, 1);
+            foreChannel = Double.ensureInRange(foreChannel, 0, 255);
+            backChannel = Double.ensureInRange(backChannel, 0, 255);
+
+            return Math.round(
+                (opacity * foreChannel) +
+                ((1 - opacity) * backChannel));
+        }
+
+        /**
+         * Calculate the highlight color from the rgbColor based on the lumianceThreshold and delta.
+         * @param {RgbColor} rgbColor The original color.
+         * @param {number} lumianceThreshold The lumiance threshold used, the highlight color will be brighter when the lumiance is smaller the threshold, otherwise the highlight color will be darker. Will be enforced to be between 0 and 1.
+         * @param {number} delta the highlight color will be calculated based on the delta. Will be enforced to be between 0 and 1. lumianceThreshold + delta cannot greater than 1.
+         * @returns result highlight color value
+         */
+        export function calculateHighlightColor(rgbColor: RgbColor, lumianceThreshold: number, delta: number): string {
+            let hsvColor = rgbToHsv(rgbColor);
+
+            // For invalid lumianceThreshold and delta value, use default.
+            if (lumianceThreshold + delta > 1 || lumianceThreshold <= 0 || delta <= 0) {
+                debug.assert(false, 'Invalid lumianceThreshold and highlightColor adjusting delta.');
+                lumianceThreshold = 0.8;
+                delta = 0.2;
+            }
+
+            // Make it lighter when the lumianceValue is less than 200, otherwise make it darker.
+            if (hsvColor.V < lumianceThreshold)
+                hsvColor.V = hsvColor.V + delta;
+            else
+                hsvColor.V = hsvColor.V - delta;
+
+            return hexString(hsvToRgb(hsvColor));
         }
 
         function componentToHex(hexComponent: number): string {

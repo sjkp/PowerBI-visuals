@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -42,9 +42,7 @@ module powerbi.visuals {
             this.legendIcons = options.legendIcons;
             let clearCatcher = options.clearCatcher;
 
-            legendItems.on('click', (d: LegendDataPoint) => {
-                selectionHandler.handleSelection(d, d3.event.ctrlKey);
-            });
+            InteractivityUtils.registerStandardSelectionHandler(legendItems, selectionHandler);
 
             clearCatcher.on('click', () => {
                 selectionHandler.handleClearSelection();

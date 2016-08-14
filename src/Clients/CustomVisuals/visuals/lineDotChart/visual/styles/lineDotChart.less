@@ -1,0 +1,104 @@
+/*
+ *  Power BI Visualizations
+ *
+ *  Copyright (c) Microsoft Corporation
+ *  All rights reserved. 
+ *  MIT License
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files (the ""Software""), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *  copies of the Software, and to permit persons to whom the Software is
+ *  furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included in 
+ *  all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *  THE SOFTWARE.
+ */
+
+@import (reference) "../../../../styles/styles.less";
+
+.lineDotChart {
+    font-family: @regularFontFamily;
+
+    .axis path,
+    .legends path,
+    .axis line,
+    .legends line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+    }
+
+    .axis text,
+    .legends text {
+        fill: black;
+        font-size: 14px;
+    }
+
+    .legends text {
+        font-size: 16px;
+        fill: #000;
+        text-anchor: middle;
+    }
+
+    .line {
+        fill: none;
+        stroke-width: 2px;
+    }
+
+    .point {
+        stroke: white;
+        stroke-opacity:.7;
+        stroke-width:.5;
+        pointer-events: all;
+        transition: opacity .2s ease-out;
+    }
+
+    .text {
+        fill: black;
+        font-size: 32px;
+        text-align: right;
+    }
+}
+
+.lineDotChart.filtered .point {
+    opacity: .2;
+}
+
+.lineDotChart.filtered .point_selected {
+    opacity: 1;
+    stroke-opacity: 1;
+}
+
+.lineDotChart__playBtn {
+    opacity: .23;
+    cursor: pointer;
+    transition: opacity .3s;
+}
+
+.lineDotChart__playBtn:hover {
+    opacity: 1;
+}
+
+.lineDotChart__playBtn circle {
+    stroke-width:.5;
+    stroke: gray;
+    fill: white;
+}
+
+.lineDotChart__playBtn rect {
+    fill: black;
+}
+
+.lineDotChart__playBtn path {
+    fill: black;
+}

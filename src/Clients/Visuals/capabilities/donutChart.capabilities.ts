@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -52,100 +52,49 @@ module powerbi.visuals {
             general: {
                 displayName: data.createDisplayNameGetter('Visual_General'),
                 properties: {
-                    formatString: {
-                        type: { formatting: { formatString: true } },
-                    },
+                    formatString: StandardObjectProperties.formatString,
                 },
             },
             legend: {
                 displayName: data.createDisplayNameGetter('Visual_Legend'),
                 description: data.createDisplayNameGetter('Visual_LegendDescription'),
                 properties: {
-                    show: {
-                        displayName: data.createDisplayNameGetter('Visual_Show'),
-                        type: { bool: true }
-                    },
-                    position: {
-                        displayName: data.createDisplayNameGetter('Visual_LegendPosition'),
-                        description: data.createDisplayNameGetter('Visual_LegendPositionDescription'),
-                        type: { enumeration: legendPosition.type }
-                    },
-                    showTitle: {
-                        displayName: data.createDisplayNameGetter('Visual_LegendShowTitle'),
-                        description: data.createDisplayNameGetter('Visual_LegendShowTitleDescription'),
-                        type: { bool: true }
-                    },
-                    titleText: {
-                        displayName: data.createDisplayNameGetter('Visual_LegendName'),
-                        description: data.createDisplayNameGetter('Visual_LegendNameDescription'),
-                        type: { text: true }
-                    },
-                    labelColor: {
-                        displayName: data.createDisplayNameGetter('Visual_LegendTitleColor'),
-                        type: { fill: { solid: { color: true } } }
-                    },
-                    fontSize: {
-                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
-                        type: { formatting: { fontSize: true } }
-                    }
+                    show: StandardObjectProperties.show,
+                    position: StandardObjectProperties.legendPosition,
+                    showTitle: StandardObjectProperties.showLegendTitle,
+                    titleText: $.extend({}, StandardObjectProperties.legendTitle, {
+                        suppressFormatPainterCopy: true
+                    }),
+                    labelColor: StandardObjectProperties.labelColor,
+                    fontSize: StandardObjectProperties.fontSize,
                 }
             },
             dataPoint: {
                 displayName: data.createDisplayNameGetter('Visual_DataPoint'),
                 description: data.createDisplayNameGetter('Visual_DataPointDescription'),
                 properties: {
-                    defaultColor: {
-                        displayName: data.createDisplayNameGetter('Visual_DefaultColor'),
-                        type: { fill: { solid: { color: true } } }
-                    },
-                    showAllDataPoints: {
-                        displayName: data.createDisplayNameGetter('Visual_DataPoint_Show_All'),
-                        type: { bool: true }
-                    },
-                    fill: {
-                        displayName: data.createDisplayNameGetter('Visual_Fill'),
-                        type: { fill: { solid: { color: true } } }
-                    }
+                    defaultColor: StandardObjectProperties.defaultColor,
+                    fill: StandardObjectProperties.fill,
                 }
             },
             labels: {
-                displayName: data.createDisplayNameGetter('Visual_DataPointsLabels'),
-                description: data.createDisplayNameGetter('Visual_DataPointsLabelsDescription'),
+                displayName: data.createDisplayNameGetter('Visual_DetailLabels'),
                 properties: {
-                    show: {
-                        type: { bool: true }
-                    },
-                    color: {
-                        displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
-                        description: data.createDisplayNameGetter('Visual_LabelsFillDescription'),
-                        type: { fill: { solid: { color: true } } }
-                    },
-                    labelDisplayUnits: {
-                        displayName: data.createDisplayNameGetter('Visual_DisplayUnits'),
-                        description: data.createDisplayNameGetter('Visual_DisplayUnitsDescription'),
-                        type: { formatting: { labelDisplayUnits: true } }
-                    },
-                    labelPrecision: {
-                        displayName: data.createDisplayNameGetter('Visual_Precision'),
-                        description: data.createDisplayNameGetter('Visual_PrecisionDescription'),
-                        placeHolderText: data.createDisplayNameGetter('Visual_Precision_Auto'),
-                        type: { numeric: true }
-                    },
-                    fontSize: {
-                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
-                        type: { formatting: { fontSize: true } }
+                    show: StandardObjectProperties.show,
+                    color: StandardObjectProperties.dataColor,
+                    labelDisplayUnits: StandardObjectProperties.dataLabelDisplayUnits,
+                    labelPrecision: $.extend({}, StandardObjectProperties.labelPrecision, {
+                        suppressFormatPainterCopy: true,
+                    }),
+                    fontSize: $.extend({}, StandardObjectProperties.fontSize, {
+                        suppressFormatPainterCopy: true,
+                    }),
+                    labelStyle: {
+                        displayName: data.createDisplayNameGetter('Visual_LabelStyle'),
+                        type: { enumeration: labelStyle.type }
                     },
                 },
             },
-            categoryLabels: {
-                displayName: data.createDisplayNameGetter('Visual_CategoryLabels'),
-                description: data.createDisplayNameGetter('Visual_CategoryLabelsDescription'),
-                properties: {
-                    show: {
-                        type: { bool: true }
-                    },
-                },
-            }
         },
         dataViewMappings: [{
             conditions: [
@@ -183,7 +132,6 @@ module powerbi.visuals {
         dataPoint: {
             defaultColor: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPoint', propertyName: 'defaultColor' },
             fill: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPoint', propertyName: 'fill' },
-            showAllDataPoints: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPoint', propertyName: 'showAllDataPoints' },
         },
         legend: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'legend', propertyName: 'show' },

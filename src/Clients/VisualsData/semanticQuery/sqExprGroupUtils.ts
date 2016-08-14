@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,52 +24,60 @@
  *  THE SOFTWARE.
  */
 
-//// <reference path="../_references.ts"/>
+/// <reference path="../_references.ts"/>
+
 module powerbi.data {
     // A group can consist of either a single expression, or a collection of hierarchy expressions
     export interface SQExprGroup {
         expr: SQExpr;
         children: SQHierarchyLevelExpr[];
+
         /** Index of expression in the query. */
         selectQueryIndex: number;
     };
 
     export module SQExprGroupUtils {
         /** Group all projections. Eacch group can consist of either a single property, or a collection of hierarchy items. */
-        export function groupExprs(exprs: SQExpr[], columnVariationEnabled: boolean): SQExprGroup[] {
+        export function groupExprs(schema: FederatedConceptualSchema, exprs: SQExpr[]): SQExprGroup[] {
             let groups: SQExprGroup[] = [];
             for (let i = 0, len = exprs.length; i < len; i++) {
                 let expr = exprs[i];
                 debug.assertValue(expr, "Expression not found");
 
-                if (!columnVariationEnabled || !(expr instanceof SQHierarchyLevelExpr)) {
+                if (!(expr instanceof SQHierarchyLevelExpr)) {
                     groups.push({ expr: expr, children: null, selectQueryIndex: i });
                 }
                 else {
-                    addChildToGroup(groups, expr, i);
+                    addChildToGroup(schema, groups, expr, i);
                 }
             }
 
             return groups;
         }
 
-        function addChildToGroup(groups: SQExprGroup[], expr: SQHierarchyLevelExpr, selectQueryIndex: number): void {
+        function addChildToGroup(
+            schema: FederatedConceptualSchema,
+            groups: SQExprGroup[],
+            expr: SQHierarchyLevelExpr,
+            selectQueryIndex: number): void {
+
             // shouldAddExpressionToNewGroup is used to control whether we should add the passed expr to 
             // a new Group or to the last Group
             let shouldAddExpressionToNewGroup = true;
-            let exprSource = SQExprUtils.getSourceVariationExpr(expr) || SQExprUtils.getSourceHierarchy(expr);
+            let exprSource = SQHierarchyExprUtils.getSourceVariationExpr(expr) || SQHierarchyExprUtils.getSourceHierarchy(expr);
             let lastGroup = _.last(groups);
 
-            // The relevant group is always the last added. If it has the same source variation,
-            // but no matching child expr, we will need to add to this group.
-            // NOTE: This will need to be revisted once the user can remove parts of a hierarchy.
-            if (lastGroup
-                && lastGroup.children
-                && SQExpr.equals(lastGroup.expr, exprSource)
-                && !isChildExprInGroup(lastGroup, expr))
-                shouldAddExpressionToNewGroup = false;
+            // The relevant group is always the last added. If it has the same source hierarchy,
+            // and is properly ordered within that hierarchy, we will need to add to this group.
+            if (lastGroup && lastGroup.children && SQExpr.equals(lastGroup.expr, exprSource)) {
+                let expandedExpr = SQHierarchyExprUtils.expandExpr(schema, expr.arg);
+                if (expandedExpr instanceof Array) {
+                    let allHierarchyLevels = <SQHierarchyLevelExpr[]>expandedExpr;
+                    shouldAddExpressionToNewGroup = !SQHierarchyExprUtils.areHierarchyLevelsOrdered(allHierarchyLevels, _.last(lastGroup.children), expr);
+                }
+            }
 
-            if (shouldAddExpressionToNewGroup) 
+            if (shouldAddExpressionToNewGroup)
                 // Use the Sourcevariation as the expression for the group.
                 groups.push({ expr: exprSource, children: [expr], selectQueryIndex: selectQueryIndex });
             else {
@@ -77,14 +85,6 @@ module powerbi.data {
                 debug.assertValue(lastGroup.children, 'The group should have children to add the variation to');
                 lastGroup.children.push(expr);
             }
-        }
-
-        /** Determines if the SQHierarchyLevelExpr is a child of the FieldWellGroup */
-        function isChildExprInGroup(group: SQExprGroup, expr: SQHierarchyLevelExpr): boolean {
-            if (!group || !group.children || !expr)
-                return false;
-
-            return !_.isEmpty(_.find(group.children, (child: SQHierarchyLevelExpr) => SQExpr.equals(child, expr)));
         }
     }
 }

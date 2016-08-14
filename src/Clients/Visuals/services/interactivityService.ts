@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -28,10 +28,18 @@
 
 module powerbi.visuals {
     import ArrayExtensions = jsCommon.ArrayExtensions;
+    import SemanticFilter = powerbi.data.SemanticFilter;
 
     export interface SelectableDataPoint {
         selected: boolean;
+        /** Identity for identifying the selectable data point for selection purposes */
         identity: SelectionId;
+        /**
+         * A specific identity for when data points exist at a finer granularity than
+         * selection is performed.  For example, if your data points should select based
+         * only on series even if they exist as category/series intersections.
+         */
+        specificIdentity?: SelectionId;
     }
 
     /**
@@ -78,7 +86,7 @@ module powerbi.visuals {
         isLabels?: boolean;
         overrideSelectionFromData?: boolean;
         hasSelectionOverride?: boolean;
-        slicerDefaultValueHandler?: SlicerDefaultValueHandler;
+        slicerValueHandler?: SlicerValueHandler;
     }
 
     /**
@@ -112,8 +120,15 @@ module powerbi.visuals {
     }
 
     export interface ISelectionHandler {
-        /** Handles a selection event by selecting the given data point */
+        /**
+         * Handles a selection event by selecting the given data point.  If the data point's
+         * identity is undefined, the selection state is cleared. In this case, if specificIdentity
+         * exists, it will still be sent to the host.
+         */
         handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void;
+
+        /** Handles a request for a context menu. */
+        handleContextMenu(dataPoint: SelectableDataPoint, position: IPoint): void;
 
         /** Handles a selection clear, clearing all selection state */
         handleClearSelection(): void;
@@ -123,6 +138,9 @@ module powerbi.visuals {
 
         /** Sends the selection state to the host */
         persistSelectionFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): void;
+
+        /** Sends selfFilter to the host */
+        persistSelfFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier, selfFilter: SemanticFilter): void;
     }
 
     export class InteractivityService implements IInteractivityService, ISelectionHandler {
@@ -137,7 +155,10 @@ module powerbi.visuals {
         private isInvertedSelectionMode: boolean = false;
         private hasSelectionOverride: boolean;
         private behavior: any;
-        private slicerDefaultValueHandler: SlicerDefaultValueHandler;
+
+        // TODO: It is very strange to expose a special handler for slicer in the interactivityService.
+        // We should consider introduce another interface for visuals to implement their own filtering handlers.
+        private slicerValueHandler: SlicerValueHandler;
 
         // undefined means no default value is set
         // True: apply default value. False: apply AnyValue.
@@ -146,6 +167,8 @@ module powerbi.visuals {
         public selectableDataPoints: SelectableDataPoint[];
         public selectableLegendDataPoints: SelectableDataPoint[];
         public selectableLabelsDataPoints: SelectableDataPoint[];
+
+        private dataPointObjectName = 'dataPoint';
 
         constructor(hostServices: IVisualHostServices) {
             debug.assertValue(hostServices, 'hostServices');
@@ -162,27 +185,29 @@ module powerbi.visuals {
                 // Override selection state from data points if needed
                 this.takeSelectionStateFromDataPoints(dataPoints);
             }
+
             if (options){
                 if (options.isLegend) {
-                // Bind to legend data instead of normal data if isLegend
-                this.selectableLegendDataPoints = dataPoints;
-                this.renderSelectionInLegend = () => behavior.renderSelection(this.legendHasSelection());
-            }
+                    // Bind to legend data instead of normal data if isLegend
+                    this.selectableLegendDataPoints = dataPoints;
+                    this.renderSelectionInLegend = () => behavior.renderSelection(this.legendHasSelection());
+                }
                 else if (options.isLabels) {
                     //Bind to label data instead of normal data if isLabels
                     this.selectableLabelsDataPoints = dataPoints;
                     this.renderSelectionInLabels = () => behavior.renderSelection(this.labelsHasSelection());
                 }
-            else {
-                this.selectableDataPoints = dataPoints;
-                this.renderSelectionInVisual = () => behavior.renderSelection(this.hasSelection());
-            }
-                if (options.hasSelectionOverride != null) {
-                this.hasSelectionOverride = options.hasSelectionOverride;
-            }
-                if (options.slicerDefaultValueHandler) {
-                this.slicerDefaultValueHandler = options.slicerDefaultValueHandler;
-            }
+                else {
+                    this.selectableDataPoints = dataPoints;
+                    this.renderSelectionInVisual = () => behavior.renderSelection(this.hasSelection());
+                }
+
+                if (options.hasSelectionOverride != null)
+                    this.hasSelectionOverride = options.hasSelectionOverride;
+
+                if (options.slicerValueHandler)
+                    this.slicerValueHandler = options.slicerValueHandler;
+
             } 
             else {
                 this.selectableDataPoints = dataPoints;
@@ -192,7 +217,6 @@ module powerbi.visuals {
             // Bind to the behavior
             this.behavior = behavior;
             behavior.bindEvents(behaviorOptions, this);
-
             // Sync data points with current selection state
             this.syncSelectionState();
         }
@@ -202,8 +226,10 @@ module powerbi.visuals {
          */
         public clearSelection(): void {
             // if default value is already applied, don't clear the default selection
-            if (this.slicerDefaultValueHandler && this.slicerDefaultValueHandler.getDefaultValue() && this.useDefaultValue)
+            if (this.slicerValueHandler && this.slicerValueHandler.getDefaultValue() && this.useDefaultValue) {
+                this.isInvertedSelectionMode = false;
                 return;
+            }
 
             this.hasSelectionOverride = undefined;
             ArrayExtensions.clear(this.selectedIds);
@@ -224,7 +250,7 @@ module powerbi.visuals {
          * Checks whether there is at least one item selected.
          */
         public hasSelection(): boolean {
-            return this.hasSelectionOverride != null ? this.hasSelectionOverride : this.selectedIds.length > 0;
+            return this.selectedIds.length > 0;
         }
 
         public legendHasSelection(): boolean {
@@ -246,10 +272,43 @@ module powerbi.visuals {
         // ISelectionHandler Implementation
 
         public handleSelection(dataPoint: SelectableDataPoint, multiSelect: boolean): void {
+            // defect 7067397: should not happen so assert but also don't continue as it's
+            // causing a lot of error telemetry in desktop.
+            debug.assertValue(dataPoint, 'dataPoint');
+            if (!dataPoint)
+                return;
+
+            let selectingSelectorsByColumn: SelectorsByColumn;
+            if (dataPoint.specificIdentity) {
+                selectingSelectorsByColumn = dataPoint.specificIdentity.getSelectorsByColumn();
+            }
+            else if (dataPoint.identity) {
+                selectingSelectorsByColumn = dataPoint.identity.getSelectorsByColumn();
+            }
+
+            let selectingArgs: SelectingEventArgs = {
+                visualObjects: [{
+                    objectName: this.dataPointObjectName,
+                    selectorsByColumn: selectingSelectorsByColumn,
+                }],
+            };
+            this.hostService.onSelecting(selectingArgs);
+
+            if (selectingArgs.action === VisualInteractivityAction.Selection || selectingArgs.action == null) {
+                if (!dataPoint.identity) {
+                    this.handleClearSelection();
+                }
+                else {
             this.useDefaultValue = false;
             this.select(dataPoint, multiSelect);
             this.sendSelectionToHost();
             this.renderAll();
+        }
+            }
+        }
+
+        public handleContextMenu(dataPoint: SelectableDataPoint, point: IPoint): void {
+            this.sendContextMenuToHost(dataPoint, point);
         }
 
         public handleClearSelection(): void {
@@ -260,17 +319,21 @@ module powerbi.visuals {
 
         public toggleSelectionModeInversion(): boolean {
             this.useDefaultValue = false;
-            let wasInInvertedMode = this.isInvertedSelectionMode;
-            this.clearSelection();
+            this.isInvertedSelectionMode = !this.isInvertedSelectionMode;
+            ArrayExtensions.clear(this.selectedIds);
+            this.applyToAllSelectableDataPoints((dataPoint: SelectableDataPoint) => dataPoint.selected = false);
             this.sendSelectionToHost();
-            this.isInvertedSelectionMode = !wasInInvertedMode;
-            this.syncSelectionState();
+            this.isInvertedSelectionMode ? this.syncSelectionStateInverted() : this.syncSelectionState();
             this.renderAll();
             return this.isInvertedSelectionMode;
         }
 
         public persistSelectionFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): void {
-            this.hostService.persistProperties(this.createChangeForFilterProperty(filterPropertyIdentifier));
+            this.hostService.persistProperties(InteractivityService.createChangeForFilterProperty(filterPropertyIdentifier, this.getFilterFromSelectors()));
+        }
+
+        public persistSelfFilter(filterPropertyIdentifier: DataViewObjectPropertyIdentifier, selfFilter: SemanticFilter): void {
+            this.hostService.persistProperties(InteractivityService.createChangeForFilterProperty(filterPropertyIdentifier, selfFilter));
         }
 
         public setDefaultValueMode(useDefaultValue: boolean): void {
@@ -297,7 +360,7 @@ module powerbi.visuals {
             }
 
             // For highlight data points we actually want to select the non-highlight data point
-            if (d.identity.highlight) {
+            if (d.identity && d.identity.highlight) {
                 d = _.find(this.selectableDataPoints, (dp: SelectableDataPoint) => !dp.identity.highlight && d.identity.includes(dp.identity, /* ignoreHighlight */ true));
                 debug.assertValue(d, 'Expected to find a non-highlight data point');
             }
@@ -314,6 +377,12 @@ module powerbi.visuals {
                 if (selected) {
                     d.selected = true;
                     this.selectedIds.push(id);
+                    if (id.hasIdentity()) {
+                        this.removeSelectionIdsWithOnlyMeasures();
+                    }
+                    else {
+                        this.removeSelectionIdsExceptOnlyMeasures();
+                    }
                 }
                 else {
                     d.selected = false;
@@ -321,7 +390,7 @@ module powerbi.visuals {
                 }
             }
             // We do a single select if we didn't do a multiselect or if we find out that the multiselect is invalid.
-            if (!multiSelect || !this.hostService.canSelect({ data: this.selectedIds.map((value: SelectionId) => value.getSelector()) })) {
+            if (!multiSelect || !this.hostService.canSelect(this.createSelectEventArgs(this.selectedIds))) {
                 this.clearSelection();
                 if (selected) {
                     d.selected = true;
@@ -341,10 +410,16 @@ module powerbi.visuals {
             d.selected = !wasSelected;
 
             if (wasSelected) {
-                this.selectedIds.push(id);
+                this.removeId(id);
             }
             else {
-                this.removeId(id);
+                this.selectedIds.push(id);
+                if (id.hasIdentity()) {
+                    this.removeSelectionIdsWithOnlyMeasures();
+                }
+                else {
+                    this.removeSelectionIdsExceptOnlyMeasures();
+                }
             }
 
             this.syncSelectionStateInverted();
@@ -360,9 +435,7 @@ module powerbi.visuals {
             }
         }
 
-        /** Note: Public for UnitTesting */
-        public createChangeForFilterProperty(filterPropertyIdentifier: DataViewObjectPropertyIdentifier): VisualObjectInstancesToPersist {
-            let properties: { [propertyName: string]: DataViewPropertyValue } = {};
+        private getFilterFromSelectors(): SemanticFilter {
             let selectors: data.Selector[] = [];
 
             if (this.selectedIds.length > 0) {
@@ -372,21 +445,25 @@ module powerbi.visuals {
                     .value();
             }
 
+            let filter = powerbi.data.Selector.filterFromSelector(selectors, this.isInvertedSelectionMode);
+            if (this.slicerValueHandler && this.slicerValueHandler.getDefaultValue()) {
+                // we explicitly check for true/false because undefine means no default value
+                if (this.useDefaultValue === true)
+                    filter = SemanticFilter.getDefaultValueFilter(this.slicerValueHandler.getIdentityFields());
+                else if (_.isEmpty(selectors))
+                    filter = SemanticFilter.getAnyValueFilter(this.slicerValueHandler.getIdentityFields());
+            }
+
+            return filter;
+        }
+
+        private static createChangeForFilterProperty(filterPropertyIdentifier: DataViewObjectPropertyIdentifier, filter: SemanticFilter): VisualObjectInstancesToPersist {
+            let properties: { [propertyName: string]: DataViewPropertyValue } = {};
             let instance = {
                 objectName: filterPropertyIdentifier.objectName,
                 selector: undefined,
                 properties: properties
             };
-
-            let filter = powerbi.data.Selector.filterFromSelector(selectors, this.isInvertedSelectionMode);
-
-            if (this.slicerDefaultValueHandler && this.slicerDefaultValueHandler.getDefaultValue()) {
-                // we explicitly check for true/false because undefine means no default value
-                if (this.useDefaultValue === true)
-                    filter = powerbi.data.SemanticFilter.getDefaultValueFilter(this.slicerDefaultValueHandler.getIdentityFields());
-                else if (_.isEmpty(selectors))
-                    filter = powerbi.data.SemanticFilter.getAnyValueFilter(this.slicerDefaultValueHandler.getIdentityFields());
-            }
 
             if (filter == null) {
                 properties[filterPropertyIdentifier.propertyName] = {};
@@ -402,20 +479,59 @@ module powerbi.visuals {
             }
         }
 
+        private sendContextMenuToHost(dataPoint: SelectableDataPoint, position: IPoint): void {
+            let host = this.hostService;
+            if (!host.onContextMenu)
+                return;
+
+            let selectors = this.getSelectorsByColumn([dataPoint.identity]);
+            if (_.isEmpty(selectors))
+                return;
+
+            let args: ContextMenuArgs = {
+                data: selectors,
+                position: position
+            };
+
+            host.onContextMenu(args);
+        }
+
         private sendSelectionToHost() {
             let host = this.hostService;
             if (host.onSelect) {
-                let selectArgs: SelectEventArgs = {
-                    data: this.selectedIds.filter((value: SelectionId) => value.hasIdentity()).map((value: SelectionId) => value.getSelector())
-                };
-
-                let data2: SelectorsByColumn[] = this.selectedIds.filter((value: SelectionId) => value.getSelectorsByColumn() && value.hasIdentity()).map((value: SelectionId) => value.getSelectorsByColumn());
-
-                if (data2 && data2.length > 0)
-                    selectArgs.data2 = data2;
+                let selectArgs = this.createSelectEventArgs(this.selectedIds);
 
                 host.onSelect(selectArgs);
             }
+        }
+
+        private createSelectEventArgs(selectedIds: SelectionId[]): SelectEventArgs {
+            let shouldInsertSelectors = false;
+            let dataPointObjectName = this.dataPointObjectName;
+            if (!_.isEmpty(selectedIds)) {
+                shouldInsertSelectors = selectedIds[0].getSelector() && !selectedIds[0].getSelectorsByColumn();
+            }
+            let selectedIdsWithIdentities = _.chain(selectedIds)
+                .filter((value: SelectionId) => value.hasIdentity());
+            let selectEventArgs: SelectEventArgs = {
+                visualObjects: selectedIdsWithIdentities
+                    .map((value: SelectionId) => { return { objectName: dataPointObjectName, selectorsByColumn: value.getSelectorsByColumn() }; })
+                    .value(),
+            };
+            if (shouldInsertSelectors) {
+                selectEventArgs.selectors = selectedIdsWithIdentities
+                    .map((value: SelectionId) => value.getSelector())
+                    .value();
+            }
+            return selectEventArgs;
+        }
+
+        private getSelectorsByColumn(selectionIds: SelectionId[]): SelectorsByColumn[] {
+            return _(selectionIds)
+                .filter(value => value.hasIdentity)
+                .map(value => value.getSelectorsByColumn())
+                .compact()
+                .value();
         }
 
         private takeSelectionStateFromDataPoints(dataPoints: SelectableDataPoint[]): void {
@@ -426,11 +542,9 @@ module powerbi.visuals {
             // Replace the existing selectedIds rather than merging.
             ArrayExtensions.clear(selectedIds);
 
-            let targetSelectedValue = !this.isInvertedSelectionMode;
             for (let dataPoint of dataPoints) {
-                if (targetSelectedValue === !!dataPoint.selected) {
+                if (dataPoint.selected)
                     selectedIds.push(dataPoint.identity);
-                }
             }
         }
 
@@ -472,9 +586,8 @@ module powerbi.visuals {
                 let labelsDataPoint: SelectableDataPoint;
                 for (let i = 0, ilen = selectableLabelsDataPoints.length; i < ilen; i++) {
                     labelsDataPoint = selectableLabelsDataPoints[i];
-                    if (selectedIds.some((value: SelectionId) => value.includes(labelsDataPoint.identity))) {
+                    if (selectedIds.some((value: SelectionId) => value.includes(labelsDataPoint.identity)))
                         labelsDataPoint.selected = true;
-                    }
                     else
                         labelsDataPoint.selected = false;
                 }
@@ -494,12 +607,15 @@ module powerbi.visuals {
 
             if (selectedIds.length === 0) {
                 for (let dataPoint of selectableDataPoints) {
-                    dataPoint.selected = true;
+                    dataPoint.selected = false;
                 }
             }
             else {
                 for (var dataPoint of selectableDataPoints) {
-                    dataPoint.selected = !InteractivityService.checkDatapointAgainstSelectedIds(dataPoint, selectedIds);
+                    if (selectedIds.some((value: SelectionId) => value.includes(dataPoint.identity)))
+                        dataPoint.selected = true;
+                    else if (dataPoint.selected)
+                        dataPoint.selected = false;
                 }
             }
         }
@@ -542,6 +658,14 @@ module powerbi.visuals {
 
         private static checkDatapointAgainstSelectedIds(datapoint: SelectableDataPoint, selectedIds: SelectionId[]): boolean {
             return selectedIds.some((value: SelectionId) => value.includes(datapoint.identity));
+        }
+
+        private removeSelectionIdsWithOnlyMeasures() {
+            this.selectedIds = _.filter(this.selectedIds, (identity) => identity.hasIdentity());
+        }
+
+        private removeSelectionIdsExceptOnlyMeasures() {
+            this.selectedIds = _.filter(this.selectedIds, (identity) => !identity.hasIdentity());
         }
     };
 }

@@ -34,3 +34,4 @@
 ///<reference path="../../Typedefs/quill/quill.d.ts"/>
 ///<reference path="../../Typedefs/ie/ie.d.ts"/>
 ///<reference path="../../Typedefs/noUiSlider/noUiSlider.d.ts"/>
+///<reference path="../../Typedefs/jquery.scrollbar/jquery.scrollbar.d.ts"/>

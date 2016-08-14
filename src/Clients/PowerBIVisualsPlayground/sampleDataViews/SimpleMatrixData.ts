@@ -29,7 +29,7 @@
 module powerbi.visuals.sampleDataViews {
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
-
+    
     export class SimpleMatrixData extends SampleDataViews implements ISampleDataViewsMethods {
 
         public name: string = "SimpleMatrixData";

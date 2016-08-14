@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,6 +24,10 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi {
     export declare let build;
+    export declare let buildDetails;
+    export declare let customVisualsUrl;
 } 

@@ -32,7 +32,8 @@ module powerbi.visuals {
             general: {
                 properties: {
                     imageUrl: {
-                        type: { misc: { imageUrl: true } }
+                        type: { misc: { imageUrl: true } },
+                        suppressFormatPainterCopy: true,
                     }
                 }
             },

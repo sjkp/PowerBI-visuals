@@ -1,8 +1,8 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,14 +11,14 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
@@ -27,6 +27,7 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import DataRoleHelper = powerbi.data.DataRoleHelper;
 
     export interface GradientSettings {
         diverging: boolean;
@@ -49,6 +50,7 @@ module powerbi.visuals {
         import SQExprBuilder = powerbi.data.SQExprBuilder;
         import DataViewObjectPropertyDefinition = powerbi.data.DataViewObjectPropertyDefinition;
         const DefaultMidColor: string = "#ffffff";
+        const DefaultColor: string = DefaultMidColor;
         const DataPointPropertyIdentifier: string = "dataPoint";
         const FillRulePropertyIdentifier: string = "fillRule";
 
@@ -102,6 +104,14 @@ module powerbi.visuals {
                 return DataRoleHelper.getMeasureIndexOfRole(grouped, 'Gradient');
             }
             return -1;
+        }
+
+        export function getGradientValueColumn(dataViewCategorical: DataViewCategorical): DataViewValueColumn {
+            if (dataViewCategorical == null) return null;
+            // check for gradient measure index
+            let gradientMeasureIndex: number = GradientUtils.getGradientMeasureIndex(dataViewCategorical);
+            let gradientValueColumn: DataViewValueColumn = gradientMeasureIndex === - 1 ? null : dataViewCategorical.values[gradientMeasureIndex];
+            return gradientValueColumn;
         }
 
         export function hasGradientRole(dataViewCategorical: DataViewCategorical): boolean {
@@ -268,6 +278,22 @@ module powerbi.visuals {
             };
         }
 
+        /** Returns a string representing the gradient to be used for the GradientBar directive. */
+        export function getGradientBarColors(gradientSettings: GradientSettings): string {
+            let colors: string[] = [];
+            gradientSettings.minColor = gradientSettings.minColor || DefaultColor;
+            colors.push(gradientSettings.minColor);
+
+            if (gradientSettings.diverging) {
+                gradientSettings.midColor = gradientSettings.midColor || DefaultColor;
+                colors.push(gradientSettings.midColor || DefaultColor);
+            }
+
+            gradientSettings.maxColor = gradientSettings.maxColor || DefaultColor;
+            colors.push(gradientSettings.maxColor || DefaultColor);
+            return colors.join(",");
+        }
+
         function getLinearGradien2FillRuleDefinition(baseFillRule?: FillRuleDefinition): DataViewObjectPropertyDefinition {
             let gradientSettings: GradientSettings = getGradientSettings(baseFillRule);
             let fillRuleDefinition: FillRuleDefinition = {
@@ -381,4 +407,4 @@ module powerbi.visuals {
             }
         }
     };
-} 
+}

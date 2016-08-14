@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,162 +27,72 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi {
-    export interface DataViewMapping {
+    import ArrayExtensions = jsCommon.ArrayExtensions;
+
+    export module DataViewMapping {
         /**
-         * Defines set of conditions, at least one of which must be satisfied for this mapping to be used.
-         * Any roles not specified in the condition accept any number of items.
+         * Returns dataViewMapping.usage.regression if defined.  Else, returns undefined.
          */
-        conditions?: DataViewMappingCondition[];
-        categorical?: DataViewCategoricalMapping;
-        table?: DataViewTableMapping;
-        single?: DataViewSingleMapping;
-        tree?: DataViewTreeMapping;
-        matrix?: DataViewMatrixMapping;
-        scriptResult?: DataViewScriptResultMapping;
-    }
+        export function getRegressionUsage(dataViewMapping: DataViewMapping): _.Dictionary<DataViewObjectPropertyIdentifier> {
+            let regressionUsage = dataViewMapping &&
+                dataViewMapping.usage &&
+                dataViewMapping.usage.regression;
 
-    /** Describes whether a particular mapping is fits the set of projections. */
-    export interface DataViewMappingCondition {
-        [dataRole: string]: RoleCondition;
-    }
+            // normalize falsy value to undefined
+            return regressionUsage || undefined; 
+        }
 
-    /** Describes a mapping which supports a data volume level. */
-    export interface HasDataVolume {
-        dataVolume?: number;
-    }
-
-    export interface DataViewCategoricalMapping extends HasDataVolume, HasReductionAlgorithm {
-        categories?: DataViewRoleMappingWithReduction | DataViewListRoleMappingWithReduction;
-        values?: DataViewRoleMapping | DataViewGroupedRoleMapping | DataViewListRoleMapping;
-
-        /** Specifies a constraint on the number of data rows supported by the visual. */
-        rowCount?: AcceptabilityNumberRange;
-        /** Indicates whether the data rows include empty groups  */
-        includeEmptyGroups?: boolean;
-    }
-
-    export interface DataViewSingleMapping {
-        /** Indicates the role which is bound to this structure. */
-        role: string;
-    }
-
-    export interface DataViewTableMapping extends HasDataVolume {
-        rows: DataViewRoleMappingWithReduction | DataViewListRoleMappingWithReduction;
-
-        /** Specifies a constraint on the number of data rows supported by the visual. */
-        rowCount?: AcceptabilityNumberRange;
-    }
-
-    export interface DataViewTreeMapping extends HasDataVolume {
-        nodes?: DataViewRoleForMappingWithReduction;
-        values?: DataViewRoleForMapping;
-	    /** Specifies a constraint on the depth of the tree supported by the visual. */
-	    depth?: AcceptabilityNumberRange;
-    }
-
-    export interface DataViewMatrixMapping extends HasDataVolume {
-        rows?: DataViewRoleForMappingWithReduction | DataViewListRoleMappingWithReduction;
-        columns?: DataViewRoleForMappingWithReduction;
-        values?: DataViewRoleForMapping | DataViewListRoleMapping;
-    }
-
-    /* tslint:disable:no-unused-expression */
-    export type DataViewRoleMapping = DataViewRoleBindMapping | DataViewRoleForMapping;
-    /* tslint: enable */
-
-    export interface DataViewRoleBindMapping {
         /**
-         * Indicates evaluation of a single-valued data role.
-         * Equivalent to for, without support for multiple items.
+         * Returns the role names returned by the specified rolesGetter if they are the same for all specified roleMappings.
+         * Else, returns undefined.
+         * 
+         * @rolesGetter returns all the roles in one of the grouping hierarchy axes (categories or series) or in the measures.
          */
-        bind: {
-            to: string;
-        };
-    }
+        export function getRolesIfSameInAllCategoricalMappings(
+            categoricalRoleMappings: DataViewCategoricalMapping[],
+            rolesGetter: (DataViewCategoricalMapping) => string[]): string[] {
 
-    export interface DataViewRoleForMapping {
-        /** Indicates iteration of the in data role, as an array. */
-        for: {
-            in: string;
-        };
-    }
+            debug.assertValue(categoricalRoleMappings, 'categoricalRoleMappings');
+            debug.assertValue(rolesGetter, 'rolesGetter');
 
-    export type DataViewRoleMappingWithReduction = DataViewRoleBindMappingWithReduction | DataViewRoleForMappingWithReduction;
+            if (_.size(categoricalRoleMappings) === 0)
+                return;
 
-    export interface DataViewRoleBindMappingWithReduction extends DataViewRoleBindMapping, HasReductionAlgorithm {
-    }
+            let rolesOfEachMapping: string[][] = _.map(
+                categoricalRoleMappings,
+                (roleMapping) => rolesGetter(roleMapping));
 
-    export interface DataViewRoleForMappingWithReduction extends DataViewRoleForMapping, HasReductionAlgorithm {
-    }
+            let rolesOfFirstMapping = rolesOfEachMapping[0];
+            if (rolesOfEachMapping.length >= 2 &&
+                !_.every(rolesOfEachMapping, (roles) => ArrayExtensions.sequenceEqual(roles, rolesOfFirstMapping, (role1, role2) => role1 === role2))) {
+                // cannot narrow down to a single projection order...
+                return;
+            }
 
-    export interface DataViewGroupedRoleMapping {
-        group: {
-            by: string;
-            select: DataViewRoleMapping[];
-            dataReductionAlgorithm?: ReductionAlgorithm;
-        };
-    }
+            return rolesOfFirstMapping;
+        }
 
-    export interface DataViewListRoleMapping {
-        select: DataViewRoleMapping[];
-    }
+        /**
+         * Returns the array of role names that are mapped to categorical categories.
+         * Returns an empty array if none exists.
+         */
+        export function getAllRolesInCategories(categoricalRoleMapping: DataViewCategoricalMapping): string[] {
+            debug.assertValue(categoricalRoleMapping, 'categoricalRoleMapping');
 
-    export interface DataViewListRoleMappingWithReduction extends DataViewListRoleMapping, HasReductionAlgorithm {
-    }
+            // DataViewCategoricalMapping.categories is an optional property.  If undefined, it means no role for categories. 
+            if (!categoricalRoleMapping.categories)
+                return [];
 
-    export interface HasReductionAlgorithm {
-        dataReductionAlgorithm?: ReductionAlgorithm;
-    }
+            let roleNames: string[] = [];
+            DataViewMapping.visitCategoricalCategories(
+                categoricalRoleMapping.categories,
+                {
+                    visitRole: (roleName: string) => {
+                        roleNames.push(roleName);
+                    }
+                });
 
-    /** Describes how to reduce the amount of data exposed to the visual. */
-    export interface ReductionAlgorithm {
-        top?: DataReductionTop;
-        bottom?: DataReductionBottom;
-        sample?: DataReductionSample;
-        window?: DataReductionWindow;
-    }
-
-    /** Reduce the data to the Top(count) items. */
-    export interface DataReductionTop {
-        count?: number;
-    }
-
-    /** Reduce the data to the Bottom count items. */
-    export interface DataReductionBottom {
-        count?: number;
-    }
-
-    /** Reduce the data using a simple Sample of count items. */
-    export interface DataReductionSample {
-        count?: number;
-    }
-
-    /** Allow the data to be loaded one window, containing count items, at a time. */
-    export interface DataReductionWindow {
-        count?: number;
-    }
-
-    export interface AcceptabilityNumberRange {
-        /** Specifies a preferred range of values for the constraint. */
-        preferred?: NumberRange;
-        /** Specifies a supported range of values for the constraint. Defaults to preferred if not specified. */
-        supported?: NumberRange;
-    }
-
-    /** Defines the acceptable values of a number. */
-    export interface NumberRange {
-        min?: number;
-        max?: number;
-    }
-
-    export interface DataViewMappingScriptDefinition {
-        source: DataViewObjectPropertyIdentifier;
-        provider: DataViewObjectPropertyIdentifier;
-        imageFormat: string;
-    }
-
-    export interface DataViewScriptResultMapping {
-        dataInput: DataViewMapping;
-        script: DataViewMappingScriptDefinition;
+            return roleNames;
+        }
     }
 }

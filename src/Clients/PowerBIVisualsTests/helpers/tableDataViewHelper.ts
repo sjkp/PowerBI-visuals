@@ -27,7 +27,6 @@
 /// <reference path="../_references.ts"/>
 
 module powerbitests.tableDataViewHelper {
-    import TableDataViewObjects = powerbi.visuals.TableDataViewObjects;
     import ValueType = powerbi.ValueType;
 
     export enum ColumnType {
@@ -37,7 +36,7 @@ module powerbitests.tableDataViewHelper {
     }
 
     /** Create a table which contains @columnCount number of columns */
-    export function getDataWithColumns(columnCount: number, numRows: number = 1, objects?: TableDataViewObjects): powerbi.DataView {
+    export function getDataWithColumns(columnCount: number, numRows: number = 1, objects?: powerbi.DataViewObjects): powerbi.DataView {
         // Generate alternating column types
         var columnTypes: ColumnType[] = [];
         for (var i = 0; i < columnCount; ++i) {
@@ -48,7 +47,7 @@ module powerbitests.tableDataViewHelper {
     }
 
     /** Create a table which contains columns with the specified types */
-    export function getDataWithColumnsOfType(columnTypes: ColumnType[], hasSubtotals: boolean, numRows: number = 1, objects?: TableDataViewObjects): powerbi.DataView {
+    export function getDataWithColumnsOfType(columnTypes: ColumnType[], hasSubtotals: boolean, numRows: number = 1, objects?: powerbi.DataViewObjects): powerbi.DataView {
         var columns: powerbi.DataViewMetadataColumn[] = [], rows: any[] = [], totals: any[] = [];
 
         for (var i = 0, len = columnTypes.length; i < len; ++i) {
@@ -92,7 +91,7 @@ module powerbitests.tableDataViewHelper {
         return data;
     }
 
-    export function dataViewObjects(totalsEnabled: boolean): powerbi.visuals.TableDataViewObjects {
+    export function dataViewObjects(totalsEnabled: boolean): powerbi.DataViewObjects {
         return {
             general: {
                 totals: totalsEnabled,

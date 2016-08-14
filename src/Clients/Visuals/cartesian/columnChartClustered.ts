@@ -48,12 +48,12 @@ module powerbi.visuals {
         private categoryLayout: CategoryLayout;
         private viewportHeight: number;
         private viewportWidth: number;
-
         private columnsCenters: number[];
         private columnSelectionLineHandle: D3.Selection;
         private animator: IColumnChartAnimator;
         private interactivityService: IInteractivityService;
         private layout: IColumnLayout;
+        private isComboChart: boolean;
 
         public setupVisualProps(columnChartProps: ColumnChartContext): void {
             this.graphicsContext = columnChartProps;
@@ -65,13 +65,14 @@ module powerbi.visuals {
             this.interactivityService = columnChartProps.interactivityService;
             this.viewportHeight = columnChartProps.viewportHeight;
             this.viewportWidth = columnChartProps.viewportWidth;
+            this.isComboChart = columnChartProps.isComboChart;
         }
 
         public setData(data: ColumnChartData) {
             this.data = data;
         }
 
-        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureXDomain?: NumberRange): IAxisProperties {
             let width = this.width;
 
             let forcedXMin, forcedXMax;
@@ -90,7 +91,8 @@ module powerbi.visuals {
                 forcedXMax,
                 axisScaleType,
                 axisDisplayUnits,
-                axisPrecision);
+                axisPrecision,
+                ensureXDomain);
 
             // create clustered offset scale
             let seriesLength = this.data.series.length;
@@ -102,66 +104,32 @@ module powerbi.visuals {
             return props;
         }
 
-        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureYDomain?: NumberRange): IAxisProperties {
             debug.assert(!is100Pct, 'Cannot have 100% clustered chart.');
 
             let height = this.viewportHeight;
-            let valueDomain = AxisHelper.createValueDomain(this.data.series, true) || fallBackDomain;
-            let maxTickCount = AxisHelper.getRecommendedNumberOfTicksForYAxis(height);
-            let bestTickCount = ColumnUtil.getTickCount(valueDomain[0], valueDomain[1], this.data.valuesMetadata, maxTickCount, is100Pct, forcedTickCount);
-            let normalizedRange = AxisHelper.normalizeLinearDomain({ min: valueDomain[0], max: valueDomain[1] });
-            let axisType = ValueType.fromDescriptor({ text: true });
+            let valueDomain = AxisHelper.createValueDomain(this.data.series, true) || emptyDomain;
+            let combinedDomain = AxisHelper.combineDomain(forcedYDomain, valueDomain, ensureYDomain);
+            let shouldClamp = AxisHelper.scaleShouldClamp(combinedDomain, valueDomain);
 
-            valueDomain = [normalizedRange.min, normalizedRange.max];
-
-            let combinedDomain = AxisHelper.combineDomain(forcedYDomain, valueDomain);
-            let isLogScaleAllowed = AxisHelper.isLogScalePossible(combinedDomain, axisType);           
-            let useLogScale = axisScaleType && axisScaleType === axisScale.log && isLogScaleAllowed;
-
-            let yScale = useLogScale ? d3.scale.log() : d3.scale.linear();           
-
-            yScale.range([height, 0])
-                .domain(combinedDomain)
-                .nice(bestTickCount || undefined)
-                .clamp(AxisHelper.scaleShouldClamp(combinedDomain, valueDomain));
-
-            ColumnUtil.normalizeInfinityInScale(yScale);
-
-            let dataType: ValueType = AxisHelper.getCategoryValueType(this.data.valuesMetadata[0], true);
-            let formatString = valueFormatter.getFormatString(this.data.valuesMetadata[0], columnChartProps.general.formatString);
-            let minTickInterval = AxisHelper.getMinTickValueInterval(formatString, dataType);
-            let yTickValues: any[] = AxisHelper.getRecommendedTickValuesForAQuantitativeRange(bestTickCount, yScale, minTickInterval);
-
-            if (useLogScale) {
-                yTickValues = yTickValues.filter((d) => { return AxisHelper.powerOfTen(d); });
-            }
-
-            let yAxis = d3.svg.axis()
-                .scale(yScale)
-                .tickValues(yTickValues);
-
-            let yInterval = ColumnChart.getTickInterval(yTickValues);
-            let yFormatter = ClusteredUtil.createValueFormatter(
-                this.data.valuesMetadata,
-                yInterval,
-                axisDisplayUnits,
-                axisPrecision);
-            yAxis.tickFormat(yFormatter.format);
-
-            let values = yTickValues.map((d: ColumnChartDataPoint) => yFormatter.format(d));            
-
-            let yProps = this.yProps = {
-                axis: yAxis,
-                scale: yScale,
-                formatter: yFormatter,
-                values: values,
-                axisType: axisType,
-                axisLabel: null,
+            this.yProps = AxisHelper.createAxis({
+                pixelSpan: height,
+                dataDomain: combinedDomain,
+                metaDataColumn: this.data.valuesMetadata[0],
+                formatString: valueFormatter.getFormatString(this.data.valuesMetadata[0], columnChartProps.general.formatString),
+                outerPadding: 0,
+                isScalar: true,
+                isVertical: true,
+                forcedTickCount: forcedTickCount,
+                useTickIntervalForDisplayUnits: true,
                 isCategoryAxis: false,
-                isLogScaleAllowed: isLogScaleAllowed
-            };
+                scaleType: axisScaleType,
+                axisDisplayUnits: axisDisplayUnits,
+                axisPrecision: axisPrecision,
+                shouldClamp: shouldClamp,
+            });
 
-            return yProps;
+            return this.yProps;
         }
 
         public drawColumns(useAnimation: boolean): ColumnChartDrawInfo {
@@ -208,8 +176,9 @@ module powerbi.visuals {
             }
 
             ColumnUtil.applyInteractivity(shapes, this.graphicsContext.onDragStart);
-           
+
             return {
+                eventGroup: this.graphicsContext.mainGraphicsContext,
                 shapesSelection: shapes,
                 viewport: { height: this.height, width: this.width },
                 axisOptions: axisOptions,
@@ -248,23 +217,29 @@ module powerbi.visuals {
             let columnCenters = this.getColumnsCenters();
             let x = columnCenters[selectedColumnIndex];
 
+            let hoverLine = d3.select('.interactive-hover-line');
+            if (!hoverLine.empty() && !this.columnSelectionLineHandle) {
+
+                this.columnSelectionLineHandle = d3.select(hoverLine.node().parentNode);
+            }
+
             if (!this.columnSelectionLineHandle) {
-                let handle = this.columnSelectionLineHandle = this.graphicsContext.mainGraphicsContext.append('g');
+                let handle = this.columnSelectionLineHandle = this.graphicsContext.unclippedGraphicsContext.append('g');
                 handle.append('line')
                     .classed('interactive-hover-line', true)
                     .attr({
-                    x1: x,
-                    x2: x,
-                    y1: 0,
-                    y2: this.height,
-                });
+                        x1: x,
+                        x2: x,
+                        y1: 0,
+                        y2: this.height,
+                    });
 
                 handle.append('circle')
                     .attr({
-                    cx: x,
-                    cy: this.height,
-                    r: '6px',
-                })
+                        cx: x,
+                        cy: this.height,
+                        r: '6px',
+                    })
                     .classed('drag-handle', true);
             }
             else {
@@ -358,9 +333,9 @@ module powerbi.visuals {
                             width: textWidth,
                             height: textHeight,
                         },
-                        outsideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultLabelColor,
-                        insideFill: NewDataLabelUtils.defaultInsideLabelColor,
-                        isParentRect: true,
+                        outsideFill: ColumnChart.getLabelFill(labelSettings.labelColor, false, this.isComboChart),
+                        insideFill: ColumnChart.getLabelFill(labelSettings.labelColor, true, this.isComboChart),
+                        parentType: LabelDataPointParentType.Rectangle,
                         parentShape: {
                             rect: parentRect,
                             orientation: dataPoint.value >= 0 ? NewRectOrientation.VerticalBottomBased : NewRectOrientation.VerticalTopBased,
@@ -395,13 +370,12 @@ module powerbi.visuals {
         private categoryLayout: CategoryLayout;
         private viewportHeight: number;
         private viewportWidth: number;
-
         private barsCenters: number[];
         private columnSelectionLineHandle: D3.Selection;
         private animator: IColumnChartAnimator;
         private interactivityService: IInteractivityService;
-
         private layout: IColumnLayout;
+        private isComboChart: boolean;
 
         public setupVisualProps(barChartProps: ColumnChartContext): void {
             this.graphicsContext = barChartProps;
@@ -413,13 +387,14 @@ module powerbi.visuals {
             this.interactivityService = barChartProps.interactivityService;
             this.viewportHeight = barChartProps.viewportHeight;
             this.viewportWidth = barChartProps.viewportWidth;
+            this.isComboChart = barChartProps.isComboChart;
         }
 
         public setData(data: ColumnChartData) {
             this.data = data;
         }
 
-        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureYDomain?: NumberRange): IAxisProperties {
             let height = this.height;
             let forcedYMin, forcedYMax;
 
@@ -437,8 +412,9 @@ module powerbi.visuals {
                 forcedYMax,
                 axisScaleType,
                 axisDisplayUnits,
-                axisPrecision
-                );
+                axisPrecision,
+                ensureYDomain
+            );
 
             // create clustered offset scale
             let seriesLength = this.data.series.length;
@@ -450,69 +426,35 @@ module powerbi.visuals {
             return props;
         }
 
-        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties {
+        public setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureXDomain?: NumberRange): IAxisProperties {
             debug.assert(!is100Pct, 'Cannot have 100% clustered chart.');
-            debug.assert(forcedTickCount === undefined, 'Cannot have clustered bar chart as combo chart.');            
+            debug.assert(forcedTickCount === undefined, 'Cannot have clustered bar chart as combo chart.');
 
             let width = this.width;
-            let height = this.viewportHeight;
+            let valueDomain = AxisHelper.createValueDomain(this.data.series, true) || emptyDomain;
+            let combinedDomain = AxisHelper.combineDomain(forcedXDomain, valueDomain, ensureXDomain);
+            let shouldClamp = AxisHelper.scaleShouldClamp(combinedDomain, valueDomain);
 
-            let valueDomain = AxisHelper.createValueDomain(this.data.series, true) || fallBackDomain;
-            let bestTickCount = AxisHelper.getBestNumberOfTicks(valueDomain[0], valueDomain[1], this.data.valuesMetadata, AxisHelper.getRecommendedNumberOfTicksForXAxis(width));
-            let normalizedRange = AxisHelper.normalizeLinearDomain({ min: valueDomain[0], max: valueDomain[1] });
-            let axisType = ValueType.fromDescriptor({ numeric: true });
-
-            valueDomain = [normalizedRange.min, normalizedRange.max];
-
-            let combinedDomain = AxisHelper.combineDomain(forcedXDomain, valueDomain);
-            let isLogScaleAllowed = AxisHelper.isLogScalePossible(combinedDomain, axisType);                        
-            let useLogScale = axisScaleType && axisScaleType === axisScale.log && isLogScaleAllowed;
-
-            let xScale = useLogScale ? d3.scale.log() : d3.scale.linear();
-
-            xScale.range([0, width])
-                .domain(combinedDomain)
-                .nice(bestTickCount || undefined)
-                .clamp(AxisHelper.scaleShouldClamp(combinedDomain, valueDomain));       
-
-            ColumnUtil.normalizeInfinityInScale(xScale);
-
-            let dataType: ValueType = AxisHelper.getCategoryValueType(this.data.valuesMetadata[0], true);
-            let formatString = valueFormatter.getFormatString(this.data.valuesMetadata[0], columnChartProps.general.formatString);
-            let minTickInterval = AxisHelper.getMinTickValueInterval(formatString, dataType);
-            let xTickValues: any[] = AxisHelper.getRecommendedTickValuesForAQuantitativeRange(bestTickCount, xScale, minTickInterval);
-
-            if (useLogScale) {
-                xTickValues = xTickValues.filter((d) => { return AxisHelper.powerOfTen(d); });
-            }
-
-            let xAxis = d3.svg.axis()
-                .scale(xScale)
-                .tickSize(-height, 0)
-                .tickValues(xTickValues);
-
-            let xInterval = ColumnChart.getTickInterval(xTickValues);
-            let xFormatter = ClusteredUtil.createValueFormatter(
-                this.data.valuesMetadata,
-                xInterval,
-                axisDisplayUnits,
-                axisPrecision);
-            xAxis.tickFormat(xFormatter.format);
-
-            let values = xTickValues.map((d: ColumnChartDataPoint) => xFormatter.format(d));            
-
-            let xProps = this.xProps = {
-                axis: xAxis,
-                scale: xScale,
-                formatter: xFormatter,
-                values: values,
-                axisType: axisType,
-                axisLabel: null,
+            this.xProps = AxisHelper.createAxis({
+                pixelSpan: width,
+                dataDomain: combinedDomain,
+                metaDataColumn: this.data.valuesMetadata[0],
+                formatString: valueFormatter.getFormatString(this.data.valuesMetadata[0], columnChartProps.general.formatString),
+                outerPadding: 0,
+                isScalar: true,
+                isVertical: false,
+                forcedTickCount: forcedTickCount,
+                useTickIntervalForDisplayUnits: true,
                 isCategoryAxis: false,
-                isLogScaleAllowed: isLogScaleAllowed
-            };
+                scaleType: axisScaleType,
+                axisDisplayUnits: axisDisplayUnits,
+                axisPrecision: axisPrecision,
+                shouldClamp: shouldClamp,
+            });
 
-            return xProps;
+            this.xProps.axis.tickSize(-this.viewportHeight, 0);
+
+            return this.xProps;
         }
 
         public drawColumns(useAnimation: boolean): ColumnChartDrawInfo {
@@ -561,6 +503,7 @@ module powerbi.visuals {
             ColumnUtil.applyInteractivity(shapes, this.graphicsContext.onDragStart);
 
             return {
+                eventGroup: this.graphicsContext.mainGraphicsContext,
                 shapesSelection: shapes,
                 viewport: { height: this.height, width: this.width },
                 axisOptions: axisOptions,
@@ -599,22 +542,28 @@ module powerbi.visuals {
             let barCenters = this.getBarsCenters();
             let y = barCenters[selectedColumnIndex];
 
+            let hoverLine = d3.select('.interactive-hover-line');
+            if (!hoverLine.empty() && !this.columnSelectionLineHandle) {
+
+                this.columnSelectionLineHandle = d3.select(hoverLine.node().parentNode);
+            }
+
             if (!this.columnSelectionLineHandle) {
-                let handle = this.columnSelectionLineHandle = this.graphicsContext.mainGraphicsContext.append('g');
+                let handle = this.columnSelectionLineHandle = this.graphicsContext.unclippedGraphicsContext.append('g');
                 handle.append('line')
                     .classed('interactive-hover-line', true)
                     .attr({
-                    x1: 0,
-                    x2: this.width,
-                    y1: y,
-                    y2: y,
-                });
+                        x1: 0,
+                        x2: this.width,
+                        y1: y,
+                        y2: y,
+                    });
                 handle.append('circle')
                     .attr({
-                    cx: 0,
-                    cy: y,
-                    r: '6px',
-                })
+                        cx: 0,
+                        cy: y,
+                        r: '6px',
+                    })
                     .classed('drag-handle', true);
             }
             else {
@@ -633,28 +582,28 @@ module powerbi.visuals {
             let yScale = axisOptions.yScale;
             let seriesOffsetScale = axisOptions.seriesOffsetScale;
             let scaledX0 = xScale(0);
-            let xScaleOffset = 0;
+            let yScaleOffset = 0;
 
             if (isScalar)
-                xScaleOffset = axisOptions.categoryWidth / 2;
+                yScaleOffset = axisOptions.categoryWidth / 2;
 
             return {
                 shapeLayout: {
                     width: (d: ColumnChartDataPoint) => Math.abs(AxisHelper.diffScaled(xScale, 0, d.value)),
                     x: (d: ColumnChartDataPoint) => scaledX0 + AxisHelper.diffScaled(xScale, Math.min(0, d.value), 0),
-                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) + seriesOffsetScale(d.seriesIndex) - xScaleOffset + (d.drawThinner ? quarterColumnWidth : 0),
+                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) + seriesOffsetScale(d.seriesIndex) - yScaleOffset + (d.drawThinner ? quarterColumnWidth : 0),
                     height: (d: ColumnChartDataPoint) => d.drawThinner ? halfColumnWidth : columnWidth,
                 },
                 shapeLayoutWithoutHighlights: {
                     width: (d: ColumnChartDataPoint) => Math.abs(AxisHelper.diffScaled(xScale, 0, d.originalValue)),
                     x: (d: ColumnChartDataPoint) => scaledX0 + AxisHelper.diffScaled(xScale, Math.min(0, d.originalValue), 0),
-                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) + seriesOffsetScale(d.seriesIndex) - xScaleOffset,
+                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) + seriesOffsetScale(d.seriesIndex) - yScaleOffset,
                     height: (d: ColumnChartDataPoint) => columnWidth,
                 },
                 zeroShapeLayout: {
                     width: (d: ColumnChartDataPoint) => 0,
                     x: (d: ColumnChartDataPoint) => scaledX0 + AxisHelper.diffScaled(xScale, Math.min(0, d.value), 0),
-                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) + seriesOffsetScale(d.seriesIndex) - xScaleOffset + (d.drawThinner ? quarterColumnWidth : 0),
+                    y: (d: ColumnChartDataPoint) => yScale(isScalar ? d.categoryValue : d.categoryIndex) + seriesOffsetScale(d.seriesIndex) - yScaleOffset + (d.drawThinner ? quarterColumnWidth : 0),
                     height: (d: ColumnChartDataPoint) => d.drawThinner ? halfColumnWidth : columnWidth,
                 },
             };
@@ -674,7 +623,7 @@ module powerbi.visuals {
 
                 let axisFormatter: number = NewDataLabelUtils.getDisplayUnitValueFromAxisFormatter(this.yProps.formatter, labelSettings);
                 for (let dataPoint of currentSeries.data) {
-                    if ((this.interactivityService && this.interactivityService.hasSelection() && !dataPoint.selected) || (data.hasHighlights && !dataPoint.highlight) || dataPoint.value == null) {
+                    if ((data.hasHighlights && !dataPoint.highlight) || dataPoint.value == null) {
                         continue;
                     }
 
@@ -708,9 +657,9 @@ module powerbi.visuals {
                             width: textWidth,
                             height: textHeight,
                         },
-                        outsideFill: labelSettings.labelColor ? labelSettings.labelColor : NewDataLabelUtils.defaultLabelColor,
-                        insideFill: NewDataLabelUtils.defaultInsideLabelColor,
-                        isParentRect: true,
+                        outsideFill: ColumnChart.getLabelFill(labelSettings.labelColor, false, this.isComboChart),
+                        insideFill: ColumnChart.getLabelFill(labelSettings.labelColor, true, this.isComboChart),
+                        parentType: LabelDataPointParentType.Rectangle,
                         parentShape: {
                             rect: parentRect,
                             orientation: dataPoint.value >= 0 ? NewRectOrientation.HorizontalLeftBased : NewRectOrientation.HorizontalRightBased,

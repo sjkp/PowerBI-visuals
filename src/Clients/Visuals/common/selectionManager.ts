@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Power BI Visualizations
 *
 *  Copyright (c) Microsoft Corporation
@@ -24,6 +24,8 @@
 *  THE SOFTWARE.
 */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals.utility {
     export interface SelectionManagerOptions{
         hostServices: IVisualHostServices;
@@ -33,13 +35,15 @@ module powerbi.visuals.utility {
         private selectedIds: SelectionId[];
         private hostServices: IVisualHostServices;
 
+        private dataPointObjectName = 'dataPoint';
+
         public constructor(options: SelectionManagerOptions) {
             this.hostServices = options.hostServices;
             this.selectedIds = [];
         }
 
         public select(selectionId: SelectionId, multiSelect: boolean = false): JQueryDeferred<SelectionId[]> {
-            let defered: JQueryDeferred<data.Selector[]> = $.Deferred();
+            let deferred: JQueryDeferred<data.Selector[]> = $.Deferred();
 
             if (this.hostServices.shouldRetainSelection()) {
                 this.sendSelectionToHost([selectionId]);
@@ -49,8 +53,18 @@ module powerbi.visuals.utility {
                 this.sendSelectionToHost(this.selectedIds);
             }
 
-            defered.resolve(this.selectedIds);
-            return defered;
+            deferred.resolve(this.selectedIds);
+            return deferred;
+        }
+
+        public showContextMenu(selectionId: SelectionId, position?: Point): JQueryDeferred<{}> {
+            let deferred: JQueryDeferred<{}> = $.Deferred();
+
+            position = position || InteractivityUtils.getPositionOfLastInputEvent();
+            this.sendContextMenuToHost(selectionId, position);
+
+            deferred.resolve();
+            return deferred;
         }
 
         public hasSelection(): boolean {
@@ -58,11 +72,11 @@ module powerbi.visuals.utility {
         }
 
         public clear(): JQueryDeferred<{}> {
-            let defered = $.Deferred();
+            let deferred = $.Deferred();
             this.selectedIds = [];
             this.sendSelectionToHost([]);
-            defered.resolve();
-            return defered;
+            deferred.resolve();
+            return deferred;
         }
 
         public getSelectionIds(): SelectionId[] {
@@ -70,20 +84,49 @@ module powerbi.visuals.utility {
         }
 
         private sendSelectionToHost(ids: SelectionId[]) {
+            let dataPointObjectName = this.dataPointObjectName;
             let selectArgs: SelectEventArgs = {
-                data: ids
-                    .filter((value: SelectionId) => value.hasIdentity())
-                    .map((value: SelectionId) => value.getSelector())
+                visualObjects: _.chain(ids)
+                    .filter((value: ISelectionId) => (<visuals.SelectionId>value).hasIdentity())
+                    .map((value: ISelectionId) => {
+                        return { objectName: dataPointObjectName, selectorsByColumn: (<visuals.SelectionId>value).getSelectorsByColumn() };
+                    })
+                    .value(),
+                selectors: undefined,
             };
-
-            let data2: SelectorsByColumn[] = ids
-                .filter((value: SelectionId) => value.getSelectorsByColumn() && value.hasIdentity())
-                .map((value: SelectionId) => value.getSelectorsByColumn());
-
-            if (data2 && data2.length > 0)
-                selectArgs.data2 = data2;
+            let shouldInsertSelectors = false;
+            if (!_.isEmpty(ids)) {
+                shouldInsertSelectors = (<visuals.SelectionId>ids[0]).getSelector() && !(<visuals.SelectionId>ids[0]).getSelectorsByColumn();
+            }
+            if (shouldInsertSelectors) {
+                selectArgs.selectors = _.chain((<visuals.SelectionId[]>ids))
+                    .filter((value: visuals.SelectionId) => value.hasIdentity())
+                    .map((value: visuals.SelectionId) => value.getSelector())
+                    .value();
+            }
 
             this.hostServices.onSelect(selectArgs);
+        }
+
+        private sendContextMenuToHost(selectionId: SelectionId, position: IPoint): void {
+            let selectors = this.getSelectorsByColumn([selectionId]);
+            if (_.isEmpty(selectors))
+                return;
+
+            let args: ContextMenuArgs = {
+                data: selectors,
+                position: position
+            };
+
+            this.hostServices.onContextMenu(args);
+        }
+
+        private getSelectorsByColumn(selectionIds: SelectionId[]): SelectorsByColumn[] {
+            return _(selectionIds)
+                .filter(value => value.hasIdentity)
+                .map(value => value.getSelectorsByColumn())
+                .compact()
+                .value();
         }
 
         private selectInternal(selectionId: SelectionId, multiSelect: boolean) {

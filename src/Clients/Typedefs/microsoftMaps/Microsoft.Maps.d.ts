@@ -3,6 +3,9 @@
     /*
         Global functions
     */
+    export module Globals {
+        export var roadUriFormat: any;
+    }
 
     /*
         Loads the specified registered module, making its functionality available. An optional function can be specified that is called when the module is loaded.
@@ -744,5 +747,6 @@
 
     module Events {
         function addHandler(target: any, eventName: string, handler: any);
+        function addThrottledHandler(target: any, eventName: string, handler: any, throttleInterval: any);
     }
 }

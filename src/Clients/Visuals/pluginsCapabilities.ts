@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module powerbi.visuals.capabilities {
     // This file registers the built-in capabilities
@@ -88,11 +88,13 @@ module powerbi.visuals.capabilities {
 
     export let slicer = powerbi.visuals.slicerCapabilities;
 
-    export let textbox = powerbi.visuals.richTextboxCapabilities;
+    export let textbox = powerbi.visuals.textboxCapabilities;
 
     export let waterfallChart = powerbi.visuals.waterfallChartCapabilities;
 
     export let cheerMeter = powerbi.visuals.cheerMeterCapabilities;
 
     export let scriptVisual = powerbi.visuals.scriptVisualCapabilities;
+    
+    export let kpi = powerbi.visuals.KPIStatusWithHistoryCapabilities;
 }

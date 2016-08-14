@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -46,7 +46,7 @@ module powerbi.visuals.controls {
         footerHeight?: number;
     }
 
-    export enum TablixLayoutKind {
+    export const enum TablixLayoutKind {
         /**
          * The default layout is based on DOM measurements and used on the canvas.
          */
@@ -70,46 +70,58 @@ module powerbi.visuals.controls {
     export class TablixControl {
         private static UnitOfMeasurement = 'px';
         private static TablixContainerClassName = 'tablixContainer';
-        private static TablixFixSizedClassName = "bi-tablix-fixed-size";
+        private static TablixTableAreaClassName = "tablixTableArea";
+        private static TablixFooterClassName = "tableFooterArea";
         private static DefaultFontSize = jsCommon.PixelConverter.fromPoint(controls.TablixDefaultTextSize);
+        /*
+        * This is workaround for the infinite loop in rendering
+        * BugID: 6518621
+        * ToDo: Investigate the underlying cause for rendering to never report completion
+        * Rendering typically require 3-5 iterations to complete, so 10 is enough
+        */
+        private static MaxRenderIterationCount = 10;
 
-        private _hierarchyNavigator: ITablixHierarchyNavigator;
-        private _binder: ITablixBinder;
+        private hierarchyTablixNavigator: ITablixHierarchyNavigator;
+        private binder: ITablixBinder;
 
-        private _columnDimension: TablixColumnDimension;
-        private _rowDimension: TablixRowDimension;
-        private _layoutManager: internal.TablixLayoutManager;
+        private columnDim: TablixColumnDimension;
+        private rowDim: TablixRowDimension;
+        private controlLayoutManager: internal.TablixLayoutManager;
 
-        private _container: HTMLDivElement;
-        private _mainDiv: HTMLDivElement;
-        private _footerDiv: HTMLDivElement;
+        private containerElement: HTMLDivElement;
+        private mainDiv: HTMLDivElement;
+        private footerDiv: HTMLDivElement;
 
-        private _scrollbarWidth = 9;
+        private scrollBarElementWidth = 9;
 
-        private _touchManager: TouchUtils.TouchManager;
-        private _columnTouchDelegate: ColumnTouchDelegate;
-        private _rowTouchDelegate: RowTouchDelegate;
-        private _bodyTouchDelegate: BodyTouchDelegate;
-        private _footerTouchDelegate: ColumnTouchDelegate;
-        private _touchInterpreter: TouchUtils.TouchEventInterpreter;
-        private _footerTouchInterpreter: TouchUtils.TouchEventInterpreter;
+        private touchManager: TouchUtils.TouchManager;
+        private columnTouchDelegate: ColumnTouchDelegate;
+        private rowTouchDelegate: RowTouchDelegate;
+        private bodyTouchDelegate: BodyTouchDelegate;
+        private footerTouchDelegate: ColumnTouchDelegate;
+        private touchInterpreter: TouchUtils.TouchEventInterpreter;
+        private footerTouchInterpreter: TouchUtils.TouchEventInterpreter;
 
-        private _gridDimensions: GridDimensions;
-        private _lastRenderingArgs: TablixRenderArgs;
+        private gridDimensions: GridDimensions;
+        private lastRenderingArgs: TablixRenderArgs;
 
+        /* tslint:disable:no-underscore-prefix-for-variables*/
         private _autoSizeWidth: boolean;
         private _autoSizeHeight: boolean;
-        private _viewport: IViewport;
-        private _maxWidth: number;
-        private _maxHeight: number;
-        private _minWidth: number;
-        private _minHeight: number;
-        private _fontSize: string;
+        /* tslint:enable:no-underscore-prefix-for-variables*/
+        private viewPort: IViewport;
+        private maximumWidth: number;
+        private maximumHeight: number;
+        private minimumWidth: number;
+        private minimumHeight: number;
+        private textFontSize: string;
+        private textFontFamily: string;
+        private textFontColor: string;
 
-        private _options: TablixOptions;
-        private _isTouchEnabled: boolean;
+        private options: TablixOptions;
+        private isTouchEnabled: boolean;
 
-        private _renderIterationCount: number;
+        private renderIterationCount: number;
 
         constructor(
             hierarchyNavigator: ITablixHierarchyNavigator,
@@ -119,57 +131,54 @@ module powerbi.visuals.controls {
             options: TablixOptions) {
 
             // Options (fontSize set after container initialized)
-            this._options = options;
+            this.options = options;
             let isInteractive = options.interactive;
-            this._isTouchEnabled = isInteractive && options.enableTouchSupport;
+            this.isTouchEnabled = isInteractive && options.enableTouchSupport;
 
             // Main Div
-            this._mainDiv = internal.TablixUtils.createDiv();
-            let mainDivStyle = this._mainDiv.style;
-            mainDivStyle.position = "absolute";
-            mainDivStyle.left = "0px";
-            mainDivStyle.top = "0px";
+            this.mainDiv = internal.TablixUtils.createDiv();
+            this.mainDiv.classList.add(TablixControl.TablixTableAreaClassName);
 
             // Footer Div
-            this._footerDiv = internal.TablixUtils.createDiv();
-            let footerDivStyle = this._footerDiv.style;
-            footerDivStyle.position = "absolute";
-            footerDivStyle.left = "0px";
+            this.footerDiv = internal.TablixUtils.createDiv();
+            this.footerDiv.classList.add(TablixControl.TablixFooterClassName);
 
-            if (this._isTouchEnabled)
+            if (this.isTouchEnabled)
                 this.InitializeTouchSupport();
 
-            this._gridDimensions = {};
+            this.gridDimensions = {};
 
-            this._container = internal.TablixUtils.createDiv();
+            this.containerElement = internal.TablixUtils.createDiv();
             this.className = layoutManager.getTablixClassName();
             this.autoSizeWidth = false;
             this.autoSizeHeight = false;
+            this.fontFamily = internal.TablixUtils.FontFamilyCell;
+            this.fontColor = internal.TablixUtils.FontColorCells;
             this.fontSize = options.fontSize;
 
             parentDomElement.className = TablixControl.TablixContainerClassName;
-            parentDomElement.appendChild(this._container);
+            parentDomElement.appendChild(this.containerElement);
 
-            this._container.addEventListener("mousewheel",(e) => { this.onMouseWheel(<MouseWheelEvent>e); });
-            this._container.addEventListener("DOMMouseScroll",(e) => { this.onFireFoxMouseWheel(<MouseWheelEvent>e); });
-            this._container.appendChild(this._mainDiv);
-            this._container.appendChild(this._footerDiv);
+            this.containerElement.addEventListener("mousewheel", (e) => { this.onMouseWheel(<MouseWheelEvent>e); });
+            this.containerElement.addEventListener("DOMMouseScroll", (e) => { this.onFireFoxMouseWheel(<MouseWheelEvent>e); });
+            this.containerElement.appendChild(this.mainDiv);
+            this.containerElement.appendChild(this.footerDiv);
 
-            if (this._isTouchEnabled) {
-                this._touchInterpreter.initTouch(this._mainDiv, null, false);
-                this._footerTouchInterpreter.initTouch(this._footerDiv, this._mainDiv, false);
+            if (this.isTouchEnabled) {
+                this.touchInterpreter.initTouch(this.mainDiv, null, false);
+                this.footerTouchInterpreter.initTouch(this.footerDiv, this.mainDiv, false);
             }
 
-            this._layoutManager = layoutManager;
-            this._layoutManager.initialize(this);
+            this.controlLayoutManager = layoutManager;
+            this.controlLayoutManager.initialize(this);
 
-            this._hierarchyNavigator = hierarchyNavigator;
-            this._binder = binder;
+            this.hierarchyTablixNavigator = hierarchyNavigator;
+            this.binder = binder;
 
-            this._columnDimension = new TablixColumnDimension(this);
-            this._rowDimension = new TablixRowDimension(this);
-            this._columnDimension._otherDimension = this.rowDimension;
-            this._rowDimension._otherDimension = this.columnDimension;
+            this.columnDim = new TablixColumnDimension(this);
+            this.rowDim = new TablixRowDimension(this);
+            this.columnDim._otherDimension = this.rowDimension;
+            this.rowDim._otherDimension = this.columnDimension;
 
             this.InitializeScrollbars();
             if (!isInteractive) {
@@ -181,77 +190,77 @@ module powerbi.visuals.controls {
 
             this.updateFooterVisibility();
 
-            this._lastRenderingArgs = {};
+            this.lastRenderingArgs = {};
         }
 
         private InitializeTouchSupport(): void {
-            this._touchManager = new TouchUtils.TouchManager();
-            this._touchInterpreter = new TouchUtils.TouchEventInterpreter(this._touchManager);
-            this._footerTouchInterpreter = new TouchUtils.TouchEventInterpreter(this._touchManager);
-            this._columnTouchDelegate = new ColumnTouchDelegate(new TouchUtils.Rectangle());
-            this._rowTouchDelegate = new RowTouchDelegate(new TouchUtils.Rectangle());
-            this._bodyTouchDelegate = new BodyTouchDelegate(new TouchUtils.Rectangle());
-            this._footerTouchDelegate = new ColumnTouchDelegate(new TouchUtils.Rectangle());
+            this.touchManager = new TouchUtils.TouchManager();
+            this.touchInterpreter = new TouchUtils.TouchEventInterpreter(this.touchManager);
+            this.footerTouchInterpreter = new TouchUtils.TouchEventInterpreter(this.touchManager);
+            this.columnTouchDelegate = new ColumnTouchDelegate(new TouchUtils.Rectangle());
+            this.rowTouchDelegate = new RowTouchDelegate(new TouchUtils.Rectangle());
+            this.bodyTouchDelegate = new BodyTouchDelegate(new TouchUtils.Rectangle());
+            this.footerTouchDelegate = new ColumnTouchDelegate(new TouchUtils.Rectangle());
 
-            this._columnTouchDelegate.setHandler(this, this.onTouchEvent);
-            this._rowTouchDelegate.setHandler(this, this.onTouchEvent);
-            this._bodyTouchDelegate.setHandler(this, this.onTouchEvent);
-            this._footerTouchDelegate.setHandler(this, this.onTouchEvent);
+            this.columnTouchDelegate.setHandler(this, this.onTouchEvent);
+            this.rowTouchDelegate.setHandler(this, this.onTouchEvent);
+            this.bodyTouchDelegate.setHandler(this, this.onTouchEvent);
+            this.footerTouchDelegate.setHandler(this, this.onTouchEvent);
 
-            this._touchManager.addTouchRegion(this._columnTouchDelegate.dimension, this._columnTouchDelegate, this._columnTouchDelegate);
-            this._touchManager.addTouchRegion(this._rowTouchDelegate.dimension, this._rowTouchDelegate, this._rowTouchDelegate);
-            this._touchManager.addTouchRegion(this._bodyTouchDelegate.dimension, this._bodyTouchDelegate, this._bodyTouchDelegate);
-            this._touchManager.addTouchRegion(this._footerTouchDelegate.dimension, this._footerTouchDelegate, this._footerTouchDelegate);
+            this.touchManager.addTouchRegion(this.columnTouchDelegate.dimension, this.columnTouchDelegate, this.columnTouchDelegate);
+            this.touchManager.addTouchRegion(this.rowTouchDelegate.dimension, this.rowTouchDelegate, this.rowTouchDelegate);
+            this.touchManager.addTouchRegion(this.bodyTouchDelegate.dimension, this.bodyTouchDelegate, this.bodyTouchDelegate);
+            this.touchManager.addTouchRegion(this.footerTouchDelegate.dimension, this.footerTouchDelegate, this.footerTouchDelegate);
         }
 
         private InitializeScrollbars(): void {
             // Row Dimension
-            this._rowDimension._initializeScrollbar(this._container, null);
+            this.rowDim._initializeScrollbar(this.containerElement, null, this.options.layoutKind);
 
-            let rowDimensionScrollbarStyle = this._rowDimension.scrollbar.element.style;
+            let rowDimensionScrollbarStyle = this.rowDim.scrollbar.element.style;
             rowDimensionScrollbarStyle.position = "absolute";
             rowDimensionScrollbarStyle.top = "0" + TablixControl.UnitOfMeasurement;
             rowDimensionScrollbarStyle.right = "0" + TablixControl.UnitOfMeasurement;
-            this._rowDimension.scrollbar.width = this._scrollbarWidth + TablixControl.UnitOfMeasurement;
+            this.rowDim.scrollbar.width = this.scrollBarElementWidth + TablixControl.UnitOfMeasurement;
 
             // Default to true which is the more common case to avoid an extra rendering iteration
             // when first rendering the visual
-            this._rowDimension.scrollbar.show(true);
+            this.rowDim.scrollbar.show(true);
 
             // Column Dimension
-            this._columnDimension._initializeScrollbar(this._container, null);
+            this.columnDim._initializeScrollbar(this.containerElement, null, this.options.layoutKind);
 
-            let columnDimensionScrollbarStyle = this._columnDimension.scrollbar.element.style;
+            let columnDimensionScrollbarStyle = this.columnDim.scrollbar.element.style;
             columnDimensionScrollbarStyle.position = "absolute";
             columnDimensionScrollbarStyle.left = "0" + TablixControl.UnitOfMeasurement;
             columnDimensionScrollbarStyle.bottom = "0" + TablixControl.UnitOfMeasurement;
-            this._columnDimension.scrollbar.height = this._scrollbarWidth + TablixControl.UnitOfMeasurement;
+            this.columnDim.scrollbar.height = this.scrollBarElementWidth + TablixControl.UnitOfMeasurement;
 
-            this._columnDimension.scrollbar.show(false);
+            this.columnDim.scrollbar.show(false);
         }
 
         public get container(): HTMLElement {
-            return this._container;
+            return this.containerElement;
         }
 
         public get contentHost(): HTMLElement {
-            return this._mainDiv;
+            return this.mainDiv;
         }
 
         public get footerHost(): HTMLElement {
-            return this._footerDiv;
+            return this.footerDiv;
         }
 
         public set className(value: string) {
-            this._container.className = value;
+            this.containerElement.className = value;
         }
 
         public get hierarchyNavigator(): ITablixHierarchyNavigator {
-            return this._hierarchyNavigator;
+            return this.hierarchyTablixNavigator;
         }
 
-        public get binder(): ITablixBinder {
-            return this._binder;
+        public getBinder(): ITablixBinder {
+            return this.binder;
         }
 
         public get autoSizeWidth(): boolean {
@@ -261,11 +270,8 @@ module powerbi.visuals.controls {
         public set autoSizeWidth(value: boolean) {
             this._autoSizeWidth = value;
 
-            if (this._autoSizeWidth) {
-                this.removeFixSizedClassName();
-            } else {
-                this.addFixedSizeClassNameIfNeeded();
-                this._container.style.minWidth = this._container.style.maxWidth = "none";
+            if (!value) {
+                this.containerElement.style.minWidth = this.containerElement.style.maxWidth = "none";
             }
         }
 
@@ -274,96 +280,111 @@ module powerbi.visuals.controls {
         }
 
         public set autoSizeHeight(value: boolean) {
-            this._autoSizeHeight = value;
-
-            if (this._autoSizeHeight) {
-                this.removeFixSizedClassName();
-            } else {
-                this.addFixedSizeClassNameIfNeeded();
-                this._container.style.minHeight = this._container.style.maxHeight = "none";
+            if (!value) {
+                this.containerElement.style.minHeight = this.containerElement.style.maxHeight = "none";
             }
         }
 
         public get maxWidth(): number {
-            return this._maxWidth;
+            return this.maximumWidth;
         }
 
         public set maxWidth(value: number) {
-            this._maxWidth = value;
-            this._container.style.maxWidth = this._maxWidth + TablixControl.UnitOfMeasurement;
+            this.maximumWidth = value;
+            this.containerElement.style.maxWidth = this.maximumWidth + TablixControl.UnitOfMeasurement;
         }
 
         public get viewport(): IViewport {
-            return this._viewport;
+            return this.viewPort;
         }
 
         public set viewport(value: IViewport) {
-            this._viewport = value;
-            this._container.style.width = this._viewport.width + TablixControl.UnitOfMeasurement;
-            this._container.style.height = this._viewport.height + TablixControl.UnitOfMeasurement;
+            this.viewPort = value;
+            this.containerElement.style.width = this.viewPort.width + TablixControl.UnitOfMeasurement;
+            this.containerElement.style.height = this.viewPort.height + TablixControl.UnitOfMeasurement;
 
-            this._rowDimension.scrollbar.invalidateArrange();
-            this._columnDimension.scrollbar.invalidateArrange();
+            this.rowDim.scrollbar.invalidateArrange();
+            this.columnDim.scrollbar.invalidateArrange();
 
-            this._layoutManager.updateViewport(this._viewport);
+            this.controlLayoutManager.updateViewport(this.viewPort);
         }
 
         public get maxHeight(): number {
-            return this._maxHeight;
+            return this.maximumHeight;
         }
 
         public set maxHeight(value: number) {
-            this._maxHeight = value;
-            this._container.style.maxHeight = this._maxHeight + TablixControl.UnitOfMeasurement;
+            this.maximumHeight = value;
+            this.containerElement.style.maxHeight = this.maximumHeight + TablixControl.UnitOfMeasurement;
         }
 
         public get minWidth(): number {
-            return this._minWidth;
+            return this.minimumWidth;
         }
 
         public set minWidth(value: number) {
-            this._minWidth = value;
-            this._container.style.minWidth = this._minWidth + TablixControl.UnitOfMeasurement;
+            this.minimumWidth = value;
+            this.containerElement.style.minWidth = this.minimumWidth + TablixControl.UnitOfMeasurement;
         }
 
         public get minHeight(): number {
-            return this._minHeight;
+            return this.minimumHeight;
         }
 
         public set minHeight(value: number) {
-            this._minHeight = value;
-            this._container.style.minHeight = this._minHeight + TablixControl.UnitOfMeasurement;
+            this.minimumHeight = value;
+            this.containerElement.style.minHeight = this.minimumHeight + TablixControl.UnitOfMeasurement;
+        }
+
+        public get fontSize(): string {
+            return this.textFontSize;
         }
 
         public set fontSize(value: string) {
-            this._fontSize = !value ? TablixControl.DefaultFontSize : value;
-            this._container.style.fontSize = this._fontSize;
+            this.textFontSize = !value ? TablixControl.DefaultFontSize : value;
+            this.containerElement.style.fontSize = this.textFontSize;
+        }
+
+        public get fontFamily(): string {
+            return this.textFontFamily;
+        }
+
+        public set fontFamily(value: string) {
+            this.textFontFamily = value;
+            this.containerElement.style.fontFamily = value;
+        }
+
+        public get fontColor(): string {
+            return this.textFontColor;
+        }
+
+        public set fontColor(value: string) {
+            this.textFontColor = value;
+            this.containerElement.style.color = value;
         }
 
         public set scrollbarWidth(value: number) {
-            this._scrollbarWidth = value;
-            this._rowDimension.scrollbar.width = this._scrollbarWidth + TablixControl.UnitOfMeasurement;
-            this._columnDimension.scrollbar.height = this._scrollbarWidth + TablixControl.UnitOfMeasurement;
+            this.scrollBarElementWidth = value;
+            this.rowDim.scrollbar.width = this.scrollBarElementWidth + TablixControl.UnitOfMeasurement;
+            this.columnDim.scrollbar.height = this.scrollBarElementWidth + TablixControl.UnitOfMeasurement;
         }
 
-        public updateModels(resetScrollOffsets: boolean, rowModel?: any, columnModel?: any): void {
-            if (rowModel) {
-                this._rowDimension.model = rowModel;
-                if (resetScrollOffsets)
-                    this._rowDimension.scrollOffset = 0;
+        public updateModels(resetScrollOffsets: boolean, rowModel: any, columnModel: any): void {
+            this.rowDim.model = rowModel;
+            this.rowDim.modelDepth = this.hierarchyNavigator.getRowHierarchyDepth();
+            this.columnDim.model = columnModel;
+            this.columnDim.modelDepth = this.hierarchyNavigator.getColumnHierarchyDepth();
+
+            if (resetScrollOffsets) {
+                this.rowDim.scrollOffset = 0;
+                this.columnDim.scrollOffset = 0;
             }
 
-            if (columnModel) {
-                this._columnDimension.model = columnModel;
-                if (resetScrollOffsets)
-                    this._columnDimension.scrollOffset = 0;
-            }
-
-            this.layoutManager.updateColumnCount(this._rowDimension, this._columnDimension);
+            this.layoutManager.updateColumnCount(this.rowDim, this.columnDim);
         }
 
         public updateColumnDimensions(rowHierarchyWidth: number, columnHierarchyWidth: number, count: number) {
-            let gridDimensions = this._gridDimensions;
+            let gridDimensions = this.gridDimensions;
 
             gridDimensions.columnCount = count;
             gridDimensions.rowHierarchyWidth = rowHierarchyWidth;
@@ -371,7 +392,7 @@ module powerbi.visuals.controls {
         }
 
         public updateRowDimensions(columnHierarchyHeight: number, rowHierarchyHeight: number, rowHierarchyContentHeight: number, count: number, footerHeight) {
-            let gridDimensions = this._gridDimensions;
+            let gridDimensions = this.gridDimensions;
 
             gridDimensions.rowCount = count;
             gridDimensions.rowHierarchyHeight = rowHierarchyHeight;
@@ -381,57 +402,86 @@ module powerbi.visuals.controls {
         }
 
         private updateTouchDimensions(): void {
-            let gridDimensions = this._gridDimensions;
+            let gridDimensions = this.gridDimensions;
 
-            this._columnTouchDelegate.resize(gridDimensions.rowHierarchyWidth, 0, gridDimensions.columnHierarchyWidth, gridDimensions.columnHierarchyHeight);
-            this._columnTouchDelegate.setScrollDensity(gridDimensions.columnCount / gridDimensions.columnHierarchyWidth);
+            this.columnTouchDelegate.resize(gridDimensions.rowHierarchyWidth, 0, gridDimensions.columnHierarchyWidth, gridDimensions.columnHierarchyHeight);
+            this.columnTouchDelegate.setScrollDensity(gridDimensions.columnCount / gridDimensions.columnHierarchyWidth);
 
-            this._rowTouchDelegate.resize(0, gridDimensions.columnHierarchyHeight, gridDimensions.rowHierarchyWidth, gridDimensions.rowHierarchyHeight);
-            this._rowTouchDelegate.setScrollDensity(gridDimensions.rowCount / gridDimensions.rowHierarchyHeight);
+            this.rowTouchDelegate.resize(0, gridDimensions.columnHierarchyHeight, gridDimensions.rowHierarchyWidth, gridDimensions.rowHierarchyHeight);
+            this.rowTouchDelegate.setScrollDensity(gridDimensions.rowCount / gridDimensions.rowHierarchyHeight);
 
-            this._bodyTouchDelegate.resize(gridDimensions.rowHierarchyWidth, gridDimensions.columnHierarchyHeight,
+            this.bodyTouchDelegate.resize(gridDimensions.rowHierarchyWidth, gridDimensions.columnHierarchyHeight,
                 gridDimensions.columnHierarchyWidth, gridDimensions.rowHierarchyHeight);
-            this._bodyTouchDelegate.setScrollDensity(gridDimensions.columnCount / gridDimensions.columnHierarchyWidth,
+            this.bodyTouchDelegate.setScrollDensity(gridDimensions.columnCount / gridDimensions.columnHierarchyWidth,
                 gridDimensions.rowCount / gridDimensions.rowHierarchyHeight);
 
-            this._footerTouchDelegate.resize(gridDimensions.rowHierarchyWidth, gridDimensions.columnHierarchyHeight + gridDimensions.rowHierarchyHeight, gridDimensions.columnHierarchyWidth, gridDimensions.footerHeight);
-            this._footerTouchDelegate.setScrollDensity(gridDimensions.columnCount / gridDimensions.columnHierarchyWidth);
+            this.footerTouchDelegate.resize(gridDimensions.rowHierarchyWidth, gridDimensions.columnHierarchyHeight + gridDimensions.rowHierarchyHeight, gridDimensions.columnHierarchyWidth, gridDimensions.footerHeight);
+            this.footerTouchDelegate.setScrollDensity(gridDimensions.columnCount / gridDimensions.columnHierarchyWidth);
         }
 
         private onMouseWheel(e: MouseWheelEvent): void {
-            let dimension = this.determineDimensionToScroll();
-            if (dimension)
-                dimension.scrollbar.onMouseWheel(e);
+            this.determineDimensionToScroll(e,
+                (dimension, delta) => { dimension.scrollbar.onMouseWheel(delta); });
+
+            if (this.options.layoutKind === TablixLayoutKind.Canvas)
+                e.preventDefault();
         }
 
         private onFireFoxMouseWheel(e: MouseWheelEvent): void {
-            let dimension = this.determineDimensionToScroll();
-            if (dimension)
-                dimension.scrollbar.onFireFoxMouseWheel(e);
+            this.determineDimensionToScrollFirefox(e,
+                (dimension, delta) => { dimension.scrollbar.onMouseWheel(delta); });
+
+            if (this.options.layoutKind === TablixLayoutKind.Canvas)
+                e.preventDefault();
         }
 
-        private determineDimensionToScroll(): TablixDimension {
-            if (this._rowDimension.scrollbar.visible)
-                return this._rowDimension;
+        private determineDimensionToScroll(e: MouseWheelEvent, scrollCallback: (dimension: TablixDimension, delta: number) => void): void {
+            // If vertical scrollbar is shown, apply normal scrolling in X, Y
+            if (this.rowDim.scrollbar.visible) {
+                if (e.wheelDeltaY)
+                    scrollCallback(this.rowDim, e.wheelDeltaY);
 
-            // In the absence of the vertical scrollbar, we scroll the
-            // horizontal scrollbar.
-            if (this._columnDimension.scrollbar.visible)
-                return this._columnDimension;
+                if (e.wheelDeltaX && this.columnDim.scrollbar.visible)
+                    scrollCallback(this.columnDim, e.wheelDeltaX);
+            }
 
-            return null;
+            // If vertical scrollbar is hidden, and horizontal scrollbar is shown
+            // Apply whatever X or Y to it
+            else if (this.columnDim.scrollbar.visible) {
+                if (e.wheelDeltaX)
+                    scrollCallback(this.columnDim, e.wheelDeltaX);
+                else if (e.wheelDeltaY)
+                    scrollCallback(this.columnDim, e.wheelDeltaY);
+            }
+        }
+
+        private determineDimensionToScrollFirefox(e: MouseWheelEvent, scrollCallback: (dimension: TablixDimension, delta: number) => void): void {
+            // Firefox
+            if (e.detail) {
+                if (this.rowDim.scrollbar.visible) {
+                    scrollCallback(this.rowDim, -e.detail);
+                    return;
+                }
+
+                // In the absence of the vertical scrollbar, we scroll the
+                // horizontal scrollbar.
+                if (this.columnDim.scrollbar.visible) {
+                    scrollCallback(this.columnDim, -e.detail);
+                    return;
+                }
+            }
         }
 
         public get layoutManager(): internal.TablixLayoutManager {
-            return this._layoutManager;
+            return this.controlLayoutManager;
         }
 
         public get columnDimension(): TablixColumnDimension {
-            return this._columnDimension;
+            return this.columnDim;
         }
 
         public get rowDimension(): TablixRowDimension {
-            return this._rowDimension;
+            return this.rowDim;
         }
 
         public refresh(clear: boolean): void {
@@ -447,75 +497,68 @@ module powerbi.visuals.controls {
         }
 
         private updateHorizontalPosition(): void {
-            if (this._rowDimension.scrollbar.visible) {
-                this._columnDimension.scrollbar.element.style.right = this._scrollbarWidth + TablixControl.UnitOfMeasurement;
-                this._footerDiv.style.right = this._scrollbarWidth + TablixControl.UnitOfMeasurement;
-                this._mainDiv.style.right = this._scrollbarWidth + TablixControl.UnitOfMeasurement;
+            if (this.rowDim.scrollbar.visible) {
+                this.columnDim.scrollbar.element.style.right = this.scrollBarElementWidth + TablixControl.UnitOfMeasurement;
+                this.footerDiv.style.right = this.scrollBarElementWidth + TablixControl.UnitOfMeasurement;
+                this.mainDiv.style.right = this.scrollBarElementWidth + TablixControl.UnitOfMeasurement;
             } else {
-                this._columnDimension.scrollbar.element.style.right = "0" + TablixControl.UnitOfMeasurement;
-                this._mainDiv.style.right = "0" + TablixControl.UnitOfMeasurement;
-                this._footerDiv.style.right = "0" + TablixControl.UnitOfMeasurement;
+                this.columnDim.scrollbar.element.style.right = "0" + TablixControl.UnitOfMeasurement;
+                this.mainDiv.style.right = "0" + TablixControl.UnitOfMeasurement;
+                this.footerDiv.style.right = "0" + TablixControl.UnitOfMeasurement;
             }
         }
 
         public updateFooterVisibility() {
-            if (this._rowDimension.hasFooter() ? (this._footerDiv.style.display !== "block") : (this._footerDiv.style.display !== "none")) {
-                if (this._rowDimension.hasFooter()) {
-                    this._footerDiv.style.display = "block";
+            if (this.rowDim.hasFooter() ? (this.footerDiv.style.display !== "block") : (this.footerDiv.style.display !== "none")) {
+                if (this.rowDim.hasFooter()) {
+                    this.footerDiv.style.display = "block";
                 } else {
-                    this._footerDiv.style.display = "none";
+                    this.footerDiv.style.display = "none";
                 }
             }
         }
 
         private updateVerticalPosition(): void {
 
-            // Set the height of the footer div to non-zero if we have a footer to render
-            let footerHeight = 0;
-            if (this._rowDimension.hasFooter()) {
-                footerHeight = this._gridDimensions.footerHeight;
-            }
-            this._footerDiv.style.height = footerHeight + TablixControl.UnitOfMeasurement;
-
-            let hasVerticalScrollbar = this._rowDimension.scrollbar.visible;
+            let hasVerticalScrollbar = this.rowDim.scrollbar.visible;
             // TODO: ideally the tablix control would not know about where it is rendered but the layout manager
             //       would provider that information; we should refactor the layout manager so that getLayoutKind is not needed anymore.
-            let isDashboardTile = this._layoutManager.getLayoutKind() === TablixLayoutKind.DashboardTile;
+            let isDashboardTile = this.controlLayoutManager.getLayoutKind() === TablixLayoutKind.DashboardTile;
             let showFooter = hasVerticalScrollbar || isDashboardTile;
             if (showFooter) {
-                let mainBottom = footerHeight;
+                let mainBottom = this.footerDiv.offsetHeight;
                 let footerBottom = 0;
                 let verticalScrollbarBottom = 0;
 
                 // If we have a horizontal scrollbar, we need to adjust the bottom
                 // value by the scrollbar width
-                let hasHorizontalScrollbar = this._columnDimension.scrollbar.visible;
+                let hasHorizontalScrollbar = this.columnDim.scrollbar.visible;
                 if (hasHorizontalScrollbar) {
-                    mainBottom += this._scrollbarWidth;
-                    footerBottom += this._scrollbarWidth;
-                    verticalScrollbarBottom = this._scrollbarWidth;
+                    mainBottom += this.scrollBarElementWidth;
+                    footerBottom += this.scrollBarElementWidth;
+                    verticalScrollbarBottom = this.scrollBarElementWidth;
                 }
 
-                this._mainDiv.style.bottom = mainBottom + TablixControl.UnitOfMeasurement;
-                this._rowDimension.scrollbar.element.style.bottom = verticalScrollbarBottom + TablixControl.UnitOfMeasurement;
-                this._footerDiv.style.bottom = footerBottom + TablixControl.UnitOfMeasurement;
+                this.mainDiv.style.bottom = mainBottom + TablixControl.UnitOfMeasurement;
+                this.rowDim.scrollbar.element.style.bottom = verticalScrollbarBottom + TablixControl.UnitOfMeasurement;
+                this.footerDiv.style.bottom = footerBottom + TablixControl.UnitOfMeasurement;
 
                 // With a vertical scrollbar, the footer is always rendered at the bottom
-                this._footerDiv.style.removeProperty("top");
+                this.footerDiv.style.removeProperty("top");
             }
             else {
                 // Without a vertical scrollbar, the footer is rendered below the last row;
                 // this is controlled by the top value only
-                this._footerDiv.style.top = this._gridDimensions.rowHierarchyContentHeight + TablixControl.UnitOfMeasurement;
-                this._footerDiv.style.removeProperty("bottom");
-                this._mainDiv.style.removeProperty("bottom");
+                this.footerDiv.style.top = this.gridDimensions.rowHierarchyContentHeight + TablixControl.UnitOfMeasurement;
+                this.footerDiv.style.removeProperty("bottom");
+                this.mainDiv.style.removeProperty("bottom");
             }
         }
 
         private alreadyRendered(scrollingDimension: TablixDimension): boolean {
-            if (scrollingDimension !== this._lastRenderingArgs.scrollingDimension ||
-                this.rowDimension.scrollOffset !== this._lastRenderingArgs.rowScrollOffset ||
-                this.columnDimension.scrollOffset !== this._lastRenderingArgs.columnScrollOffset) {
+            if (scrollingDimension !== this.lastRenderingArgs.scrollingDimension ||
+                this.rowDimension.scrollOffset !== this.lastRenderingArgs.rowScrollOffset ||
+                this.columnDimension.scrollOffset !== this.lastRenderingArgs.columnScrollOffset) {
                 return false;
             }
 
@@ -524,129 +567,129 @@ module powerbi.visuals.controls {
 
         private render(clear: boolean, scrollingDimension: TablixDimension): void {
             // at time of rendering always ensure the scroll offset is valid
-            this._columnDimension.makeScrollOffsetValid();
-            this._rowDimension.makeScrollOffsetValid();
+            this.columnDim.makeScrollOffsetValid();
+            this.rowDim.makeScrollOffsetValid();
 
             if (clear || scrollingDimension === null) {
-                this._lastRenderingArgs = {};
+                this.lastRenderingArgs = {};
             } else if (this.alreadyRendered(scrollingDimension)) {
                 return;
             }
 
             let done = false;
-            this._renderIterationCount = 0;
+            this.renderIterationCount = 0;
 
-            this._layoutManager.onStartRenderingSession(scrollingDimension, this._mainDiv, clear);
-            let binder: ITablixBinder = this._binder;
+            this.controlLayoutManager.onStartRenderingSession(scrollingDimension, this.mainDiv, clear);
+            let binder: ITablixBinder = this.binder;
             binder.onStartRenderingSession();
 
-            let priorFooterHeight: number = this._gridDimensions.footerHeight;
-            let priorRowHierarchyHeight: number = this._gridDimensions.rowHierarchyHeight;
-            let priorRowHierarchyContentHeight: number = this._gridDimensions.rowHierarchyContentHeight;
+            let priorFooterHeight: number = this.gridDimensions.footerHeight;
+            let priorRowHierarchyHeight: number = this.gridDimensions.rowHierarchyHeight;
+            let priorRowHierarchyContentHeight: number = this.gridDimensions.rowHierarchyContentHeight;
 
-            while (!done) {
-                let hScrollbarVisibility = this._columnDimension.scrollbar.visible;
-                let vScrollbarVisibility = this._rowDimension.scrollbar.visible;
+            while (!done && this.renderIterationCount < TablixControl.MaxRenderIterationCount) {
+                let hScrollbarVisibility = this.columnDim.scrollbar.visible;
+                let vScrollbarVisibility = this.rowDim.scrollbar.visible;
 
-                this._columnDimension._onStartRenderingIteration();
-                this._rowDimension._onStartRenderingIteration();
-                this._layoutManager.onStartRenderingIteration(clear);
+                this.columnDim._onStartRenderingIteration();
+                this.rowDim._onStartRenderingIteration();
+                this.controlLayoutManager.onStartRenderingIteration(clear);
 
                 // These calls add cells to the table.
                 // Column needs to be rendered before rows as the row call will pair up with columns to produce the body cells.
                 this.renderCorner();
-                this._columnDimension._render();
-                this._rowDimension._render();
+                this.columnDim._render();
+                this.rowDim._render();
 
-                done = this._layoutManager.onEndRenderingIteration();
-                this._columnDimension._onEndRenderingIteration();
-                this._rowDimension._onEndRenderingIteration();
+                done = this.controlLayoutManager.onEndRenderingIteration();
+                this.columnDim._onEndRenderingIteration();
+                this.rowDim._onEndRenderingIteration();
 
-                if ((hScrollbarVisibility !== this._columnDimension.scrollbar.visible)) {
+                if ((hScrollbarVisibility !== this.columnDim.scrollbar.visible)) {
                     this.updateVerticalPosition();
                 }
-                if (vScrollbarVisibility !== this._rowDimension.scrollbar.visible) {
+                if (vScrollbarVisibility !== this.rowDim.scrollbar.visible) {
                     this.updateHorizontalPosition();
                 }
 
-                this._renderIterationCount++;
+                this.renderIterationCount++;
             }
 
-            this._layoutManager.onEndRenderingSession();
+            this.controlLayoutManager.onEndRenderingSession();
             binder.onEndRenderingSession();
 
-            if (this._isTouchEnabled)
+            if (this.isTouchEnabled)
                 this.updateTouchDimensions();
 
-            this._lastRenderingArgs.rowScrollOffset = this.rowDimension.scrollOffset;
-            this._lastRenderingArgs.columnScrollOffset = this.columnDimension.scrollOffset;
+            this.lastRenderingArgs.rowScrollOffset = this.rowDimension.scrollOffset;
+            this.lastRenderingArgs.columnScrollOffset = this.columnDimension.scrollOffset;
 
             this.updateContainerDimensions();
 
-            let lastRenderingArgs = this._lastRenderingArgs;
+            let lastRenderingArgs = this.lastRenderingArgs;
             lastRenderingArgs.rowScrollOffset = this.rowDimension.scrollOffset;
             lastRenderingArgs.columnScrollOffset = this.columnDimension.scrollOffset;
             lastRenderingArgs.scrollingDimension = scrollingDimension;
 
-            if (priorFooterHeight !== this._gridDimensions.footerHeight ||
-                priorRowHierarchyHeight !== this._gridDimensions.rowHierarchyHeight ||
-                priorRowHierarchyContentHeight !== this._gridDimensions.rowHierarchyContentHeight) {
+            if (priorFooterHeight !== this.gridDimensions.footerHeight ||
+                priorRowHierarchyHeight !== this.gridDimensions.rowHierarchyHeight ||
+                priorRowHierarchyContentHeight !== this.gridDimensions.rowHierarchyContentHeight) {
                 this.updateVerticalPosition();
             }
 
             // NOTE: it is critical that we refresh the scrollbars only after the vertical
             //       position was updated above; otherwise the measurements can be incorrect.
-            if (this._options.interactive) {
-                this._columnDimension.scrollbar.refresh();
-                this._rowDimension.scrollbar.refresh();
+            if (this.options.interactive) {
+                this.columnDim.scrollbar.refresh();
+                this.rowDim.scrollbar.refresh();
             }
         }
 
         private updateContainerDimensions(): void {
-            let gridDimensions = this._gridDimensions;
+            let gridDimensions = this.gridDimensions;
 
             if (this._autoSizeWidth) {
-                let vScrollBarWidth: number = this._rowDimension.scrollbar.visible ? this._scrollbarWidth : 0;
-                this._container.style.width =
-                gridDimensions.rowHierarchyWidth +
-                gridDimensions.columnHierarchyWidth +
-                vScrollBarWidth +
-                TablixControl.UnitOfMeasurement;
+                let vScrollBarWidth: number = this.rowDim.scrollbar.visible ? this.scrollBarElementWidth : 0;
+                this.containerElement.style.width =
+                    gridDimensions.rowHierarchyWidth +
+                    gridDimensions.columnHierarchyWidth +
+                    vScrollBarWidth +
+                    TablixControl.UnitOfMeasurement;
             }
 
             if (this._autoSizeHeight) {
-                let hScrollBarHeight: number = this._columnDimension.scrollbar.visible ? this._scrollbarWidth : 0;
-                this._container.style.height =
-                gridDimensions.columnHierarchyHeight +
-                gridDimensions.rowHierarchyHeight +
-                gridDimensions.footerHeight +
-                hScrollBarHeight +
-                TablixControl.UnitOfMeasurement;
+                let hScrollBarHeight: number = this.columnDim.scrollbar.visible ? this.scrollBarElementWidth : 0;
+                this.containerElement.style.height =
+                    gridDimensions.columnHierarchyHeight +
+                    gridDimensions.rowHierarchyHeight +
+                    gridDimensions.footerHeight +
+                    hScrollBarHeight +
+                    TablixControl.UnitOfMeasurement;
             }
         }
 
         private cornerCellMatch(item: any, cell: ITablixCell): boolean {
             let previousItem: any = cell.item;
-            return cell.type === TablixCellType.CornerCell && previousItem && this._hierarchyNavigator.cornerCellItemEquals(item, previousItem);
+            return cell.type === TablixCellType.CornerCell && previousItem && this.hierarchyTablixNavigator.cornerCellItemEquals(item, previousItem);
         }
 
         private renderCorner(): void {
-            let columnDepth: number = this._columnDimension.getDepth();
-            let rowDepth: number = this._rowDimension.getDepth();
+            let columnDepth: number = this.columnDim.getDepth();
+            let rowDepth: number = this.rowDim.getDepth();
 
             for (let i = 0; i < columnDepth; i++) {
                 for (let j = 0; j < rowDepth; j++) {
-                    let item = this._hierarchyNavigator.getCorner(j, i);
-                    let cell: ITablixCell = this._layoutManager.getOrCreateCornerCell(item, j, i);
+                    let item = this.hierarchyTablixNavigator.getCorner(j, i);
+                    let cell: ITablixCell = this.controlLayoutManager.getOrCreateCornerCell(item, j, i);
                     let match = this.cornerCellMatch(item, cell);
                     if (!match) {
                         this._unbindCell(cell);
                         cell.type = TablixCellType.CornerCell;
                         cell.item = item;
 
-                        this._binder.bindCornerCell(item, cell);
+                        this.binder.bindCornerCell(item, cell);
                     }
-                    this._layoutManager.onCornerCellRealized(item, cell);
+                    this.controlLayoutManager.onCornerCellRealized(item, cell);
                 }
             }
         }
@@ -654,16 +697,16 @@ module powerbi.visuals.controls {
         public _unbindCell(cell: ITablixCell): void { // The intent is to be internal
             switch (cell.type) {
                 case TablixCellType.BodyCell:
-                    this._binder.unbindBodyCell(cell.item, cell);
+                    this.binder.unbindBodyCell(cell.item, cell);
                     break;
                 case TablixCellType.ColumnHeader:
-                    this._binder.unbindColumnHeader(cell.item, cell);
+                    this.binder.unbindColumnHeader(cell.item, cell);
                     break;
                 case TablixCellType.RowHeader:
-                    this._binder.unbindRowHeader(cell.item, cell);
+                    this.binder.unbindRowHeader(cell.item, cell);
                     break;
                 case TablixCellType.CornerCell:
-                    this._binder.unbindCornerCell(cell.item, cell);
+                    this.binder.unbindCornerCell(cell.item, cell);
             }
 
             cell.item = null;
@@ -676,35 +719,25 @@ module powerbi.visuals.controls {
             let that: TablixControl;
 
             if ((args) && (args.length > 0)) {
-                if (("_columnDimension" in args[0]) && ("_rowDimension" in args[0])) {
-                    that = <TablixControl> args[0];
-                    colShift = that._columnDimension.scrollbar.visible ? <number> args[1] : 0;
-                    rowShift = that._rowDimension.scrollbar.visible ? <number> args[2] : 0;
+                if (("columnDim" in args[0]) && ("rowDim" in args[0])) {
+                    that = <TablixControl>args[0];
+                    colShift = that.columnDim.scrollbar.visible ? <number>args[1] : 0;
+                    rowShift = that.rowDim.scrollbar.visible ? <number>args[2] : 0;
 
-                    that._columnDimension.scrollbar.viewMin = Math.max(0, that._columnDimension.scrollbar.viewMin + colShift);
-                    that._columnDimension.scrollOffset = Math.max(0, that._columnDimension.scrollOffset + colShift);
-                    that._rowDimension.scrollbar.viewMin = Math.max(0, that._rowDimension.scrollbar.viewMin + rowShift);
-                    that._rowDimension.scrollOffset = Math.max(0, that._rowDimension.scrollOffset + rowShift);
+                    that.columnDim.scrollbar.viewMin = Math.max(0, that.columnDim.scrollbar.viewMin + colShift);
+                    that.columnDim.scrollOffset = Math.max(0, that.columnDim.scrollOffset + colShift);
+                    that.rowDim.scrollbar.viewMin = Math.max(0, that.rowDim.scrollbar.viewMin + rowShift);
+                    that.rowDim.scrollOffset = Math.max(0, that.rowDim.scrollOffset + rowShift);
 
                     if (colShift === 0) {
-                        that._onScrollAsync(that._rowDimension);
+                        that._onScrollAsync(that.rowDim);
                     } else if (rowShift === 0) {
-                        that._onScrollAsync(that._columnDimension);
+                        that._onScrollAsync(that.columnDim);
                     } else {
                         that._onScrollAsync(null);
                     }
                 }
             }
-        }
-
-        private addFixedSizeClassNameIfNeeded(): void {
-            if (!this._autoSizeHeight && !this._autoSizeWidth && this._container.className.indexOf(TablixControl.TablixFixSizedClassName) === -1) {
-                this._container.className += " " + TablixControl.TablixFixSizedClassName;
-            }
-        }
-
-        private removeFixSizedClassName(): void {
-            this._container.className = this._container.className.replace(TablixControl.TablixFixSizedClassName, '');
         }
     }
 }

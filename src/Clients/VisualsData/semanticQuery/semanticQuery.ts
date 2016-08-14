@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -40,12 +40,6 @@ module powerbi.data {
         condition: SQExpr;
     }
 
-    /** Represents an entity reference in SemanticQuery from. */
-    export interface SQFromEntitySource {
-        entity: string;
-        schema: string;
-    }
-
     /** Represents a sort over an expression. */
     export interface SQSortDefinition {
         expr: SQExpr;
@@ -61,6 +55,32 @@ module powerbi.data {
         [from: string]: string;
     }
 
+    export interface SQTransform {
+        name: string;
+        algorithm: string;
+        input: SQTransformInput;
+        output: SQTransformOutput;
+    }
+
+    export interface SQTransformInput {
+        parameters: NamedSQExpr[];
+        table?: SQTransformTable;
+    }
+
+    export interface SQTransformOutput {
+        table?: SQTransformTable;
+    }
+
+    export interface SQTransformTable {
+        name: string;
+        columns: SQTransformTableColumn[];
+    }
+
+    export interface SQTransformTableColumn {
+        role?: string;
+        expression: NamedSQExpr;
+    }
+
     /**
      * Represents a semantic query that is:
      * 1) Round-trippable with a JSON QueryDefinition.
@@ -73,8 +93,10 @@ module powerbi.data {
         private whereItems: SQFilter[];
         private orderByItems: SQSortDefinition[];
         private selectItems: NamedSQExpr[];
+        private groupByItems: NamedSQExpr[];
+        private transformItems: SQTransform[];
 
-        constructor(from, where, orderBy, select: NamedSQExpr[]) {
+        constructor(from: SQFrom, where: SQFilter[], orderBy: SQSortDefinition[], select: NamedSQExpr[], groupBy: NamedSQExpr[], transformItems: SQTransform[]) {
             debug.assertValue(from, 'from');
             debug.assertValue(select, 'select');
 
@@ -82,11 +104,13 @@ module powerbi.data {
             this.whereItems = where;
             this.orderByItems = orderBy;
             this.selectItems = select;
+            this.groupByItems = groupBy;
+            this.transformItems = transformItems;
         }
 
         public static create(): SemanticQuery {
             if (!SemanticQuery.empty)
-                SemanticQuery.empty = new SemanticQuery(new SQFrom(), null, null, []);
+                SemanticQuery.empty = new SemanticQuery(new SQFrom(), null, null, [], null, null);
 
             return SemanticQuery.empty;
         }
@@ -94,8 +118,10 @@ module powerbi.data {
         private static createWithTrimmedFrom(
             from: SQFrom,
             where: SQFilter[],
+            transform: SQTransform[],
             orderBy: SQSortDefinition[],
-            select: NamedSQExpr[]): SemanticQuery {
+            select: NamedSQExpr[],
+            groupBy: NamedSQExpr[]): SemanticQuery {
 
             let unreferencedKeyFinder = new UnreferencedKeyFinder(from.keys());
 
@@ -115,6 +141,19 @@ module powerbi.data {
                 }
             }
 
+            // Transform
+            if (transform) {
+                for (let i = 0, len = transform.length; i < len; i++) {
+                    let table = transform[i].input.table;
+                    if (!table || _.isEmpty(table.columns))
+                        continue;
+
+                    for (let column of table.columns) {
+                        column.expression.expr.accept(unreferencedKeyFinder);
+                    }
+                }
+            }
+
             // OrderBy
             if (orderBy) {
                 for (let i = 0, len = orderBy.length; i < len; i++)
@@ -125,11 +164,17 @@ module powerbi.data {
             for (let i = 0, len = select.length; i < len; i++)
                 select[i].expr.accept(unreferencedKeyFinder);
 
+            // GroupBy
+            if (groupBy) {
+                for (let i = 0, len = groupBy.length; i < len; i++)
+                    groupBy[i].expr.accept(unreferencedKeyFinder);
+            }
+
             let unreferencedKeys = unreferencedKeyFinder.result();
             for (let i = 0, len = unreferencedKeys.length; i < len; i++)
                 from.remove(unreferencedKeys[i]);
 
-            return new SemanticQuery(from, where, orderBy, select);
+            return new SemanticQuery(from, where, orderBy, select, groupBy, transform);
         }
 
         public from(): SQFrom {
@@ -141,14 +186,18 @@ module powerbi.data {
         /** Gets the items being selected in this query. */
         select(): ArrayNamedItems<NamedSQExpr>;
         public select(values?: NamedSQExpr[]): any {
-            if (arguments.length === 0)
+            if (_.isEmpty(arguments))
                 return this.getSelect();
 
             return this.setSelect(values);
         }
 
         private getSelect(): ArrayNamedItems<NamedSQExpr> {
-            return ArrayExtensions.extendWithName<NamedSQExpr>(_.map(this.selectItems, s => {
+            return SemanticQuery.createNamedExpressionArray(this.selectItems);
+        }
+
+        private static createNamedExpressionArray(items: NamedSQExpr[]): ArrayNamedItems<NamedSQExpr> {
+            return ArrayExtensions.extendWithName<NamedSQExpr>(_.map(items, s => {
                 return {
                     name: s.name,
                     expr: s.expr,
@@ -157,18 +206,23 @@ module powerbi.data {
         }
 
         private setSelect(values: NamedSQExpr[]): SemanticQuery {
-            let selectItems: NamedSQExpr[] = [],
-                from = this.fromValue.clone();
+            let from = this.fromValue.clone();
+            let selectItems = SemanticQuery.rewriteExpressionsWithSourceRenames(values, from);
+            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.transformItems, this.orderByItems, selectItems, this.groupByItems);
+        }
+
+        private static rewriteExpressionsWithSourceRenames(values: NamedSQExpr[], from: SQFrom): NamedSQExpr[] {
+            let items: NamedSQExpr[] = [];
 
             for (let i = 0, len = values.length; i < len; i++) {
                 let value = values[i];
-                selectItems.push({
+                items.push({
                     name: value.name,
                     expr: SQExprRewriterWithSourceRenames.rewrite(value.expr, from)
                 });
             }
 
-            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.orderByItems, selectItems);
+            return items;
         }
 
         /** Removes the given expression from the select. */
@@ -185,7 +239,7 @@ module powerbi.data {
                 selectItems.push(originalExpr);
             }
 
-            return SemanticQuery.createWithTrimmedFrom(this.fromValue.clone(), this.whereItems, this.orderByItems, selectItems);
+            return SemanticQuery.createWithTrimmedFrom(this.fromValue.clone(), this.whereItems, this.transformItems, this.orderByItems, selectItems, this.groupByItems);
         }
 
         /** Removes the given expression from order by. */
@@ -196,11 +250,24 @@ module powerbi.data {
                     sorts.splice(i, 1);
             }
 
-            return SemanticQuery.createWithTrimmedFrom(this.fromValue.clone(), this.whereItems, sorts, this.selectItems);
+            return SemanticQuery.createWithTrimmedFrom(this.fromValue.clone(), this.whereItems, this.transformItems, sorts, this.selectItems, this.groupByItems);
+        }
+
+        /** Removes the given expression from transforms. */
+        public removeTransform(transform: SQTransform): SemanticQuery {
+            let transforms = this.transforms();
+            for (let i = 0, len = transforms.length; i < len; i++) {
+                if (transforms[i].name === transform.name) {
+                    transforms.splice(i, 1);
+                    break;
+                }
+            }
+
+            return SemanticQuery.createWithTrimmedFrom(this.fromValue.clone(), this.whereItems, transforms, this.orderByItems, this.selectItems, this.groupByItems);
         }
 
         public selectNameOf(expr: SQExpr): string {
-            let index = SQExprUtils.indexOfExpr(_.map(this.selectItems, s => s.expr), expr);
+            let index = SQExprUtils.indexOfNamedExpr(this.selectItems, expr);
             if (index >= 0)
                 return this.selectItems[index].name;
         }
@@ -219,21 +286,56 @@ module powerbi.data {
                 expr: SQExprRewriterWithSourceRenames.rewrite(expr, from)
             };
 
-            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.orderByItems, select);
+            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.transformItems, this.orderByItems, select, this.groupByItems);
         }
 
         /** Adds a the expression to the select clause. */
-        public addSelect(expr: SQExpr): SemanticQuery {
+        public addSelect(expr: SQExpr, exprName?: string): SemanticQuery {
             debug.assertValue(expr, 'expr');
 
             let selectItems = this.select(),
                 from = this.fromValue.clone();
-            selectItems.push({
-                name: SQExprUtils.uniqueName(selectItems, expr),
-                expr: SQExprRewriterWithSourceRenames.rewrite(expr, from)
-            });
+            selectItems.push(this.createNamedExpr(selectItems, from, expr, exprName));
 
-            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.orderByItems, selectItems);
+            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.transformItems, this.orderByItems, selectItems, this.groupByItems);
+        }
+
+        private createNamedExpr(currentNames: ArrayNamedItems<NamedSQExpr>, from: SQFrom, expr: SQExpr, exprName?: string): NamedSQExpr {
+            return {
+                name: SQExprUtils.uniqueName(currentNames, expr, exprName),
+                expr: SQExprRewriterWithSourceRenames.rewrite(expr, from)
+            };
+        }
+
+        /** Returns a query equivalent to this, with the specified groupBy items. */
+        groupBy(values: NamedSQExpr[]): SemanticQuery;
+        /** Gets the groupby items in this query. */
+        groupBy(): ArrayNamedItems<NamedSQExpr>;
+        public groupBy(values?: NamedSQExpr[]): any {
+            if (_.isEmpty(arguments))
+                return this.getGroupBy();
+
+            return this.setGroupBy(values);
+        }
+
+        private getGroupBy(): ArrayNamedItems<NamedSQExpr> {
+            return SemanticQuery.createNamedExpressionArray(this.groupByItems);
+        }
+
+        private setGroupBy(values: NamedSQExpr[]): SemanticQuery {
+            let from = this.fromValue.clone();
+            let groupByItems = SemanticQuery.rewriteExpressionsWithSourceRenames(values, from);
+            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.transformItems, this.orderByItems, this.selectItems, groupByItems);
+        }
+
+        public addGroupBy(expr: SQExpr): SemanticQuery {
+            debug.assertValue(expr, 'expr');
+
+            let groupByItems = this.groupBy(),
+                from = this.fromValue.clone();
+            groupByItems.push(this.createNamedExpr(groupByItems, from, expr));
+
+            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.transformItems, this.orderByItems, this.selectItems, groupByItems);
         }
 
         /** Gets or sets the sorting for this query. */
@@ -241,7 +343,7 @@ module powerbi.data {
         orderBy(): SQSortDefinition[];
 
         public orderBy(values?: SQSortDefinition[]): any {
-            if (arguments.length === 0)
+            if (_.isEmpty(arguments))
                 return this.getOrderBy();
 
             return this.setOrderBy(values);
@@ -278,7 +380,7 @@ module powerbi.data {
                 });
             }
 
-            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, updatedOrderBy, this.selectItems);
+            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, this.transformItems, updatedOrderBy, this.selectItems, this.groupByItems);
         }
 
         /** Gets or sets the filters for this query. */
@@ -286,7 +388,7 @@ module powerbi.data {
         where(): SQFilter[];
 
         public where(values?: SQFilter[]): any {
-            if (arguments.length === 0)
+            if (_.isEmpty(arguments))
                 return this.getWhere();
 
             return this.setWhere(values);
@@ -328,7 +430,7 @@ module powerbi.data {
                 updatedWhere.push(updatedFilter);
             }
 
-            return SemanticQuery.createWithTrimmedFrom(from, updatedWhere, this.orderByItems, this.selectItems);
+            return SemanticQuery.createWithTrimmedFrom(from, updatedWhere, this.transformItems, this.orderByItems, this.selectItems, this.groupByItems);
         }
 
         public addWhere(filter: SemanticFilter): SemanticQuery {
@@ -351,7 +453,67 @@ module powerbi.data {
                 updatedWhere.push(updatedClause);
             }
 
-            return SemanticQuery.createWithTrimmedFrom(from, updatedWhere, this.orderByItems, this.selectItems);
+            return SemanticQuery.createWithTrimmedFrom(from, updatedWhere, this.transformItems, this.orderByItems, this.selectItems, this.groupByItems);
+        }
+
+        /** Returns a query equivalent to this, with the specified transform items. */
+        transforms(transforms: SQTransform[]): SemanticQuery;
+        transforms(): SQTransform[];
+
+        public transforms(transforms?: SQTransform[]): any {
+            if (_.isEmpty(arguments))
+                return this.getTransforms();
+
+            return this.setTransforms(transforms);
+        }
+
+        private getTransforms(): SQTransform[] {
+            let transforms: SQTransform[] = [];
+
+            if (!_.isEmpty(this.transformItems)) {
+                for (let transform of this.transformItems) {
+                    transforms.push(transform);
+                }
+            }
+
+            return transforms;
+        }
+
+        private setTransforms(transforms: SQTransform[]): SemanticQuery {
+            let from = this.fromValue.clone();
+            let transformItems: SQTransform[] = [];
+
+            for (let transform of transforms) {
+                let inputColumns: SQTransformTableColumn[];
+                if (transform.input.table && !_.isEmpty(transform.input.table.columns)) {
+                    inputColumns = _.map(transform.input.table.columns, c => {
+                        return {
+                            role: c.role,
+                            expression: this.createNamedExpr(ArrayExtensions.extendWithName<NamedSQExpr>([]), from, c.expression.expr, c.expression.name)
+                        };
+                    });
+                }
+
+                let newTransform: SQTransform = {
+                    name: transform.name,
+                    algorithm: transform.algorithm,
+                    input: {
+                        parameters: transform.input.parameters,
+                    },
+                    output: transform.output
+                };
+
+                if (transform.input.table) {
+                    newTransform.input.table = {
+                        name: transform.input.table.name,
+                        columns: inputColumns
+                    };
+                }
+
+                transformItems.push(newTransform);
+            }
+
+            return SemanticQuery.createWithTrimmedFrom(from, this.whereItems, transforms, this.orderByItems, this.selectItems, this.groupByItems);
         }
 
         public rewrite(exprRewriter: ISQExprVisitor<SQExpr>): SemanticQuery {
@@ -360,13 +522,27 @@ module powerbi.data {
             let where = rewriter.rewriteWhere(this.whereItems, from);
             let orderBy = rewriter.rewriteOrderBy(this.orderByItems, from);
             let select = rewriter.rewriteSelect(this.selectItems, from);
+            let groupBy = rewriter.rewriteGroupBy(this.groupByItems, from);
+            let transform = rewriter.rewriteTransform(this.transformItems, from);
 
-            return SemanticQuery.createWithTrimmedFrom(from, where, orderBy, select);
+            return SemanticQuery.createWithTrimmedFrom(from, where, transform, orderBy, select, groupBy);
+        }
+
+        public static equals(x: SemanticQuery, y: SemanticQuery): boolean {
+            debug.assertValue(x, 'x SemanticQuery');
+            debug.assertValue(y, 'y SemanticQuery');
+
+            return x.from().equals(y.from())
+                && ArrayExtensions.sequenceEqual(x.where(), y.where(), SQFilter.equals)
+                && ArrayExtensions.sequenceEqual(x.orderBy(), y.orderBy(), SQUtils.sqSortDefinitionEquals)
+                && ArrayExtensions.sequenceEqual(x.select(), y.select(), SQUtils.namedSQExprEquals)
+                && ArrayExtensions.sequenceEqual(x.groupBy(), y.groupBy(), SQUtils.namedSQExprEquals)
+                && ArrayExtensions.sequenceEqual(x.transforms(), y.transforms(), SQUtils.sqTransformEquals);
         }
     }
 
     /** Represents a semantic filter condition.  Round-trippable with a JSON FilterDefinition.  Instances of this class are immutable. */
-    export class SemanticFilter {
+    export class SemanticFilter implements ISemanticFilter {
         private fromValue: SQFrom;
         private whereItems: SQFilter[];
 
@@ -446,15 +622,15 @@ module powerbi.data {
             return new SemanticFilter(from, where);
         }
 
-        public validate(schema: FederatedConceptualSchema, errors?: SQExprValidationError[]): SQExprValidationError[] {
-            let validator = new SQExprValidationVisitor(schema, errors);
+        public validate(schema: FederatedConceptualSchema, aggrUtils: ISQAggregationOperations, errors?: SQExprValidationError[]): SQExprValidationError[] {
+            let validator = new SQExprValidationVisitor(schema, aggrUtils, errors);
             this.rewrite(validator);
             return validator.errors;
         }
 
         /** Merges a list of SemanticFilters into one. */
         public static merge(filters: SemanticFilter[]): SemanticFilter {
-            if (ArrayExtensions.isUndefinedOrEmpty(filters))
+            if (_.isEmpty(filters))
                 return null;
 
             if (filters.length === 1)
@@ -511,72 +687,6 @@ module powerbi.data {
 
                 where.push(updatedWhereItem);
             }
-        }
-    }
-
-    /** Represents a SemanticQuery/SemanticFilter from clause. */
-    export class SQFrom {
-        private items: { [name: string]: SQFromEntitySource };
-
-        constructor(items?: { [name: string]: SQFromEntitySource }) {
-            this.items = items || {};
-        }
-
-        public keys(): string[] {
-            return Object.keys(this.items);
-        }
-
-        public entity(key: string): SQFromEntitySource {
-            return this.items[key];
-        }
-
-        public ensureEntity(entity: SQFromEntitySource, desiredVariableName?: string): QueryFromEnsureEntityResult {
-            debug.assertValue(entity, 'entity');
-
-            // 1) Reuse a reference to the entity among the already referenced
-            let keys = this.keys();
-            for (let i = 0, len = keys.length; i < len; i++) {
-                let key = keys[i],
-                    item = this.items[key];
-                if (item && entity.entity === item.entity && entity.schema === item.schema)
-                    return { name: key };
-            }
-
-            // 2) Add a reference to the entity
-            let candidateName = desiredVariableName || this.candidateName(entity.entity),
-                uniqueName: string = candidateName,
-                i = 2;
-            while (this.items[uniqueName]) {
-                uniqueName = candidateName + i++;
-            }
-
-            this.items[uniqueName] = entity;
-            return { name: uniqueName, new: true };
-        }
-
-        public remove(key: string): void {
-            delete this.items[key];
-        }
-
-        /** Converts the entity name into a short reference name.  Follows the Semantic Query convention of a short name. */
-        private candidateName(ref: string): string {
-            debug.assertValue(ref, 'ref');
-
-            let idx = ref.lastIndexOf('.');
-            if (idx >= 0 && (idx !== ref.length - 1))
-                ref = ref.substr(idx + 1);
-
-            return ref.substring(0, 1).toLowerCase();
-        }
-
-        public clone(): SQFrom {
-            // NOTE: consider deprecating this method and instead making QueryFrom be CopyOnWrite (currently we proactively clone).
-            let cloned = new SQFrom();
-
-            // NOTE: we use extend rather than prototypical inheritance on items because we use Object.keys.
-            $.extend(cloned.items, this.items);
-
-            return cloned;
         }
     }
 
@@ -672,15 +782,12 @@ module powerbi.data {
 
         public visitEntity(expr: SQEntityExpr): void {
             // TODO: Renames must take the schema into account, not just entity set name.
-            let existingEntity = this.from.entity(expr.variable);
-            if (existingEntity && existingEntity.schema === expr.schema && existingEntity.entity === expr.entity)
+            let existingEntity = this.from.source(expr.variable);
+            if (existingEntity && isSQFromEntitySource(existingEntity) && existingEntity.schema === expr.schema && existingEntity.entity === expr.entity)
                 return;
 
-            let actualEntity = this.from.ensureEntity(
-                {
-                    schema: expr.schema,
-                    entity: expr.entity,
-                },
+            let actualEntity = this.from.ensureSource(
+                new SQFromEntitySource(expr.schema, expr.entity),
                 expr.variable);
 
             this.renames[expr.entity] = actualEntity.name;

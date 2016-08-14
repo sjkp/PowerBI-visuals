@@ -1,0 +1,31 @@
+{
+    "dateAdded": "2016-02-11T22:08:24.000Z",
+    "dateLastUpdated": "2016-02-25T19:16:48.000Z",
+    "videoUrl": "https://www.youtube.com/watch?v=90FLCKpgicA",
+    "package": {
+        "name": "MekkoChart",
+            "displayName": "Mekko Chart",
+            "guid": "MekkoChart1449744733038",
+            "version": "1.7.12",
+            "description": "A Mekko chart is a mix of a 100% stacked column chart and a 100% stacked bar chart combined into one view. Similar to a treemap, the dimensional values are represented by length and width of each rectangle. The width of a column is proportional to the total value of the column.",
+            "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["mekkoscreenshot.png"],
+            "thumbnail": "mekkoillustration.png"
+        },
+        "code": {
+            "typeScript": "mekkoChart.ts",
+            "javaScript": "mekkoChart.js",
+            "css": "mekkoChart.css"
+        }
+    }
+}

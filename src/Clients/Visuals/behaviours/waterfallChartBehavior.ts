@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -40,6 +40,18 @@ module powerbi.visuals {
             bars.on('click', (d: WaterfallChartDataPoint) => {
                 if (!d.isTotal) {
                     selectionHandler.handleSelection(d, d3.event.ctrlKey);
+                }
+            });
+
+            bars.on('contextmenu', (d: WaterfallChartDataPoint) => {
+                if (d3.event.ctrlKey)
+                    return;
+
+                d3.event.preventDefault();
+
+                if (!d.isTotal) {
+                    let position = InteractivityUtils.getPositionOfLastInputEvent();
+                    selectionHandler.handleContextMenu(d, position);
                 }
             });
         }

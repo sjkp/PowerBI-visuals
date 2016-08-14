@@ -24,9 +24,11 @@
  *  THE SOFTWARE.
  */
 
- /// <reference path="../_references.ts"/>
+/// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import DataRoleHelper = powerbi.data.DataRoleHelper;
+
     export interface PivotedCategoryInfo {
         categories?: any[];
         categoryFormatter?: IValueFormatter;
@@ -77,7 +79,7 @@ module powerbi.visuals {
             return defaultCategories();
         }
 
-        export function getSeriesName(source: DataViewMetadataColumn): string {
+        export function getSeriesName(source: DataViewMetadataColumn): PrimitiveValue {
             debug.assertValue(source, 'source');
 
             return (source.groupName !== undefined)
@@ -90,7 +92,7 @@ module powerbi.visuals {
             debug.assertValue(values, 'values');
 
             let sourceForFormat = source;
-            let nameForFormat = source.displayName;
+            let nameForFormat: PrimitiveValue = source.displayName;
             if (source.groupName !== undefined) {
                 sourceForFormat = values.source;
                 nameForFormat = source.groupName;
@@ -131,6 +133,38 @@ module powerbi.visuals {
                 }
             }
             return { xAxisLabel: xAxisLabel, yAxisLabel: yAxisLabel };
+        }
+
+        export function isImageUrlColumn(column: DataViewMetadataColumn): boolean {
+            let misc = getMiscellaneousTypeDescriptor(column);
+            return misc != null && misc.imageUrl === true;
+        }
+
+        export function isWebUrlColumn(column: DataViewMetadataColumn): boolean {
+            let misc = getMiscellaneousTypeDescriptor(column);
+            return misc != null && misc.webUrl === true;
+        }
+
+        function getMiscellaneousTypeDescriptor(column: DataViewMetadataColumn): MiscellaneousTypeDescriptor {
+            return column
+                && column.type
+                && column.type.misc;
+        }
+
+        export function hasImageUrlColumn(dataView: DataView): boolean {
+            if (!dataView || !dataView.metadata || _.isEmpty(dataView.metadata.columns))
+                return false;
+
+            return _.any(dataView.metadata.columns, column => isImageUrlColumn(column) === true);
+        }
+
+        export function formatFromMetadataColumn(value: any, column: DataViewMetadataColumn, formatStringProp: DataViewObjectPropertyIdentifier): string {
+            debug.assertValue(column, 'column should exist');
+            let formatString: string = valueFormatter.getFormatString(column, formatStringProp, true);
+            if (!formatString && column) {
+                formatString = column.format;
+            }
+            return valueFormatter.format(value, formatString);
         }
     }
 }

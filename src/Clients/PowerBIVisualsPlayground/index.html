@@ -1,50 +1,134 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"> 
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Power BI visualization playground</title>
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="visuals.css" />
 
-    <script type="text/javascript" src="externals.min.js"></script>  
-    <script type="text/javascript" src="powerbi-visuals.js"></script>    
-    <script type="text/javascript" src ="PowerBIVisualsPlayground.js"></script>
-    
+    <link rel="stylesheet" href="/assets/PowerBIVisualsPlayground.css" />
+    <link rel="stylesheet" href="/assets/Visuals.css" />
+    <link rel="stylesheet" href="/assets/CustomVisuals.css" />
+
+    <script type="text/javascript" src="../../../lib/powerbi-visuals-externals.min.js"></script>
+    <script type="text/javascript" src="/assets/powerbi-visuals.js"></script>
+    <script type="text/javascript" src="/assets/CustomVisuals.js"></script>
+    <script type="text/javascript" src="/assets/PowerBIVisualsPlayground.js"></script>
+
 </head>
 <body>
-    <section id="options">
-        <h4>Options:</h4>
-        <ul id="options-list">
-            <li>
-                <span>DataView:</span>
-                <select id="dataViewsSelect"></select>
-                <button id="randomize">Randomize</button>
-            </li>
-            <li>
-                <span>Animations:</span>
-                <input type="checkbox" name="suppressAnimations" value="">
-            </li>
-            <li hidden>
-                <span>Animation duration:</span>
-                <input type="text" name="animation_duration" pattern="\d+" maxlength="5" value="100">
-            </li>
-            <li>
-                <span>Interactions:</span>
-                <input type="checkbox" name="is_interactions" value="">
-            </li>
-        </ul>
-    </section>
-    <section id="sample">
-        <div class="topBar">
-            <div style="float:left;">
-                <div>
-                    <span>Select a visual:</span>
-                    <select id="visualTypes"></select>
+    <header>
+        <img class="left-margin" src="images/logo.png" />
+    </header>
+    <nav>
+        <button id="webViewTab" class="first-nav-tab">
+            <div class="selected-nav-tab">
+                <img src="images/icon_web.png" />
+                <span>Web View</span>
+            </div>
+        </button>
+        <div id="tabSeparator"></div>
+        <button id="mobileViewTab" class="nav-tab">
+            <div class="selected-nav-tab">
+                <img src="images/icon_mobile.png" />
+                <span>Mobile View</span>
+            </div>
+        </button>
+    </nav>
+    <section id="controls" class="left-margin">
+        <div id="visualType" class="optionsInnerSection">
+            <h4>Select a visual:</h4>
+            <select id="visualTypes"></select>
+        </div>
+        <div id="orientation" class="optionsInnerSection" style="display: none;">
+            <h4>Select phone orientation:</h4>
+            <div class="input-container">
+                <input type="radio" name="orientation" value="portrait" checked>
+                <label>Portrait</label>
+            </div>
+            <div class="input-container">
+                <input type="radio" name="orientation" value="landscape">
+                <label>Landscape</label>
+            </div>
+        </div>
+        <div id="options">
+            <h4>Options:</h4>
+            <div id="options-list">
+                <div id="dataViewSelection">
+                    <span class="subtitle">DataView:</span>
+                    <select id="dataViewsSelect"></select>
+                    <button id="randomize">Randomize</button>
+                </div>
+                <div id="capabilities">
+                    <span class="subtitle">Show:</span>
+                    <div class="input-container">
+                        <input type="checkbox" name="suppressAnimations" value="">
+                        <label>Animations</label>
+                    </div>
+                    <div hidden>
+                        <span>Animation duration:</span>
+                        <input type="text" name="animation_duration" pattern="\d+" maxlength="5" value="100">
+                    </div>
+                    <div class="input-container">
+                        <input type="checkbox" name="is_interactions" value="">
+                        <label>Interactions</label>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div id="container"></div>
+    </section>
+    <section id="sample">
+        <div class="container">
+            <div id="webContainer" class="scaled-container"></div>
+        </div>
+        <div class="mobile-portrait-image-container" style="display: none;">
+            <span class="subtitle mobile-view-title">Dashboard</span>
+            <img class="mobile-image" src="images/Phone_portrait.png" />
+            <div class="mobile-portrait-dashboard-container">
+                <div class="dashboard-portrait-tile"></div>
+                <div class="dashboard-portrait-tile">
+                    <div id="mobilePortraitDashboardContainer" class="scaled-container"></div>
+                </div>
+                <div class="dashboard-portrait-tile"></div>
+            </div>
+        </div>
+        <div class="mobile-portrait-image-container" style="display: none;">
+            <span class="subtitle mobile-view-title">In-focus</span>
+            <img class="mobile-image" src="images/Phone_portrait.png" />
+            <div class="mobile-portrait-in-focus-container">
+                <div class="in-focus-portrait-tile">
+                    <div id="mobilePortraitInFocusContainer" class="scaled-container"></div>
+                </div>
+            </div>
+        </div>
+        <div class="mobile-landscape-image-container" style="display: none;">
+            <span class="subtitle mobile-view-title">Dashboard</span>
+            <img class="mobile-image" src="images/Phone_landscape.png" />
+            <div class="mobile-landscape-dashboard-container">
+                <div class="mobile-landscape-dashboard-column">
+                    <div class="dashboard-landscape-tile-2x2"></div>
+                    <div class="dashboard-landscape-tile-2x2"></div>
+                    <div class="dashboard-landscape-tile-2x2-first-column-last-tile"></div>
+                </div>
+                <div class="mobile-landscape-dashboard-column">
+                    <div class="dashboard-landscape-tile-3x3">
+                        <div id="mobileLandscapeDashboardContainer" class="scaled-container"></div>
+                    </div>
+                    <div class="mobile-landscape-dashboard-last-line">
+                        <div class="dashboard-landscape-tile-2x2"></div>
+                        <div class="dashboard-landscape-tile-2x2-second-column-last-tile"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mobile-landscape-image-container" style="display: none;">
+            <span class="subtitle mobile-view-title">In-focus</span>
+            <img class="mobile-image" src="images/Phone_landscape.png" />
+            <div class="mobile-landscape-in-focus-container">
+                <div class="in-focus-landscape-tile">
+                    <div id="mobileLandscapeInFocusContainer" class="scaled-container"></div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <script type="text/javascript">

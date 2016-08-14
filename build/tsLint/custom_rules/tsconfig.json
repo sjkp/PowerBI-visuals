@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs"
+    },
+    "filesGlob": [
+        "**/*.ts"
+    ],
+    "files": [
+        "../../../node_modules/tslint/lib/lint.d.ts",
+        "../../../node_modules/tslint/typings/node/node.d.ts",
+        "../../../node_modules/typescript/lib/typescript.d.ts",
+        "biDuplicateVariableRule.ts",
+        "copyrightCheckRule.ts",
+        "emptyLineBeforeCommentsRule.ts",
+        "functionReturnTypeRequiredRule.ts",
+        "noEqualsNanRule.ts",
+        "noStaticThisRule.ts",
+        "noUnderscorePrefixForVariablesRule.ts"
+    ]
+}

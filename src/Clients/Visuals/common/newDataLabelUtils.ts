@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -30,22 +30,27 @@ module powerbi.visuals {
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
     import PixelConverter = jsCommon.PixelConverter;
+    import ISize = shapes.ISize;
 
     export module NewDataLabelUtils {
         export const DefaultLabelFontSizeInPt = 9;
+        export const MapPolylineOpacity = 0.5;
+        export const LabelDensityBufferFactor = 3;
+        export const LabelDensityPadding = 6;
         export let startingLabelOffset = 8;
         export let maxLabelOffset = 8;
         export let maxLabelWidth: number = 50;
         export let hundredPercentFormat = '0.00 %;-0.00 %;0.00 %';
         export let LabelTextProperties: TextProperties = {
-            fontFamily: 'wf_standard-font',
+            fontFamily: Font.Family.regularSecondary.css,
             fontSize: PixelConverter.fromPoint(DefaultLabelFontSizeInPt),
             fontWeight: 'normal',
         };
         export let defaultLabelColor = "#777777";
         export let defaultInsideLabelColor = "#ffffff"; //white
-        let horizontalLabelBackgroundMargin = 4;
-        let verticalLabelBackgroundMargin = 2;
+        export const horizontalLabelBackgroundPadding = 4;
+        export const verticalLabelBackgroundPadding = 2;
+        
         let labelBackgroundRounding = 4;
         let defaultLabelPrecision: number = undefined;
         let defaultCountLabelPrecision: number = 0;
@@ -53,49 +58,100 @@ module powerbi.visuals {
         export let labelGraphicsContextClass: ClassAndSelector = createClassAndSelector('labelGraphicsContext');
         export let labelBackgroundGraphicsContextClass: ClassAndSelector = createClassAndSelector('labelBackgroundGraphicsContext');
         let labelsClass: ClassAndSelector = createClassAndSelector('label');
+        let secondLineLabelClass: ClassAndSelector = createClassAndSelector('label-second-line');
 
-        export function drawDefaultLabels(context: D3.Selection, dataLabels: Label[], numeric: boolean = false): D3.UpdateSelection {
+        const linesGraphicsContextClass: ClassAndSelector = createClassAndSelector('leader-lines');
+        const lineClass: ClassAndSelector = createClassAndSelector('line-label');
+
+        export function drawDefaultLabels(context: D3.Selection, dataLabels: Label[], numeric: boolean = false, twoRows: boolean = false, hasTooltip: boolean = false): D3.UpdateSelection {
+            let filteredDataLabels = _.filter(dataLabels, (d: Label) => d.isVisible);
             let labels = context.selectAll(labelsClass.selector)
-                .data(_.filter(dataLabels, (d: Label) => d.isVisible), (d: Label, index: number) => { return d.identity ? d.identity.getKeyWithoutHighlight() : index; });
-
+                .data(filteredDataLabels, labelKeyFunction);
             labels.enter()
                 .append("text")
                 .classed(labelsClass.class, true);
-
             let labelAttr = {
-                    x: (d: Label) => {
-                        return (d.boundingBox.left + (d.boundingBox.width / 2));
-                    },
-                    y: (d: Label) => {
+                x: (d: Label) => {
+                    return (d.boundingBox.left + (d.boundingBox.width / 2));
+                },
+                y: (d: Label) => {
+                    if (d.hasBackground)
+                        return d.boundingBox.top + d.boundingBox.height - verticalLabelBackgroundPadding;
+                    else
                         return d.boundingBox.top + d.boundingBox.height;
-                    },
-                    dy: "-0.15em",
+                },
+                dy: "-0.15em",
             };
             if (numeric) { // For numeric labels, we use a tighter bounding box, so remove the dy because it doesn't need to be centered
                 labelAttr.dy = undefined;
             }
 
             labels
+                .interrupt()
                 .text((d: Label) => d.text)
                 .attr(labelAttr)
                 .style({
                     'fill': (d: Label) => d.fill,
-                    'font-size': (d: Label) => PixelConverter.fromPoint(d.fontSize || DefaultLabelFontSizeInPt)
+                    'font-size': (d: Label) => PixelConverter.fromPoint(d.fontSize || DefaultLabelFontSizeInPt),
+                    'text-anchor': (d: Label) => d.textAnchor,
                 });
-
             labels.exit()
                 .remove();
+
+            let filteredCategoryLabels = _.filter(twoRows ? dataLabels : [], (d: Label) => d.isVisible && !_.isEmpty(d.secondRowText));
+            let secondLineLabels = context.selectAll(secondLineLabelClass.selector)
+                .data(filteredCategoryLabels, (d: Label, index: number) => { return d.identity ? d.identity.getKeyWithoutHighlight() : index; });
+            secondLineLabels.enter()
+                .append("text")
+                .classed(secondLineLabelClass.class, true);
+
+            labelAttr = {
+                x: (d: Label) => {
+                    return (d.boundingBox.left + (d.boundingBox.width / 2));
+                },
+                y: (d: Label) => {
+                    let boundingBoxHeight = (d.text !== undefined) ? d.boundingBox.height / 2 : d.boundingBox.height;
+                    if (d.hasBackground)
+                        return d.boundingBox.top + boundingBoxHeight - verticalLabelBackgroundPadding;
+                    else
+                        return d.boundingBox.top + boundingBoxHeight;
+                },
+                dy: "-0.15em",
+            };
+            if (numeric) { // For numeric labels, we use a tighter bounding box, so remove the dy because it doesn't need to be centered
+                labelAttr.dy = undefined;
+            }
+            secondLineLabels
+                .interrupt()
+                .text((d: Label) => d.secondRowText)
+                .attr(labelAttr)
+                .style({
+                    'fill': (d: Label) => d.fill,
+                    'font-size': (d: Label) => PixelConverter.fromPoint(d.fontSize || DefaultLabelFontSizeInPt),
+                    'text-anchor': (d: Label) => d.textAnchor,
+                });
+
+            secondLineLabels.exit()
+                .remove();
+
+            if (hasTooltip) {
+                labels.append('title').text((d: Label) => d.tooltip);
+                secondLineLabels.append('title').text((d: Label) => d.tooltip);
+                labels.style("pointer-events", "all");
+                secondLineLabels.style("pointer-events", "all");
+            }
 
             return labels;
         }
 
         export function animateDefaultLabels(context: D3.Selection, dataLabels: Label[], duration: number, numeric: boolean = false, easeType: string = 'cubic-in-out'): D3.UpdateSelection {
             let labels = context.selectAll(labelsClass.selector)
-                .data(_.filter(dataLabels, (d: Label) => d.isVisible), (d: Label, index: number) => { return d.identity ? d.identity.getKeyWithoutHighlight() : index; });
+                .data(_.filter(dataLabels, (d: Label) => d.isVisible), labelKeyFunction);
 
             labels.enter()
                 .append("text")
-                .classed(labelsClass.class, true);
+                .classed(labelsClass.class, true)
+                .style('opacity', 0);
 
             let labelAttr = {
                 x: (d: Label) => {
@@ -110,8 +166,7 @@ module powerbi.visuals {
                 labelAttr.dy = undefined;
             }
 
-            labels
-                .text((d: Label) => d.text)
+            labels.text((d: Label) => d.text)
                 .style({
                     'fill': (d: Label) => d.fill,
                     'font-size': (d: Label) => PixelConverter.fromPoint(d.fontSize || DefaultLabelFontSizeInPt),
@@ -119,9 +174,13 @@ module powerbi.visuals {
                 .transition()
                 .ease(easeType)
                 .duration(duration)
-                .attr(labelAttr);
+                .attr(labelAttr)
+                .style('opacity', 1);
 
             labels.exit()
+                .transition()
+                .duration(duration)
+                .style('opacity', 0)
                 .remove();
 
             return labels;
@@ -130,7 +189,7 @@ module powerbi.visuals {
         /** Draws black rectangles based on the bounding bx of labels, to be used in debugging */
         export function drawLabelBackground(context: D3.Selection, dataLabels: Label[], fill?: string, fillOpacity?: number): D3.UpdateSelection {
             let labelRects = context.selectAll("rect")
-                .data(_.filter(dataLabels, (d: Label) => d.isVisible));
+                .data(_.filter(dataLabels, (d: Label) => d.isVisible), labelKeyFunction);
 
             labelRects.enter()
                 .append("rect");
@@ -138,18 +197,21 @@ module powerbi.visuals {
             labelRects
                 .attr({
                     x: (d: Label) => {
-                        return d.boundingBox.left - horizontalLabelBackgroundMargin;
+                        return d.boundingBox.left - horizontalLabelBackgroundPadding;
                     },
                     y: (d: Label) => {
-                        return d.boundingBox.top - verticalLabelBackgroundMargin;
+                        return d.boundingBox.top - verticalLabelBackgroundPadding;
                     },
                     rx: labelBackgroundRounding,
                     ry: labelBackgroundRounding,
                     width: (d: Label) => {
-                        return d.boundingBox.width + 2 * horizontalLabelBackgroundMargin;
+                        return d.boundingBox.width + 2 * horizontalLabelBackgroundPadding;
                     },
                     height: (d: Label) => {
-                        return d.boundingBox.height + 2 * verticalLabelBackgroundMargin;
+                        if (d.text === undefined && d.secondRowText === undefined) {
+                                return 0;
+                        }
+                        return d.boundingBox.height + 2 * verticalLabelBackgroundPadding;
                     },
                 })
                 .style("fill", fill ? fill : "#000000")
@@ -161,10 +223,35 @@ module powerbi.visuals {
             return labelRects;
         }
 
+        export function drawLabelLeaderLines(context: D3.Selection, filteredDataLabels: Label[], key?: (data: any, index?: number) => any, leaderLineColor?: string) {
+            if (context.select(linesGraphicsContextClass.selector).empty())
+                context.append('g').classed(linesGraphicsContextClass.class, true);
+
+            let lines = context.select(linesGraphicsContextClass.selector).selectAll('polyline')
+                .data(filteredDataLabels, key);
+
+            lines.enter()
+                .append('polyline')
+                .classed(lineClass.class, true);
+
+            lines
+                .attr('points', (d: Label) => {
+                    return d.leaderLinePoints;
+                }).
+                style({
+                    'stroke': (d: Label) => leaderLineColor ? leaderLineColor : d.fill,
+                    'stroke-width': DonutLabelUtils.LineStrokeWidth,
+                });
+
+            lines
+                .exit()
+                .remove();
+        }
+
         export function getLabelFormattedText(label: string | number, format?: string, formatter?: IValueFormatter): string {
             return formatter ? formatter.format(label) : formattingService.formatValue(label, format);
         }
-        
+
         export function getDisplayUnitValueFromAxisFormatter(axisFormatter: IValueFormatter, labelSettings: VisualDataLabelsSettings): number {
             if (axisFormatter && axisFormatter.displayUnit && labelSettings.displayUnits === 0)
                 return axisFormatter.displayUnit.value;
@@ -225,7 +312,7 @@ module powerbi.visuals {
             };
         }
 
-        export function removeDuplicates(labelDataPoints: LabelDataPoint[]): LabelDataPoint[]{
+        export function removeDuplicates(labelDataPoints: LabelDataPoint[]): LabelDataPoint[] {
             let uniqueLabelDataPoints: LabelDataPoint[] = [];
             let labelDataPointMap = {};
             let sameParentIsInArray = (newValue: any, array: any[], parentIsRect: boolean) => {
@@ -239,7 +326,7 @@ module powerbi.visuals {
                 });
             };
             for (let dataPoint of labelDataPoints) {
-                let parentIsRect = dataPoint.isParentRect;
+                let parentIsRect = dataPoint.parentType === LabelDataPointParentType.Rectangle;
                 let resultsFromMap = labelDataPointMap[dataPoint.text];
                 if (!resultsFromMap) {
                     uniqueLabelDataPoints.push(dataPoint);
@@ -253,6 +340,53 @@ module powerbi.visuals {
                 }
             }
             return uniqueLabelDataPoints;
+        }
+           
+        export function getDataLabelLayoutOptions(type: CartesianChartType): DataLabelLayoutOptions {
+            switch (type) {
+                case CartesianChartType.Scatter:
+                    return {
+                        maximumOffset: ScatterChart.dataLabelLayoutMaximumOffset,
+                        startingOffset: ScatterChart.dataLabelLayoutStartingOffset,
+                        offsetIterationDelta: ScatterChart.dataLabelLayoutOffsetIterationDelta,
+                        allowLeaderLines: true,
+                        attemptToMoveLabelsIntoViewport: true,
+                    };
+                default:
+                    return {
+                        maximumOffset: NewDataLabelUtils.maxLabelOffset,
+                        startingOffset: NewDataLabelUtils.startingLabelOffset,
+                        attemptToMoveLabelsIntoViewport: true,
+                    };
+            }
+        }
+
+        export function getTextSize(text: string, fontSize: number): ISize {
+            let labelTextProperties = NewDataLabelUtils.LabelTextProperties;
+            let properties = {
+                text: text,
+                fontFamily: labelTextProperties.fontFamily,
+                fontSize: jsCommon.PixelConverter.fromPoint(fontSize),
+                fontWeight: labelTextProperties.fontWeight,
+            };
+            return {
+                width: TextMeasurementService.measureSvgTextWidth(properties),
+                height: TextMeasurementService.estimateSvgTextHeight(properties),
+            };
+        }
+
+        /**
+         * Obtains the key from the label.  Index is required to use as a backup in cases
+         * where labels have no key or identity.
+         */
+        function labelKeyFunction(label: Label, index: number): any {
+            if (label.key) {
+                return label.key;
+            }
+            if (label.identity) {
+                return label.identity.getKeyWithoutHighlight();
+            }
+            return index;
         }
     }
 }

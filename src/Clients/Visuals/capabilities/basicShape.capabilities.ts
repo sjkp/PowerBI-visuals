@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -36,11 +36,7 @@ module powerbi.visuals {
                         displayName: data.createDisplayNameGetter('Visual_BasicShape_LineColor'),
                         type: { fill: { solid: { color: true } } }
                     },
-                    transparency: {
-                        displayName: data.createDisplayNameGetter('Visual_Background_Transparency'),
-                        description: data.createDisplayNameGetter('Visual_Background_TransparencyDescription'),
-                        type: { numeric: true }
-                    },
+                    transparency: StandardObjectProperties.transparency,
                     weight: {
                         displayName: data.createDisplayNameGetter('Visual_BasicShape_Weight'),
                         type: { numeric: true }
@@ -54,19 +50,12 @@ module powerbi.visuals {
             fill: {
                 displayName: data.createDisplayNameGetter('Visual_Fill'),
                 properties: {
-                    show: {
-                        displayName: data.createDisplayNameGetter('Visual_Show'),
-                        type: { bool: true }
-                    },
+                    show: StandardObjectProperties.show,
                     fillColor: {
                         displayName: data.createDisplayNameGetter('Visual_BasicShape_FillColor'),
                         type: { fill: { solid: { color: true } } }
                     },
-                    transparency: {
-                        displayName: data.createDisplayNameGetter('Visual_Background_Transparency'),
-                        description: data.createDisplayNameGetter('Visual_Background_TransparencyDescription'),
-                        type: { numeric: true }
-                    },
+                    transparency: StandardObjectProperties.transparency,
                 }
             },
             rotation: {
@@ -81,12 +70,14 @@ module powerbi.visuals {
             general: {
                 properties: {
                     shapeType: {
-                        type: { text: true }
+                        type: { text: true },
+                        suppressFormatPainterCopy: true,
                     }
                 }
             }
         },
         suppressDefaultTitle: true,
+        suppressDefaultPadding: true,
         canRotate: false,
         supportsSelection: false,
     };

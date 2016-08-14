@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,15 +27,13 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    import ArrayExtensions = jsCommon.ArrayExtensions;
     import ITextAsSVGMeasurer = powerbi.ITextAsSVGMeasurer;
 
     /**
      * Default ranges are for when we have a field chosen for the axis,
      * but no values are returned by the query.
      */
-    export const fallBackDomain = [0, 10];
-    export const fallbackDateDomain = [new Date(2014, 1, 1).getTime(), new Date(2015, 1, 1).getTime()];
+    export const emptyDomain = [0, 0];
 
     export interface IAxisProperties {
         /** 
@@ -50,10 +48,6 @@ module powerbi.visuals {
          * An array of the tick values to display for this axis.
          */
         values: any[];
-        /** 
-         * The D3.Selection that the axis should render to.
-         */
-        graphicsContext?: D3.Selection;
         /** 
          * The ValueType of the column used for this axis.
          */
@@ -86,9 +80,13 @@ module powerbi.visuals {
          * (optional) Whether we are using a default domain.
          */
         usingDefaultDomain?: boolean;
-        /** (optional) do default d3 axis labels fit? */
+        /** 
+         * (optional) do default d3 axis labels fit?
+         */
         willLabelsFit?: boolean;
-        /** (optional) word break axis labels */
+        /**
+         * (optional) word break axis labels
+         */
         willLabelsWordBreak?: boolean;
         /** 
          * (optional) Whether log scale is possible on the current domain.
@@ -98,6 +96,14 @@ module powerbi.visuals {
          * (optional) Whether domain contains zero value and log scale is enabled.
          */
         hasDisallowedZeroInDomain?: boolean;
+        /** 
+         *(optional) The original data domain. Linear scales use .nice() to round to cleaner edge values. Keep the original data domain for later.
+         */
+        dataDomain?: number[];
+        /** 
+         * (optional) The D3 graphics context for this axis
+         */
+        graphicsContext?: D3.Selection;
     }
 
     export interface IMargin {
@@ -119,11 +125,11 @@ module powerbi.visuals {
         /** 
          * The DataViewMetadataColumn will be used for dataType and tick value formatting.
          */
-        metaDataColumn: DataViewMetadataColumn;
+        metaDataColumn: DataViewMetadataColumn; //TODO: remove this, we should just be passing in the formatString and the ValueType, not this DataView-specific object
         /**
-         * Identifies the property for the format string.
+         * The format string.
          */
-        formatStringProp: DataViewObjectPropertyIdentifier;
+        formatString: string;
         /** 
          * outerPadding to be applied to the axis.
          */
@@ -135,7 +141,7 @@ module powerbi.visuals {
         /**
          * If true and the dataType is numeric or dateTime,
          * create a linear axis, else create an ordinal axis.
-         */       
+         */
         isScalar?: boolean;
         /**
          * (optional) The scale is inverted for a vertical axis,
@@ -151,6 +157,11 @@ module powerbi.visuals {
          * align y1 and y2 grid lines.
          */
         forcedTickCount?: number;
+        /**
+         * (optional) For scalar axis with scalar keys, the number of ticks should never exceed the number of scalar keys, 
+         * or labeling will look wierd (i.e. level of detail is Year, but month labels are shown between years)
+         */
+        maxTickCount?: number;
         /** 
          * (optional) Callback for looking up actual values from indices, 
          * used when formatting tick labels. 
@@ -166,6 +177,10 @@ module powerbi.visuals {
         axisDisplayUnits?: number;
         /** (optional) user selected precision */
         axisPrecision?: number;
+        /** (optional) for 100 percent stacked charts, causes formatString override and minTickInterval adjustments */
+        is100Pct?: boolean;
+        /** (optional) sets clamping on the D3 scale, useful for drawing column chart rectangles as it simplifies the math during layout */
+        shouldClamp?: boolean;
     }
 
     export interface CreateScaleResult {
@@ -174,15 +189,22 @@ module powerbi.visuals {
         usingDefaultDomain?: boolean;
     }
 
+    export interface TickLabelMargins {
+        xMax: number;
+        yLeft: number;
+        yRight: number;
+    }
+
     export module AxisHelper {
         let XLabelMaxAllowedOverflow = 35;
         let TextHeightConstant = 10;
         let MinTickCount = 2;
         let DefaultBestTickCount = 3;
         let LeftPadding = 10;
+        let ScalarTickLabelPadding = 3;
 
         export function getRecommendedNumberOfTicksForXAxis(availableWidth: number) {
-            if (availableWidth < 250)
+            if (availableWidth < 300)
                 return 3;
             if (availableWidth < 500)
                 return 5;
@@ -249,7 +271,7 @@ module powerbi.visuals {
             scale: D3.Scale.GenericScale<any>,
             axisType: ValueType,
             isScalar: boolean,
-            minTickInterval?: number): any[]{
+            minTickInterval?: number): any[] {
 
             if (!isScalar || isOrdinalScale(scale)) {
                 return getRecommendedTickValuesForAnOrdinalRange(maxTicks, scale.domain());
@@ -271,9 +293,7 @@ module powerbi.visuals {
             if (maxTicks > len)
                 return labels;
 
-            // TODO: Should we do ceil? this could result in more than maxTicks
-            // e.g. maxTicks === 6, len === 10, 10 / 6=1.66, floor is 1.0, yielding 10 ticksValues.
-            for (let i = 0, step = Math.floor(len / maxTicks); i < len; i += step) {
+            for (let i = 0, step = Math.ceil(len / maxTicks); i < len; i += step) {
                 tickLabels.push(labels[i]);
             }
             return tickLabels;
@@ -314,7 +334,7 @@ module powerbi.visuals {
             }
 
             debug.assertFail('must pass a quantitative scale to this method');
-            
+
             return tickLabels;
         }
 
@@ -330,7 +350,7 @@ module powerbi.visuals {
          *     // Tick values <= 1e-5 replaced with 0
          *     return [-2, -1, 0, 3, 4];
          */
-        function createTrueZeroTickLabel(ticks: number[], epsilon: number = 1e-5): number[]{
+        function createTrueZeroTickLabel(ticks: number[], epsilon: number = 1e-5): number[] {
             if (!ticks || ticks.length < 2)
                 return ticks;
 
@@ -342,19 +362,19 @@ module powerbi.visuals {
         function getRecommendedTickValuesForADateTimeRange(maxTicks: number, dataDomain: number[]): number[] {
             let tickLabels: number[] = [];
 
+            if (dataDomain[0] === 0 && dataDomain[1] === 0)
+                return [];
+
             let dateTimeTickLabels = DateTimeSequence.calculate(new Date(dataDomain[0]), new Date(dataDomain[1]), maxTicks).sequence;
             tickLabels = dateTimeTickLabels.map(d => d.getTime());
             tickLabels = ensureValuesInRange(tickLabels, dataDomain[0], dataDomain[1]);
             return tickLabels;
         }
 
-        export function normalizeLinearDomain(domain: NumberRange): NumberRange {
+        function normalizeLinearDomain(domain: NumberRange): NumberRange {
             if (isNaN(domain.min) || isNaN(domain.max)) {
-                domain.min = fallBackDomain[0];
-                domain.max = fallBackDomain[1];
-            }
-            else if (domain.min === 0 && domain.max === 0) {
-                domain.max = fallBackDomain[1]; // default
+                domain.min = emptyDomain[0];
+                domain.max = emptyDomain[1];
             }
             else if (domain.min === domain.max) {
                 // d3 linear scale will give zero tickValues if max === min, so extend a little
@@ -406,7 +426,7 @@ module powerbi.visuals {
             showOnRight?: boolean,
             renderXAxis?: boolean,
             renderY1Axis?: boolean,
-            renderY2Axis?: boolean) {
+            renderY2Axis?: boolean): TickLabelMargins /*IMargin - can't update this because custom visuals use it*/ {
 
             debug.assertValue(axes, 'axes');
             let xAxisProperties: IAxisProperties = axes.x;
@@ -427,21 +447,15 @@ module powerbi.visuals {
             let maxWidthY1 = 0;
             let maxWidthY2 = 0;
             let xMax = 0; // bottom margin
-            // TODO: using outerPadding to indicate lineChart - we need a better way to indicate whether the label has a rectangle or point as a marker
-            // half-category width is extra space only caused by rectangles being used to plot a category position, line charts don't have this.
-            let labelOffset = xAxisProperties.outerPadding && xAxisProperties.categoryThickness ? xAxisProperties.categoryThickness / 2 : 0;
-            let xLabelOuterPadding = 0;
-
-            // TODO: #6153261 - improve clarity of the outerPadding property.
-            // only Ordinal scales actually use outpadding, Scalar/Continuous axes do not have outer padding and only use this property to incorporate rectangle half-width.
+            let ordinalLabelOffset = xAxisProperties.categoryThickness ? xAxisProperties.categoryThickness / 2 : 0;
             let scaleIsOrdinal = isOrdinalScale(xAxisProperties.scale);
-            if (scaleIsOrdinal) {
-                if (xAxisProperties.outerPadding !== undefined) {
-                    xLabelOuterPadding = xAxisProperties.outerPadding;
-                }
-                else if (xAxisProperties.xLabelMaxWidth !== undefined) {
-                    xLabelOuterPadding = Math.max(0, (viewport.width - xAxisProperties.xLabelMaxWidth * xLabels.length) / 2);
-                }
+
+            let xLabelOuterPadding = 0;
+            if (xAxisProperties.outerPadding !== undefined) {
+                xLabelOuterPadding = xAxisProperties.outerPadding;
+            }
+            else if (xAxisProperties.xLabelMaxWidth !== undefined) {
+                xLabelOuterPadding = Math.max(0, (viewport.width - xAxisProperties.xLabelMaxWidth * xLabels.length) / 2);
             }
 
             if (getRecommendedNumberOfTicksForXAxis(viewport.width) !== 0
@@ -450,7 +464,7 @@ module powerbi.visuals {
                 if (scrollbarVisible)
                     rotation = LabelLayoutStrategy.DefaultRotationWithScrollbar;
                 else
-                    rotation = LabelLayoutStrategy.DefaultRotation;                     
+                    rotation = LabelLayoutStrategy.DefaultRotation;
 
                 if (renderY1Axis) {
                     for (let i = 0, len = y1Labels.length; i < len; i++) {
@@ -469,17 +483,22 @@ module powerbi.visuals {
 
                 let textHeight = textHeightMeasurer(properties);
                 let maxNumLines = Math.floor(bottomMarginLimit / textHeight);
+                let xScale = xAxisProperties.scale;
+                let xDomain = xScale.domain();
                 if (renderXAxis && xLabels.length > 0) {
                     for (let i = 0, len = xLabels.length; i < len; i++) {
+                        // find the max height of the x-labels, perhaps rotated or wrapped
                         let height: number;
                         properties.text = xLabels[i];
                         let width = textWidthMeasurer(properties);
-                        if (xAxisProperties.willLabelsWordBreak && isOrdinal(xAxisProperties.axisType)) {
+                        if (xAxisProperties.willLabelsWordBreak) {
                             // Split label and count rows
                             let wordBreaks = jsCommon.WordBreaker.splitByWidth(properties.text, properties, textWidthMeasurer, xAxisProperties.xLabelMaxWidth, maxNumLines);
                             height = wordBreaks.length * textHeight;
+                            // word wrapping will truncate at xLabelMaxWidth
+                            width = xAxisProperties.xLabelMaxWidth;
                         }
-                        else if (!xAxisProperties.willLabelsFit) {
+                        else if (!xAxisProperties.willLabelsFit && scaleIsOrdinal) {
                             height = width * rotation.sine;
                             width = width * rotation.cosine;
                         }
@@ -487,18 +506,39 @@ module powerbi.visuals {
                             height = TextHeightConstant;
                         }
 
-                        // Account for wide X label (Note: no right overflow when rotated)
-                        let overflow = 0;
+                        // calculate left and right overflow due to wide X labels
+                        // (Note: no right overflow when rotated)
                         if (i === 0) {
-                            if (!xAxisProperties.willLabelsFit /*rotated text*/)
-                                overflow = width - labelOffset - xLabelOuterPadding;
-                            else
-                                overflow = (width / 2) - labelOffset - xLabelOuterPadding;
-                            leftOverflow = Math.max(leftOverflow, overflow);
-                        } else if (i === len - 1 && xAxisProperties.willLabelsFit) {
-                            // if we are rotating text (!willLabelsFit) there won't be any right overflow
-                            overflow = (width / 2) - labelOffset - xLabelOuterPadding;
-                            rightOverflow = Math.max(rightOverflow, overflow);
+                            if (scaleIsOrdinal) {
+                                if (!xAxisProperties.willLabelsFit /*rotated text*/)
+                                    leftOverflow = width - ordinalLabelOffset - xLabelOuterPadding;
+                                else
+                                    leftOverflow = (width / 2) - ordinalLabelOffset - xLabelOuterPadding;
+                                leftOverflow = Math.max(leftOverflow, 0);
+                            }
+                            else if (xDomain.length > 1) {
+                                // Scalar - do some math
+                                let xPos = xScale(xDomain[0]);
+                                // xPos already incorporates xLabelOuterPadding, don't subtract it twice
+                                leftOverflow = (width / 2) - xPos;
+                                leftOverflow = Math.max(leftOverflow, 0);
+                            }
+                        } else if (i === len - 1) {
+                            if (scaleIsOrdinal) {
+                                // if we are rotating text (!willLabelsFit) there won't be any right overflow
+                                if (xAxisProperties.willLabelsFit || xAxisProperties.willLabelsWordBreak) {
+                                    // assume this label is placed near the edge
+                                    rightOverflow = (width / 2) - ordinalLabelOffset - xLabelOuterPadding;
+                                    rightOverflow = Math.max(rightOverflow, 0);
+                                }
+                            }
+                            else if (xDomain.length > 1) {
+                                // Scalar - do some math
+                                let xPos = xScale(xDomain[1]);
+                                // xPos already incorporates xLabelOuterPadding, don't subtract it twice
+                                rightOverflow = (width / 2) - (viewport.width - xPos);
+                                rightOverflow = Math.max(rightOverflow, 0);
+                            }
                         }
 
                         xMax = Math.max(xMax, height);
@@ -521,7 +561,7 @@ module powerbi.visuals {
                 leftMargin = Math.min(Math.max(leftOverflow, maxWidthY1), yMarginLimit);
                 rightMargin = Math.min(Math.max(rightOverflow, maxWidthY2), yMarginLimit);
             }
-
+            
             return {
                 xMax: Math.ceil(bottomMargin),
                 yLeft: Math.ceil(leftMargin),
@@ -529,7 +569,7 @@ module powerbi.visuals {
             };
         }
 
-        export function columnDataTypeHasValue(dataType: ValueType) {
+        export function columnDataTypeHasValue(dataType: ValueTypeDescriptor) {
             return dataType && (dataType.bool || dataType.numeric || dataType.text || dataType.dateTime);
         }
 
@@ -537,15 +577,15 @@ module powerbi.visuals {
             return ValueType.fromDescriptor({ text: true });
         }
 
-        export function isOrdinal(type: ValueType): boolean {
-            return !!(type && (type.text || type.bool));
+        export function isOrdinal(type: ValueTypeDescriptor): boolean {
+            return !!(type && (type.text || type.bool || (type.misc && type.misc.barcode) || (type.geography && type.geography.postalCode)));
         }
 
         export function isOrdinalScale(scale: any): boolean {
             return typeof scale.invert === 'undefined';
         }
 
-        export function isDateTime(type: ValueType): boolean {
+        export function isDateTime(type: ValueTypeDescriptor): boolean {
             return !!(type && type.dateTime);
         }
 
@@ -569,9 +609,10 @@ module powerbi.visuals {
                 return 0;
 
             let width = scale.rangeBand();
-            let halfInnerPadding = (leftEdges[1] - width) / 2;
+            let halfInnerPadding = (leftEdges[1] - leftEdges[0] - width) / 2;
+
             let j;
-            for (j = 0; x > (leftEdges[j] + width + halfInnerPadding) && (leftEdges.length - 1) > j; j++)
+            for (j = 0; x > (leftEdges[j] + width + halfInnerPadding) && j < (leftEdges.length - 1); j++)
                 ;
             return scale.domain()[j];
         }
@@ -589,6 +630,26 @@ module powerbi.visuals {
             return closestValueIndex;
         }
 
+        export function lookupOrdinalIndex(scale: D3.Scale.OrdinalScale, pixelValue: number): number {
+            let closestValueIndex: number = -1;
+            let minDistance = Number.MAX_VALUE;
+            let domain = scale.domain();
+            if (domain.length < 2)
+                return 0;
+            var halfWidth = (scale(1) - scale(0)) / 2;
+            for (let idx in domain) {
+                let leftEdgeInPixels = scale(idx);
+                var midPoint = leftEdgeInPixels + halfWidth;
+                let distance = Math.abs(pixelValue - midPoint);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestValueIndex = parseInt(idx, 10);
+                }
+            }
+            return closestValueIndex;
+        }
+
+        /** scale(value1) - scale(value2) with zero checking and min(+/-1, result) */
         export function diffScaled(
             scale: D3.Scale.GenericScale<any>,
             value1: any,
@@ -604,14 +665,14 @@ module powerbi.visuals {
             return Math.max(value, 1);
         }
 
-        export function createDomain(data: CartesianSeries[], axisType: ValueType, isScalar: boolean, forcedScalarDomain: any[]): number[]{
+        export function createDomain(data: CartesianSeries[], axisType: ValueTypeDescriptor, isScalar: boolean, forcedScalarDomain: any[], ensureDomain?: NumberRange): number[] {
             if (isScalar && !isOrdinal(axisType)) {
                 let userMin, userMax;
                 if (forcedScalarDomain && forcedScalarDomain.length === 2) {
                     userMin = forcedScalarDomain[0];
                     userMax = forcedScalarDomain[1];
                 }
-                return createScalarDomain(data, userMin, userMax, axisType);
+                return createScalarDomain(data, userMin, userMax, axisType, ensureDomain);
             }
 
             return createOrdinalDomain(data);
@@ -630,12 +691,12 @@ module powerbi.visuals {
          */
         export function getCategoryValueType(metadataColumn: DataViewMetadataColumn, isScalar?: boolean): ValueType {
             if (metadataColumn && columnDataTypeHasValue(metadataColumn.type))
-                return metadataColumn.type;
+                return <ValueType>metadataColumn.type;
 
             if (isScalar) {
                 return ValueType.fromDescriptor({ numeric: true });
             }
-            
+
             return ValueType.fromDescriptor({ text: true });
         }
 
@@ -647,7 +708,7 @@ module powerbi.visuals {
             let pixelSpan = options.pixelSpan,
                 dataDomain = options.dataDomain,
                 metaDataColumn = options.metaDataColumn,
-                formatStringProp = options.formatStringProp,
+                formatString = options.formatString,
                 outerPadding = options.outerPadding || 0,
                 isCategoryAxis = !!options.isCategoryAxis,
                 isScalar = !!options.isScalar,
@@ -656,13 +717,13 @@ module powerbi.visuals {
                 getValueFn = options.getValueFn,
                 categoryThickness = options.categoryThickness,
                 axisDisplayUnits = options.axisDisplayUnits,
-                axisPrecision = options.axisPrecision;
+                axisPrecision = options.axisPrecision,
+                is100Pct = !!options.is100Pct;
 
-            let formatString = valueFormatter.getFormatString(metaDataColumn, formatStringProp);
-            let dataType: ValueType = this.getCategoryValueType(metaDataColumn, isScalar);
+            let dataType: ValueType = AxisHelper.getCategoryValueType(metaDataColumn, isScalar);
 
             // Create the Scale
-            let scaleResult: CreateScaleResult = this.createScale(options);
+            let scaleResult: CreateScaleResult = AxisHelper.createScale(options);
             let scale = scaleResult.scale;
             let bestTickCount = scaleResult.bestTickCount;
             let scaleDomain = scale.domain();
@@ -683,7 +744,7 @@ module powerbi.visuals {
                 tickValues = [dataDomain[0]];
             }
             else {
-                let minTickInterval = isScalar ? getMinTickValueInterval(formatString, dataType) : undefined;
+                let minTickInterval = isScalar ? getMinTickValueInterval(formatString, dataType, is100Pct) : undefined;
                 tickValues = getRecommendedTickValues(bestTickCount, scale, dataType, isScalar, minTickInterval);
             }
 
@@ -715,7 +776,7 @@ module powerbi.visuals {
 
             let formattedTickValues = [];
             if (metaDataColumn)
-                formattedTickValues = formatAxisTickValues(axis, tickValues, formatter, dataType, isScalar, getValueFn);
+                formattedTickValues = formatAxisTickValues(axis, tickValues, formatter, dataType, getValueFn);
 
             let xLabelMaxWidth;
             // Use category layout of labels if specified, otherwise use scalar layout of labels
@@ -724,11 +785,8 @@ module powerbi.visuals {
             }
             else {
                 // When there are 0 or 1 ticks, then xLabelMaxWidth = pixelSpan       
-                // When there is > 1 ticks then we need to +1 so that their widths don't overlap
-                // Example: 2 ticks are drawn at 33.33% and 66.66%, their width needs to be 33.33% so they don't overlap.
-                let labelAreaCount = tickValues.length > 1 ? tickValues.length + 1 : tickValues.length;
-                xLabelMaxWidth = labelAreaCount > 1 ? pixelSpan / labelAreaCount : pixelSpan;
-                xLabelMaxWidth = Math.max(1, xLabelMaxWidth - CartesianChart.TickLabelPadding * 2);
+                xLabelMaxWidth = tickValues.length > 1 ? getScalarLabelMaxWidth(scale, tickValues) : pixelSpan;
+                xLabelMaxWidth = xLabelMaxWidth - ScalarTickLabelPadding * 2;
             }
 
             return {
@@ -744,7 +802,20 @@ module powerbi.visuals {
                 outerPadding: outerPadding,
                 usingDefaultDomain: scaleResult.usingDefaultDomain,
                 isLogScaleAllowed: isLogScaleAllowed,
+                dataDomain: dataDomain,
             };
+        }
+
+        function getScalarLabelMaxWidth(scale: D3.Scale.GenericScale<any>, tickValues: number[]): number {
+            debug.assertValue(scale, "scale");
+            debug.assertNonEmpty(tickValues, "tickValues");
+            // find the distance between two ticks. scalar ticks can be anywhere, such as:
+            // |---50----------100--------|
+            if (scale && !_.isEmpty(tickValues)) {
+                return Math.abs(scale(tickValues[1]) - scale(tickValues[0]));
+            }
+
+            return 1;
         }
 
         export function createScale(options: CreateAxisOptions): CreateScaleResult {
@@ -755,23 +826,27 @@ module powerbi.visuals {
                 isScalar = !!options.isScalar,
                 isVertical = !!options.isVertical,
                 forcedTickCount = options.forcedTickCount,
-                categoryThickness = options.categoryThickness;
+                categoryThickness = options.categoryThickness,
+                shouldClamp = !!options.shouldClamp,
+                maxTickCount = options.maxTickCount;
 
-            let dataType: ValueType = this.getCategoryValueType(metaDataColumn, isScalar);
+            let dataType: ValueType = AxisHelper.getCategoryValueType(metaDataColumn, isScalar);
+
             let maxTicks = isVertical ? getRecommendedNumberOfTicksForYAxis(pixelSpan) : getRecommendedNumberOfTicksForXAxis(pixelSpan);
+            if (maxTickCount &&
+                maxTicks > maxTickCount)
+                maxTicks = maxTickCount;
+
             let scalarDomain = dataDomain ? dataDomain.slice() : null;
             let bestTickCount = maxTicks;
             let scale: D3.Scale.GenericScale<any>;
             let usingDefaultDomain = false;
 
-            // using double-equals null intentionally, also checks undefined.
             if (dataDomain == null || (dataDomain.length === 2 && dataDomain[0] == null && dataDomain[1] == null) || (dataDomain.length !== 2 && isScalar)) {
                 usingDefaultDomain = true;
 
-                if (dataType.dateTime)
-                    dataDomain = fallbackDateDomain;
-                else if (!isOrdinal(dataType))
-                    dataDomain = fallBackDomain;
+                if (dataType.dateTime || !isOrdinal(dataType))
+                    dataDomain = emptyDomain;
                 else //ordinal
                     dataDomain = [];
 
@@ -787,19 +862,20 @@ module powerbi.visuals {
                     bestTickCount = forcedTickCount !== undefined
                         ? (maxTicks !== 0 ? forcedTickCount : 0)
                         : AxisHelper.getBestNumberOfTicks(dataDomain[0], dataDomain[dataDomain.length - 1], [metaDataColumn], maxTicks, dataType.dateTime);
-                    let normalizedRange = AxisHelper.normalizeLinearDomain({ min: dataDomain[0], max: dataDomain[dataDomain.length - 1] });
+
+                    let normalizedRange = normalizeLinearDomain({ min: dataDomain[0], max: dataDomain[dataDomain.length - 1] });
                     scalarDomain = [normalizedRange.min, normalizedRange.max];
                 }
 
                 if (isScalar && dataType.numeric && !dataType.dateTime) {
-                    scale = createNumericalScale(options.scaleType, pixelSpan, scalarDomain, dataType, outerPadding, bestTickCount);
+                    scale = createNumericalScale(options.scaleType, pixelSpan, scalarDomain, dataType, outerPadding, bestTickCount, shouldClamp);
                 }
                 else if (isScalar && dataType.dateTime) {
                     // Use of a linear scale, instead of a D3.time.scale, is intentional since we want
                     // to control the formatting of the time values, since d3's implementation isn't
                     // in accordance to our design.
                     //     scalarDomain: should already be in long-int time (via category.values[0].getTime())
-                    scale = createLinearScale(pixelSpan, scalarDomain, outerPadding, null); // DO NOT PASS TICKCOUNT
+                    scale = createLinearScale(pixelSpan, scalarDomain, outerPadding, null, shouldClamp); // DO NOT PASS TICKCOUNT
                 }
                 else if (dataType.text || dataType.dateTime || dataType.numeric || dataType.bool) {
                     scale = createOrdinalScale(pixelSpan, scalarDomain, categoryThickness ? outerPadding / categoryThickness : 0);
@@ -819,6 +895,7 @@ module powerbi.visuals {
             }
 
             ColumnUtil.normalizeInfinityInScale(scale);
+
             return {
                 scale: scale,
                 bestTickCount: bestTickCount,
@@ -826,7 +903,7 @@ module powerbi.visuals {
             };
         }
 
-        function createFormatter(
+        export function createFormatter(
             scaleDomain: any[],
             dataDomain: any[],
             dataType,
@@ -849,15 +926,17 @@ module powerbi.visuals {
                     // so formatting works correctly.
                     if (bestTickCount === 1)
                         value = value2 = new Date(dataDomain[0]);
-                    formatter = valueFormatter.create({ format: formatString, value: value, value2: value2, tickCount: bestTickCount });
+                    // this will ignore the formatString and create one based on the smallest non-zero portion of the values supplied.
+                    formatter = valueFormatter.create({
+                        format: formatString,
+                        value: value,
+                        value2: value2,
+                        tickCount: bestTickCount,
+                    });
                 }
                 else {
-                    if (getValueFn == null) {
-                        debug.assertFail('getValueFn must be supplied for ordinal datetime tickValues');
-                    }
-                    let minDate: Date = getValueFn(0, dataType);
-                    let maxDate: Date = getValueFn(scaleDomain.length - 1, dataType);
-                    formatter = valueFormatter.create({ format: formatString, value: minDate, value2: maxDate, tickCount: bestTickCount });
+                    // Use the model formatString for ordinal datetime
+                    formatter = valueFormatter.createDefaultFormatter(formatString, true);
                 }
             }
             else {
@@ -865,9 +944,21 @@ module powerbi.visuals {
                     debug.assertFail('getValueFn must be supplied for ordinal tickValues');
                 }
                 if (useTickIntervalForDisplayUnits && isScalar && tickValues.length > 1) {
-                    let displayUnit = axisDisplayUnits ? axisDisplayUnits: tickValues[1] - tickValues[0];
-                    let domainMax = 0; //force tickInterval to be used with display units
-                    formatter = valueFormatter.create({ format: formatString, value: displayUnit, value2: domainMax, allowFormatBeautification: true, precision: axisPrecision });
+                    let value1 = axisDisplayUnits ? axisDisplayUnits : tickValues[1] - tickValues[0];
+
+                    let options: ValueFormatterOptions = {
+                        format: formatString,
+                        value: value1,
+                        value2: 0, //force tickInterval or display unit to be used
+                        allowFormatBeautification: true,
+                    };
+
+                    if (axisPrecision)
+                        options.precision = axisPrecision;
+                    else
+                        options.detectAxisPrecision = true;
+
+                    formatter = valueFormatter.create(options);
                 }
                 else {
                     // do not use display units, just the basic value formatter
@@ -882,25 +973,21 @@ module powerbi.visuals {
         /**
          * Format the linear tick labels or the category labels.
          */
-        export function formatAxisTickValues(
+        function formatAxisTickValues(
             axis: D3.Svg.Axis,
             tickValues: any[],
             formatter: IValueFormatter,
             dataType: ValueType,
-            isScalar: boolean,
             getValueFn?: (index: number, type: ValueType) => any) {
 
             let formattedTickValues = [];
+
+            if (!getValueFn)
+                getValueFn = data => data;
+
             if (formatter) {
-                // getValueFn takes an ordinal axis index or builds DateTime from milliseconds, do not pass a numeric scalar value.
-                if (getValueFn && !(dataType.numeric && isScalar)) {
-                    axis.tickFormat(d => formatter.format(getValueFn(d, dataType)));
-                    formattedTickValues = tickValues.map(d => formatter.format(getValueFn(d, dataType)));
-                }
-                else {
-                    axis.tickFormat(d => formatter.format(d));
-                    formattedTickValues = tickValues.map((d) => formatter.format(d));
-                }
+                axis.tickFormat(d => formatter.format(getValueFn(d, dataType)));
+                formattedTickValues = tickValues.map(d => formatter.format(getValueFn(d, dataType)));
             }
             else {
                 formattedTickValues = tickValues.map((d) => getValueFn(d, dataType));
@@ -925,16 +1012,16 @@ module powerbi.visuals {
             return 0;
         }
 
-        function createScalarDomain(data: CartesianSeries[], userMin: DataViewPropertyValue, userMax: DataViewPropertyValue, axisType: ValueType): number[] {
+        function createScalarDomain(data: CartesianSeries[], userMin: DataViewPropertyValue, userMax: DataViewPropertyValue, axisType: ValueTypeDescriptor, ensureDomain?: NumberRange): number[] {
             debug.assertValue(data, 'data');
             if (data.length === 0) {
                 return null;
             }
 
-            let defaultMinX = <number>d3.min(data,(kv) => { return d3.min(kv.data, d => { return d.categoryValue; }); });
-            let defaultMaxX = <number>d3.max(data,(kv) => { return d3.max(kv.data, d => { return d.categoryValue; }); });
+            let defaultMinX = <number>d3.min(data, (kv) => { return d3.min(kv.data, d => { return d.categoryValue; }); });
+            let defaultMaxX = <number>d3.max(data, (kv) => { return d3.max(kv.data, d => { return d.categoryValue; }); });
 
-            return combineDomain([userMin, userMax], [defaultMinX, defaultMaxX]);
+            return combineDomain([userMin, userMax], [defaultMinX, defaultMaxX], ensureDomain);
         }
 
         /**
@@ -948,8 +1035,8 @@ module powerbi.visuals {
             if (data.length === 0)
                 return null;
 
-            let minY = <number>d3.min(data,(kv) => { return d3.min(kv.data, d => { return d.value; }); });
-            let maxY = <number>d3.max(data,(kv) => { return d3.max(kv.data, d => { return d.value; }); });
+            let minY = <number>d3.min(data, (kv) => { return d3.min(kv.data, d => { return d.value; }); });
+            let maxY = <number>d3.max(data, (kv) => { return d3.max(kv.data, d => { return d.value; }); });
 
             if (includeZero)
                 return [Math.min(minY, 0), Math.max(maxY, 0)];
@@ -957,10 +1044,17 @@ module powerbi.visuals {
         }
 
         function createOrdinalDomain(data: CartesianSeries[]): number[] {
-            if (ArrayExtensions.isUndefinedOrEmpty(data))
+            if (_.isEmpty(data))
                 return [];
 
-            return data[0].data.map(d => d.categoryIndex);
+            // each series shares the same categories for oridinal axes (even if a series has some nulls)
+            let domain = [];
+            let firstSeries = data[0];
+            for (let dp of firstSeries.data) {
+                if (!dp.highlight)
+                    domain.push(dp.categoryIndex);
+            }
+            return domain;
         }
 
         export module LabelLayoutStrategy {
@@ -968,7 +1062,7 @@ module powerbi.visuals {
                 axisProperties: IAxisProperties,
                 availableWidth: number,
                 textMeasurer: ITextAsSVGMeasurer,
-                properties: TextProperties) {
+                properties: TextProperties): boolean {
 
                 let labels = axisProperties.values;
                 if (labels.length === 0)
@@ -998,7 +1092,7 @@ module powerbi.visuals {
                     : availableWidth / labels.length;
                 let maxRotatedLength = margin.bottom / DefaultRotation.sine;
                 let height = textHeightMeasurer(properties);
-                let maxNumLines = Math.max(1, Math.floor(margin.bottom / height));
+                let maxNumLines = Math.max(1, Math.floor(margin.bottom / height));  // TODO: not taking axis label into account
 
                 if (labels.length === 0)
                     return false;
@@ -1027,15 +1121,16 @@ module powerbi.visuals {
                     let rotatedLength = Math.min(allowedLength, maxRotatedLength);
                     
                     // Which shows more characters? Rotated or maxNumLines truncated to labelMaxWidth?
-                    let wordBreakChars = jsCommon.WordBreaker.splitByWidth(label, properties, textWidthMeasurer, labelMaxWidth, maxNumLines, textTruncator).join('');
+                    let wordBreakChars = jsCommon.WordBreaker.splitByWidth(label, properties, textWidthMeasurer, labelMaxWidth, maxNumLines, textTruncator).join(' ');
                     properties.text = label;
                     let rotateChars = textTruncator(properties, rotatedLength);
 
-                    return TextUtil.removeEllipses(wordBreakChars).length > TextUtil.removeEllipses(rotateChars).length;
+                    // prefer word break (>=) as it takes up less plot area
+                    return TextUtil.removeEllipses(wordBreakChars).length >= TextUtil.removeEllipses(rotateChars).length;
                 });
 
-                // If majority show more with word rotated, use word break strategy
-                return moreWordBreakChars.length > Math.floor(labels.length / 2);
+                // prefer word break (>=) as it takes up less plot area
+                return moreWordBreakChars.length >= Math.floor(labels.length / 2);
             }
 
             export const DefaultRotation = {
@@ -1055,9 +1150,10 @@ module powerbi.visuals {
             };
 
             export function rotate(
-                text: D3.Selection,
+                labelSelection: D3.Selection,
                 maxBottomMargin: number,
-                svgEllipsis: (textElement: SVGTextElement, maxWidth: number) => void,
+                textTruncator: (properties: TextProperties, maxWidth: number) => string,
+                textProperties: TextProperties,
                 needRotate: boolean,
                 needEllipsis: boolean,
                 axisProperties: IAxisProperties,
@@ -1067,8 +1163,8 @@ module powerbi.visuals {
                 let rotatedLength;
                 let defaultRotation: any;
 
-                if (scrollbarVisible) 
-                    defaultRotation = DefaultRotationWithScrollbar;               
+                if (scrollbarVisible)
+                    defaultRotation = DefaultRotationWithScrollbar;
                 else
                     defaultRotation = DefaultRotation;
 
@@ -1076,8 +1172,10 @@ module powerbi.visuals {
                     rotatedLength = maxBottomMargin / defaultRotation.sine;
                 }
 
-                text.each(function () {
-                    let text = d3.select(this);
+                labelSelection.each(function () {
+                    let axisLabel = d3.select(this);
+                    let labelText = axisLabel.text();
+                    textProperties.text = labelText;
                     if (needRotate) {
                         let textContentIndex = axisProperties.values.indexOf(this.textContent);
                         let allowedLengthProjectedOnXAxis =
@@ -1095,17 +1193,21 @@ module powerbi.visuals {
                         // Truncate if scrollbar is visible or rotatedLength exceeds allowedLength
                         let allowedLength = allowedLengthProjectedOnXAxis / defaultRotation.cosine;
                         if (scrollbarVisible || needEllipsis || (allowedLength < rotatedLength)) {
-                            svgEllipsis(text[0][0], Math.min(allowedLength, rotatedLength));
+                            labelText = textTruncator(textProperties, Math.min(allowedLength, rotatedLength));
+                            axisLabel.text(labelText);
                         }
 
-                        text.style('text-anchor', 'end')
+                        axisLabel.style('text-anchor', 'end')
                             .attr({
                                 'dx': '-0.5em',
                                 'dy': defaultRotation.dy,
                                 'transform': defaultRotation.transform
                             });
                     } else {
-                        text.style('text-anchor', 'middle')
+                        let newLabelText = textTruncator(textProperties, axisProperties.xLabelMaxWidth);
+                        if (newLabelText !== labelText)
+                            axisLabel.text(newLabelText);
+                        axisLabel.style('text-anchor', 'middle')
                             .attr(
                             {
                                 'dx': '0em',
@@ -1148,63 +1250,12 @@ module powerbi.visuals {
                     svgEllipsis(text[0][0], availableWidth);
                 });
             }
-
-        }
-
-        export module ToolTip {
-            let calloutHtml =
-                '<div class="callout triangle-border ms-font-mi">' +
-                '<div class="textArea"/>' +
-                '</div>';
-
-            export function createCallout(): JQuery {
-                return $(calloutHtml);
-            }
-
-            export function clearCallout(callout: JQuery): void {
-                callout.find('.destroyme').remove();
-            }
-
-            export function renderCallout(callout: JQuery, x: number, rangeEnd: number, leftMargin: number) {
-                let calloutBleed = 0;
-                let calloutWidth = callout.width();
-                let calloutHalfWidth = calloutWidth / 2;
-                let xOffset = (leftMargin - calloutHalfWidth) - 10;
-                let innerTriangleOffset = 2;
-                let left: number;
-                let triangleLeftBefore: number;
-                let triangleLeftAfter: number;
-
-                if (x + (calloutHalfWidth - calloutBleed) > rangeEnd) {
-                    left = (rangeEnd + xOffset - (calloutHalfWidth - calloutBleed));
-                    triangleLeftBefore = ((calloutWidth - innerTriangleOffset - calloutBleed) - (rangeEnd - x));
-                    triangleLeftAfter = ((calloutWidth - calloutBleed) - (rangeEnd - x));
-
-                } else if (x > (calloutHalfWidth - calloutBleed)) {
-                    left = (x + xOffset);
-                    triangleLeftBefore = (calloutHalfWidth - innerTriangleOffset);
-                    triangleLeftAfter = (calloutHalfWidth);
-                }
-                else {
-                    left = (calloutHalfWidth - calloutBleed) + xOffset;
-                    triangleLeftBefore = (x + calloutBleed - innerTriangleOffset);
-                    triangleLeftAfter = (x + calloutBleed);
-                }
-                renderCalloutImpl(callout, left, triangleLeftBefore, triangleLeftAfter);
-            }
-
-            function renderCalloutImpl(callout: JQuery, left: number, triangleLeftBefore: number, triangleLeftAfter: number) {
-                callout.css('left', left + 'px');
-                callout.find('.destroyme').remove();
-                callout.append('<style class="destroyme">.triangle-border:before{left:' + triangleLeftBefore + 'px;}</style>');
-                callout.append('<style class="destroyme">.triangle-border:after{left:' + triangleLeftAfter + 'px;}</style>');
-            }
         }
 
         export function createOrdinalScale(pixelSpan: number, dataDomain: any[], outerPaddingRatio: number = 0): D3.Scale.OrdinalScale {
             debug.assert(outerPaddingRatio >= 0 && outerPaddingRatio < 4, 'outerPaddingRatio should be a value between zero and four');
             let scale = d3.scale.ordinal()
-                /* Avoid using rangeRoundBands here as it is adding some extra padding to the axis*/
+            /* Avoid using rangeRoundBands here as it is adding some extra padding to the axis*/
                 .rangeBands([0, pixelSpan], CartesianChart.InnerPaddingRatio, outerPaddingRatio)
                 .domain(dataDomain);
             return scale;
@@ -1221,13 +1272,21 @@ module powerbi.visuals {
 
         //this function can return different scales e.g. log, linear
         // NOTE: export only for testing, do not access directly
-        export function createNumericalScale(axisScaleType: string, pixelSpan: number, dataDomain: any[], dataType:ValueType, outerPadding: number = 0, niceCount?: number): D3.Scale.GenericScale<any> {                      
-            if (axisScaleType === axisScale.log && isLogScalePossible(dataDomain,dataType)) {
+        export function createNumericalScale(
+            axisScaleType: string,
+            pixelSpan: number,
+            dataDomain: any[],
+            dataType: ValueType,
+            outerPadding: number = 0,
+            niceCount?: number,
+            shouldClamp?: boolean): D3.Scale.GenericScale<any> {
+
+            if (axisScaleType === axisScale.log && isLogScalePossible(dataDomain, dataType)) {
                 return createLogScale(pixelSpan, dataDomain, outerPadding, niceCount);
             }
             else {
-                return createLinearScale(pixelSpan, dataDomain, outerPadding, niceCount);
-            }            
+                return createLinearScale(pixelSpan, dataDomain, outerPadding, niceCount, shouldClamp);
+            }
         }
 
         function createLogScale(pixelSpan: number, dataDomain: any[], outerPadding: number = 0, niceCount?: number): D3.Scale.LinearScale {
@@ -1236,7 +1295,7 @@ module powerbi.visuals {
                 .range([outerPadding, pixelSpan - outerPadding])
                 .domain([dataDomain[0], dataDomain[1]])
                 .clamp(true);
-            
+
             if (niceCount) {
                 scale.nice(niceCount);
             }
@@ -1245,10 +1304,11 @@ module powerbi.visuals {
         }
 
         // NOTE: export only for testing, do not access directly
-        export function createLinearScale(pixelSpan: number, dataDomain: any[], outerPadding: number = 0, niceCount?: number): D3.Scale.LinearScale {
+        export function createLinearScale(pixelSpan: number, dataDomain: any[], outerPadding: number = 0, niceCount?: number, shouldClamp?: boolean): D3.Scale.LinearScale {
             let scale = d3.scale.linear()
                 .range([outerPadding, pixelSpan - outerPadding])
-                .domain([dataDomain[0], dataDomain[1]]);
+                .domain([dataDomain[0], dataDomain[1]])
+                .clamp(shouldClamp);
             // .nice(undefined) still modifies the scale boundaries, and for datetime this messes things up.
             // we use millisecond ticks since epoch for datetime, so we don't want any "nice" with numbers like 17398203392.
             if (niceCount) {
@@ -1256,16 +1316,16 @@ module powerbi.visuals {
             }
             return scale;
         }
-        
+
         export function getRangeForColumn(sizeColumn: DataViewValueColumn): NumberRange {
             let result: NumberRange = {};
             if (sizeColumn) {
-                result.min = sizeColumn.min == null
+                result.min = <number>(sizeColumn.min == null
                     ? sizeColumn.minLocal == null ? d3.min(sizeColumn.values) : sizeColumn.minLocal
-                    : sizeColumn.min;
-                result.max = sizeColumn.max == null
+                    : sizeColumn.min);
+                result.max = <number>(sizeColumn.max == null
                     ? sizeColumn.maxLocal == null ? d3.max(sizeColumn.values) : sizeColumn.maxLocal
-                    : sizeColumn.max;
+                    : sizeColumn.max);
             }
             return result;
         }
@@ -1305,9 +1365,21 @@ module powerbi.visuals {
         
         /**
          * Combine the forced domain with the actual domain if one of the values was set.
+         * The forcedDomain is in 1st priority. Extends the domain if the any reference point requires it.
          */
-        export function combineDomain(forcedDomain: any[], domain: any[]): any[] {
+        export function combineDomain(forcedDomain: any[], domain: any[], ensureDomain?: NumberRange): any[] {
             let combinedDomain: any[] = domain ? [domain[0], domain[1]] : [];
+
+            if (ensureDomain) {
+                if (combinedDomain[0] == null || ensureDomain.min < combinedDomain[0])
+                    combinedDomain[0] = ensureDomain.min;
+
+                if (combinedDomain[1] == null || ensureDomain.max > combinedDomain[1])
+                    combinedDomain[1] = ensureDomain.max;
+            }
+
+            let domainBeforeForced: any[] = [combinedDomain[0], combinedDomain[1]];
+
             if (forcedDomain && forcedDomain.length === 2) {
                 if (forcedDomain[0] != null) {
                     combinedDomain[0] = forcedDomain[0];
@@ -1316,22 +1388,23 @@ module powerbi.visuals {
                     combinedDomain[1] = forcedDomain[1];
                 }
                 if (combinedDomain[0] > combinedDomain[1]) {
-                    combinedDomain = domain;//this is invalid, so take the original domain
+                    combinedDomain = domainBeforeForced;//this is invalid, so take the original domain considering the values and the reference line
                 }
             }
             return combinedDomain;
         }
 
-        export function createAxisLabel(properties: DataViewObject, label: string, unitType: string): string {  
-            if (!properties || !properties['axisStyle']) {
+        export function createAxisLabel(properties: DataViewObject, label: string, unitType: string, y2: boolean = false): string {
+            let propertyName = y2 ? 'secAxisStyle' : 'axisStyle';
+            if (!properties || !properties[propertyName]) {
                 return label;
             }
 
             let modifiedLabel;
-            if (properties['axisStyle'] === axisStyle.showBoth) {
+            if (properties[propertyName] === axisStyle.showBoth) {
                 modifiedLabel = label + ' (' + unitType + ')';//todo: localize
             }
-            else if (properties['axisStyle'] === axisStyle.showUnitOnly) {
+            else if (properties[propertyName] === axisStyle.showUnitOnly) {
                 modifiedLabel = unitType;
             }
             else {
@@ -1347,19 +1420,28 @@ module powerbi.visuals {
             return combinedDomain[0] !== domain[0] || combinedDomain[1] !== domain[1];
         }
 
-        export function normalizeNonFiniteNumber(value: number): number {
-            if (isNaN(value))
+        export function normalizeNonFiniteNumber(value: PrimitiveValue): number {
+            if (isNaN(<number>value))
                 return null;
             else if (value === Number.POSITIVE_INFINITY)
                 return Number.MAX_VALUE;
             else if (value === Number.NEGATIVE_INFINITY)
                 return -Number.MAX_VALUE;
 
-            return value;
+            return <number>value;
         }
 
-        export function powerOfTen(d:any): boolean {
-            return d / Math.pow(10, Math.ceil(Math.log(d) / Math.LN10 - 1e-12)) === 1;
+        /**
+         * Indicates whether the number is power of 10.
+         */
+        export function powerOfTen(d: any): boolean {
+            let value = Math.abs(d);
+            // formula log2(Y)/log2(10) = log10(Y)
+            // because double issues this won't return exact value
+            // we need to ceil it to nearest number.
+            let log10: number = Math.log(value) / Math.LN10;
+            log10 = Math.ceil(log10 - 1e-12);
+            return value / Math.pow(10, log10) === 1;
         }
     }
 }

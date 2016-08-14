@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="VisualTemplate.Microsoft.054346d8-1f70-4b08-af0d-1d9f159a0377" Version="1.0" Language="en-US" Publisher="Microsoft" />
+    <DisplayName>VisualTemplate</DisplayName>
+    <Description xml:space="preserve">Create a new visual for Power BI.</Description>
+    <Icon>Resources\powerbi.ico</Icon>
+    <Tags>visuals,powerbi</Tags>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[14.0,15.0)" />
+  </Installation>
+  <Dependencies>
+    <Dependency d:Source="Installed" Id="Microsoft.TypeScript.3D12078A-1A3F-4AFF-8B70-0037C0F580CD" DisplayName="TypeScript for Microsoft Visual Studio" Version="[1.5.0.0,2.0)" />
+  </Dependencies>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.ItemTemplate" d:Source="Project" d:ProjectName="I%CurrentProject%" d:TargetPath="|IVisualTemplate;TemplateProjectOutputGroup|" Path="ItemTemplates" d:VsixSubPath="ItemTemplates" />
+  </Assets>
+</PackageManifest>

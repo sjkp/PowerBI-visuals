@@ -2,7 +2,7 @@
  *  Power BI KPI Glyphs
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,14 +11,14 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
@@ -28,6 +28,13 @@
 @kpiGreen: #79c75b;
 @kpiYellow: #e8d62e;
 @kpiRed: #c0433a;
+
+/* KPI Visual colors*/
+@kpiVisualGreen: #3bb44a;
+@kpiVisualYellow: #F2C811;
+@kpiVisualRed: #E81123;
+@kpiVisualTextGrey: #212121;
+@kpiVisualGraphGrey: #5F6B6D;
 
 .kpi-green{
     color: @kpiGreen;
@@ -41,9 +48,35 @@
     color: @kpiRed;
 }
 
+.kpi-visual-green{
+    color: @kpiVisualGreen;
+    fill: @kpiVisualGreen;
+}
+
+.kpi-visual-yellow{
+    color: @kpiVisualYellow;
+    fill: @kpiVisualYellow;
+}
+
+.kpi-visual-red{
+    color: @kpiVisualRed;
+    fill: @kpiVisualRed;
+}
+
+.kpi-visual-text-grey{
+    color: @kpiVisualTextGrey;
+    fill: @kpiVisualTextGrey;
+}
+
+.kpi-visual-graph-grey{
+    color: @kpiVisualGraphGrey;
+    fill: @kpiVisualGraphGrey;
+}
+
+
 @font-face {
     font-family: 'PowerVisuals';
-    src: ~"url('../fonts/PowerVisuals.eot?#iefix') format('embedded-opentype'),url('../fonts/PowerVisuals.woff') format('woff'),url('../fonts/PowerVisuals.ttf') format('truetype'),url('../fonts/PowerVisuals.svg') format('svg')";
+    src: ~"local('helvetica'),local('arial'),local('sans-serif')";
     font-weight: normal;
     font-style: normal;
 }
@@ -55,7 +88,7 @@
     font-weight: normal;
     font-style: normal;
     display: inline-block;
-
+    
     /** Necessary to allow absolute positioning of just ::after elements (i.e. stacks) */
     position: relative;
 
@@ -115,164 +148,202 @@
         content: '\E116';
     }
 
+    &.chevron-up::before {
+        content: '\E119';
+    }
+
+    &.chevron-down::before {
+        content: '\E118';
+    }
+
     &.circle::before {
         content: '\E700';
     }
-    
+
     &.flag::before {
         content: '\E70D';
     }
-    
+
     &.circle-x::before {
         content: '\E70E';
     }
-    
+
     &.circle-exclamation::before {
         content: '\E70F';
     }
-    
+
     &.circle-checkmark::before {
         content: '\E710';
     }
-    
+
     &.circle-small::before {
         content: '\E712';
     }
-    
+
     &.square::before {
         content: '\E713';
     }
-    
+
     &.x::before {
         content: '\E714';
     }
-    
+
     &.exclamation::before {
         content: '\E715';
     }
-    
+
     &.checkmark::before {
         content: '\E718';
     }
-    
+
     &.rhombus::before {
         content: '\E719';
     }
-    
+
     &.triangle::before {
         content: '\E71B';
     }
-    
+
     &.star-empty::before {
         content: '\E71C';
     }
-    
+
     &.star-half-full::before {
         content: '\E721';
     }
-    
+
+    &.search::before {
+        content: '\E120';
+    }
+
     &.star-full::before {
         content: '\E724';
     }
-    
+
     &.bars-one::before {
         content: '\E725';
     }
-    
+
     &.bars-two::before {
         content: '\E726';
     }
-    
+
     &.bars-three::before {
         content: '\E727';
     }
-    
+
     &.bars-four::before {
         content: '\E728';
     }
-    
+
     &.bars-five::before {
         content: '\E729';
     }
-    
+
     &.boxes-one::before {
         content: '\E732';
     }
-    
+
     &.boxes-two::before {
         content: '\E733';
     }
-    
+
     &.boxes-three::before {
         content: '\E731';
     }
-    
+
     &.boxes-four::before {
         content: '\E730';
     }
-    
+
     &.circle-empty::before {
         content: '\E734';
     }
-    
+
     &.circle-full::before {
         content: '\E735';
     }
-    
+
     &.circle-three-quarters::before {
         content: '\E736';
     }
-    
+
     &.circle-half::before {
         content: '\E737';
     }
-    
+
     &.circle-one-quarter::before {
         content: '\E738';
     }
 
+    &.link::before {
+        content: '\E8B5';
+    }
+
+    &.bold::before {
+        content: '\E8DD';
+    }
+
+    &.italic::before {
+        content: '\E8DB';
+    }
+
+    &.underline::before {
+        content: '\E8DC';
+    }
+
+    &.alignleft::before {
+        content: '\E8E4';
+    }
+
+    &.aligncenter::before {
+        content: '\E8E3';
+    }
+
+    &.alignright::before {
+        content: '\E8E2';
+    }
     //stacked boxes
-    &.boxes-stacked{
-        &::before{
+    &.boxes-stacked {
+        &::before {
             content: '\E730';
             color: @neutralTertiaryAltColor;
         }
 
-        &::after{
+        &::after {
             position: absolute;
             left: 0;
             color: @blackColor;
         }
 
-        &.boxes-zero::after{
+        &.boxes-zero::after {
             content: '';
         }
 
-        &.boxes-one::after{
+        &.boxes-one::after {
             content: '\E732';
         }
 
-        &.boxes-two::after{
+        &.boxes-two::after {
             content: '\E733';
         }
 
-        &.boxes-three::after{
+        &.boxes-three::after {
             content: '\E731';
         }
 
-        &.boxes-four::before{
+        &.boxes-four::before {
             color: @blackColor;
         }
     }
-
     //stacked bars
-    &.bars-stacked{
-        &::before{
+    &.bars-stacked {
+        &::before {
             content: '\E728';
             color: @neutralTertiaryAltColor;
         }
 
-        &::after{
+        &::after {
             position: absolute;
             left: 0;
             color: @blackColor;
@@ -281,15 +352,15 @@
         &.bars-zero::after {
             content: '';
         }
-        
+
         &.bars-one::after {
             content: '\E725';
         }
-    
+
         &.bars-two::after {
             content: '\E726';
         }
-    
+
         &.bars-three::after {
             content: '\E727';
         }
@@ -298,15 +369,14 @@
             color: @blackColor;
         }
     }
-
     //stacked stars
-    &.star-stacked{
-        &::before{
+    &.star-stacked {
+        &::before {
             content: '\E724';
             color: @neutralTertiaryAltColor;
         }
 
-        &::after{
+        &::after {
             position: absolute;
             left: 0;
             color: @blackColor;
@@ -315,28 +385,26 @@
         &.star-empty::after {
             content: '';
         }
-        
+
         &.star-half-full::after {
             content: '\E721';
         }
-        
+
         &.star-full::before {
             color: @blackColor;
         }
     }
-
     //traffic light
-    &.traffic-light{
-        &::before{
+    &.traffic-light {
+        &::before {
             content: '\E713';
             color: @blackColor;
         }
 
-        &::after{
+        &::after {
             position: absolute;
             left: 0;
             content: '\E712';
         }
     }
-
 }

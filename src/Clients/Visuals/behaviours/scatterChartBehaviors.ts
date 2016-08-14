@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -30,13 +30,30 @@ module powerbi.visuals {
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
     import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
 
+    export interface ScatterBehaviorChartData {
+        xCol: DataViewMetadataColumn;
+        yCol: DataViewMetadataColumn;
+        dataPoints: ScatterChartDataPoint[];
+        legendData: LegendData;
+        axesLabels: ChartAxesLabels;
+        size?: DataViewMetadataColumn;
+        sizeRange: NumberRange;
+        fillPoint?: boolean;
+        colorBorder?: boolean;
+    }
+
     export interface ScatterBehaviorOptions {
+        dataPointsSelection: D3.Selection;
+        eventGroup?: D3.Selection;
+        data: ScatterBehaviorChartData;
+        plotContext: D3.Selection;
+        playOptions?: PlayBehaviorOptions;
+    }
+
+    export interface ScatterMobileBehaviorOptions extends ScatterBehaviorOptions {
         host: ICartesianVisualHost;
         root: D3.Selection;
-        mainContext: D3.Selection;
         background: D3.Selection;
-        dataPointsSelection: D3.Selection;
-        data: ScatterChartData;
         visualInitOptions: VisualInitOptions;
         xAxisProperties: IAxisProperties;
         yAxisProperties: IAxisProperties;
@@ -46,23 +63,48 @@ module powerbi.visuals {
         private bubbles: D3.Selection;
         private shouldEnableFill: boolean;
         private colorBorder: boolean;
+        private playOptions: PlayBehaviorOptions;
 
         public bindEvents(options: ScatterBehaviorOptions, selectionHandler: ISelectionHandler): void {
             let bubbles = this.bubbles = options.dataPointsSelection;
             let data = options.data;
+            let eventGroup = options.eventGroup;
+
+            // If we are removing play-axis, remove the trace lines as well
+            // TODO: revisit this design, I think ideally this is done when rendering scatter.
+            if (this.playOptions
+                && this.playOptions.traceLineRenderer
+                && (!options.playOptions || !options.playOptions.traceLineRenderer)) {
+                this.playOptions.traceLineRenderer.remove();
+            }
+
+            this.playOptions = options.playOptions;
             this.shouldEnableFill = (!data.sizeRange || !data.sizeRange.min) && data.fillPoint;
             this.colorBorder = data.colorBorder;
 
-            bubbles.on('click', (d: SelectableDataPoint) => {
-                selectionHandler.handleSelection(d, d3.event.ctrlKey);
-            });
+            if (eventGroup) {
+                InteractivityUtils.registerGroupInteractivityHandlers(eventGroup, selectionHandler);
+            } else {
+                InteractivityUtils.registerStandardInteractivityHandlers(bubbles, selectionHandler);
+            }
         }
 
         public renderSelection(hasSelection: boolean) {
             let shouldEnableFill = this.shouldEnableFill;
             let colorBorder = this.colorBorder;
-            this.bubbles.style("fill-opacity", (d: ScatterChartDataPoint) => (d.size != null || shouldEnableFill) ? ScatterChart.getBubbleOpacity(d, hasSelection) : 0);
-            this.bubbles.style("stroke-opacity", (d: ScatterChartDataPoint) => (d.size != null && colorBorder) ? 1 : ScatterChart.getBubbleOpacity(d, hasSelection));
+            this.bubbles.style("fill-opacity", (d: ScatterChartDataPoint) => ScatterChart.getMarkerFillOpacity(d.size != null, shouldEnableFill, hasSelection, d.selected));
+            this.bubbles.style("stroke-opacity", (d: ScatterChartDataPoint) => ScatterChart.getMarkerStrokeOpacity(d.size != null, colorBorder, hasSelection, d.selected));
+
+            if (this.playOptions && this.bubbles) {
+                let selectedPoints = this.bubbles.filter((d: SelectableDataPoint) => d.selected).data();
+                let traceLineRenderer = this.playOptions.traceLineRenderer;
+                if (selectedPoints && selectedPoints.length > 0 && traceLineRenderer != null) {
+                    traceLineRenderer.render(selectedPoints, true);
+                }
+                else {
+                    traceLineRenderer.remove();
+                }
+            }
         }
     }
 
@@ -87,7 +129,7 @@ module powerbi.visuals {
 
         private host: ICartesianVisualHost;
         private mainGraphicsContext: D3.Selection;
-        private data: ScatterChartData;
+        private data: ScatterBehaviorChartData;
         private crosshair: D3.Selection;
         private crosshairHorizontal: D3.Selection;
         private crosshairVertical: D3.Selection;
@@ -95,10 +137,10 @@ module powerbi.visuals {
         private xAxisProperties: IAxisProperties;
         private yAxisProperties: IAxisProperties;
 
-        public bindEvents(options: ScatterBehaviorOptions, selectionHandler: ISelectionHandler): void {
+        public bindEvents(options: ScatterMobileBehaviorOptions, selectionHandler: ISelectionHandler): void {
             this.setOptions(options);
 
-            if (!options.visualInitOptions.interactivity.isInteractiveLegend) {
+            if (!options.visualInitOptions || !options.visualInitOptions.interactivity.isInteractiveLegend) {
                 // Don't bind events if we are not in interactiveLegend mode
                 // This case happend when on mobile we show the whole dashboard in still not on focus
                 return;
@@ -107,7 +149,7 @@ module powerbi.visuals {
             this.makeDataPointsSelectable(options.dataPointsSelection);
             this.makeRootSelectable(options.root);
             this.makeDragable(options.root);
-
+            this.disableDefaultTouchInteractions(options.root);
             this.selectRoot();
         }
 
@@ -120,7 +162,7 @@ module powerbi.visuals {
                 var sel = selection[i];
 
                 sel.on('click', (d: SelectableDataPoint, i: number) => {
-                    this.select(true, sel, d, i);
+                    this.select(i);
                 });
             }
         }
@@ -143,15 +185,19 @@ module powerbi.visuals {
             }
         }
 
-        public setOptions(options: ScatterBehaviorOptions) {
+        private disableDefaultTouchInteractions(selection: D3.Selection): void {
+            selection.style('touch-action', 'none');
+        }
+
+        public setOptions(options: ScatterMobileBehaviorOptions) {
             this.data = options.data;
-            this.mainGraphicsContext = options.mainContext;
+            this.mainGraphicsContext = options.plotContext;
             this.xAxisProperties = options.xAxisProperties;
             this.yAxisProperties = options.yAxisProperties;
             this.host = options.host;
         }
 
-        public select(hasSelection: boolean, datapoints: D3.Selection, dataPoint: SelectableDataPoint, index: number) {
+        private select(index: number) {
             this.selectDotByIndex(index);
         }
 
@@ -273,11 +319,11 @@ module powerbi.visuals {
                 let verticalDistance = circleY - y;
                 let distanceSqrd = (horizontalDistance * horizontalDistance) + (verticalDistance * verticalDistance);
                 if (minDistance === Number.MAX_VALUE) {
-                    selectedIndex = i;
+                    selectedIndex = <any>i;
                     minDistance = distanceSqrd;
                 }
                 else if (minDistance && minDistance > distanceSqrd) {
-                    selectedIndex = i;
+                    selectedIndex = <any>i;
                     minDistance = distanceSqrd;
                 }
             }
@@ -305,8 +351,12 @@ module powerbi.visuals {
             debug.assertValue(legendData, "legendData");
             debug.assertValue(legendData.dataPoints, "legendData");
             let legendDataPoints = legendData.dataPoints;
-            if (point.category !== blank) {
-                title = point.category;
+            let category = point.formattedCategory.getValue();
+            if (category !== blank) {
+                title = category;
+                if (point != null && point.radius != null && point.radius.sizeMeasure != null) {
+                    title += "; " + valueFormatter.format(point.radius.sizeMeasure.source.groupName);
+                }
             } else if (point.radius.sizeMeasure != null) {
                 title = valueFormatter.format(point.radius.sizeMeasure.source.groupName);
             } else if (legendDataPoints.length >= dotIndex && legendDataPoints[dotIndex].label !== blank) {
@@ -353,4 +403,4 @@ module powerbi.visuals {
             return {dataPoints: legendItems };
         }
     }
-} 
+}

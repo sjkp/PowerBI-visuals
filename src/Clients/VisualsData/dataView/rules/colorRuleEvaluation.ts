@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -28,18 +28,24 @@
 
 module powerbi.data {
     export class ColorRuleEvaluation extends RuleEvaluation {
+        private inputRole: string;
         private allocator: IColorAllocator;
 
         constructor(inputRole: string, allocator: IColorAllocator) {
-            debug.assertAnyValue(inputRole, 'inputRole');
+            debug.assertValue(inputRole, 'inputRole');
             debug.assertValue(allocator, 'allocator');
 
-            super(inputRole);
+            super();
+            this.inputRole = inputRole;
             this.allocator = allocator;
         }
 
-        public evaluate(): any {
-            return this.allocator.color(this.value);
+        public evaluate(evalContext: IEvalContext): any {
+            debug.assertValue(evalContext, 'evalContext');
+
+            let value: any = evalContext.getRoleValue(this.inputRole);
+            if (value !== undefined)
+                return this.allocator.color(value);
         }
     }
 }

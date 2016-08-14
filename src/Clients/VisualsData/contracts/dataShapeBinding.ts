@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -43,7 +43,7 @@ module powerbi.data {
         Primary?: number;
     }
 
-    export enum DataShapeBindingLimitType {
+    export const enum DataShapeBindingLimitType {
         Top = 0,
         First = 1,
         Last = 2,
@@ -61,10 +61,13 @@ module powerbi.data {
         Version?: number;
         Primary: DataShapeBindingAxis;
         Secondary?: DataShapeBindingAxis;
+        Aggregates?: DataShapeBindingAggregate[];
+        Projections?: number[];
         Limits?: DataShapeBindingLimit[];
         Highlights?: FilterDefinition[];
         DataReduction?: DataShapeBindingDataReduction;
         IncludeEmptyGroups?: boolean;
+        SuppressedJoinPredicates?: number[];
     }
 
     export interface DataShapeBindingDataReduction {
@@ -101,7 +104,7 @@ module powerbi.data {
         Groupings: DataShapeBindingAxisGrouping[];
     }
 
-    export enum SubtotalType {
+    export const enum SubtotalType {
         None = 0,
         Before = 1,
         After = 2
@@ -109,8 +112,39 @@ module powerbi.data {
 
     export interface DataShapeBindingAxisGrouping {
         Projections: number[];
+        GroupBy?: number[];
         SuppressedProjections?: number[];
         Subtotal?: SubtotalType;
         ShowItemsWithNoData?: number[];
-    }    
+    }
+
+    export interface DataShapeBindingAggregate {
+        Select: number;
+        Aggregations: DataShapeBindingSelectAggregateContainer[];
+    }
+
+    export interface DataShapeBindingSelectAggregateContainer {
+        Percentile?: DataShapeBindingSelectPercentileAggregate;
+        Min?: DataShapeBindingSelectMinAggregate;
+        Max?: DataShapeBindingSelectMaxAggregate;
+        Median?: DataShapeBindingSelectMedianAggregate;
+        Average?: DataShapeBindingSelectAverageAggregate;
+    }
+
+    export interface DataShapeBindingSelectPercentileAggregate {
+        Exclusive?: boolean;
+        K: number;
+    }
+
+    export interface DataShapeBindingSelectMaxAggregate {
+    }
+
+    export interface DataShapeBindingSelectMinAggregate {
+    }
+
+    export interface DataShapeBindingSelectMedianAggregate {
+    }
+
+    export interface DataShapeBindingSelectAverageAggregate {
+    }
 } 

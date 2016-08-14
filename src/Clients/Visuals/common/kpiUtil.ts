@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -23,6 +23,8 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
+
+/// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
 
@@ -139,8 +141,8 @@ module powerbi.visuals {
             },
         };
 
-        function getKpiIcon(kpi: DataViewKpiColumnMetadata, value: string): string {
-            let numValue = parseFloat(value);
+        function getKpiIcon(kpi: DataViewKpiColumnMetadata, value: PrimitiveValue): string {
+            let numValue = parseFloat(<string>value);
 
             if (!kpi)
                 return;
@@ -172,7 +174,7 @@ module powerbi.visuals {
                 return [KPIImageClassName, kpiIcon].join(' ');
         }
 
-        export function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: string, kpiImageSize?: KpiImageSize): string {
+        export function getClassForKpi(kpi: DataViewKpiColumnMetadata, value: PrimitiveValue, kpiImageSize?: KpiImageSize): string {
             debug.assertValue(kpi, 'kpi');
             debug.assertValue(value, 'value');
 
@@ -180,7 +182,7 @@ module powerbi.visuals {
             return getKpiIconClassName(kpiIcon, kpiImageSize);
         }
 
-        export function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: string, kpiImageSize?: KpiImageSize): KpiImageMetadata {
+        export function getKpiImageMetadata(metaDataColumn: DataViewMetadataColumn, value: PrimitiveValue, kpiImageSize?: KpiImageSize): KpiImageMetadata {
             let kpi: DataViewKpiColumnMetadata = metaDataColumn && metaDataColumn.kpi;
 
             if (kpi) {

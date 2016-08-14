@@ -1,0 +1,30 @@
+{
+    "dateAdded": "2015-10-19T03:16:19.000Z",
+    "dateLastUpdated": "2016-02-24T20:54:49.000Z",
+    "package": {
+        "name": "StreamGraph",
+        "displayName": "Stream Graph",
+        "version": "0.4.1",
+        "guid": "StreamGraph1446659696222",
+        "description": "A stacked area chart with smooth interpolation. Often used to display values over time.",
+        "build": "13.0.1100.210",
+        "author": {
+            "name": "Microsoft",
+            "email": "pbicvsupport@microsoft.com"
+        },
+        "licenseTerms": "http://go.microsoft.com/fwlink/?LinkID=627540",
+        "privacyTerms": "http://go.microsoft.com/fwlink/?LinkID=627541",
+        "supportUrl": "http://community.powerbi.com",
+        "gitHubUrl": "https://github.com/Microsoft/PowerBI-visuals",
+        "images": {
+            "icon": "icon.svg",
+            "screenshots": ["1.png"],
+            "thumbnail": "thumb.png"
+        },
+        "code": {
+            "typeScript": "StreamGraph.ts",
+            "javaScript": "StreamGraph.js",
+            "css": "StreamGraph.css"
+        }
+    }
+}

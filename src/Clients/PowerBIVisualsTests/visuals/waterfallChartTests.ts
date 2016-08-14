@@ -29,7 +29,6 @@
 module powerbitests {
     import WaterfallChart = powerbi.visuals.WaterfallChart;
     import ValueType = powerbi.ValueType;
-    import PrimitiveType = powerbi.PrimitiveType;
     import DataViewTransform = powerbi.data.DataViewTransform;
     import SVGUtil = powerbi.visuals.SVGUtil;
     import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
@@ -40,8 +39,7 @@ module powerbitests {
 
         describe("capabilities", () => {
             it("should register capabilities", () => {
-                let pluginFactory = powerbi.visuals.visualPluginFactory.create();
-                let plugin = pluginFactory.getPlugin("waterfallChart");
+                let plugin = powerbi.visuals.plugins.waterfallChart;
                 expect(plugin).toBeDefined();
                 expect(plugin.capabilities).toBe(powerbi.visuals.waterfallChartCapabilities);
             });
@@ -70,7 +68,7 @@ module powerbitests {
                 expect(powerbi.data.DataViewObjectDescriptors.findFormatString(powerbi.visuals.waterfallChartCapabilities.objects)).toEqual(WaterfallChart.formatStringProp);
             });
         });
-            
+
         describe("warnings", () => {
             let v: powerbi.IVisual;
             let warningSpy: jasmine.Spy;
@@ -152,20 +150,22 @@ module powerbitests {
 
             it("axis titles should be correct ", () => {
                 let dataView = new WaterfallDataBuilder().build();
-
                 dataView.metadata.objects = {
-                        categoryAxis: {
-                            showAxisTitle: true
-                        },
-                        valueAxis: {
-                            showAxisTitle: true
-                        }
+                    categoryAxis: {
+                        showAxisTitle: true
+                    },
+                    valueAxis: {
+                        showAxisTitle: true
+                    }
                 };
 
                 v.onDataChanged({ dataViews: [dataView] });
 
-                expect($(".xAxisLabel").first().text()).toBe("year");
-                expect($(".yAxisLabel").first().text()).toBe("sales");
+                expect(helpers.findElementText($(".xAxisLabel").first())).toBe("year");
+                expect(helpers.findElementText($(".yAxisLabel").first())).toBe("sales");
+                //check title
+                expect(helpers.findElementTitle($(".xAxisLabel").first())).toBe("year");
+                expect(helpers.findElementTitle($(".yAxisLabel").first())).toBe("sales");
             });
 
             it("axis titles should show/hide ", () => {
@@ -233,10 +233,10 @@ module powerbitests {
                 dataBuilder = new WaterfallDataBuilder();
                 let dataView = dataBuilder.build();
 
-                data = WaterfallChart.converter(dataView, colors, visualBuilder.host, dataBuilder.dataLabelSettings, dataBuilder.sentimentColors, /* interactivityService */ null);
+                data = WaterfallChart.converter(dataView, colors, visualBuilder.host, dataBuilder.dataLabelSettings, dataBuilder.sentimentColors, /* interactivityService */ null, /* tooltipsEnabled */true, /* tooltipBucketEnabled */true);
                 dataPoints = data.series[0].data;
             });
-            
+
             it("legend should have 3 items", () => {
                 expect(data.legend.dataPoints.length).toBe(3);  // Gain, Loss, Total
             });
@@ -277,15 +277,40 @@ module powerbitests {
             it("should have tooltip data", () => {
                 // categoryValues: [2015, 2016, 2017, 2018, 2019, 2020]
                 // measureValues: [100, -200, 0, 300, null, NaN];
-                expect(dataPoints[0].tooltipInfo).toEqual([{ displayName: "year", value: "2015" }, { displayName: "sales", value: "$100" }]);
-                expect(dataPoints[1].tooltipInfo).toEqual([{ displayName: "year", value: "2016" }, { displayName: "sales", value: "-$200" }]);
-                expect(dataPoints[2].tooltipInfo).toEqual([{ displayName: "year", value: "2017" }, { displayName: "sales", value: "$0" }]);
-                expect(dataPoints[3].tooltipInfo).toEqual([{ displayName: "year", value: "2018" }, { displayName: "sales", value: "$300" }]);
+                expect(dataPoints[0].tooltipInfo).toEqual([{ displayName: "year", value: "2015" }, { displayName: "sales", value: "$100" }, { displayName: 'tooltips', value: '$10' }]);
+                expect(dataPoints[1].tooltipInfo).toEqual([{ displayName: "year", value: "2016" }, { displayName: "sales", value: "-$200" }, { displayName: 'tooltips', value: '-$20' }]);
+                expect(dataPoints[2].tooltipInfo).toEqual([{ displayName: "year", value: "2017" }, { displayName: "sales", value: "$0" }, { displayName: 'tooltips', value: '$30' }]);
+                expect(dataPoints[3].tooltipInfo).toEqual([{ displayName: "year", value: "2018" }, { displayName: "sales", value: "$300" }, { displayName: 'tooltips', value: '$40' }]);
                 expect(dataPoints[4].tooltipInfo).toEqual([{ displayName: "year", value: "2019" }, { displayName: "sales", value: "$0" }]);
-                expect(dataPoints[5].tooltipInfo).toEqual([{ displayName: "year", value: "2020" }, { displayName: "sales", value: "$0" }]);
-                expect(dataPoints[6].tooltipInfo).toEqual([{ displayName: "year", value: "Total" }, { displayName: "sales", value: "$200" }]);
+                expect(dataPoints[5].tooltipInfo).toEqual([{ displayName: "year", value: "2020" }, { displayName: "sales", value: "$0" }, { displayName: 'tooltips', value: '$0' }]);
+                expect(dataPoints[6].tooltipInfo).toEqual([{ displayName: "year", value: "Total" }, { displayName: "sales", value: "$200" }, { displayName: 'tooltips', value: '$60' }]);
 
             });
+
+            it("validate tooltip info not being created when tooltips are disabled", () => {
+                dataBuilder = new WaterfallDataBuilder();
+                let dataView = dataBuilder.build();
+                data = WaterfallChart.converter(dataView, colors, visualBuilder.host, dataBuilder.dataLabelSettings, dataBuilder.sentimentColors, /* interactivityService */ null, false);
+                dataPoints = data.series[0].data;
+
+                // categoryValues: [2015, 2016, 2017, 2018, 2019, 2020]
+                // measureValues: [100, -200, 0, 300, null, NaN];
+                for (let dataPoint of dataPoints) {
+                    expect(dataPoint.tooltipInfo).toBeUndefined();
+                }
+            });
+
+            it("validate tooltip info not being created when tooltips are disabled and tooltipBuckets are enabled", () => {
+                dataBuilder = new WaterfallDataBuilder();
+                let dataView = dataBuilder.build();
+                data = WaterfallChart.converter(dataView, colors, visualBuilder.host, dataBuilder.dataLabelSettings, dataBuilder.sentimentColors, /* interactivityService */ null, /*tooltipsEnabled*/false, /*tooltipBucketEnabled*/true);
+                dataPoints = data.series[0].data;
+                
+                for (let dataPoint of dataPoints) {
+                    expect(dataPoint.tooltipInfo).toBeUndefined();
+                }
+            });
+
         });
 
         describe("setData", () => {
@@ -344,7 +369,7 @@ module powerbitests {
 
                 // Extra small container to force scrolling.
                 v = visualBuilder
-                    .withSize(150, 50)
+                    .withSize(150, 100) // default for waterfall is legend on, top - leave enough vertical room
                     .build(/* use Minerva to get scrolling behavior */ true);
 
                 element = visualBuilder.element;
@@ -358,7 +383,7 @@ module powerbitests {
 
                     expect(brushExtent.length).toBe(1);
 
-                    let tick = getTicks('x').last();
+                    let tick = helpers.getAxisTicks('x').last();
                     let tickTransform = SVGUtil.parseTranslateTransform(tick.attr('transform'));
 
                     expect(parseFloat(tickTransform.x)).toBeLessThan(element.width());
@@ -375,7 +400,7 @@ module powerbitests {
 
             it('should have correct tick labels after scrolling', (done) => {
                 setTimeout(() => {
-                    let tickCount = getTicks('x').length;
+                    let tickCount = helpers.getAxisTicks('x').length;
                     let categoryCount = dataBuilder.categoryValues.length + 1;  // +1 for total
 
                     // Scroll so the last ticks are in view.
@@ -386,22 +411,22 @@ module powerbitests {
                         (<powerbi.visuals.CartesianChart>v).scrollTo(startIndex);
 
                         setTimeout(() => {
-                            let tickValues = _.map(getTicks('x').get(), (v) => $(v).text());
+                            let tickValues = _.map(helpers.getAxisTicks('x').get(), (v) => helpers.findElementText($(v).find('text').first()));
 
                             expect(tickValues.slice(0, tickValues.length - 1)).toEqual(expectedValues);
-                            expect(_.startsWith(_.last(tickValues), 'T')).toBeTruthy();  // "Total" may be truncated
+                            expect(_.startsWith(_.last(tickValues), 'T')).toBe(true);  // "Total" may be truncated
 
                             done();
                         }, DefaultWaitForRender);
-            });
+                    });
                 }, DefaultWaitForRender);
-        });
+            });
 
             function getBrushExtent(): JQuery {
                 return $('.brush .extent');
             }
         });
-        
+
         describe("enumerateObjectInstances", () => {
             let v: powerbi.IVisual;
             let builder: WaterfallVisualBuilder;
@@ -502,7 +527,7 @@ module powerbitests {
                     }
                 });
             });
-            
+
             it("check font size for legend title and legend items waterfall chart", (done) => {
                 let labelFontSize = 13;
 
@@ -552,7 +577,7 @@ module powerbitests {
                     done();
                 }, DefaultWaitForRender);
             });
-            
+
             function verifyColors() {
                 let objects = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: "sentimentColors" });
 
@@ -570,6 +595,7 @@ module powerbitests {
                 expect(objects.instances[0].properties).toBeDefined();
 
                 let properties = objects.instances[0].properties;
+                
                 // The default value for precision is undefined but in enumerateObject it is null
                 let precision = defaultLabelSettings.precision !== powerbi.visuals.dataLabelUtils.defaultLabelPrecision
                     ? defaultLabelSettings.precision
@@ -581,6 +607,29 @@ module powerbitests {
                 expect(properties["labelDisplayUnits"]).toBe(defaultLabelSettings.displayUnits);
                 expect(properties["fontSize"]).toBe(defaultLabelSettings.fontSize);
             }
+        });
+
+        it('background image', (done) => {
+            let v = new WaterfallVisualBuilder().build();
+            let dataView = new WaterfallDataBuilder().build();
+            dataView.metadata.objects = {
+                plotArea: {
+                    image: {
+                        url: 'data:image/gif;base64,R0lGO',
+                        name: 'someName',
+                    },
+                },
+            };
+            v.onDataChanged({ dataViews: [dataView] });
+            setTimeout(() => {
+                let backgroundImage = $('.background-image');
+                expect(backgroundImage.length).toBeGreaterThan(0);
+                expect(backgroundImage.css('height')).toBeDefined();
+                expect(backgroundImage.css('width')).toBeDefined();
+                expect(backgroundImage.css('margin-left')).toBeDefined();
+                expect(backgroundImage.css('margin-top')).toBeDefined();
+                done();
+            }, DefaultWaitForRender);
         });
 
         describe("selection", () => {
@@ -606,20 +655,51 @@ module powerbitests {
                 setTimeout(() => {
                     let rects = getRects();
                     spyOn(visualBuilder.host, 'onSelect').and.callThrough();
-                    (<any>rects.first()).d3Click(0, 0);
+                    rects.first().d3Click(0, 0);
 
                     expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                         {
-                            data: [
+                            visualObjects: [
                                 {
-                                    data: [data]
-                                }
-                            ],
-                            data2: [
-                                {
-                                    dataMap: dataMap
+                                    objectName: 'dataPoint',
+                                    selectorsByColumn:
+                                    {
+                                        dataMap: dataMap,
+                                        metadata: dataBuilder.measureColumn.queryName,
+                                    }
                                 }
                             ]
+                        });
+                    done();
+                }, DefaultWaitForRender);
+            });
+
+            it('context menu', (done) => {
+                let dataView = dataBuilder.build();
+
+                v.onDataChanged({ dataViews: [dataView] });
+
+                let dataMap = {};
+                let data = dataBuilder.categoryIdentities[0];
+                dataMap[dataBuilder.categoryColumn.queryName] = data;
+
+                setTimeout(() => {
+                    spyOn(visualBuilder.host, 'onContextMenu').and.callThrough();
+                    let rects = getRects();
+                    rects.first().d3ContextMenu(5, 15);
+
+                    expect(visualBuilder.host.onContextMenu).toHaveBeenCalledWith(
+                        {
+                            data: [
+                                {
+                                    dataMap: dataMap,
+                                    metadata: dataBuilder.measureColumn.queryName,
+                                }
+                            ],
+                            position: {
+                                x: 5,
+                                y: 15
+                            }
                         });
                     done();
                 }, DefaultWaitForRender);
@@ -633,14 +713,14 @@ module powerbitests {
                 setTimeout(() => {
                     let rects = getRects();
                     spyOn(visualBuilder.host, 'onSelect').and.callThrough();
-                    (<any>rects.first()).d3Click(0, 0);
+                    rects.first().d3Click(0, 0);
 
                     let clearCatcher = $('.clearCatcher');
-                    (<any>$(clearCatcher[0])).d3Click(0, 0); 
+                    clearCatcher.eq(0).d3Click(0, 0);
 
                     expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                         {
-                            data: []
+                            visualObjects: []
                         });
 
                     done();
@@ -672,7 +752,7 @@ module powerbitests {
                 let dataView = dataBuilder.build();
 
                 v.onDataChanged({ dataViews: [dataView] });
-                
+
                 setTimeout(() => {
                     expect(getRects().length).toBe(dataBuilder.categoryValues.length + 1);
 
@@ -721,7 +801,7 @@ module powerbitests {
                     done();
                 }, DefaultWaitForRender);
             });
-            
+
             it("should draw data labels when enabled", (done) => {
                 let dataView = new WaterfallDataBuilder().withDataLabels().build();
 
@@ -799,7 +879,7 @@ module powerbitests {
                 helpers.assertColorsMatch(labelDataPoints[5].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
                 helpers.assertColorsMatch(labelDataPoints[6].insideFill, powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
             });
-            
+
             it("Label data points have correct display units", () => {
                 let dataView = new WaterfallDataBuilder().withDataLabels(undefined, 1000, 1).build();
                 v.onDataChanged({ dataViews: [dataView] });
@@ -864,16 +944,11 @@ module powerbitests {
         }
 
         function getRects(): JQuery {
-            return $(".waterfallChart .mainGraphicsContext rect.column");
+            return $(".mainGraphicsContext rect.column");
         }
 
         function getConnectors(): JQuery {
-            return $(".waterfallChart .mainGraphicsContext line.waterfall-connector");
-        }
-
-        function getTicks(axis: string): JQuery {
-            // axis should be either 'x' or 'y'.
-            return $('.waterfallChart .axisGraphicsContext .' + axis + '.axis .tick');
+            return $(".mainGraphicsContext line.waterfall-connector");
         }
 
         function callCreateLabelDataPoints(v: powerbi.IVisual): powerbi.LabelDataPoint[] {
@@ -882,7 +957,7 @@ module powerbitests {
     });
 
     class WaterfallDataBuilder {
-        private _categoryColumn: powerbi.DataViewMetadataColumn = { displayName: "year", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text), queryName: "Year.Year" };
+        private _categoryColumn: powerbi.DataViewMetadataColumn = { displayName: "year", type: ValueType.fromDescriptor({ text: true }), queryName: "Year.Year", roles: { Category: true } };
         public get categoryColumn(): powerbi.DataViewMetadataColumn { return this._categoryColumn; }
 
         private _categoryValues: any[] = [2015, 2016, 2017, 2018, 2019, 2020];
@@ -891,11 +966,17 @@ module powerbitests {
         private _categoryIdentities: powerbi.DataViewScopeIdentity[] = this.categoryValues.map((v) => mocks.dataViewScopeIdentity(v));
         public get categoryIdentities(): powerbi.DataViewScopeIdentity[] { return this._categoryIdentities; }
 
-        private _measureColumn: powerbi.DataViewMetadataColumn = { displayName: "sales", isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer), objects: { general: { formatString: "$0" } } };
+        private _measureColumn: powerbi.DataViewMetadataColumn = { displayName: "sales", isMeasure: true, type: ValueType.fromDescriptor({ integer: true }), queryName: 'Sales.Sales', objects: { general: { formatString: "$0" } }, roles: { Y: true } };
         public get measureColumn(): powerbi.DataViewMetadataColumn { return this._measureColumn; }
 
         private _measureValues: any[] = [100, -200, 0, 300, null, NaN];
         public get measureValues(): any[] { return this._measureValues; }
+
+        private _tooltipColumn: powerbi.DataViewMetadataColumn = { displayName: "tooltips", isMeasure: true, type: ValueType.fromDescriptor({ integer: true }), queryName: 'Tooltips.Tooltips', objects: { general: { formatString: "$0" } }, roles: { Tooltips: true } };
+        public get tooltipColumn(): powerbi.DataViewMetadataColumn { return this._tooltipColumn; }
+
+        private _tooltipValues: any[] = [10, -20, 30, 40, null, 0];
+        public get tooltipValues(): any[] { return this._tooltipValues; }
 
         private _posMax = 200;
         public get positionMax(): number { return this._posMax; }
@@ -913,20 +994,20 @@ module powerbitests {
         public get objects(): powerbi.DataViewObjects { return this._objects; }
 
         private _sentimentColors: powerbi.visuals.WaterfallChartSentimentColors = {
-            increaseFill: <powerbi.Fill> {
+            increaseFill: <powerbi.Fill>{
                 solid: { color: "#FF0000" }
             },
-            decreaseFill: <powerbi.Fill> {
+            decreaseFill: <powerbi.Fill>{
                 solid: { color: "#00FF00" }
             },
-            totalFill: <powerbi.Fill> {
+            totalFill: <powerbi.Fill>{
                 solid: { color: "#0000FF" }
             }
         };
         public get sentimentColors(): powerbi.visuals.WaterfallChartSentimentColors { return this._sentimentColors; }
 
         public build(): powerbi.DataView {
-            return <powerbi.DataView> {
+            return <powerbi.DataView>{
                 metadata: {
                     columns: [this._categoryColumn, this._measureColumn],
                     objects: this._objects,
@@ -937,9 +1018,13 @@ module powerbitests {
                         values: this._categoryValues,
                         identity: this._categoryIdentities
                     }],
-                    values: DataViewTransform.createValueColumns([{
+                    values: DataViewTransform.createValueColumns([
+                    {
                         source: this._measureColumn,
                         values: this._measureValues
+                    },{
+                        source: this._tooltipColumn,
+                        values: this._tooltipValues
                     }])
                 }
             };
@@ -965,7 +1050,7 @@ module powerbitests {
             if (!this._objects) {
                 this._objects = {};
             }
-            this._objects["labels"] = <powerbi.visuals.DataLabelObject> {
+            this._objects["labels"] = <powerbi.visuals.DataLabelObject>{
                 show: true,
                 color: { solid: { color: color } },
                 labelDisplayUnits: labelDisplayUnits,
@@ -1006,17 +1091,23 @@ module powerbitests {
 
         private _cartesianHost: powerbi.visuals.ICartesianVisualHost = {
             updateLegend: data => { },
-            getSharedColors: () => null
+            getSharedColors: () => null,
+            triggerRender: (suppressAnimations: boolean) => { },
         };
 
         private _visual: powerbi.IVisual;
 
         public build(minerva: boolean = false): powerbi.IVisual {
             if (minerva) {
-                this._visual = powerbi.visuals.visualPluginFactory.createMinerva({}).getPlugin("waterfallChart").create();
+                this._visual = new powerbi.visuals.CartesianChart({
+                    chartType: powerbi.visuals.CartesianChartType.Waterfall,
+                    isScrollable: true,
+                    tooltipsEnabled: true,
+                    behavior: new powerbi.visuals.CartesianChartBehavior([new powerbi.visuals.WaterfallChartWebBehavior()])
+                });
             }
             else {
-                this._visual = powerbi.visuals.visualPluginFactory.create().getPlugin("waterfallChart").create();
+                this._visual = powerbi.visuals.plugins.waterfallChart.create();
             }
 
             this._visual.init(this.buildInitOptions());
@@ -1025,7 +1116,7 @@ module powerbitests {
         }
 
         public buildInitOptions(): powerbi.visuals.CartesianVisualInitOptions {
-            return <powerbi.visuals.CartesianVisualInitOptions> {
+            return <powerbi.visuals.CartesianVisualInitOptions>{
                 element: this._element,
                 host: this._host,
                 style: this._style,

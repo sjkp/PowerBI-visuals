@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -48,9 +48,17 @@ module powerbi.data {
             };
 
             let columnLeafNodes: DataViewMatrixNode[] = columns.root.children;
-            let columnCount = columnLeafNodes.length;
+            let measureCount = columnLeafNodes.length;
 
-            if (columnCount > 0) {
+            // Notes related to VSTS 6999369: The level value of Measure Header nodes is not necessarily its parent node's level + 1.
+            // In particular, the Measure Header column nodes directly under the Grand Total node at level 0 (i.e. _.last(pivotResultMatrix.columns.root.children))
+            // will have level === (pivotResultMatrix.columns.levels.length - 1), which will be greater than the Grand Total node's 'level + 1' 
+            // in a matrix with 2+ column fields and 2+ measure fields.
+            // In this code, all row levels will get pivoted over to the columns hierarchy, hence the level of any Measure Header nodes in the pivot result
+            // is just (1 + the level of the deepest row node's level), which === rows.levels.length.
+            let pivotResultMeasureHeaderLevel = rows.levels.length;
+
+            if (measureCount > 0) {
                 let index = 0;
                 let callback = function (node: DataViewMatrixNode) {
                     // Collect values and remove them from row leaves
@@ -58,20 +66,19 @@ module powerbi.data {
                         if (!pivotedRowNode.values)
                             pivotedRowNode.values = {};
 
-                        for (let i = 0; i < columnCount; i++)
+                        for (let i = 0; i < measureCount; i++)
                             pivotedRowNode.values[index++] = node.values[i];
 
-                        delete node.values;
+                        node.values = undefined;
                     }
 
                     // Create measure headers if there are more than one measures
-                    if (columnCount > 1) {
-                        let level = node.level + 1;
+                    if (measureCount > 1) {
                         if (!node.children)
                             node.children = [];
 
-                        for (let j = 0; j < columnCount; j++) {
-                            let measureHeaderLeaf: DataViewMatrixNode = { level: level };
+                        for (let j = 0; j < measureCount; j++) {
+                            let measureHeaderLeaf: DataViewMatrixNode = { level: pivotResultMeasureHeaderLevel };
 
                             // Copy levelSourceIndex from columnLeafNodes (as they might have been reordered)
                             let columnLeafNode = columnLeafNodes[j];
@@ -98,7 +105,7 @@ module powerbi.data {
                 }
             }
 
-            if (columnCount > 1) {
+            if (measureCount > 1) {
                 // Keep measure headers, but move them to the innermost level
                 let level: DataViewHierarchyLevel = { sources: columns.levels[0].sources };
                 rows.levels.push(level);

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module jsCommon {
     /**
@@ -55,6 +55,7 @@ module jsCommon {
         export const cKeyCode = 67;
         export const sKeyCode = 83;
         export const vKeyCode = 86;
+        export const wKeyCode = 87;
         export const xKeyCode = 88;
         export const yKeyCode = 89;
         export const zKeyCode = 90;
@@ -65,6 +66,7 @@ module jsCommon {
         export const DocumentBody = 'body';
         export const Anchor = 'a';
         export const EditableTextElements = ':text, textarea';
+        export const EditableNumericElements = '[type="number"]';
 
         /** 
          * DOM Attributes and values.

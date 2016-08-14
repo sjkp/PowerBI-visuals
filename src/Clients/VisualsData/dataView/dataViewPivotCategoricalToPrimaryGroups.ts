@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -29,7 +29,7 @@
 module powerbi.data {
     import ArrayExtensions = jsCommon.ArrayExtensions;
     import DataShapeBindingDataReduction = powerbi.data.DataShapeBindingDataReduction;
-    import RoleKindByQueryRef = DataViewAnalysis.RoleKindByQueryRef;
+    import inheritSingle = powerbi.Prototype.inheritSingle;
 
     export module DataViewPivotCategoricalToPrimaryGroups {
 
@@ -82,11 +82,21 @@ module powerbi.data {
             if (!isPivotableAxis(binding.Secondary) || binding.Secondary.Groupings[0].Projections.length !== 1)
                 return false;
 
+            // don't pivot if either axis has a data reduction
+            if (binding.DataReduction && (binding.DataReduction.Primary || binding.DataReduction.Secondary))
+                return false;
+
             return true;
         }
 
-        export function unpivotResult(oldDataView: DataView, selects: DataViewSelectTransform[], dataViewMappings: DataViewMapping[]): DataView {
-            if (!inferUnpivotTransform(selects, dataViewMappings, oldDataView))
+        export function unpivotResult(
+            oldDataView: DataView,
+            selects: DataViewSelectTransform[],
+            roleKindByQueryRef: DataViewAnalysis.RoleKindByQueryRef,
+            queryProjectionsByRole: QueryProjectionsByRole,
+            applicableRoleMappings: DataViewMapping[]): DataView {
+
+            if (!inferUnpivotTransform(oldDataView, selects, roleKindByQueryRef, queryProjectionsByRole, applicableRoleMappings))
                 return oldDataView;
 
             // This returns a subsetted version of the DataView rather than using prototypal inheritance because
@@ -110,97 +120,41 @@ module powerbi.data {
                 let newDataViewMatrix = unpivotMatrix(oldDataView.matrix);
 
                 // categorical only if there's data
-                if (!_.isEmpty(newDataViewMatrix.valueSources))
-                    newDataView.categorical = categoricalFromUnpivotedMatrix(newDataViewMatrix, newDataView.metadata.columns);
+                if (!_.isEmpty(newDataViewMatrix.valueSources)) {
+                    // Guard against a DataViewMatrix with composite grouping in columns, because composite group in Series is 
+                    // not yet expressible in the current version of DataViewValueColumns and DataViewValueColumnGroup interfaces.
+                    // this.canPivotCategorical() would have returned false in the first place for this query.
+                    let hasCompositeGroupInSeries = DataViewMatrixUtils.containsCompositeGroup(newDataViewMatrix.columns);
+                    if (!hasCompositeGroupInSeries) {
+                        newDataView.categorical = categoricalFromUnpivotedMatrix(newDataViewMatrix, newDataView.metadata.columns);
+                    }
+                }
             }
 
             return newDataView;
-        }
-
-        /** Convert selection info to projections */
-        function projectionsFromSelects(selects: DataViewSelectTransform[]): QueryProjectionsByRole {
-            let projections: QueryProjectionsByRole = {};
-            for (let select of selects) {
-                let roles = select.roles;
-                if (!roles)
-                    continue;
-
-                for (let roleName in roles) {
-                    if (roles[roleName]) {
-                        let qp = projections[roleName];
-                        if (!qp)
-                            qp = projections[roleName] = new QueryProjectionCollection([]);
-                        qp.all().push({ queryRef: select.queryName });
-                    }
-                }
-            }
-
-            return projections;
-        }
-
-        /** Use selections and metadata to fashion query role kinds */
-        function createRoleKindFromMetadata(selects: DataViewSelectTransform[], metadata: DataViewMetadata): RoleKindByQueryRef {
-            let roleKindByQueryRef: DataViewAnalysis.RoleKindByQueryRef = {};
-            for (let column of metadata.columns) {
-                if ((!column.index && column.index !== 0) || column.index < 0 || column.index >= selects.length)
-                    continue;
-
-                let select = selects[column.index];
-                if (select) {
-                    let queryRef = select.queryName;
-                    if (queryRef && roleKindByQueryRef[queryRef] === undefined) {
-                        roleKindByQueryRef[queryRef] = column.isMeasure ? VisualDataRoleKind.Measure : VisualDataRoleKind.Grouping;
-                    }
-                }
-            }
-            return roleKindByQueryRef;
-        }
-
-        /** Get roles from a role mapping */
-        function getRolesInRoleMapping(role: (roleName: string) => void, roleMapping: DataViewRoleBindMapping | DataViewRoleForMapping | DataViewGroupedRoleMapping | DataViewListRoleMapping): void {
-            if (!roleMapping)
-                return;
-
-            if ((<DataViewRoleBindMapping>roleMapping).bind)
-                role((<DataViewRoleBindMapping>roleMapping).bind.to);
-
-            if ((<DataViewRoleForMapping>roleMapping).for)
-                role((<DataViewRoleForMapping>roleMapping).for.in);
-
-            if ((<DataViewGroupedRoleMapping>roleMapping).group) {
-                role((<DataViewGroupedRoleMapping>roleMapping).group.by);
-                getRolesInRoleMappings(role, (<DataViewGroupedRoleMapping>roleMapping).group.select);
-            }
-
-            getRolesInRoleMappings(role, (<DataViewListRoleMapping>roleMapping).select);
-        }
-
-        /** Get roles from a list of role mappings */
-        function getRolesInRoleMappings(role: (roleName: string) => void, roleMappings: (DataViewRoleBindMapping | DataViewRoleForMapping)[]): void {
-            if (!_.isEmpty(roleMappings)) {
-                for (let roleMapping of roleMappings)
-                    getRolesInRoleMapping(role, roleMapping);
-            }
         }
 
         /**
          * Infer from the query result and the visual mappings whether the query was pivoted.
          * Narrowly targets scatter chart scenario for now to keep code simple
          */
-        function inferUnpivotTransform(selects: DataViewSelectTransform[], dataViewMappings: DataViewMapping[], dataView: DataView): boolean {
-            if (!selects || !dataViewMappings || !dataView)
+        function inferUnpivotTransform(
+            dataView: DataView,
+            selects: DataViewSelectTransform[],
+            roleKindByQueryRef: DataViewAnalysis.RoleKindByQueryRef,
+            queryProjectionsByRole: QueryProjectionsByRole,
+            applicableRoleMappings: DataViewMapping[]): boolean {
+
+            if (_.isEmpty(selects) || !dataView || _.isEmpty(applicableRoleMappings))
                 return false;
 
-            // select applicable mappings based on select roles
-            let roleKinds: RoleKindByQueryRef = createRoleKindFromMetadata(selects, dataView.metadata);
-            let projections: QueryProjectionsByRole = projectionsFromSelects(selects);
-            dataViewMappings = DataViewAnalysis.chooseDataViewMappings(projections, dataViewMappings, roleKinds);
+            let applicableRoleMappingWithoutRegression = _.filter(applicableRoleMappings, (mapping) => !DataViewMapping.getRegressionUsage(mapping));
 
             // NOTE: limiting to simple situation that handles scatter for now - see the other side in canPivotCategorical
-            if (!dataViewMappings || dataViewMappings.length !== 1)
+            if (applicableRoleMappingWithoutRegression.length !== 1)
                 return false;
 
-            let categoricalMapping = dataViewMappings[0].categorical;
+            let categoricalMapping = applicableRoleMappingWithoutRegression[0].categorical;
             if (!categoricalMapping)
                 return false;
 
@@ -212,24 +166,33 @@ module powerbi.data {
             // matrix must have two levels of grouping
             if (!matrixDataview.rows || !matrixDataview.rows.levels || matrixDataview.rows.levels.length !== 2)
                 return false;
-
+            
             // get category and value grouping roles
             let categoryGroups: string[] = [];
             let valueGroups: string[] = [];
 
             let addGroupingRole = (roleName: string, groups: string[]) => {
-                let roleProjections: QueryProjectionCollection = projections[roleName];
+                let roleProjections: QueryProjectionCollection = queryProjectionsByRole[roleName];
                 if (!roleProjections)
                     return;
 
                 for (let roleProjection of roleProjections.all()) {
-                    if (roleKinds[roleProjection.queryRef] === VisualDataRoleKind.Grouping)
+                    if (roleKindByQueryRef[roleProjection.queryRef] === VisualDataRoleKind.Grouping)
                         groups.push(roleProjection.queryRef);
                 }
             };
 
-            getRolesInRoleMapping((roleName: string) => { addGroupingRole(roleName, categoryGroups); }, categoricalMapping.categories);
-            getRolesInRoleMapping((roleName: string) => { addGroupingRole(roleName, valueGroups); }, categoricalMapping.values);
+            DataViewMapping.visitCategoricalCategories(categoricalMapping.categories, {
+                visitRole: (roleName: string) => { addGroupingRole(roleName, categoryGroups); }
+            });
+
+            DataViewMapping.visitGrouped(<DataViewGroupedRoleMapping>categoricalMapping.values, {
+                visitRole: (roleName: string) => { addGroupingRole(roleName, valueGroups); }
+            });
+            
+            DataViewMapping.visitCategoricalValues(categoricalMapping.values, {
+                visitRole: (roleName: string) => { addGroupingRole(roleName, valueGroups); }
+            });
 
             // need both for pivot to have been done
             if (_.isEmpty(categoryGroups) || _.isEmpty(valueGroups))
@@ -246,11 +209,6 @@ module powerbi.data {
             return true;
         }
 
-        interface GroupValue {
-            identity: DataViewScopeIdentity;
-            value: any;
-        }
-
         interface DataViewMatrixNodeValues {
             [id: number]: DataViewMatrixNodeValue;
         }
@@ -265,31 +223,46 @@ module powerbi.data {
             let oldChildren = oldRoot.children;
 
             // series are the outer grouping
-            let series: GroupValue[] = [];
+            let series: DataViewMatrixNode[] = [];
             let seriesIdLevel = oldRows.levels[0];
             let seriesIdFields = oldRoot.childIdentityFields;
 
             // categories are the inner grouping. 
-            let categories: GroupValue[] = [];
+            let categoryIndex: _.Dictionary<number> = {};
+            let categories: DataViewMatrixNode[] = [];
             let categoryIdLevel = oldRows.levels[1];
-            let categoryIdFields = oldChildren[0].childIdentityFields;
+            let categoryIdFields = _.isEmpty(oldChildren) ? undefined : oldChildren[0].childIdentityFields;
 
             let measureCount = oldMatrix.valueSources.length;
 
             // within each series value, the category list may not be complete so cannot simply use the inner loop index
             // to reference it.
-            let findcat = (identity: DataViewScopeIdentity) => {
-                return _.findIndex(categories, pair => DataViewScopeIdentity.equals(pair.identity, identity));
+            let findCategory = (identity: DataViewScopeIdentity) => {
+                let index = categoryIndex[identity.key];
+
+                debug.assert(index !== undefined, "findcat() !== undefined");
+
+                return index;
             };
 
             // collect series and categories from the row hierarchy
-            for (let seriesNode of oldChildren) {
-                series.push({ value: seriesNode.value, identity: seriesNode.identity });
+            if (oldChildren) {
+                let addCategory = (categoryNode: DataViewMatrixNode) => {
+                    let key = categoryNode.identity.key;
+                    let index = categoryIndex[key];
+                    if (index === undefined) {
+                        index = categories.length;
+                        categoryIndex[key] = index;
+                        categories.push(categoryNode);
+                    }
+                };
 
-                for (let categoryNode of seriesNode.children) {
-                    let catindex = findcat(categoryNode.identity);
-                    if (catindex === -1)
-                        categories.push({ value: categoryNode.value, identity: categoryNode.identity });
+                for (let seriesNode of oldChildren) {
+                    series.push(seriesNode);
+
+                    for (let categoryNode of seriesNode.children) {
+                        addCategory(categoryNode);
+                    }
                 }
             }
             
@@ -299,7 +272,7 @@ module powerbi.data {
             for (let j = 0; j < series.length; ++j) { // outer is series
                 let seriesNode = oldChildren[j];
                 for (let categoryNode of seriesNode.children) { // inner is categories but maybe a subset
-                    let i = findcat(categoryNode.identity); // must lookup actual category index
+                    let i = findCategory(categoryNode.identity); // must lookup actual category index
 
                     if (!matrixValues[i])
                         matrixValues[i] = new Array<DataViewMatrixNodeValues>(series.length);
@@ -308,15 +281,15 @@ module powerbi.data {
                 }
             }
 
-            // unpivoted matrix columns are the series
+            // columns of the unpivoted matrix are the series
             let newColumns: DataViewHierarchy = {
                 root: {
-                    children: _.map(series, (s: any) => {
-                        return {
-                            level: 0,
-                            value: s.value,
-                            identity: s.identity,
-                        };
+                    children: _.map(series, s => {
+                        let inheritedNode = inheritSingle(s);
+                        inheritedNode.level = 0; // s.level should already be 0, but just in case...
+                        inheritedNode.children = undefined; // if Measure Headers exist in oldMatrix.columns, newColumns.root.children will get populated later in this function
+                        inheritedNode.childIdentityFields = undefined;
+                        return inheritedNode;
                     }),
                     childIdentityFields: seriesIdFields,
                 },
@@ -325,6 +298,8 @@ module powerbi.data {
                     
                 ],
             };
+
+            // Re-add any Measure Headers from oldMatrix.columns as leaf nodes under newColumns
             if (measureCount > 0) {
                 let newColChildren: DataViewMatrixNode[] = _.map(oldMatrix.columns.root.children, (srcnode: DataViewMatrixNode) => {
                     let dstnode: DataViewMatrixNode = { level: 1 };
@@ -339,10 +314,16 @@ module powerbi.data {
                 newColumns.levels.push(oldMatrix.columns.levels[0]);
             }
 
-            // unpivoted rows are the categories
+            // rows of the unpivoted matrix are the categories
             let newRows: DataViewHierarchy = {
                 root: {
-                    children: _.map(categories, (s: GroupValue) => { return { level: 0, value: s.value, identity: s.identity }; }),
+                    children: _.map(categories, c => {
+                        let inheritedNode = inheritSingle(c);
+                        inheritedNode.level = 0;
+                        inheritedNode.children = undefined; // c.children should already be undefined, but just in case...
+                        inheritedNode.childIdentityFields = undefined; // c.children should already be undefined, but just in case...
+                        return inheritedNode;
+                    }),
                     childIdentityFields: categoryIdFields,
                 },
                 levels: [
@@ -357,7 +338,7 @@ module powerbi.data {
                     let rowValues: DataViewMatrixNodeValues = {};
 
                     for (let j = 0; j < series.length; ++j) {
-                        let mvalues = matrixValues[i][j];
+                        let mvalues = matrixValues[i] && matrixValues[i][j];
                         for (let k = 0; k < measureCount; ++k) {
                             let l = j * measureCount + k;
                             rowValues[l] = !mvalues
@@ -385,15 +366,7 @@ module powerbi.data {
             let measureMetadata = matrix.valueSources;
             let measureCount = measureMetadata.length;
 
-            // create categories from rows
-            let categories: DataViewCategoryColumn[] = [
-                {
-                    source: matrix.rows.levels[0].sources[0],
-                    values: _.map(matrix.rows.root.children, x => x.value),
-                    identity: _.map(matrix.rows.root.children, x => x.identity),
-                    identityFields: matrix.rows.root.childIdentityFields,
-                },
-            ];
+            let categories: DataViewCategoryColumn[] = createCategoryColumnsFromUnpivotedMatrix(matrix);
 
             // create grouped values
             let groups: DataViewValueColumnGroup[] = [];
@@ -454,6 +427,43 @@ module powerbi.data {
             };
 
             return categorical;
+        }
+
+        function createCategoryColumnsFromUnpivotedMatrix(unpivotedMatrix: DataViewMatrix): DataViewCategoryColumn[] {
+            debug.assertValue(unpivotedMatrix, 'unpivotedMatrix');
+            debug.assert(unpivotedMatrix && unpivotedMatrix.rows && unpivotedMatrix.rows.levels && (unpivotedMatrix.rows.levels.length === 1),
+                'pre-condition: unpivotedMatrix should have exactly one level in row hierarchy');
+
+            // Create categories from rows.  If matrix.rows.levels[0].sources represents a composite group, expand each column in the 
+            // composite group into a separate DataViewCategoryColumn.  The identity and childIdentityFields properties will be the 
+            // same amongst the resulting DataViewCategoryColumns.
+            let categoryIdentity = _.map(unpivotedMatrix.rows.root.children, x => x.identity);
+            let categoryIdentityFields = unpivotedMatrix.rows.root.childIdentityFields;
+            let categorySourceColumns = unpivotedMatrix.rows.levels[0].sources;
+
+            let categories: DataViewCategoryColumn[] = [];
+            for (var i = 0, ilen = categorySourceColumns.length; i < ilen; i++) {
+                let groupLevelValues = _.map(unpivotedMatrix.rows.root.children, (categoryNode: DataViewMatrixNode) => {
+                    let levelValues: DataViewMatrixGroupValue[] = categoryNode.levelValues;
+
+                    // Please refer to the interface comments on when this is undefined... But in today's code
+                    // I believe we will not see undefined levelValues in the rows of any unpivotedMatrix. 
+                    if (levelValues !== undefined) {
+                        debug.assert(levelValues[i] && (levelValues[i].levelSourceIndex === i),
+                            'pre-condition: DataViewMatrixNode.levelValues is expected to have one DataViewMatrixGroupValue node per level source column, sorted by levelSourceIndex.');
+                        return levelValues[i].value;
+                    }
+                });
+
+                categories.push({
+                    source: categorySourceColumns[i],
+                    values: groupLevelValues,
+                    identity: categoryIdentity,
+                    identityFields: categoryIdentityFields,
+                });
+            }
+
+            return categories;
         }
     }
 }

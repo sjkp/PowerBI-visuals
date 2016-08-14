@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -23,6 +23,8 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
+
+/// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
     export interface I2DTransformMatrix {
@@ -138,7 +140,7 @@ module powerbi.visuals {
             }
         }
 
-        public add(other: Transform) {
+        public add(other: Transform): void {
             if (other) {
                 this.matrix = multiplyMatrices(this.matrix, other.matrix);
                 this._inverse = null;

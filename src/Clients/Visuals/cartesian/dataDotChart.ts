@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,11 +24,12 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="../_references.ts"/>
-
 /**
  * IMPORTANT: This chart is not currently enabled in the PBI system and is under development.
  */
+
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
 
     export interface IDataDotChartConfiguration {
@@ -117,6 +118,7 @@ module powerbi.visuals {
 
             // Common properties
             this.svg = options.svg;
+            this.svg.classed(DataDotChart.ClassName, true);
             this.mainGraphicsG = this.svg.append('g')
                 .classed('dataDotChartMainGraphicsContext', true);
             this.mainGraphicsContext = this.mainGraphicsG.append('svg');
@@ -129,9 +131,7 @@ module powerbi.visuals {
             // Interactivity properties
             this.interactivity = options.interactivity;
 
-            let element = this.element = options.element;
-            element.addClass(DataDotChart.ClassName);
-            element.css('overflow', 'visible');
+            this.element = options.element;
         }
 
         public setData(dataViews: DataView[]): void {
@@ -155,7 +155,7 @@ module powerbi.visuals {
                     // I default to text unless there is a category type
                     let categoryType = ValueType.fromDescriptor({ text: true });
                     if (dvCategories && dvCategories.length > 0 && dvCategories[0].source && dvCategories[0].source.type)
-                        categoryType = dvCategories[0].source.type;
+                        categoryType = <ValueType>dvCategories[0].source.type;
 
                     this.data = DataDotChart.converter(dataView, valueFormatter.format(null), this.interactivityService);
                 }
@@ -205,7 +205,8 @@ module powerbi.visuals {
                     categoryCount: categoryCount,
                     domain: null,
                     isScalar: false,
-                    isScrollable: this.isScrollable
+                    isScrollable: this.isScrollable,
+                    trimOrdinalDataOnOverflow: options.trimOrdinalDataOnOverflow
                 });
             let outerPadding = layout.categoryThickness * CartesianChart.OuterPaddingRatio;
 
@@ -214,30 +215,30 @@ module powerbi.visuals {
                 this.clippedData = DataDotChart.createClippedDataIfOverflowed(data, layout.categoryCount);
             }
 
-            let yDomain = AxisHelper.createValueDomain(seriesArray, /*includeZero:*/ true) || fallBackDomain;
+            let yDomain = AxisHelper.createValueDomain(seriesArray, /*includeZero:*/ true) || emptyDomain;
 
-            let combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, yDomain);
+            let combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, yDomain, options.ensureYDomain);
 
             this.yAxisProperties = AxisHelper.createAxis({
                 pixelSpan: height,
                 dataDomain: combinedDomain,
                 metaDataColumn: yMetaDataColumn,
-                formatStringProp: DataDotChart.formatStringProp,
+                formatString: valueFormatter.getFormatString(yMetaDataColumn, DataDotChart.formatStringProp),
                 outerPadding: 0,
                 isScalar: true,
                 isVertical: true,
                 forcedTickCount: options.forcedTickCount,
                 useTickIntervalForDisplayUnits: true,
-                isCategoryAxis: true
+                isCategoryAxis: false
             });
 
             let axisType = this.xAxisProperties ? this.xAxisProperties.axisType : ValueType.fromDescriptor({ text: true });
-            let xDomain = AxisHelper.createDomain(seriesArray, axisType, /*isScalar:*/ false, options.forcedXDomain);
+            let xDomain = AxisHelper.createDomain(seriesArray, axisType, /*isScalar:*/ false, options.forcedXDomain, options.ensureXDomain);
             this.xAxisProperties = AxisHelper.createAxis({
                 pixelSpan: width,
                 dataDomain: xDomain,
                 metaDataColumn: xMetaDataColumn,
-                formatStringProp: DataDotChart.formatStringProp,
+                formatString: valueFormatter.getFormatString(xMetaDataColumn, DataDotChart.formatStringProp),
                 outerPadding: outerPadding,
                 isScalar: false,
                 isVertical: false,
@@ -245,13 +246,13 @@ module powerbi.visuals {
                 useTickIntervalForDisplayUnits: true,
                 categoryThickness: layout.categoryThickness,
                 getValueFn: (index, type) => this.lookupXValue(index, type),
-                isCategoryAxis: false
+                isCategoryAxis: true
             });
 
             return [this.xAxisProperties, this.yAxisProperties];
         }
 
-        private static createClippedDataIfOverflowed(data: DataDotChartData, categoryCount: number): DataDotChartData {                                                
+        private static createClippedDataIfOverflowed(data: DataDotChartData, categoryCount: number): DataDotChartData {
 
             // If there are highlights, then the series is 2x in length and highlights are interwoven.
             let requiredLength = data.hasHighlights ? Math.min(data.series.data.length, categoryCount * 2) : Math.min(data.series.data.length, categoryCount);
@@ -373,7 +374,7 @@ module powerbi.visuals {
                 behaviorOptions = {
                     dots: dots,
                     dotLabels: dotLabels,
-                    datapoints: dataPoints,
+                    datapoints: dataPoints
                 };
             }        
 
@@ -456,7 +457,7 @@ module powerbi.visuals {
                     identity: undefined
                 };
 
-            let categoryType: ValueType = AxisHelper.getCategoryValueType(category.source);
+            let categoryType: ValueTypeDescriptor = AxisHelper.getCategoryValueType(category.source);
             let isDateTime = AxisHelper.isDateTime(categoryType);
             let categoryValues = category.values;
 
@@ -472,15 +473,23 @@ module powerbi.visuals {
                     debug.assert(!category.identity || categoryIndex < category.identity.length, 'Category identities is smaller than category values.');
 
                     // I create the identity from the category.  If there is no category, then I use the measure name to create identity
-                    let identity = category.identity ?
-                        SelectionId.createWithIdAndMeasure(category.identity[categoryIndex], measure.source.queryName) :
-                        SelectionId.createWithMeasure(measure.source.queryName);
+                    let idBuilder = new SelectionIdBuilder();
+                    if (category.identity) {
+                        idBuilder = idBuilder.withCategory(category, categoryIndex);
+                    }
+                    let identity = idBuilder
+                        .withMeasure(measure.source.queryName)
+                        .createSelectionId();
 
                     let categoryValue = categoryValues[categoryIndex];
 
+                    // ignore variant measures
+                    if (isDateTime && categoryValue != null && !(categoryValue instanceof Date))
+                        continue;
+
                     dataPoints.push({
-                        categoryValue: isDateTime && categoryValue ? categoryValue.getTime() : categoryValue,
-                        value: measure.values[categoryIndex],
+                        categoryValue: isDateTime && categoryValue ? (<Date>categoryValue).getTime() : categoryValue,
+                        value: <number>measure.values[categoryIndex],
                         categoryIndex: categoryIndex,
                         seriesIndex: 0,
                         selected: false,
@@ -491,10 +500,10 @@ module powerbi.visuals {
                     if (hasHighlights) {
 
                         let highlightIdentity = SelectionId.createWithHighlight(identity);
-                        let highlightValue = measure.highlights[categoryIndex];
+                        let highlightValue = <number>measure.highlights[categoryIndex];
 
                         dataPoints.push({
-                            categoryValue: isDateTime && categoryValue ? categoryValue.getTime() : categoryValue,
+                            categoryValue: isDateTime && categoryValue ? (<Date>categoryValue).getTime() : categoryValue,
                             value: highlightValue,
                             categoryIndex: categoryIndex,
                             seriesIndex: 0,

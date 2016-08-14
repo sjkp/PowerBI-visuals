@@ -28,8 +28,8 @@ declare module _ {
         * The non-chainable wrapper functions are:
         * clone, cloneDeep, contains, escape, every, find, findIndex, findKey, findLast, 
         * findLastIndex, findLastKey, has, identity, indexOf, isArguments, isArray, isBoolean, 
-        * isDate, isElement, isEmpty, isEqual, isFinite, isFunction, isNaN, isNull, isNumber, 
-        * isObject, isPlainObject, isRegExp, isString, isUndefined, join, lastIndexOf, mixin, 
+        * isDate, isElement, isEmpty, isEqual, isFinite, isFunction, isNaN, isNumber, 
+        * isObject, isPlainObject, isRegExp, isString, join, lastIndexOf, mixin, 
         * noConflict, parseInt, pop, random, reduce, reduceRight, result, shift, size, some, 
         * sortedIndex, runInContext, template, unescape, uniqueId, and value
         *
@@ -3619,6 +3619,136 @@ declare module _ {
             whereValue: W): LoDashWrapper<T>;
     }
 
+    //_.sum
+    interface LoDashStatic {
+        /**
+        * Gets the sum of the values in collection.
+        *
+        * @param collection The collection to iterate over.
+        * @param iteratee The function invoked per iteration.
+        * @param thisArg The this binding of iteratee.
+        * @return Returns the sum.
+        **/
+        sum(
+            collection: Array<number>): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            collection: List<number>): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            collection: Dictionary<number>): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum<T>(
+            collection: Array<T>,
+            iteratee: ListIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum<T>(
+            collection: List<T>,
+            iteratee: ListIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum<T>(
+            collection: Dictionary<T>,
+            iteratee: ObjectIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum<T>(
+            collection: Array<T>,
+            property: string): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum<T>(
+            collection: List<T>,
+            property: string): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum<T>(
+            collection: Dictionary<T>,
+            property: string): number;
+    }
+
+    interface LoDashNumberArrayWrapper {
+        /**
+        * @see _.sum
+        **/
+        sum(): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            iteratee: ListIterator<number, number>,
+            thisArg?: any): number;
+    }
+
+    interface LoDashArrayWrapper<T> {
+        /**
+        * @see _.sum
+        **/
+        sum(): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            iteratee: ListIterator<T, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum(
+            property: string): number;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.sum
+        **/
+        sum(): number;
+
+        /**
+        * @see _.sum
+        **/
+        sum(
+            iteratee: ObjectIterator<any, number>,
+            thisArg?: any): number;
+
+        /**
+        * @see _.sum
+        * @param property _.property callback shorthand.
+        **/
+        sum(
+            property: string): number;
+    }
+
     //_.pluck
     interface LoDashStatic {
         /**
@@ -4522,6 +4652,18 @@ declare module _ {
         toArray<TValue>(): LoDashArrayWrapper<TValue>;
     }
 
+    //_.toPlainObject
+    interface LoDashStatic {
+        /**
+         * Converts value to a plain object flattening inherited enumerable properties of value to own properties
+         * of the plain object.
+         *
+         * @param value The value to convert.
+         * @return Returns the converted plain object.
+         */
+        toPlainObject<TResult extends {}>(value?: any): TResult;
+    }
+
     //_.where
     interface LoDashStatic {
         /**
@@ -5273,6 +5415,72 @@ declare module _ {
             whereValue: W): string;
     }
 
+    //_.forOwn
+    interface LoDashStatic {
+        /**
+        * Iterates over own enumerable properties of an object, executing the callback for each 
+        * property. The callback is bound to thisArg and invoked with three arguments; (value, key, 
+        * object). Callbacks may exit iteration early by explicitly returning false.
+        * @param object The object to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return object
+        **/
+        forOwn<T extends {}>(
+            object: Dictionary<T>,
+            callback?: ObjectIterator<T, void>,
+            thisArg?: any): Dictionary<T>;
+
+        /**
+        * @see _.forOwn
+        **/
+        forOwn<T extends {}>(
+            object: T,
+            callback?: ObjectIterator<any, void>,
+            thisArg?: any): T;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.forOwn
+        **/
+        forOwn<T extends {}>(
+            callback: ObjectIterator<T, void>,
+            thisArg?: any): _.LoDashObjectWrapper<T>;
+    }
+
+    //_.forOwnRight
+    interface LoDashStatic {
+        /**
+        * This method is like _.forOwn except that it iterates over elements of a collection in the 
+        * opposite order.
+        * @param object The object to iterate over.
+        * @param callback The function called per iteration.
+        * @param thisArg The this binding of callback.
+        * @return object
+        **/
+        forOwnRight<T extends {}>(
+            object: Dictionary<T>,
+            callback?: ObjectIterator<T, void>,
+            thisArg?: any): Dictionary<T>;
+        /**
+        * @see _.forOwnRight
+        **/
+        forOwnRight<T extends {}>(
+            object: T,
+            callback?: ObjectIterator<any, void>,
+            thisArg?: any): T;
+    }
+
+    interface LoDashObjectWrapper<T> {
+        /**
+        * @see _.forOwnRight
+        **/
+        forOwnRight<T extends {}>(
+            callback: ObjectIterator<T, void>,
+            thisArg?: any): _.LoDashObjectWrapper<T>;
+    }
+
     //_.functions
     interface LoDashStatic {
         /**
@@ -5350,7 +5558,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a boolean value, else false.
         **/
-        isBoolean(value: any): boolean;
+        isBoolean(value: any): value is boolean;
     }
 
     //_.isDate
@@ -5360,7 +5568,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a date, else false.
         **/
-        isDate(value: any): boolean;
+        isDate(value: any): value is Date;
     }
 
     //_.isElement
@@ -5370,7 +5578,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a DOM element, else false.
         **/
-        isElement(value: any): boolean;
+        isElement(value: any): value is HTMLElement;
     }
 
     //_.isEmpty
@@ -5439,7 +5647,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a function, else false.
         **/
-        isFunction(value: any): boolean;
+        isFunction(value: any): value is Function;
     }
 
     //_.isNaN
@@ -5455,16 +5663,6 @@ declare module _ {
         isNaN(value: any): boolean;
     }
 
-    //_.isNull
-    interface LoDashStatic {
-        /**
-        * Checks if value is null.
-        * @param value The value to check.
-        * @return True if the value is null, else false.
-        **/
-        isNull(value: any): boolean;
-    }
-
     //_.isNumber
     interface LoDashStatic {
         /**
@@ -5474,7 +5672,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a number, else false.
         **/
-        isNumber(value: any): boolean;
+        isNumber(value: any): value is Number;
     }
 
     //_.isObject
@@ -5485,7 +5683,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is an object, else false.
         **/
-        isObject(value: any): boolean;
+        isObject(value: any): value is Object;
     }
 
     //_.isPlainObject
@@ -5495,7 +5693,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if value is a plain object, else false.
         **/
-        isPlainObject(value: any): boolean;
+        isPlainObject(value: any): value is Object;
     }
 
     //_.isRegExp
@@ -5505,7 +5703,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a regular expression, else false.
         **/
-        isRegExp(value: any): boolean;
+        isRegExp(value: any): value is RegExp;
     }
 
     //_.isString
@@ -5515,17 +5713,7 @@ declare module _ {
         * @param value The value to check.
         * @return True if the value is a string, else false.
         **/
-        isString(value: any): boolean;
-    }
-
-    //_.isUndefined
-    interface LoDashStatic {
-        /**
-        * Checks if value is undefined.
-        * @param value The value to check.
-        * @return True if the value is undefined, else false.
-        **/
-        isUndefined(value: any): boolean;
+        isString(value: any): value is string;
     }
 
     //_.keys

@@ -29,6 +29,10 @@
 module powerbitests.tablixHelper {
     import CssConstants = jsCommon.CssConstants;
     import DataView = powerbi.DataView;
+    import ValueFormatter = powerbi.visuals.valueFormatter;
+    //import TablixUtils = powerbi.visuals.controls.internal.TablixUtils;
+    import TablixObjects = powerbi.visuals.controls.internal.TablixObjects;
+    import TextUtil = powerbi.visuals.TextUtil;
 
     export interface TableCellCoordinate {
         row: number;
@@ -38,7 +42,7 @@ module powerbitests.tablixHelper {
 
     export interface TableCellInfo {
         cellCoordinate: TableCellCoordinate;
-        clickTarget: JQuery;
+        clickTarget: HTMLElement;
         text: string;
     };
 
@@ -56,7 +60,7 @@ module powerbitests.tablixHelper {
     export function getTableCell(tableBody: JQuery, coordinate: TableCellCoordinate): TableCellInfo {
         var clickTargetSelector: string = '> tr:nth-child(' + (coordinate.row + 1) + ') > td:nth-child(' + (coordinate.col + 1) + ') > div';
         var textDivSelector: string = '> div';
-        var clickTarget = $(clickTargetSelector, tableBody);
+        var clickTarget = $(clickTargetSelector, tableBody).get(0);
         expect(clickTarget).toBeInDOM();
         var textDiv = $(textDivSelector, clickTarget);
         expect(textDiv).toBeInDOM();
@@ -76,10 +80,6 @@ module powerbitests.tablixHelper {
         element.css(CssConstants.maxWidthProperty, viewport.width);
         element.css(CssConstants.positionProperty, CssConstants.absoluteValue);
 
-        var featureSwitches: powerbi.visuals.MinervaVisualFeatureSwitches = {
-            scrollableVisuals: true,
-        };
-        var visualPluginService = powerbi.visuals.visualPluginFactory.createMinerva(featureSwitches);
         var sortCallback = options.onCustomSortCallback ? options.onCustomSortCallback : (args: powerbi.CustomSortEventArgs) => { };
         var hostService: powerbi.IVisualHostServices = <any>{
             getLocalizedString: (stringId: string) => stringId,
@@ -89,9 +89,13 @@ module powerbitests.tablixHelper {
         };
 
         if (options.formatCallback)
-            spyOn(powerbi.visuals.valueFormatter, 'formatRaw').and.callFake(options.formatCallback);
+            spyOn(powerbi.visuals.valueFormatter, 'formatVariantMeasureValue').and.callFake(options.formatCallback);
 
-        var v: powerbi.IVisual = visualPluginService.getPlugin(options.visualType).create();
+        var v: powerbi.IVisual;
+        switch (options.visualType) {
+            case powerbi.visuals.plugins.matrix.name: v = new powerbi.visuals.Matrix(); break;
+            case powerbi.visuals.plugins.table.name: v = new powerbi.visuals.Table(); break;
+        }
         v.init({
             element: element,
             host: hostService,
@@ -141,52 +145,66 @@ module powerbitests.tablixHelper {
             });
 
         renderTablixPromise.then(
-                () => {
-            var tableBody = $('.tablixContainer > div.bi-tablix > div:nth-child(1) > table.unselectable > tbody');
-            expect(tableBody).toBeInDOM();
+            () => {
+                var tableBody = $('.tablixContainer > div.tablixCanvas > div:nth-child(1) > table.unselectable > tbody');
+                expect(tableBody).toBeInDOM();
 
-            // Validate column headers
-            if (expectedColumnHeaders) {
-                for (var i = 0, len = expectedColumnHeaders.length; i < len; i++) {
-                    var coordinate = expectedColumnHeaders[i];
-                    var headerCell = getTableCell(tableBody, coordinate);
-                    if (coordinate.expectedText)
-                        expect(headerCell.text).toBe(coordinate.expectedText);
-                }
-            }
-
-            // Execute the clicks
-            if (clicks) {
-                for (var i = 0, len = clicks.length; i < len; i++) {
-                    var clickCoordinate = clicks[i];
-                    var clickCell = getTableCell(tableBody, clickCoordinate);
-                    if (clickCoordinate.expectedText)
-                        expect(clickCell.text).toBe(clickCoordinate.expectedText);
-                    clickCell.clickTarget.click();
-                }
-            }
-
-            // Validate the expected sorts
-            if (expectedSorts) {
-                expect(expectedSorts.length).toBe(actualSorts.length);
-
-                for (var i = 0, len = expectedSorts.length; i < len; i++) {
-                    var expectedSort = expectedSorts[i];
-                    var actualSort = actualSorts[i];
-                    expect(expectedSort.length).toBe(actualSort.length);
-
-                    for (var j = 0, jlen = expectedSort.length; j < jlen; j++) {
-                        var expectedField = expectedSort[j];
-                        var actualField = actualSort[j];
-
-                        expect(expectedField.queryName).toBe(actualField.queryName);
-                        expect(expectedField.sortDirection).toBe(actualField.sortDirection);
+                // Validate column headers
+                if (expectedColumnHeaders) {
+                    for (var i = 0, len = expectedColumnHeaders.length; i < len; i++) {
+                        var coordinate = expectedColumnHeaders[i];
+                        coordinate.expectedText = TextUtil.replaceSpaceWithNBSP(coordinate.expectedText);
+                        var headerCell = getTableCell(tableBody, coordinate);
+                        if (coordinate.expectedText)
+                            expect(headerCell.text).toBe(coordinate.expectedText);
                     }
                 }
-            }
 
-            done();
-        });
+                // Execute the clicks
+                if (clicks) {
+                    for (var i = 0, len = clicks.length; i < len; i++) {
+                        var clickCoordinate = clicks[i];
+                        var clickCell = getTableCell(tableBody, clickCoordinate);
+                        if (clickCoordinate.expectedText)
+                            expect(clickCell.text).toBe(clickCoordinate.expectedText);
+
+                        // Instead of normal 'click', need to pass coordinates
+                        let ev = document.createEvent("MouseEvent");
+                        let x = clickCell.clickTarget.getBoundingClientRect().left;
+
+                        ev.initMouseEvent(
+                            "click",
+                            true /* bubble */, true /* cancelable */,
+                            window, null,
+                            x, 0, x, 0, /* coordinates */
+                            false, false, false, false, /* modifier keys */
+                            0 /*left*/, null
+                        );
+                        clickCell.clickTarget.dispatchEvent(ev);
+                    }
+                }
+
+                // Validate the expected sorts
+                if (expectedSorts) {
+                    expect(expectedSorts.length).toBe(actualSorts.length);
+
+                    for (var i = 0, len = expectedSorts.length; i < len; i++) {
+                        var expectedSort = expectedSorts[i];
+                        var actualSort = actualSorts[i];
+                        expect(expectedSort.length).toBe(actualSort.length);
+
+                        for (var j = 0, jlen = expectedSort.length; j < jlen; j++) {
+                            var expectedField = expectedSort[j];
+                            var actualField = actualSort[j];
+
+                            expect(expectedField.queryName).toBe(actualField.queryName);
+                            expect(expectedField.sortDirection).toBe(actualField.sortDirection);
+                        }
+                    }
+                }
+
+                done();
+            });
     }
 
     export function validateMatrix(expectedValues: string[][], selector: string): void {
@@ -210,6 +228,7 @@ module powerbitests.tablixHelper {
 
             for (var j = 0; j < jlen; j++) {
                 result[i][j] = cells.eq(j).text();
+                expectedValues[i][j] = TextUtil.replaceSpaceWithNBSP(expectedValues[i][j]);
                 if (result[i][j] !== expectedValues[i][j])
                     addError(errorString, "Actual value " + result[i][j] + " in row " + i + " and column " + j + " does not match expected value " + expectedValues[i][j] + ".");
             }
@@ -222,7 +241,8 @@ module powerbitests.tablixHelper {
     export function validateTable(expectedValues: string[][], selector: string): void {
         var rows = $(selector);
 
-        var result: string[][] = [];
+        var textResult: string[][] = [];
+        var titleResult: string[][] = [];
         var errorString: string = null;
 
         var ilen = rows.length;
@@ -230,17 +250,28 @@ module powerbitests.tablixHelper {
             addError(errorString, "Actual row count " + ilen + " does not match expected number of rows " + expectedValues.length + ".");
 
         for (var i = 0; i < ilen; i++) {
-            result[i] = [];
-            var cells = rows.eq(i).find('td');
+            textResult[i] = [];
+            titleResult[i] = [];
+            var cells = rows.eq(i).find('.tablixCellContentHost');
 
             var jlen = cells.length;
             if (jlen !== expectedValues[i].length)
                 addError(errorString, "Actual column count " + jlen + " in row " + i + " does not match expected number of columns " + expectedValues[i].length + ".");
 
             for (var j = 0; j < jlen; j++) {
-                result[i][j] = cells.eq(j).text();
-                if (result[i][j] !== expectedValues[i][j])
-                    addError(errorString, "Actual value " + result[i][j] + " in row " + i + " and column " + j + " does not match expected value " + expectedValues[i][j] + ".");
+                textResult[i][j] = cells.eq(j).text();
+                titleResult[i][j] = getTitleOfTablixItem(cells.eq(j));
+
+                expectedValues[i][j] = TextUtil.replaceSpaceWithNBSP(expectedValues[i][j]);
+
+                //this check only empty header cells
+                if (titleResult[i][j] === '' && expectedValues[i][j] === "\xa0")
+                    titleResult[i][j] = expectedValues[i][j];
+
+                if (textResult[i][j] !== expectedValues[i][j])
+                    addError(errorString, "Actual value " + textResult[i][j] + " in row " + i + " and column " + j + " does not match expected value " + expectedValues[i][j] + ".");
+                if (titleResult[i][j] !== expectedValues[i][j])
+                    addError(errorString, "Actual tooltip " + textResult[i][j] + " in row " + i + " and column " + j + " does not match expected value " + expectedValues[i][j] + ".");
 
                 if (cells.eq(j).height() <= 1)
                     addError(errorString, "Actual height " + cells.eq(j).height() + " in row " + i + " and column " + j + " is expected to be > 1.");
@@ -248,7 +279,26 @@ module powerbitests.tablixHelper {
         }
 
         expect(errorString).toBeNull();
-        expect(result).toEqual(expectedValues);
+        expect(textResult).toEqual(expectedValues);
+        expect(titleResult).toEqual(expectedValues);
+    }
+
+    function getTitleOfTablixItem(cells: JQuery): string {
+        let titleText = cells.attr('title');
+        if (titleText) 
+            return titleText;
+        
+        //The item is url type
+        titleText = cells.find('a').attr('title');
+        if (titleText) 
+            return titleText;
+
+        //The item is table header
+        titleText = cells.attr('title');
+        if (titleText) 
+            return titleText;
+ 
+        return "";
     }
 
     export function validateSortIconClassNames(expectedValues: string[], selector: string): void {
@@ -272,7 +322,7 @@ module powerbitests.tablixHelper {
         expect(result).toEqual(expectedValues);
     }
 
-    export function validateClassNames(expectedValues: string[][], selector: string, noMarginClass: string): void {
+    export function validateClassNames(expectedValues: string[][], selector: string): void {
         var rows = $(selector);
 
         var result: string[][] = [];
@@ -284,7 +334,7 @@ module powerbitests.tablixHelper {
 
         for (var i = 0; i < ilen; i++) {
             result[i] = [];
-            var cells = rows.eq(i).find('td');
+            var cells = rows.eq(i).find('.tablixCellContentHost');
 
             var jlen = cells.length;
             if (jlen !== expectedValues[i].length)
@@ -292,7 +342,6 @@ module powerbitests.tablixHelper {
 
             for (var j = 0; j < jlen; j++) {
                 result[i][j] = cells.eq(j).attr('class');
-                expectedValues[i][j] = addNoMarginClass(expectedValues[i][j], noMarginClass);
                 if (result[i][j] !== expectedValues[i][j])
                     addError(errorString, "Actual class name " + result[i][j] + " in row " + i + " and column " + j + " does not match expected value " + expectedValues[i][j] + ".");
             }
@@ -321,8 +370,43 @@ module powerbitests.tablixHelper {
      * @param expected: number - height in terms of 'px'
      */
     export function validateCellHeights(cells: JQuery, expected: number) {
-        let expectedPx = jsCommon.PixelConverter.toString(expected);
-        cells.each((index: number, elem: Element) => expect($(elem).css('height')).toBe(expectedPx));
+        cells.each((index: number, elem: Element) => {
+            let height = parseInt($(elem).css('height').replace('px', ''), 10);
+
+            // To prevent tests from being fragile, compare the height within an acceptable range (+-5px)
+            expect(helpers.isCloseTo(height, expected, /*tolerance*/ 5)).toBeTruthy();
+        });
+    }
+
+    export function validateCellLeftSeparator(cells: JQuery, expectedWidth: number, expectedColor: string) {
+        let expectedPx = jsCommon.PixelConverter.toString(expectedWidth);
+        cells.each((index: number, elem: Element) => {
+            let borderLeftColor = $(elem).css('border-left-color');
+            let borderLeftStyle = $(elem).css('border-left-style');
+            let borderLeftWidth = $(elem).css('border-left-width');
+
+            //check if only border exists
+            if (borderLeftStyle !== "none") {
+                helpers.assertColorsMatch(borderLeftColor, expectedColor);
+                expect(borderLeftWidth).toBe(expectedPx);
+            }
+        });
+    }
+
+    export function validateCellBottomSeparator(cells: JQuery, expectedWidth: number, expectedColor: string) {
+        let expectedPx = jsCommon.PixelConverter.toString(expectedWidth);
+        cells.each((index: number, elem: Element) => {
+            let borderBottomColor = $(elem).css('border-bottom-color');
+            let borderBottomStyle = $(elem).css('border-bottom-style');
+            let borderBottomWidth = $(elem).css('border-bottom-width');
+
+            //check if only border exists
+            if (borderBottomStyle !== "none") {
+                helpers.assertColorsMatch(borderBottomColor, expectedColor);
+                expect(borderBottomWidth).toBe(expectedPx);
+            }
+
+        });
     }
 
     function addError(errorString: string, message: string): string {
@@ -332,10 +416,52 @@ module powerbitests.tablixHelper {
         return errorString + "\r\n" + message;
     }
 
-    function addNoMarginClass(classNames: string, noMarginClass: string): string {
-        if (!classNames || classNames.length === 0)
-            return noMarginClass;
+    export function validateTableColumnHeaderTooltip(selector: string, dataView: powerbi.DataView): void {
+        let tableItems = $("tr").eq(0).find(selector);
+        let values = dataView.table.columns;
 
-        return classNames + ' ' + noMarginClass;
+        for (let i = 0; i < values.length; i++) {
+            expect(tableItems[i].textContent).toBe(values[i].displayName);
+            expect(tableItems[i].title).toBe(values[i].displayName);
+        }
+    }
+
+    export function validateTableRowFooterTooltip(selector: string, dataView: powerbi.DataView, index: number): void {
+        let tableItems = $("tr").eq(index + 1).find(selector);
+        let values = dataView.table.totals;
+        let numOfValue = values.length - 1;
+
+        for (let i = 1; i < numOfValue; i++) {
+            if (values[i]) {
+                let columnFormat: powerbi.DataViewMetadataColumn = dataView.table.columns[i - 1];
+                let formattedValue: string = values[i] ? values[i].toString() : '';
+
+                if (columnFormat) {
+                    formattedValue = ValueFormatter.formatVariantMeasureValue(values[i], columnFormat, TablixObjects.PropColumnFormatString, false);
+                }
+
+                expect(tableItems[i - 1].textContent).toBe(formattedValue);
+                expect(tableItems[i - 1].title).toBe(formattedValue);
+            }
+        }
+    }
+
+    export function validateTableRowTooltip(selector: string, dataView: powerbi.DataView, index: number): void {
+        let tableItems = $("tr").eq(index + 1).find(selector);
+        let values = dataView.table.rows[index];
+
+        for (let i = 0; i < values.length; i++) {
+            if (values[i]) {
+                let columnFormat: powerbi.DataViewMetadataColumn = dataView.table.columns[i];
+                let formattedValue: string = values[i].toString();
+
+                if (columnFormat) {
+                    formattedValue = ValueFormatter.formatVariantMeasureValue(values[i], columnFormat, TablixObjects.PropColumnFormatString, false);
+                }
+
+                expect(tableItems[i].textContent).toBe(formattedValue);
+                expect(tableItems[i].title).toBe(formattedValue);
+            }
+        }
     }
 }

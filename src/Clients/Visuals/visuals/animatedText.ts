@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -79,37 +79,40 @@ module powerbi.visuals {
             availableWidth: number,
             textToMeasure: string,
             seedFontHeight: number): number {
-
-            // set up the node so we don't keep appending/removing it during the computation
-            let nodeSelection = this.svg.append('text').text(textToMeasure);
-
+            
+            let textProperties: TextProperties= {
+                    fontFamily: null,
+                    fontSize: null,
+                    text: textToMeasure
+                };
+                
             let fontHeight = this.getAdjustedFontHeightCore(
-                nodeSelection,
+                textProperties,
                 availableWidth,
                 seedFontHeight,
                 0);
-
-            nodeSelection.remove();
 
             return fontHeight;
         }
 
         private getAdjustedFontHeightCore(
-            nodeToMeasure: D3.Selection,
+            textProperties: TextProperties,
             availableWidth: number,
             seedFontHeight: number,
             iteration: number): number {
-
+                
             // Too many attempts - just return what we have so we don't sacrifice perf
-            if (iteration > 10)
+            if (iteration > 10) {
                 return seedFontHeight;
+            }
 
-            nodeToMeasure.attr('font-size', seedFontHeight);
-            let candidateLength = TextMeasurementService.measureSvgTextElementWidth(nodeToMeasure[0][0]);
+            textProperties.fontSize = jsCommon.PixelConverter.toString(seedFontHeight);
+
+            let candidateLength = TextMeasurementService.measureSvgTextWidth(textProperties);
             if (candidateLength < availableWidth)
                 return seedFontHeight;
 
-            return this.getAdjustedFontHeightCore(nodeToMeasure, availableWidth, seedFontHeight * 0.9, iteration + 1);
+            return this.getAdjustedFontHeightCore(textProperties, availableWidth, seedFontHeight * 0.9, iteration + 1);
         }
 
         public clear() {
@@ -176,14 +179,15 @@ module powerbi.visuals {
                     'transform': SVGUtil.translate(translateX, translateY),
                 })
                 .style({
-                  'fill': this.style.titleText.color.value,
-                });
+                    'fill': this.style.titleText.color.value,
+                })
+                .call(tooltipUtils.tooltipUpdate, [startText]);
 
             if (endValue == null) {
-                textElementUpdate.text(endText);
+                textElementUpdate.text(endText).call(tooltipUtils.tooltipUpdate, [endText]);
             }
             else if (metaDataColumn && AxisHelper.isDateTime(metaDataColumn.type)) {
-                textElementUpdate.text(endText);
+                textElementUpdate.text(endText).call(tooltipUtils.tooltipUpdate, [endText]);
             }
             else {
                 let interpolatedValue = startValue;

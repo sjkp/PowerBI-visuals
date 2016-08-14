@@ -25,6 +25,9 @@
  */
 
 // TODO: this file should be removed.
+
+/// <reference path="./_references.ts"/>
+
 module powerbi.data {
     /** Represents a simplified table aggregate/column/column aggregate reference within a SQ. */
     export interface SQFieldDef {

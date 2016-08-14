@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -39,62 +39,32 @@ module powerbi.visuals {
         objects: {
             general: {
                 properties: {
-                    formatString: {
-                        type: { formatting: { formatString: true } },
-                    },
+                    formatString: StandardObjectProperties.formatString,
                 },
             },
             labels: {
                 displayName: data.createDisplayNameGetter('Visual_DataPointLabel'),
                 properties: {
-                    color: {
-                        displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
-                        description: data.createDisplayNameGetter('Visual_LabelsFillDescription'),
-                        type: { fill: { solid: { color: true } } }
-                    },
-                    labelDisplayUnits: {
-                        displayName: data.createDisplayNameGetter('Visual_DisplayUnits'),
-                        description: data.createDisplayNameGetter('Visual_DisplayUnitsDescription'),
-                        type: { formatting: { labelDisplayUnits: true } }
-                    },
-                    labelPrecision: {
-                        displayName: data.createDisplayNameGetter('Visual_Precision'),
-                        description: data.createDisplayNameGetter('Visual_PrecisionDescription'),
-                        placeHolderText: data.createDisplayNameGetter('Visual_Precision_Auto'),
-                        type: { numeric: true }
-                    },
+                    color: StandardObjectProperties.dataColor,
+                    labelDisplayUnits: StandardObjectProperties.labelDisplayUnits,
+                    labelPrecision: StandardObjectProperties.labelPrecision,
                     // NOTE: Consider adding a ValueType for fontSize.
-                    fontSize: {
-                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
-                        type: { formatting: { fontSize: true } }
-                    },
+                    fontSize: StandardObjectProperties.fontSize,
                 },
             },
             categoryLabels: {
                 displayName: data.createDisplayNameGetter('Visual_CategoryLabel'),
                 properties: {
-                    show: {
-                        displayName: data.createDisplayNameGetter('Visual_Show'),
-                        type: { bool: true }
-                    },
-                    color: {
-                        displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
-                        type: { fill: { solid: { color: true } } }
-                    },
+                    show: StandardObjectProperties.show,
+                    color: StandardObjectProperties.dataColor,
                     // NOTE: Consider adding a ValueType for fontSize.
-                    fontSize: {
-                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
-                        type: { formatting: { fontSize: true } }
+                    fontSize: StandardObjectProperties.fontSize,
                 },
-            },
             },
             wordWrap: {
                 displayName: data.createDisplayNameGetter('Visual_WordWrap'),
                 properties: {
-                    show: {
-                        displayName: data.createDisplayNameGetter('Visual_Show'),
-                        type: { bool: true }
-                    },
+                    show: StandardObjectProperties.show,
                 },
             },
         },

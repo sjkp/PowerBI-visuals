@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Power BI Visualizations
 *
 *  Copyright (c) Microsoft Corporation
@@ -28,7 +28,7 @@
 
 module powerbi.visuals {
     export module slicerOrientation {
-        export enum Orientation {
+        export const enum Orientation {
             Vertical,
             Horizontal
         }

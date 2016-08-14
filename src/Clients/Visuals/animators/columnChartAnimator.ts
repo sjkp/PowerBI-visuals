@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -59,6 +59,12 @@ module powerbi.visuals {
 
             let viewModel = options.viewModel;
             let previousViewModel = this.previousViewModel;
+            
+            let dataPointCount = viewModel.categories.length * viewModel.series.length;
+            if (dataPointCount > AnimatorCommon.MaxDataPointsToAnimate) {
+                // Too many data points to animate.
+                return result;
+            }
 
             if (!previousViewModel) {
                 // This is the initial drawing of the chart, which has no special animation for now.

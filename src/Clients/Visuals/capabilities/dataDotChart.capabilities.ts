@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -33,19 +33,20 @@ module powerbi.visuals {
             {
                 name: 'Category',
                 kind: VisualDataRoleKind.Grouping,
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Axis'),
+                description: data.createDisplayNameGetter('Role_DisplayName_AxisDescription')
             }, {
                 name: 'Y',
                 kind: VisualDataRoleKind.Measure,
-                requiredTypes: [{ numeric: true }, { integer: true }],
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Value'),
+                requiredTypes: [{ numeric: true }, { integer: true }]
             },
         ],
         objects: {
             general: {
                 displayName: data.createDisplayNameGetter('Visual_General'),
                 properties: {
-                    formatString: {
-                        type: { formatting: { formatString: true } },
-                    },
+                    formatString: StandardObjectProperties.formatString,
                 },
             },
         },
@@ -61,7 +62,6 @@ module powerbi.visuals {
                 values: {
                     select: [{
                         for: { in: 'Y' },
-                        dataReductionAlgorithm: { top: {} }
                     }]
                 },
             },

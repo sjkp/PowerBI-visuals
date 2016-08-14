@@ -1,4 +1,4 @@
-﻿ /*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -35,8 +35,8 @@ module powerbi.visuals {
         percentGraphicsContext: D3.Selection;
         labelGraphicsContext: D3.Selection;
         axisOptions: FunnelAxisOptions;
-        slicesWithoutHighlights: FunnelSlice[];
-        labelLayout: ILabelLayout; 
+        dataPointsWithoutHighlights: FunnelDataPoint[];
+        labelLayout: Label[];
         isHidingPercentBars: boolean;
         visualInitOptions: VisualInitOptions;
     }
@@ -90,16 +90,16 @@ module powerbi.visuals {
 
             this.animateDefaultAxis(options.axisGraphicsContext, options.axisOptions, options.isHidingPercentBars);
 
-            let shapes = options.shapeGraphicsContext.selectAll(FunnelChart.Selectors.funnel.bars.selector).data(data.slices, (d: FunnelSlice) => d.key);
+            let shapes = options.shapeGraphicsContext.selectAll(FunnelChart.Selectors.funnel.bars.selector).data(data.dataPoints, (d: FunnelDataPoint) => d.key);
 
             shapes.enter()
                 .append('rect')
-                .attr("class", (d: FunnelSlice) => d.highlight ? FunnelChart.FunnelBarHighlightClass : FunnelChart.Selectors.funnel.bars.class)
+                .attr("class", (d: FunnelDataPoint) => d.highlight ? FunnelChart.FunnelBarHighlightClass : FunnelChart.Selectors.funnel.bars.class)
                 .attr(layout.shapeLayoutWithoutHighlights); // Start by laying out all rectangles ignoring highlights
 
             shapes
-                .style("fill", (d: FunnelSlice) => d.color)
-                .style("fill-opacity", (d: FunnelSlice) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights))
+                .style("fill", (d: FunnelDataPoint) => d.color)
+                .style("fill-opacity", (d: FunnelDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, hasHighlights))
                 .transition()
                 .duration(this.animationDuration)
                 .attr(layout.shapeLayout); // Then transition to the layout that uses highlights
@@ -108,8 +108,8 @@ module powerbi.visuals {
 
             this.animatePercentBars(options);
 
-            let dataLabels: D3.UpdateSelection = this.animateDefaultDataLabels(options);
-
+            let dataLabels: D3.UpdateSelection = NewDataLabelUtils.animateDefaultLabels(options.labelGraphicsContext, options.labelLayout, this.animationDuration);
+            
             return {
                 failed: false,
                 shapes: shapes,
@@ -124,9 +124,9 @@ module powerbi.visuals {
             this.animateDefaultAxis(options.axisGraphicsContext, options.axisOptions, options.isHidingPercentBars);
 
             // Simply animate to the new shapes.
-            let shapes = this.animateDefaultShapes(data, data.slices, options.shapeGraphicsContext, layout);
+            let shapes = this.animateDefaultShapes(data, data.dataPoints, options.shapeGraphicsContext, layout);
             this.animatePercentBars(options);
-            let dataLabels: D3.UpdateSelection = this.animateDefaultDataLabels(options);
+            let dataLabels: D3.UpdateSelection = NewDataLabelUtils.animateDefaultLabels(options.labelGraphicsContext, options.labelLayout, this.animationDuration);
 
             return {
                 failed: false,
@@ -142,22 +142,22 @@ module powerbi.visuals {
 
             this.animateDefaultAxis(options.axisGraphicsContext, options.axisOptions, options.isHidingPercentBars);
 
-            let shapes = options.shapeGraphicsContext.selectAll(FunnelChart.Selectors.funnel.bars.selector).data(data.slices, (d: FunnelSlice) => d.key);
+            let shapes = options.shapeGraphicsContext.selectAll(FunnelChart.Selectors.funnel.bars.selector).data(data.dataPoints, (d: FunnelDataPoint) => d.key);
 
             shapes.enter()
                 .append('rect')
-                .attr("class", (d: FunnelSlice) => d.highlight ? FunnelChart.FunnelBarHighlightClass : FunnelChart.Selectors.funnel.bars.class);
+                .attr("class", (d: FunnelDataPoint) => d.highlight ? FunnelChart.FunnelBarHighlightClass : FunnelChart.Selectors.funnel.bars.class);
 
             shapes
-                .style("fill",(d: FunnelSlice) => d.color)
-                .style("fill-opacity", (d: FunnelSlice) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, !d.selected))
+                .style("fill",(d: FunnelDataPoint) => d.color)
+                .style("fill-opacity", (d: FunnelDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, !d.selected))
                 .transition()
                 .duration(this.animationDuration)
                 .attr(layout.shapeLayoutWithoutHighlights) // Transition to layout without highlights
                 .transition()
                 .duration(0)
                 .delay(this.animationDuration)
-                .style("fill-opacity", (d: FunnelSlice) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, false));
+                .style("fill-opacity", (d: FunnelDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, false));
 
             let exitShapes = shapes.exit();
 
@@ -169,7 +169,7 @@ module powerbi.visuals {
 
             this.animatePercentBars(options);
 
-            let dataLabels: D3.UpdateSelection = this.animateDefaultDataLabels(options);
+            let dataLabels: D3.UpdateSelection = NewDataLabelUtils.animateDefaultLabels(options.labelGraphicsContext, options.labelLayout, this.animationDuration);
 
             return {
                 failed: false,
@@ -194,17 +194,17 @@ module powerbi.visuals {
                 .call(xAxis);
         }
 
-        private animateDefaultShapes(data: FunnelData, slices: FunnelSlice[], graphicsContext: D3.Selection, layout: IFunnelLayout): D3.UpdateSelection {
+        private animateDefaultShapes(data: FunnelData, dataPoints: FunnelDataPoint[], graphicsContext: D3.Selection, layout: IFunnelLayout): D3.UpdateSelection {
             let hasHighlights = data.hasHighlights;
-            let shapes = graphicsContext.selectAll(FunnelChart.Selectors.funnel.bars.selector).data(slices, (d: FunnelSlice) => d.key);
+            let shapes = graphicsContext.selectAll(FunnelChart.Selectors.funnel.bars.selector).data(dataPoints, (d: FunnelDataPoint) => d.key);
 
             shapes.enter()
                 .append('rect')
-                .attr("class", (d: FunnelSlice) => d.highlight ? FunnelChart.FunnelBarHighlightClass : FunnelChart.Selectors.funnel.bars.class);
+                .attr("class", (d: FunnelDataPoint) => d.highlight ? FunnelChart.FunnelBarHighlightClass : FunnelChart.Selectors.funnel.bars.class);
 
             shapes
-                .style("fill", (d: FunnelSlice) => d.color)
-                .style("fill-opacity", d => (d: FunnelSlice) => ColumnUtil.getFillOpacity(d.selected, d.highlight, false, hasHighlights))
+                .style("fill", (d: FunnelDataPoint) => d.color)
+                .style("fill-opacity", d => (d: FunnelDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, false, hasHighlights))
                 .transition()
                 .duration(this.animationDuration)
                 .attr(layout.shapeLayout);
@@ -214,31 +214,18 @@ module powerbi.visuals {
             return shapes;
         }
 
-        private animateDefaultDataLabels(options: FunnelAnimationOptions): D3.UpdateSelection {
-            let dataLabels: D3.UpdateSelection;
-
-            if (options.viewModel.dataLabelsSettings.show && options.viewModel.canShowDataLabels) {
-                dataLabels = dataLabelUtils.drawDefaultLabelsForFunnelChart(options.viewModel.slices, options.labelGraphicsContext, options.labelLayout, true, this.animationDuration);
-            }
-            else {
-                dataLabelUtils.cleanDataLabels(options.labelGraphicsContext);
-            }
-
-            return dataLabels;
-        }
-
         private animatePercentBars(options: FunnelAnimationOptions): void {
             let data: FunnelData = options.viewModel;
             let isHidingPercentBars: boolean = options.isHidingPercentBars;
 
-            if (isHidingPercentBars || !data.slices || (data.hasHighlights ? data.slices.length / 2 : data.slices.length) < 2) {
+            if (isHidingPercentBars || !data.dataPoints || (data.hasHighlights ? data.dataPoints.length / 2 : data.dataPoints.length) < 2) {
                 // TODO: call percentBarComponents with flag with empty data to clear drawing smoothly
                 this.animatePercentBarComponents([], options);
                 return;
             }
 
-            let slices = [data.slices[data.hasHighlights ? 1 : 0], data.slices[data.slices.length - 1]];
-            let baseline = FunnelChart.getFunnelSliceValue(slices[0]);
+            let dataPoints = [data.dataPoints[data.hasHighlights ? 1 : 0], data.dataPoints[data.dataPoints.length - 1]];
+            let baseline = FunnelChart.getValueFromDataPoint(dataPoints[0]);
 
             if (baseline <= 0) {
                 // TODO: call percentBarComponents with flag with empty data to clear drawing smoothly
@@ -246,9 +233,9 @@ module powerbi.visuals {
                 return;
             }
 
-            let percentData = slices.map((slice, i) => <FunnelPercent>{
-                value: FunnelChart.getFunnelSliceValue(slice),
-                percent: i === 0 ? 1 : FunnelChart.getFunnelSliceValue(slice) / baseline,
+            let percentData = dataPoints.map((dataPoint, i) => <FunnelPercent>{
+                value: FunnelChart.getValueFromDataPoint(dataPoint),
+                percent: i === 0 ? 1 : FunnelChart.getValueFromDataPoint(dataPoint) / baseline,
                 isTop: i === 0,
             });
 

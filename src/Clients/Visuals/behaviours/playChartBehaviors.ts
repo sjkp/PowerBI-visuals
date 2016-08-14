@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,44 +27,7 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
-    
     export interface PlayBehaviorOptions {
-        data: PlayChartData;
-        svg: D3.Selection;
-        renderTraceLine?: (options: PlayBehaviorOptions, selectedPoints: SelectableDataPoint[], shouldAnimate: boolean) => void;
-        dataPointSelection?: D3.Selection;
-        visualBehavior?: IInteractiveBehavior;
-        visualBehaviorOptions?: any;
-        xScale: D3.Scale.GenericScale<any>;
-        yScale: D3.Scale.GenericScale<any>;
-        colorBorder?: boolean;
-    }
-
-    export class PlayChartWebBehavior implements IInteractiveBehavior {
-        private options: PlayBehaviorOptions;
-
-        public bindEvents(options: PlayBehaviorOptions, selectionHandler: ISelectionHandler): void {
-            this.options = options;
-            if (options && options.visualBehavior && options.visualBehaviorOptions) {
-                options.visualBehavior.bindEvents(options.visualBehaviorOptions, selectionHandler);
-            }
-        }
-
-        public renderSelection(hasSelection: boolean): void {
-            if (this.options.visualBehavior && this.options.visualBehaviorOptions)
-                this.options.visualBehavior.renderSelection(hasSelection);
-
-            if (this.options.dataPointSelection) {
-                let dataPoints = this.options.dataPointSelection;
-                let selectedPoints = dataPoints.filter((d: SelectableDataPoint) => d.selected);
-                if (selectedPoints && selectedPoints.data().length > 0 && this.options.renderTraceLine != null) {
-                    this.options.renderTraceLine(this.options, selectedPoints.data(), true);
-                }
-                else {
-                    this.options.svg.selectAll('.traceLine').remove();
-                    this.options.svg.selectAll('.traceBubble').remove();
-                }
-            }
-        }
+        traceLineRenderer?: ITraceLineRenderer;
     }
 } 

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -46,6 +46,7 @@ module powerbi.visuals {
                 displayName: data.createDisplayNameGetter('Role_DisplayName_Gradient'),
                 description: data.createDisplayNameGetter('Role_DisplayName_GradientDescription'),
                 requiredTypes: [{ numeric: true }, { integer: true }],
+                joinPredicate: JoinPredicateBehavior.None,
             }
         ],
         dataViewMappings: [{
@@ -61,7 +62,6 @@ module powerbi.visuals {
                 },
                 values: {
                     select: [{ for: { in: 'Y' } }, { bind: { to: 'Gradient' } }],
-                    dataReductionAlgorithm: { top: {} }
                 },
                 rowCount: { preferred: { min: 1 } }
             },
@@ -70,23 +70,15 @@ module powerbi.visuals {
             general: {
                 displayName: data.createDisplayNameGetter('Visual_General'),
                 properties: {
-                    formatString: {
-                        type: { formatting: { formatString: true } },
-                    },
+                    formatString: StandardObjectProperties.formatString,
                 },
             },
             dataPoint: {
                 displayName: data.createDisplayNameGetter('Visual_DataPoint'),
                 description: data.createDisplayNameGetter('Visual_DataPointDescription'),
                 properties: {
-                    defaultColor: {
-                        displayName: data.createDisplayNameGetter('Visual_DefaultColor'),
-                        type: { fill: { solid: { color: true } } }
-                    },
-                    fill: {
-                        displayName: data.createDisplayNameGetter('Visual_Fill'),
-                        type: { fill: { solid: { color: true } } }
-                    },
+                    defaultColor: StandardObjectProperties.defaultColor,
+                    fill: StandardObjectProperties.fill,
                     fillRule: {
                         displayName: data.createDisplayNameGetter('Visual_Gradient'),
                         type: { fillRule: {} },
@@ -104,34 +96,27 @@ module powerbi.visuals {
                 displayName: data.createDisplayNameGetter('Visual_DataPointsLabels'),
                 description: data.createDisplayNameGetter('Visual_DataPointsLabelsDescription'),
                 properties: {
-                    show: {
-                        displayName: data.createDisplayNameGetter('Visual_Show'),
-                        type: { bool: true }
-                    },
-                    color: {
-                        displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
-                        description: data.createDisplayNameGetter('Visual_LabelsFillDescription'),
-                        type: { fill: { solid: { color: true } } }
-                    },
+                    show: StandardObjectProperties.show,
+                    color: StandardObjectProperties.dataColor,
                     labelPosition: {
                         displayName: data.createDisplayNameGetter('Visual_Position'),
-                        type: { enumeration: labelPosition.type }
+                        type: { enumeration: labelPosition.type },
+                        suppressFormatPainterCopy: true,
                     },
-                    labelDisplayUnits: {
-                        displayName: data.createDisplayNameGetter('Visual_DisplayUnits'),
-                        description: data.createDisplayNameGetter('Visual_DisplayUnitsDescription'),
-                        type: { formatting: { labelDisplayUnits: true } }
-                    },
-                    labelPrecision: {
-                        displayName: data.createDisplayNameGetter('Visual_Precision'),
-                        description: data.createDisplayNameGetter('Visual_PrecisionDescription'),
-                        placeHolderText: data.createDisplayNameGetter('Visual_Precision_Auto'),
-                        type: { numeric: true }
-                    },
-                    fontSize: {
-                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
-                        type: { formatting: { fontSize: true } }
-                    },
+                    labelDisplayUnits: StandardObjectProperties.dataLabelDisplayUnits,
+                    labelPrecision: $.extend({}, StandardObjectProperties.labelPrecision, {
+                        suppressFormatPainterCopy: true,
+                    }),
+                    fontSize: StandardObjectProperties.fontSize,
+                }
+            },
+            percentBarLabel: {
+                displayName: data.createDisplayNameGetter('Visual_PercentBarLabel'),
+                description: data.createDisplayNameGetter('Visual_PercentBarLabelDescription'),
+                properties: {
+                    show: StandardObjectProperties.show,
+                    color: StandardObjectProperties.dataColor,
+                    fontSize: StandardObjectProperties.fontSize,
                 }
             },
         },

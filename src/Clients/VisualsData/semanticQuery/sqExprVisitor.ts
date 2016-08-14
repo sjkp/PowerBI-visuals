@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-//// <reference path="../_references.ts"/>
+/// <reference path="../_references.ts"/>
 
 module powerbi.data {
 
@@ -34,9 +34,11 @@ module powerbi.data {
         visitColumnRef(expr: SQColumnRefExpr, arg: TArg): T;
         visitMeasureRef(expr: SQMeasureRefExpr, arg: TArg): T;
         visitAggr(expr: SQAggregationExpr, arg: TArg): T;
+        visitPercentile(expr: SQPercentileExpr, arg: TArg): T;
         visitHierarchy(expr: SQHierarchyExpr, arg: TArg): T;
         visitHierarchyLevel(expr: SQHierarchyLevelExpr, arg: TArg): T;
         visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr, arg: TArg): T;
+        visitSelectRef(expr: SQSelectRefExpr, arg: TArg): T;
         visitAnd(expr: SQAndExpr, arg: TArg): T;
         visitBetween(expr: SQBetweenExpr, arg: TArg): T;
         visitIn(expr: SQInExpr, arg: TArg): T;
@@ -52,6 +54,13 @@ module powerbi.data {
         visitNow(expr: SQNowExpr, arg: TArg): T;
         visitDefaultValue(expr: SQDefaultValueExpr, arg: TArg): T;
         visitAnyValue(expr: SQAnyValueExpr, arg: TArg): T;
+        visitArithmetic(expr: SQArithmeticExpr, arg: TArg): T;
+        visitFillRule(expr: SQFillRuleExpr, arg: TArg): T;
+        visitResourcePackageItem(expr: SQResourcePackageItemExpr, arg: TArg): T;
+        visitScopedEval(expr: SQScopedEvalExpr, arg: TArg): T;
+        visitWithRef(expr: SQWithRefExpr, arg: TArg): T;
+        visitTransformTableRef(expr: SQTransformTableRefExpr, arg: TArg): T;
+        visitTransformOutputRoleRef(expr: SQTransformOutputRoleRefExpr, arg: TArg): T;
     }
 
     export interface ISQExprVisitor<T> extends ISQExprVisitorWithArg<T, void> {
@@ -75,6 +84,10 @@ module powerbi.data {
             return this.visitDefault(expr, arg);
         }
 
+        public visitPercentile(expr: SQPercentileExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
         public visitHierarchy(expr: SQHierarchyExpr, arg: TArg): T {
             return this.visitDefault(expr, arg);
         }
@@ -84,6 +97,10 @@ module powerbi.data {
         }
 
         public visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitSelectRef(expr: SQSelectRefExpr, arg: TArg): T {
             return this.visitDefault(expr, arg);
         }
 
@@ -147,6 +164,34 @@ module powerbi.data {
             return this.visitDefault(expr, arg);
         }
 
+        public visitArithmetic(expr: SQArithmeticExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitFillRule(expr: SQFillRuleExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitResourcePackageItem(expr: SQResourcePackageItemExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitScopedEval(expr: SQScopedEvalExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+        
+        public visitWithRef(expr: SQWithRefExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitTransformTableRef(expr: SQTransformTableRefExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitTransformOutputRoleRef(expr: SQTransformOutputRoleRefExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
         public visitDefault(expr: SQExpr, arg: TArg): T {
             return;
         }
@@ -157,7 +202,7 @@ module powerbi.data {
     }
 
     /** Default ISQExprVisitor implementation that implements default traversal and that others may derive from. */
-    export class DefaultSQExprVisitorWithTraversal implements ISQExprVisitor<void> {
+    export class DefaultSQExprVisitorWithTraversal implements ISQExprVisitor<void>, IFillRuleDefinitionVisitor<void, void> {
         public visitEntity(expr: SQEntityExpr): void {
             this.visitDefault(expr);
         }
@@ -174,6 +219,10 @@ module powerbi.data {
             expr.arg.accept(this);
         } 
 
+        public visitPercentile(expr: SQPercentileExpr): void {
+            expr.arg.accept(this);
+        }
+
         public visitHierarchy(expr: SQHierarchyExpr): void {
             expr.arg.accept(this);
         }
@@ -184,6 +233,10 @@ module powerbi.data {
 
         public visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr): void {
             expr.arg.accept(this);
+        }
+
+        public visitSelectRef(expr: SQSelectRefExpr): void {
+            this.visitDefault(expr);
         }
 
         public visitBetween(expr: SQBetweenExpr): void {
@@ -262,8 +315,78 @@ module powerbi.data {
             this.visitDefault(expr);
         }
 
+        public visitArithmetic(expr: SQArithmeticExpr): void {
+            expr.left.accept(this);
+            expr.right.accept(this);
+        }
+
+        public visitFillRule(expr: SQFillRuleExpr): void {
+            expr.input.accept(this);
+
+            let rule = expr.rule,
+                gradient2 = rule.linearGradient2,
+                gradient3 = rule.linearGradient3;
+
+            if (gradient2) {
+                this.visitLinearGradient2(gradient2);
+            }
+
+            if (gradient3) {
+                this.visitLinearGradient3(gradient3);
+            }
+        }
+
+        public visitLinearGradient2(gradient2: LinearGradient2Definition): void {
+            debug.assertValue(gradient2, 'gradient2');
+
+            this.visitFillRuleStop(gradient2.min);
+            this.visitFillRuleStop(gradient2.max);
+        }
+
+        public visitLinearGradient3(gradient3: LinearGradient3Definition): void {
+            debug.assertValue(gradient3, 'gradient3');
+
+            this.visitFillRuleStop(gradient3.min);
+            this.visitFillRuleStop(gradient3.mid);
+            this.visitFillRuleStop(gradient3.max);
+        }
+
+        public visitResourcePackageItem(expr: SQResourcePackageItemExpr): void {
+            this.visitDefault(expr);
+        }
+
+        public visitScopedEval(expr: SQScopedEvalExpr): void {
+            expr.expression.accept(this);
+
+            for (let scopeExpr of expr.scope) {
+                scopeExpr.accept(this);
+            }
+        }
+        
+        public visitWithRef(expr: SQWithRefExpr): void {
+            this.visitDefault(expr);
+        }
+
+        public visitTransformTableRef(expr: SQTransformTableRefExpr): void {
+            this.visitDefault(expr);
+        }
+
+        public visitTransformOutputRoleRef(expr: SQTransformOutputRoleRefExpr): void {
+            this.visitDefault(expr);
+        }
+
         public visitDefault(expr: SQExpr): void {
             return;
+        }
+
+        private visitFillRuleStop(stop: RuleColorStopDefinition): void {
+            debug.assertValue(stop, 'stop');
+
+            stop.color.accept(this);
+
+            let value = stop.value;
+            if (value)
+                value.accept(this);
         }
     }
 } 

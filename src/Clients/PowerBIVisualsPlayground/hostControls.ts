@@ -24,19 +24,28 @@
 *  THE SOFTWARE.
 */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 interface JQuery {
     resizable(options: any): JQuery;
 }
 
 module powerbi.visuals {
-    
+
     import SampleData = powerbi.visuals.sampleData.SampleData;
+
+    export interface IHost {
+        name: string;
+        resizable: boolean;
+        interactive: boolean;
+        container: JQuery;
+        renderingScale: number;
+        visual?: IVisual;
+        renderingViewport?: IViewport;
+    }
 
     export class HostControls {
 
-        private visualElement: IVisual;
         private dataViewsSelect: JQuery;
 
         /** Represents sample data views used by visualization elements.*/
@@ -46,75 +55,94 @@ module powerbi.visuals {
 
         private suppressAnimationsElement: JQuery;
         private animationDurationElement: JQuery;
-        
-        private viewport: IViewport;
-        private container: JQuery;
+
+        private hosts: { [name: string]: IHost };
 
         private minWidth: number = 200;
         private maxWidth: number = 1000;
         private minHeight: number = 100;
         private maxHeight: number = 600;
 
-        constructor(parent: JQuery) {
+        // Since there are some unexpected behaviors in interactive visuals when randomizing the data, we use this method to create the visual from scratch instead.
+        private resetInteractiveVisual: (IHost) => void;
+
+        constructor(parent: JQuery, resetInteractiveVisualDelegate: (IHost) => void) {
             parent.find('#randomize').on('click', () => this.randomize());
 
             this.dataViewsSelect = parent.find('#dataViewsSelect').first();
 
             this.suppressAnimationsElement = parent.find('input[name=suppressAnimations]').first();
             this.suppressAnimationsElement.on('change', () => this.onChangeSuppressAnimations());
-            
+
             this.animationDurationElement = parent.find('input[name=animation_duration]').first();
             this.animationDurationElement.on('change', () => this.onChangeDuration());
+
+            this.resetInteractiveVisual = resetInteractiveVisualDelegate;
         }
 
-        public setElement(container: JQuery): void {
-            this.container = container;
+        public setHosts(hosts: IHost[]): void {
+            this.hosts = {};
 
-            this.container.resizable({
-                minWidth: this.minWidth,
-                maxWidth: this.maxWidth,
-                minHeight: this.minHeight,
-                maxHeight: this.maxHeight,
+            for (let host of hosts) {
+                this.hosts[host.name] = host;
 
-                resize: (event, ui) => this.onResize(ui.size)
-            });
+                if (host.resizable) {
+                    host.container.resizable({
+                        minWidth: this.minWidth,
+                        maxWidth: this.maxWidth,
+                        minHeight: this.minHeight,
+                        maxHeight: this.maxHeight,
 
-            this.onResize({
-                height: this.container.height(),
-                width: this.container.width()
-            });
+                        resize: (event, ui) => this.onResize(ui.element)
+                    });
+                }
+
+                this.onResize(host.container);
+            }
         }
-        
-        public setVisual(visualElement: IVisual): void {
-            this.visualElement = visualElement;
-        }
 
-        private onResize(size: IViewport): void {
-            this.viewport = {
-                height: size.height - 20,
-                width: size.width - 20,
+        private onResize(container: JQuery): void {
+            let host = this.findHostByContainerElement(container);
+            let containerSize = this.getContainerSize(host);
+            host.renderingViewport = {
+                height: containerSize.height * host.renderingScale - 20,
+                width: containerSize.width * host.renderingScale - 20
             };
 
-            if (this.visualElement) {
-                if (this.visualElement.update) {
-                    this.visualElement.update({
+            if (host.visual) {
+                if (host.visual.onResizing) {
+                    host.visual.onResizing(host.renderingViewport);
+                }
+
+                if (host.visual.update) {
+                    host.visual.update({
                         dataViews: this.sampleDataViews.getDataViews(),
                         suppressAnimations: true,
-                        viewport: this.viewport
+                        viewport: host.renderingViewport
                     });
-                } else if (this.visualElement.onResizing){
-                    this.visualElement.onResizing(this.viewport);
                 }
             }
         }
 
-        public getViewport(): IViewport {
-            return this.viewport;
+        public getContainerSize(host: IHost): IViewport {
+            return {
+                // The containers' parent elements set the size of the container since the container itself is enlarged before scaling the visual
+                height: host.container.parent().height(),
+                width: host.container.parent().width()
+            };
         }
 
         private randomize(): void {
             this.sampleDataViews.randomize();
-            this.update();
+            for (let hostName in this.hosts) {
+                let host = this.hosts[hostName];
+                if (host.interactive) {
+                    // Since there are some unexpected behaviors in interactive visuals when randomizing the data, we use this method to create the visual from scratch instead.
+                    this.resetInteractiveVisual(host);
+                } else {
+                    this.updateHost(host);
+                }
+            }
         }
 
         private onChangeDuration(): void {
@@ -126,21 +154,31 @@ module powerbi.visuals {
             this.suppressAnimations = !this.suppressAnimationsElement.is(':checked');
             this.update();
         }
-                
-        public update(): void {
-            if (this.visualElement.update) {
-                this.visualElement.update({
-                    dataViews: this.sampleDataViews.getDataViews(),
-                    suppressAnimations: this.suppressAnimations,
-                    viewport: this.viewport
-                });
-            } else {
-                this.visualElement.onDataChanged({
-                    dataViews: this.sampleDataViews.getDataViews(),
-                    suppressAnimations: this.suppressAnimations
-                });
 
-                this.visualElement.onResizing(this.viewport);
+        public update(): void {
+            for (let hostName in this.hosts) {
+                this.updateHost(this.hosts[hostName]);
+            }
+        }
+
+        public updateHost(host: IHost) {
+            if (host.visual) {
+                if (host.visual.update) {
+                    host.visual.update({
+                        dataViews: this.sampleDataViews.getDataViews(),
+                        suppressAnimations: this.suppressAnimations,
+                        viewport: host.renderingViewport
+                    });
+                }
+
+                if (host.visual.onDataChanged && host.visual.onResizing) {
+                    host.visual.onDataChanged({
+                        dataViews: this.sampleDataViews.getDataViews(),
+                        suppressAnimations: this.suppressAnimations
+                    });
+
+                    host.visual.onResizing(host.renderingViewport);
+                }
             }
         }
 
@@ -163,17 +201,29 @@ module powerbi.visuals {
                 this.dataViewsSelect.append(option);
             });
 
-            this.dataViewsSelect.change(() => this.onChangeDataViewSelection(this.dataViewsSelect.val()));
+            this.dataViewsSelect.change(() => {
+                this.onChangeDataViewSelection(this.dataViewsSelect.val());
+                this.update();
+            });
 
             if (defaultDataView) {
                 this.onChangeDataViewSelection(defaultDataView);
             }
         }
-        
+
         private onChangeDataViewSelection(sampleName: string): void {
             this.sampleDataViews = SampleData.getDataViewsBySampleName(sampleName);
-            this.update();
         }
 
+        private findHostByContainerElement(container: JQuery): IHost {
+            for (let hostName in this.hosts) {
+                let currentHost = this.hosts[hostName];
+                if (currentHost.container[0] === container[0]) {
+                    return currentHost;
+                }
+            }
+
+            return null;
+        }
     }
 }

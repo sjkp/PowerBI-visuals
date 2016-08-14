@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module jsCommon {
     /**
@@ -61,10 +61,12 @@ module jsCommon {
         export const backgroundSizeProperty = 'background-size';
         export const backgroundImageProperty = 'background-image';
         export const textShadowProperty = 'text-shadow';
+        export const textAlignProperty = 'text-align';
         export const borderTopWidthProperty = 'border-top-width';
         export const borderBottomWidthProperty = 'border-bottom-width';
         export const borderLeftWidthProperty = 'border-left-width';
         export const borderRightWidthProperty = 'border-right-width';
+        export const fontSizeProperty = 'font-size';
         export const fontWeightProperty = 'font-weight';
         export const colorProperty = 'color';
         export const opacityProperty = 'opacity';
@@ -94,6 +96,7 @@ module jsCommon {
         export const tableRowValue = 'table-row';
         export const coverValue = 'cover';
         export const pointerValue = 'pointer';
+        export const scrollValue = 'scroll';
     }
 
     export interface ExtendedCSSProperties extends CSSStyleDeclaration {

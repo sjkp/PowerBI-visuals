@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,7 +24,7 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="./_references.ts"/>
 
 module powerbi.visuals {
     import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
@@ -46,7 +46,7 @@ module powerbi.visuals {
         TopCenter,
         BottomCenter,
         RightCenter,
-        LeftCenter,          
+        LeftCenter,
     }
 
     export interface LegendPosition2D {
@@ -62,6 +62,7 @@ module powerbi.visuals {
         measure?: any;
         iconOnlyOnLabel?: boolean;
         tooltip?: string;
+        layerNumber?: number;
     }
 
     export interface LegendData {
@@ -103,52 +104,35 @@ module powerbi.visuals {
         reset(): void;
     }
 
-    export function getIconClass(iconType: LegendIcon): string {
-        switch (iconType) {
-            case LegendIcon.Circle:
-                return 'icon circle';
-            case LegendIcon.Box:
-                return 'icon tall';
-            case LegendIcon.Line:
-                return 'icon short';
-            default:
-                debug.assertFail('Invalid Chart type: ' + iconType);
-        }
-    }
-
-    export function getLabelMaxSize(currentViewport: IViewport, numItems: number, hasTitle: boolean): string {
-        let viewportWidth = currentViewport.width;
-        let smallTileWidth = 250;
-        let mediumTileWidth = 490;
-        let largeTileWidth = 750;
-        let tileMargins = 20;
-        let legendMarkerWidth = 28;
-        let legendItems;
-
-        if (numItems < 1)
-            return '48px';
-
-        if (viewportWidth <= smallTileWidth) {
-            legendItems = hasTitle ? 4 : 3;
-            //Max width based on minimum number of items design of 3 i.e. '48px' or 4 (with title) - '29px' max-width at least   
-            return Math.floor((smallTileWidth - tileMargins - (legendMarkerWidth * legendItems)) / Math.min(numItems, legendItems)) + 'px';
+    export module Legend {
+        export function isLeft(orientation: LegendPosition): boolean {
+            switch (orientation) {
+                case LegendPosition.Left:
+                case LegendPosition.LeftCenter:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
-        if (viewportWidth <= mediumTileWidth) {
-            legendItems = hasTitle ? 6 : 5;
-            //Max width based on minimum number of items design of 5 i.e. '66px' or 6 (with title) - '50px' max-width at least  
-            return Math.floor((mediumTileWidth - tileMargins - (legendMarkerWidth * legendItems)) / Math.min(numItems, legendItems)) + 'px';
+        export function isTop(orientation: LegendPosition): boolean {
+            switch (orientation) {
+                case LegendPosition.Top:
+                case LegendPosition.TopCenter:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
-        if (viewportWidth <= largeTileWidth) {
-            legendItems = hasTitle ? 8 : 7;
-            //Max width based on minimum number of items design of 7 i.e. '76px' or 8 (with title) - '63px' max-width at least
-            return Math.floor((largeTileWidth - tileMargins - (legendMarkerWidth * legendItems)) / Math.min(numItems, legendItems)) + 'px';
+        export function positionChartArea(chartArea: D3.Selection, legend: ILegend): void {
+            let legendMargins = legend.getMargins();
+            let legendOrientation = legend.getOrientation();
+            chartArea.style({
+                'margin-left': Legend.isLeft(legendOrientation) ? legendMargins.width + 'px' : null,
+                'margin-top': Legend.isTop(legendOrientation) ? legendMargins.height + 'px' : null,
+            });
         }
-
-        //Wide viewport
-        legendItems = hasTitle ? 10 : 9;
-        return Math.floor((viewportWidth - tileMargins - (legendMarkerWidth * legendItems)) / Math.min(numItems, legendItems)) + 'px';
     }
 
     interface TitleLayout {
@@ -156,9 +140,10 @@ module powerbi.visuals {
         y: number;
         text: string;
         width: number;
+        height: number;
     }
 
-    enum NavigationArrowType {
+    const enum NavigationArrowType {
         Increase,
         Decrease
     }
@@ -175,6 +160,14 @@ module powerbi.visuals {
         numberOfItems: number;
         title: TitleLayout;
         navigationArrows: NavigationArrow[];
+    }
+    
+    interface LegendItem {
+        dataPoint: LegendDataPoint;
+        textProperties: TextProperties;
+        width: number;
+        desiredWidth: number;
+        desiredOverMaxWidth: boolean;
     }
 
     export class SVGLegend implements ILegend {
@@ -199,6 +192,7 @@ module powerbi.visuals {
 
         public static DefaultFontSizeInPt = 8;
         private static LegendIconRadius = 5;
+        private static LegendIconRadiusFactor = 5;
         private static MaxTextLength = 60;
         private static MaxTitleLength = 80;
         private static TextAndIconPadding = 5;
@@ -208,15 +202,15 @@ module powerbi.visuals {
         private static TopLegendHeight = 24;
         private static DefaultTextMargin = PixelConverter.fromPointToPixel(SVGLegend.DefaultFontSizeInPt);
         private static DefaultMaxLegendFactor = SVGLegend.MaxTitleLength / SVGLegend.DefaultTextMargin;
+        private static LegendIconYRatio = 0.52;
         
         // Navigation Arrow constants
         private static LegendArrowOffset = 10;
         private static LegendArrowHeight = 15;
         private static LegendArrowWidth = 7.5;
-        private static LegendArrowTranslateY = 3.5;
 
-        private static DefaultFontFamily = 'wf_segoe-ui_normal';
-        private static DefaultTitleFontFamily = 'wf_segoe-ui_Semibold';
+        private static DefaultFontFamily: string = Font.Family.regular.css;
+        private static DefaultTitleFontFamily: string = Font.Family.semibold.css;
 
         private static LegendItem: ClassAndSelector = createClassAndSelector('legendItem');
         private static LegendText: ClassAndSelector = createClassAndSelector('legendText');
@@ -230,7 +224,7 @@ module powerbi.visuals {
             interactivityService: IInteractivityService,
             isScrollable: boolean) {
 
-            this.svg = d3.select(element.get(0)).insert('svg', ':first-child');
+            this.svg = d3.select(element.get(0)).append('svg').style('position', 'absolute');
             this.svg.style('display', 'inherit');
             this.svg.classed('legend', true);
             if (interactivityService)
@@ -246,24 +240,18 @@ module powerbi.visuals {
         }
 
         private updateLayout() {
-            let viewport = this.viewport;
+            let legendViewport = this.viewport;
             let orientation = this.orientation;
-            this.svg
-                .attr({
-                    'height': viewport.height || (orientation === LegendPosition.None ? 0 : this.parentViewport.height),
-                    'width': viewport.width || (orientation === LegendPosition.None ? 0 : this.parentViewport.width)
-                })
-            /*
-             * Workaround for web-kit browsers, since isn't doesn't invalidate dom with correct attr size.
-             * This happens intermittently in dashboard, and corrects itself on dom manupilation.
-             */
-                .style('max-width', '100%');
+            this.svg.attr({
+                'height': legendViewport.height || (orientation === LegendPosition.None ? 0 : this.parentViewport.height),
+                'width': legendViewport.width || (orientation === LegendPosition.None ? 0 : this.parentViewport.width)
+            });
 
+            let isRight = orientation === LegendPosition.Right || orientation === LegendPosition.RightCenter;
             let isBottom = orientation === LegendPosition.Bottom || orientation === LegendPosition.BottomCenter;
             this.svg.style({
-                'float': this.getFloat(),
-                'position': isBottom ? 'absolute' : '',
-                'bottom': isBottom ? '0px' : '',
+                'margin-left': isRight ? (this.parentViewport.width - legendViewport.width) + 'px' : null,
+                'margin-top': isBottom ? (this.parentViewport.height - legendViewport.height) + 'px' : null,
             });
         }
 
@@ -290,18 +278,6 @@ module powerbi.visuals {
             }
         }
 
-        private getFloat(): string {
-            switch (this.orientation) {
-                case LegendPosition.Right:
-                case LegendPosition.RightCenter:
-                    return 'right';
-                case LegendPosition.Left:
-                case LegendPosition.LeftCenter:
-                    return 'left';
-                default: return '';
-            }
-        }
-
         public getMargins(): IViewport {
             return this.viewport;
         }
@@ -324,7 +300,16 @@ module powerbi.visuals {
         }
 
         public drawLegend(data: LegendData, viewport: IViewport): void {
-            this.drawLegendInternal(data, viewport, true /* perform auto width */);
+            // clone because we modify legend item label with ellipsis if it is truncated
+            let clonedData = Prototype.inherit(data);
+            let newDataPoints: LegendDataPoint[] = [];
+            for (let dp of data.dataPoints) {
+                newDataPoints.push(Prototype.inherit(dp));
+            }
+            clonedData.dataPoints = newDataPoints;
+
+            this.setTooltipToLegendItems(clonedData);
+            this.drawLegendInternal(clonedData, viewport, true /* perform auto width */);
         }
 
         public drawLegendInternal(data: LegendData, viewport: IViewport, autoWidth: boolean): void {
@@ -391,15 +376,21 @@ module powerbi.visuals {
                 .attr({
                     'x': (d: TitleLayout) => d.x,
                     'y': (d: TitleLayout) => d.y
-                });
+                })
+                .append('title').text(data.title);
 
             legendTitle.exit().remove();
 
             let virtualizedDataPoints = data.dataPoints.slice(this.legendDataStartIndex, this.legendDataStartIndex + layout.numberOfItems);
 
+            let iconRadius = TextMeasurementService.estimateSvgTextHeight(SVGLegend.getTextProperties(false, '', this.data.fontSize)) / SVGLegend.LegendIconRadiusFactor;
+            iconRadius = (this.legendFontSizeMarginValue > SVGLegend.DefaultTextMargin) && iconRadius > SVGLegend.LegendIconRadius
+                ? iconRadius :
+                SVGLegend.LegendIconRadius;
+
             let legendItems = group
                 .selectAll(SVGLegend.LegendItem.selector)
-                .data(virtualizedDataPoints, (d: LegendDataPoint) => d.identity.getKey());
+                .data(virtualizedDataPoints, (d: LegendDataPoint) => d.identity.getKey() + (d.layerNumber != null ? d.layerNumber : ''));
 
             let itemsEnter = legendItems.enter()
                 .append('g')
@@ -409,23 +400,20 @@ module powerbi.visuals {
                 .append('circle')
                 .classed(SVGLegend.LegendIcon.class, true);
 
-            itemsEnter.append('title');
-
             itemsEnter
                 .append('text')
                 .classed(SVGLegend.LegendText.class, true);
 
             itemsEnter
-                .style({
-                    'font-family': SVGLegend.DefaultFontFamily
-                });
+                .append('title')
+                .text((d: LegendDataPoint) => d.tooltip);
 
             legendItems
                 .select(SVGLegend.LegendIcon.selector)
                 .attr({
                     'cx': (d: LegendDataPoint, i) => d.glyphPosition.x,
                     'cy': (d: LegendDataPoint) => d.glyphPosition.y,
-                    'r': SVGLegend.LegendIconRadius,
+                    'r': iconRadius,
                 })
                 .style({
                     'fill': (d: LegendDataPoint) => {
@@ -447,8 +435,10 @@ module powerbi.visuals {
                     'y': (d: LegendDataPoint) => d.textPosition.y,
                 })
                 .text((d: LegendDataPoint) => d.label)
-                .style('fill', data.labelColor)
-                .style('font-size', PixelConverter.fromPoint(data.fontSize));
+                .style({
+                    'fill': data.labelColor,
+                    'font-size': PixelConverter.fromPoint(data.fontSize)
+                });
 
             if (this.interactivityService) {
                 let iconsSelection = legendItems.select(SVGLegend.LegendIcon.selector);
@@ -480,7 +470,7 @@ module powerbi.visuals {
 
         private calculateTitleLayout(title: string): TitleLayout {
             let width = 0;
-            let hasTitle = !jsCommon.StringExtensions.isNullOrEmpty(title);
+            let hasTitle = !_.isEmpty(title);
 
             if (hasTitle) {
                 let isHorizontal = this.isTopOrBottom(this.orientation);
@@ -490,6 +480,7 @@ module powerbi.visuals {
                     let fontSizeMargin = this.legendFontSizeMarginValue > SVGLegend.DefaultTextMargin ? SVGLegend.TextAndIconPadding + this.legendFontSizeMarginDifference : SVGLegend.TextAndIconPadding;
                     let fixedHorizontalIconShift = SVGLegend.TextAndIconPadding + SVGLegend.LegendIconRadius;
                     let fixedHorizontalTextShift = SVGLegend.LegendIconRadius + fontSizeMargin + fixedHorizontalIconShift;
+                    // TODO This can be negative for narrow viewports. May need to rework this logic.
                     maxMeasureLength = this.parentViewport.width * SVGLegend.LegendMaxWidthFactor - fixedHorizontalTextShift - SVGLegend.LegendEdgeMariginWidth;
                 }
                 else {
@@ -503,17 +494,23 @@ module powerbi.visuals {
 
                 if (width > maxMeasureLength) {
                     text = TextMeasurementService.getTailoredTextOrDefault(textProperties, maxMeasureLength);
-                    width = maxMeasureLength;
+                    textProperties.text = text;
+                    
+                    // Remeasure the text since its measurement may be different than the max (ex. when the max is negative, the text will be ellipsis, and not have a negative width)
+                    width = TextMeasurementService.measureSvgTextWidth(textProperties);
                 };
 
                 if (isHorizontal)
                     width += SVGLegend.TitlePadding;
+                else
+                    text = TextMeasurementService.getTailoredTextOrDefault(textProperties, this.viewport.width);
 
                 return {
                     x: 0,
                     y: 0,
                     text: text,
                     width: width,
+                    height: TextMeasurementService.estimateSvgTextHeight(textProperties)
                 };
             }
             return null;
@@ -524,7 +521,6 @@ module powerbi.visuals {
             let dataPoints = data.dataPoints;
             if (data.dataPoints.length === 0) {
                 return {
-                    startIndex: null,
                     numberOfItems: 0,
                     title: null,
                     navigationArrows: []
@@ -558,7 +554,7 @@ module powerbi.visuals {
             };
         }
 
-        private updateNavigationArrowLayout(navigationArrows: NavigationArrow[], remainingDataLength, visibleDataLength) {
+        private updateNavigationArrowLayout(navigationArrows: NavigationArrow[], remainingDataLength: number, visibleDataLength: number): void {
             if (this.legendDataStartIndex === 0) {
                 navigationArrows.shift();
             }
@@ -575,7 +571,7 @@ module powerbi.visuals {
         private calculateHorizontalNavigationArrowsLayout(title: TitleLayout): NavigationArrow[] {
             let height = SVGLegend.LegendArrowHeight;
             let width = SVGLegend.LegendArrowWidth;
-            let translateY = SVGLegend.LegendArrowTranslateY;
+            let translateY = (this.viewport.height / 2) - (height / 2);
 
             let data: NavigationArrow[] = [];
             let rightShift = title ? title.x + title.width : 0;
@@ -605,14 +601,16 @@ module powerbi.visuals {
             let height = SVGLegend.LegendArrowHeight;
             let width = SVGLegend.LegendArrowWidth;
 
+            let verticalCenter = this.viewport.height / 2;
             let data: NavigationArrow[] = [];
-            let rightShift = 40;
+            let rightShift = verticalCenter + height / 2;
             let arrowTop = SVGUtil.createArrow(width, height, 270 /*angle*/);
             let arrowBottom = SVGUtil.createArrow(width, height, 90 /*angle*/);
+            let titleHeight = title ? title.height : 0;
 
             data.push({
                 x: rightShift,
-                y: height + SVGLegend.LegendArrowOffset / 2,
+                y: width + titleHeight,
                 path: arrowTop.path,
                 rotateTransform: arrowTop.transform,
                 type: NavigationArrowType.Decrease
@@ -628,76 +626,177 @@ module powerbi.visuals {
 
             return data;
         }
+        
+        /**
+         * Calculates the widths for each horizontal legend item.
+         */
+        private static calculateHorizontalLegendItemsWidths(dataPoints: LegendDataPoint[], availableWidth: number, iconPadding: number, fontSize: number): LegendItem[] {
+
+            let dataPointsLength = dataPoints.length;
+
+            // Set the maximum amount of space available to each item. They can use less, but can't go over this number.
+            let maxItemWidth = dataPointsLength > 0 ? availableWidth / dataPointsLength | 0 : 0;
+            let maxItemTextWidth = maxItemWidth - iconPadding;
+
+            // Makes sure the amount of space available to each item is at least SVGLegend.MaxTextLength wide.
+            // If you had many items and/or a narrow amount of available width, the availableTextWidthPerItem would be small, essentially making everything ellipsis.
+            // This prevents that from happening by giving each item at least SVGLegend.MaxTextLength of space.
+            if (maxItemTextWidth < SVGLegend.MaxTextLength) {
+                maxItemTextWidth = SVGLegend.MaxTextLength;
+                maxItemWidth = maxItemTextWidth + iconPadding;
+            }
+
+            // Make sure the availableWidthPerItem is less than the availableWidth. This lets the long text properly add ellipsis when we're displaying one item at a time.
+            if (maxItemWidth > availableWidth) {
+                maxItemWidth = availableWidth;
+                maxItemTextWidth = maxItemWidth - iconPadding;
+            }
+
+            let occupiedWidth = 0;
+            let legendItems: LegendItem[] = [];
+
+            // Add legend items until we can't fit any more (the last one doesn't fit) or we've added all of them
+            for (let dataPoint of dataPoints) {
+
+                let textProperties = SVGLegend.getTextProperties(false, dataPoint.label, fontSize);
+                let itemTextWidth = TextMeasurementService.measureSvgTextWidth(textProperties);
+                let desiredWidth = itemTextWidth + iconPadding;
+                let overMaxWidth = desiredWidth > maxItemWidth;
+                let actualWidth = overMaxWidth ? maxItemWidth : desiredWidth;
+                occupiedWidth += actualWidth;
+
+                if (occupiedWidth >= availableWidth) {
+                     
+                    // Always add at least 1 element
+                    if (legendItems.length === 0) {
+
+                        legendItems.push({
+                            dataPoint: dataPoint,
+                            textProperties: textProperties,
+                            desiredWidth: desiredWidth,
+                            desiredOverMaxWidth: true,
+                            width: desiredWidth
+                        });
+                        
+                        // Set the width to the amount of space we actually have
+                        occupiedWidth = availableWidth;
+                    } else {
+                        // Subtract the width from what was just added since it won't fit
+                        occupiedWidth -= actualWidth;
+                    }
+                    break;
+                }
+
+                legendItems.push({
+                    dataPoint: dataPoint,
+                    textProperties: textProperties,
+                    desiredWidth: desiredWidth,
+                    desiredOverMaxWidth: overMaxWidth,
+                    width: desiredWidth
+                });
+            }
+
+            // If there are items at max width, evenly redistribute the extra space to them
+            let itemsOverMax = _.filter(legendItems, (li) => li.desiredOverMaxWidth);
+            let numItemsOverMax = itemsOverMax.length;
+
+            if (numItemsOverMax > 0) {
+                let extraWidth = availableWidth - occupiedWidth;
+
+                for (let item of itemsOverMax) {
+                    // Divvy up the extra space and add it to the max
+                    // We need to do this calculation in every loop since the remainingWidth may not be changed by the same amount every time
+                    let extraWidthPerItem = extraWidth / numItemsOverMax;
+                    let newMaxItemWidth = maxItemWidth + extraWidthPerItem;
+
+                    let usedExtraWidth: number;
+                    if (item.desiredWidth <= newMaxItemWidth) {
+                        // If the item doesn't need all the extra space, it's not at max anymore
+                        item.desiredOverMaxWidth = false;
+                        usedExtraWidth = item.desiredWidth - maxItemWidth;
+                    } else {
+                        // Otherwise the item is taking up all the extra space so update the actual width to indicate that
+                        item.width = newMaxItemWidth;
+                        usedExtraWidth = newMaxItemWidth - maxItemWidth;
+                    }
+                    
+                    extraWidth -= usedExtraWidth;
+                    numItemsOverMax--;
+                }
+            }
+
+            return legendItems;
+        }
 
         private calculateHorizontalLayout(dataPoints: LegendDataPoint[], title: TitleLayout, navigationArrows: NavigationArrow[]): number {
             debug.assertValue(navigationArrows, 'navigationArrows');
-            let HorizontalTextShift = 4;
-            let HorizontalIconShift = 11;
-            let fontSizeBiggerThenDefault = this.legendFontSizeMarginDifference > 0;
-            let fontSizeMargin = fontSizeBiggerThenDefault ? SVGLegend.TextAndIconPadding + this.legendFontSizeMarginDifference : SVGLegend.TextAndIconPadding;
-            let fixedTextShift = SVGLegend.LegendIconRadius + fontSizeMargin + HorizontalTextShift;
-            let fixedIconShift = HorizontalIconShift + (fontSizeBiggerThenDefault ? this.legendFontSizeMarginDifference : 0);
-            let totalSpaceOccupiedThusFar = 0;
-            let iconTotalItemPadding = SVGLegend.LegendIconRadius * 2 + fontSizeMargin * 3;
+            // calculate the text shift
+            let HorizontalTextShift = 4 + SVGLegend.LegendIconRadius;
+            // check if we need more space for the margin, or use the default text padding
+            let fontSizeBiggerThanDefault = this.legendFontSizeMarginDifference > 0;
+            let fontSizeMargin = fontSizeBiggerThanDefault ? SVGLegend.TextAndIconPadding + this.legendFontSizeMarginDifference : SVGLegend.TextAndIconPadding;
+            let fixedTextShift = (fontSizeMargin / (SVGLegend.LegendIconRadiusFactor / 2)) + HorizontalTextShift;
+            let occupiedWidth = 0;
+            // calculate the size of the space for both sides of the radius
+            let iconTotalItemPadding = SVGLegend.LegendIconRadius * 2 + fontSizeMargin * 1.5;
             let numberOfItems: number = dataPoints.length;
+            // get the Y coordinate which is the middle of the container + the middle of the text height - the delta of the text 
+            let defaultTextProperties = SVGLegend.getTextProperties(false, '', this.data.fontSize);
+            let verticalCenter = this.viewport.height / 2;
+            let textYCoordinate = verticalCenter + TextMeasurementService.estimateSvgTextHeight(defaultTextProperties) / 2
+                - TextMeasurementService.estimateSvgTextBaselineDelta(defaultTextProperties);
 
             if (title) {
-                totalSpaceOccupiedThusFar = title.width;
-                title.y = fixedTextShift;
+                occupiedWidth += title.width;
+                // get the Y coordinate which is the middle of the container + the middle of the text height - the delta of the text 
+                title.y = verticalCenter + title.height / 2 - TextMeasurementService.estimateSvgTextBaselineDelta(SVGLegend.getTextProperties(true, title.text, this.data.fontSize));
             }
 
+            // if an arrow should be added, we add space for it
             if (this.legendDataStartIndex > 0) {
-                totalSpaceOccupiedThusFar += SVGLegend.LegendArrowOffset;
+                occupiedWidth += SVGLegend.LegendArrowOffset;
             }
 
-            // This bit expands the max lengh if there are only a few items
-            // so longer labels can potentially get more space, and not be
-            // ellipsed. 
+            // Calculate the width for each of the legend items
             let dataPointsLength = dataPoints.length;
-            let parentWidth = this.parentViewport.width;
-            let maxTextLength = dataPointsLength > 0
-                ? (((parentWidth - totalSpaceOccupiedThusFar) - (iconTotalItemPadding * dataPointsLength)) / dataPointsLength) | 0
-                : 0;
-            maxTextLength = maxTextLength > SVGLegend.MaxTextLength ? maxTextLength : SVGLegend.MaxTextLength;
+            let availableWidth = this.parentViewport.width - occupiedWidth;
+            let legendItems = SVGLegend.calculateHorizontalLegendItemsWidths(dataPoints, availableWidth, iconTotalItemPadding, this.data.fontSize);
+            numberOfItems = legendItems.length;
 
-            for (let i = 0; i < dataPointsLength; i++) {
-                let dp = dataPoints[i];
-
-                dp.glyphPosition = {
-                    x: totalSpaceOccupiedThusFar + SVGLegend.LegendIconRadius,
-                    y: fixedIconShift
-                };
-
-                dp.textPosition = {
-                    x: totalSpaceOccupiedThusFar + fixedTextShift,
-                    y: fixedTextShift
-                };
-
-                let textProperties = SVGLegend.getTextProperties(false, dp.label, this.data.fontSize);
-                dp.tooltip = dp.label;
-
-                let width = TextMeasurementService.measureSvgTextWidth(textProperties);
-                let spaceTakenByItem = 0;
-                if (width < maxTextLength) {
-                    spaceTakenByItem = iconTotalItemPadding + width;
-                } else {
-                    let text = TextMeasurementService.getTailoredTextOrDefault(
-                        textProperties,
-                        maxTextLength);
-                    dp.label = text;
-                    spaceTakenByItem = iconTotalItemPadding + maxTextLength;
-                }
-
-                totalSpaceOccupiedThusFar += spaceTakenByItem;
-
-                if (totalSpaceOccupiedThusFar > parentWidth) {
-                    numberOfItems = i;
-                    break;
-                }
+            // If we can't show all the legend items, subtract the "next" arrow space from the available space and re-run the width calculations 
+            if (numberOfItems !== dataPointsLength) {
+                availableWidth -= SVGLegend.LegendArrowOffset;
+                legendItems = SVGLegend.calculateHorizontalLegendItemsWidths(dataPoints, availableWidth, iconTotalItemPadding, this.data.fontSize);
+                numberOfItems = legendItems.length;
             }
 
-            this.visibleLegendWidth = totalSpaceOccupiedThusFar;
+            for (let legendItem of legendItems) {
 
+                let dataPoint = legendItem.dataPoint;
+
+                dataPoint.glyphPosition = {
+                    // the space taken so far + the radius + the margin / radiusFactor to prevent huge spaces
+                    x: occupiedWidth + SVGLegend.LegendIconRadius + (this.legendFontSizeMarginDifference / SVGLegend.LegendIconRadiusFactor),
+                    // The middle of the container but a bit lower due to text not being in the middle (qP for example making middle between q and P)
+                    y: (this.viewport.height * SVGLegend.LegendIconYRatio),
+                };
+
+                dataPoint.textPosition = {
+                    x: occupiedWidth + fixedTextShift,
+                    y: textYCoordinate,
+                };
+
+                // If we're over the max width, process it so it fits
+                if (legendItem.desiredOverMaxWidth) {
+                    let textWidth = legendItem.width - iconTotalItemPadding;
+                    let text = TextMeasurementService.getTailoredTextOrDefault(legendItem.textProperties, textWidth);
+                    dataPoint.label = text;
+                }
+
+                occupiedWidth += legendItem.width;
+            }
+
+            this.visibleLegendWidth = occupiedWidth;
             this.updateNavigationArrowLayout(navigationArrows, dataPointsLength, numberOfItems);
 
             return numberOfItems;
@@ -708,14 +807,18 @@ module powerbi.visuals {
             title: TitleLayout,
             navigationArrows: NavigationArrow[],
             autoWidth: boolean): number {
+            // check if we need more space for the margin, or use the default text padding
             let fontSizeBiggerThenDefault = this.legendFontSizeMarginDifference > 0;
             let fontFactor = fontSizeBiggerThenDefault ? this.legendFontSizeMarginDifference : 0;
+            // calculate the size needed after font size change
             let verticalLegendHeight = 20 + fontFactor;
-            let spaceNeededByTitle = 15 + (fontFactor * 1.3);
+            let spaceNeededByTitle = 15 + fontFactor;
+            let extraShiftForTextAlignmentToIcon = 4 + fontFactor;
             let totalSpaceOccupiedThusFar = verticalLegendHeight;
-            let extraShiftForTextAlignmentToIcon = 4 + (fontFactor * 1.3);
-            let fixedHorizontalIconShift = SVGLegend.TextAndIconPadding + SVGLegend.LegendIconRadius;
-            let fixedHorizontalTextShift = SVGLegend.LegendIconRadius + SVGLegend.TextAndIconPadding + fixedHorizontalIconShift;
+            // the default space for text and icon radius + the margin after the font size change
+            let fixedHorizontalIconShift = SVGLegend.TextAndIconPadding + SVGLegend.LegendIconRadius + (this.legendFontSizeMarginDifference / SVGLegend.LegendIconRadiusFactor);
+            let fixedHorizontalTextShift = fixedHorizontalIconShift * 2;
+            // check how much space is needed
             let maxHorizontalSpaceAvaliable = autoWidth
                 ? this.parentViewport.width * SVGLegend.LegendMaxWidthFactor
                 - fixedHorizontalTextShift - SVGLegend.LegendEdgeMariginWidth
@@ -732,26 +835,24 @@ module powerbi.visuals {
                 title.y = spaceNeededByTitle;
                 maxHorizontalSpaceUsed = title.width || 0;
             }
-
+            // if an arrow should be added, we add space for it
             if (this.legendDataStartIndex > 0)
                 totalSpaceOccupiedThusFar += SVGLegend.LegendArrowOffset;
 
             let dataPointsLength = dataPoints.length;
             for (let i = 0; i < dataPointsLength; i++) {
                 let dp = dataPoints[i];
+                let textProperties = SVGLegend.getTextProperties(false, dp.label, this.data.fontSize);
 
                 dp.glyphPosition = {
                     x: fixedHorizontalIconShift,
-                    y: totalSpaceOccupiedThusFar + fontFactor
+                    y: (totalSpaceOccupiedThusFar + extraShiftForTextAlignmentToIcon) - TextMeasurementService.estimateSvgTextBaselineDelta(textProperties)
                 };
 
                 dp.textPosition = {
                     x: fixedHorizontalTextShift,
                     y: totalSpaceOccupiedThusFar + extraShiftForTextAlignmentToIcon
                 };
-
-                let textProperties = SVGLegend.getTextProperties(false, dp.label, this.data.fontSize);
-                dp.tooltip = dp.label;
 
                 // TODO: [PERF] Get rid of this extra measurement, and modify
                 // getTailoredTextToReturnWidth + Text
@@ -856,34 +957,31 @@ module powerbi.visuals {
                 fontSize: PixelConverter.fromPoint(fontSize || SVGLegend.DefaultFontSizeInPt)
             };
         }
+
+        private setTooltipToLegendItems(data: LegendData) {
+            //we save the values to tooltip before cut
+            for (let dataPoint of data.dataPoints) {
+                dataPoint.tooltip = dataPoint.label;
+            }
+        }
     }
 
     class CartesianChartInteractiveLegend implements ILegend {
-        private static LegendHeight = 65;
+        private static LegendHeight = 70;
         private static LegendContainerClass = 'interactive-legend';
+        private static LegendContainerSelector = '.interactive-legend';
         private static LegendTitleClass = 'title';
         private static LegendItem = 'item';
-        private static legendPlaceSelector = '\u25A0';
+        private static legendPlaceSelector = '\u25CF';
         private static legendIconClass = 'icon';
         private static legendColorCss = 'color';
         private static legendItemNameClass = 'itemName';
         private static legendItemMeasureClass = 'itemMeasure';
-        private element: JQuery;
+        private legendContainerParent: D3.Selection;
         private legendContainerDiv: D3.Selection;
 
         constructor(element: JQuery) {
-            this.element = element;
-        }
-
-        public static getIconClass(chartType: LegendIcon): string {
-            switch (chartType) {
-                case LegendIcon.Circle:
-                case LegendIcon.Box:
-                case LegendIcon.Line:
-                    return 'icon';
-                default:
-                    debug.assertFail('Invalid Chart type: ' + chartType);
-            }
+            this.legendContainerParent = d3.select(element.get(0));
         }
 
         public getMargins(): IViewport {
@@ -898,16 +996,18 @@ module powerbi.visuals {
             let data = legendData.dataPoints;
             debug.assertValue(data, 'dataPoints');
             if (data.length < 1) return;
-            let legendContainerDiv = this.legendContainerDiv;
-            if (!legendContainerDiv) {
+
+            let legendContainerDiv = this.legendContainerParent.select(CartesianChartInteractiveLegend.LegendContainerSelector);
+            if (legendContainerDiv.empty()) {
                 if (!data.length) return;
                 let divToPrepend = $('<div></div>')
                     .height(this.getMargins().height)
                     .addClass(CartesianChartInteractiveLegend.LegendContainerClass);
                 // Prepending, as legend should always be on topmost visual.
-                this.element.prepend(divToPrepend);
-                this.legendContainerDiv = legendContainerDiv = d3.select(divToPrepend.get(0));
+                $(this.legendContainerParent[0]).prepend(divToPrepend);
+                legendContainerDiv = d3.select(divToPrepend.get(0));
             }
+            this.legendContainerDiv = legendContainerDiv;
 
             // Construct the legend title and items.
             this.drawTitle(data);
@@ -964,20 +1064,9 @@ module powerbi.visuals {
         private drawLegendItems(data: LegendDataPoint[]): void {
             // Add Mesaures - the items of the category in the legend
             this.ensureLegendTableCreated();
-            let dataPointsMatrix: LegendDataPoint[][] = CartesianChartInteractiveLegend.splitArrayToOddEven(data);
+                        
+            let dataPointsMatrix: LegendDataPoint[][] = [data];
             let legendItemsContainer: D3.UpdateSelection = this.legendContainerDiv.select('tbody').selectAll('tr').data(dataPointsMatrix);
-
-            // trs is table rows. 
-            // there are two table rows.
-            // the order of insertion to the legend table is:
-            // Even data points got inserted into the 1st line
-            // Odd data points got inserted into the 2nd line
-            // ----------------------------
-            // | value0 | value 2 | value 4
-            // ----------------------------
-            // | value1 | value 3 | 
-            // ----------------------------
-            // 
 
             // Enter
             let legendItemsEnter: D3.EnterSelection = legendItemsContainer.enter();
@@ -991,7 +1080,11 @@ module powerbi.visuals {
                 .append('span')
                 .html(CartesianChartInteractiveLegend.legendPlaceSelector)
                 .attr('class', CartesianChartInteractiveLegend.legendIconClass)
-                .attr('white-space', 'nowrap');
+                .attr('white-space', 'nowrap')
+                .style({
+                    'font-size': '20px', // this creates a circle of 10px
+                    'margin-bottom': '7px'
+                });
             cellSpanEnter.append('span').attr('class', CartesianChartInteractiveLegend.legendItemNameClass);
             cellSpanEnter.append('span').attr('class', CartesianChartInteractiveLegend.legendItemMeasureClass);
 
@@ -1021,7 +1114,7 @@ module powerbi.visuals {
          * Set Horizontal Pan gesture for the legend
          */
         private setPanGestureOnLegend(legendTable: D3.Selection): void {
-            let viewportWidth: number = $(this.legendContainerDiv.select('div:nth-child(2)')[0]).width();
+            let viewportWidth: number = $(this.legendContainerParent[0]).width();
             let xscale: D3.Scale.LinearScale = d3.scale.linear().domain([0, viewportWidth]).range([0, viewportWidth]);
             let zoom: D3.Behavior.Zoom = d3.behavior.zoom()
                 .scaleExtent([1, 1]) // disable scaling
@@ -1051,24 +1144,6 @@ module powerbi.visuals {
             } else {
                 legendTable.call(zoom);
             }
-        }
-
-        /**
-         * Split legend data points array into odd and even arrays
-         * Even array will be the legend first line and Odd array will be the 2nd legend line 
-         */
-        private static splitArrayToOddEven(data: LegendDataPoint[]): LegendDataPoint[][] {
-            let oddData: LegendDataPoint[] = [];
-            let evenData: LegendDataPoint[] = [];
-            for (let i = 0; i < data.length; ++i) {
-                if (i % 2 === 0) {
-                    evenData.push(data[i]);
-                }
-                else {
-                    oddData.push(data[i]);
-                }
-            }
-            return [evenData, oddData];
         }
     }
 

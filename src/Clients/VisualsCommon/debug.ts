@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -31,6 +31,8 @@
  */
  
 ///#DEBUG
+
+/// <reference path="./_references.ts"/>
 
 module debug {
 

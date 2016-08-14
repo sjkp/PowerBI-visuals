@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -35,7 +35,7 @@ module powerbi.visuals {
         private colors: IDataColorPalette;
         private defaultColorScale: IColorScale;
 
-        constructor(colors: IDataColorPalette, fillProp: DataViewObjectPropertyIdentifier, defaultDataPointColor?: string) {
+        constructor(colors: IDataColorPalette, fillProp?: DataViewObjectPropertyIdentifier, defaultDataPointColor?: string) {
             this.colors = colors;
             this.fillProp = fillProp;
             this.defaultDataPointColor = defaultDataPointColor;
@@ -47,7 +47,7 @@ module powerbi.visuals {
          * If no explicit color or default color has been set then the color is
          * allocated from the color scale for this series.
          */
-        public getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.SQExpr[], value: string): string {
+        public getColorForSeriesValue(objects: DataViewObjects, fieldIds: powerbi.data.ISQExpr[], value: PrimitiveValue): string {
             return (this.fillProp && DataViewObjects.getFillColor(objects, this.fillProp))
                 || this.defaultDataPointColor
                 || this.getColorScaleForSeries(fieldIds).getColor(value).value;
@@ -56,8 +56,8 @@ module powerbi.visuals {
         /**
          * Gets the color scale for the given series.
          */
-        public getColorScaleForSeries(fieldIds: powerbi.data.SQExpr[]): IColorScale {
-            return this.colors.getColorScaleByKey(SQExprShortSerializer.serializeArray(fieldIds || []));
+        public getColorScaleForSeries(fieldIds: powerbi.data.ISQExpr[]): IColorScale {
+            return this.colors.getColorScaleByKey(SQExprShortSerializer.serializeArray(<data.SQExpr[]>fieldIds || []));
         }
 
         /** 

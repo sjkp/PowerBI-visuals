@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,12 +24,12 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="../_references.ts"/>
-
 /**
  * Defined in host.
  */
 declare var clusterUri: string;
+
+/// <reference path="../_references.ts"/>
 
 module jsCommon {
 
@@ -56,6 +56,8 @@ module jsCommon {
      * Extensions to String class.
      */
     export module StringExtensions {
+        const HtmlTagRegex = new RegExp('[<>]', 'g');
+
         export function format(...args: string[]) {
             let s = args[0];
 
@@ -85,12 +87,20 @@ module jsCommon {
             return a.indexOf(b) === 0;
         }
 
+        /** Determines whether a string contains a specified substring (by case-sensitive comparison). */
+        export function contains(source: string, substring: string): boolean {
+            if (source == null)
+                return false;
+
+            return source.indexOf(substring) !== -1;
+        }
+
         /** Determines whether a string contains a specified substring (while ignoring case). */
         export function containsIgnoreCase(source: string, substring: string): boolean {
             if (source == null)
                 return false;
 
-            return source.toLowerCase().indexOf(substring.toLowerCase().toString()) !== -1;
+            return contains(normalizeCase(source), normalizeCase(substring));
         }
 
         /** 
@@ -193,6 +203,39 @@ module jsCommon {
             return text.replace(new RegExp(pattern, 'gi'), textToReplace);
         }
 
+        export function ensureUniqueNames(names: string[]): string[] {
+            debug.assertValue(names, 'names');
+
+            let usedNames: { [name: string]: boolean } = {};
+
+            // Make sure we are giving fair chance for all columns to stay with their original name
+            // First we fill the used names map to contain all the original unique names from the list.
+            for (let name of names) {
+                usedNames[name] = false;
+            }
+
+            let uniqueNames: string[] = [];
+
+            // Now we go over all names and find a unique name for each
+            for (let name of names) {
+                let uniqueName = name;
+
+                // If the (original) column name is already taken lets try to find another name
+                if (usedNames[uniqueName]) {
+                    let counter = 0;
+                    // Find a name that is not already in the map
+                    while (usedNames[uniqueName] !== undefined) {
+                        uniqueName = name + "." + (++counter);
+                    }
+                }
+
+                uniqueNames.push(uniqueName);
+                usedNames[uniqueName] = true;
+            }
+
+            return uniqueNames;
+        }
+
         /**
          * Returns a name that is not specified in the values.
          */
@@ -252,6 +295,40 @@ module jsCommon {
         export function escapeStringForRegex(s: string): string {
             return s.replace(/([-()\[\]{}+?*.$\^|,:#<!\\])/g, '\\$1');
         }
+
+        /**
+         * Remove file name reserved characters <>:"/\|?* from input string.
+         */
+        export function normalizeFileName(fileName: string): string {   
+            debug.assertValue(fileName, 'fileName');         
+            return fileName.replace(/[\<\>\:"\/\\\|\?*]/g, '');
+        }
+
+        /**
+         * Similar to JSON.stringify, but strips away escape sequences so that the resulting
+         * string is human-readable (and parsable by JSON formatting/validating tools).
+         */
+        export function stringifyAsPrettyJSON(object: any): string {
+            //let specialCharacterRemover = (key: string, value: string) => value.replace(/[^\w\s]/gi, '');
+            return JSON.stringify(object /*, specialCharacterRemover*/);
+        }
+
+        /**
+         * Derive a CLS-compliant name from a specified string.  If no allowed characters are present, return a fallback string instead.
+         * TODO (6708134): this should have a fully Unicode-aware implementation
+         */
+        export function deriveClsCompliantName(input: string, fallback: string): string {
+            debug.assertValue(input, 'input');
+
+            let result = input.replace(/^[^A-Za-z]*/g, '').replace(/[ :\.\/\\\-\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, '_').replace(/[\W]/g, '');
+
+            return result.length > 0 ? result : fallback;
+        }
+
+        /** Performs cheap sanitization by stripping away HTML tag (<>) characters. */
+        export function stripTagDelimiters(s: string): string {
+            return s.replace(HtmlTagRegex, '');
+        }
     }
 
     /**
@@ -259,6 +336,12 @@ module jsCommon {
      */
     export interface TypedObject {
         __type: string;
+    }
+
+    export interface TextMatch {
+        start: number;
+        end: number;
+        text: string;
     }
 
     /** 
@@ -281,7 +364,7 @@ module jsCommon {
         public static Undefined = 'undefined';
 
         private static staticContentLocation: string = window.location.protocol + '//' + window.location.host;
-
+        
         /**
          * Ensures the specified value is not null or undefined. Throws a relevent exception if it is.
          * @param value The value to check.
@@ -399,6 +482,19 @@ module jsCommon {
          */
         public static isNullOrUndefined(value: any): boolean {
             return (value === null) || (typeof (value) === Utility.Undefined);
+        }
+
+        /**
+         * Checks if the value is defined and returns it, else, returns undefined
+         * @param {T} value Value to check
+         * @param {T} defaultValue Default value to return if value is undefined
+         * @returns value if defined, else defaultValue
+         */
+        public static valueOrDefault<T>(value: T, defaultValue: T): T {
+            if (value != null)
+                return value;
+
+            return defaultValue;
         }
 
         /**
@@ -648,16 +744,6 @@ module jsCommon {
         }
         
         /**
-         * Tests whether a URL is valid.
-         * @param url The url to be tested.
-         * @returns Whether the provided url is valid.
-         */
-        public static isValidUrl(url: string): boolean {
-            return !StringExtensions.isNullOrEmpty(url) &&
-                (StringExtensions.startsWithIgnoreCase(url, 'http://') || StringExtensions.startsWithIgnoreCase(url, 'https://'));
-        }
-        
-        /**
          * Extracts a url from a background image attribute in the format of: url('www.foobar.com/image.png').
          * @param input The value of the background-image attribute.
          * @returns The extracted url.
@@ -674,6 +760,10 @@ module jsCommon {
             return regex.test(url);
         }
         
+        public static isLocalUrl(url: string): boolean {
+            return _.startsWith(url, "data:") || _.startsWith(url, "blob:");
+        }
+
         /**
          * Downloads a content string as a file.
          * @param content Content stream.
@@ -969,7 +1059,7 @@ module jsCommon {
         }
     }
 
-    export module DeferUtility {        
+    export module DeferUtility {
         /**
          * Wraps a callback and returns a new function.
          * The function can be called many times but the callback

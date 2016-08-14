@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,27 +27,10 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.data {
-    /** Defines a selector for content, including data-, metadata, and user-defined repetition. */
-    export interface Selector {
-        /** Data-bound repetition selection. */
-        data?: DataRepetitionSelector[];
-	
-        /** Metadata-bound repetition selection.  Refers to a DataViewMetadataColumn queryName. */
-        metadata?: string;
-
-        /** User-defined repetition selection. */
-        id?: string;
-    }
-
-    /* tslint:disable:no-unused-expression */
-    export type DataRepetitionSelector = DataViewScopeIdentity | DataViewScopeWildcard;
-    /* tslint:enable */
 
     export module Selector {
-        import ArrayExtensions = jsCommon.ArrayExtensions;
-
         export function filterFromSelector(selectors: Selector[], isNot?: boolean): SemanticFilter {
-            if (ArrayExtensions.isUndefinedOrEmpty(selectors))
+            if (_.isEmpty(selectors))
                 return;
 
             let exprs: SQExpr[] = [];
@@ -57,7 +40,7 @@ module powerbi.data {
                 let exprToAdd: SQExpr = undefined;
                 if (data && data.length) {
                     for (let j = 0, jlen = data.length; j < jlen; j++) {
-                        exprToAdd = SQExprBuilder.and(exprToAdd, (<DataViewScopeIdentity>identity.data[j]).expr);
+                        exprToAdd = SQExprBuilder.and(exprToAdd, <SQExpr>(<DataViewScopeIdentity>identity.data[j]).expr);
                     }
                 }
 
@@ -109,10 +92,13 @@ module powerbi.data {
                     selectorDataExprs: SQExpr[];
 
                 if ((<DataViewScopeIdentity>selectorDataItem).expr) {
-                    selectorDataExprs = ScopeIdentityExtractor.getKeys((<DataViewScopeIdentity>selectorDataItem).expr);
+                    selectorDataExprs = ScopeIdentityExtractor.getKeys(<SQExpr>(<DataViewScopeIdentity>selectorDataItem).expr);
                 }
-                else {
-                    selectorDataExprs = (<DataViewScopeWildcard>selectorDataItem).exprs;
+                else if ((<DataViewScopeWildcard>selectorDataItem).exprs) {
+                    selectorDataExprs = <SQExpr[]>(<DataViewScopeWildcard>selectorDataItem).exprs;
+                } else { 
+                    // In case DataViewRoleWildcard
+                    return false;
                 }
 
                 if (!selectorDataExprs)
@@ -172,12 +158,18 @@ module powerbi.data {
         }
 
         function equalsData(x: DataRepetitionSelector, y: DataRepetitionSelector): boolean {
-            if (!(<DataViewScopeIdentity>x).expr && (<DataViewScopeIdentity>y).expr) {
-                // TODO: We need to also check wildcard selectors too (once that's supported/figured out).
-                return false;
-            }
+            let selector1 = <DataViewScopeIdentity & DataViewRoleWildcard & DataViewScopeWildcard>x;
+            let selector2 = <DataViewScopeIdentity & DataViewRoleWildcard & DataViewScopeWildcard>y;
+            if (selector1.expr && selector2.expr)
+                return DataViewScopeIdentity.equals(selector1, selector2);
 
-            return DataViewScopeIdentity.equals(<DataViewScopeIdentity>x, <DataViewScopeIdentity>y);
+            if (selector1.exprs && selector2.exprs)
+                return DataViewScopeWildcard.equals(selector1, selector2);
+
+            if (selector1.roles && selector2.roles)
+                return DataViewRoleWildcard.equals(selector1, selector2);
+
+            return false;
         }
 
         export function getKey(selector: Selector): string {
@@ -203,13 +195,44 @@ module powerbi.data {
             if (!dataItems)
                 return false;
 
-            for (let i = 0, len = dataItems.length; i < len; i++) {
-                let wildcard = <DataViewScopeWildcard>dataItems[i];
-                if (wildcard.exprs)
+            for (let dataItem of dataItems) {
+                let wildCard = <DataViewScopeWildcard & DataViewRoleWildcard>dataItem;
+                if (wildCard.exprs || wildCard.roles)
                     return true;
             }
 
             return false;
+        }
+
+        export function hasRoleWildcard(selector: Selector): boolean {
+            debug.assertValue(selector, 'selector');
+
+            let dataItems = selector.data;
+            if (_.isEmpty(dataItems))
+                return false;
+
+            for (let dataItem of dataItems) {
+                if (isRoleWildcard(dataItem))
+                    return true;
+            }
+
+            return false;
+        }
+
+        export function isRoleWildcard(dataItem: DataRepetitionSelector): dataItem is DataViewRoleWildcard {
+            return !_.isEmpty((<DataViewRoleWildcard>dataItem).roles);
+        }
+
+        export function convertSelectorsByColumnToSelector(selectorsByColumn: SelectorsByColumn): Selector {
+            let data: DataRepetitionSelector[] = [];
+            for (let key in selectorsByColumn.dataMap) {
+                data.push(selectorsByColumn.dataMap[key]);
+            }
+            return {
+                data: data,
+                metadata: selectorsByColumn.metadata,
+                id: selectorsByColumn.id,
+            };
         }
     }
 }

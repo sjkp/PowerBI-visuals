@@ -79,9 +79,7 @@ module powerbi.visuals {
             this.updateViewportDependantProperties();
             this.getMetaDataColumn(dataView);
             let newValue = dataView && dataView.single ? dataView.single.value : 0;
-            if (newValue != null) {
-                this.updateInternal(newValue, options.suppressAnimations, true, this.formatter);
-            }
+            this.updateInternal(newValue, options.suppressAnimations, true, this.formatter);
         }
 
         public setFormatter(formatter?: IValueFormatter): void {
@@ -111,8 +109,8 @@ module powerbi.visuals {
             return true;
         }
 
-        private updateInternal(target: number, suppressAnimations: boolean, forceUpdate: boolean = false, formatter?: IValueFormatter) {
-            let start = this.value || 0;
+        private updateInternal(target: PrimitiveValue, suppressAnimations: boolean, forceUpdate: boolean = false, formatter?: IValueFormatter) {
+            let start = this.value;
             let duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
 
             this.doValueTransition(

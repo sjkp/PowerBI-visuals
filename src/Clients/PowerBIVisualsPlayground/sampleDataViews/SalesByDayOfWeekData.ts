@@ -76,7 +76,8 @@ module powerbi.visuals.sampleDataViews {
                     {
                         displayName: 'Day',
                         queryName: 'Day',
-                        type: powerbi.ValueType.fromDescriptor({ text: true })
+                        type: powerbi.ValueType.fromDescriptor({ text: true }),
+                        roles: { Category: true }
                     },
                     {
                         displayName: 'Previous week sales',
@@ -85,13 +86,15 @@ module powerbi.visuals.sampleDataViews {
                         queryName: 'sales1',
                         type: powerbi.ValueType.fromDescriptor({ numeric: true }),
                         objects: { dataPoint: { fill: { solid: { color: 'purple' } } } },
+                        roles: { Y: true }
                     },
                     {
                         displayName: 'This week sales',
                         isMeasure: true,
                         format: "$0,000.00",
                         queryName: 'sales2',
-                        type: powerbi.ValueType.fromDescriptor({ numeric: true })
+                        type: powerbi.ValueType.fromDescriptor({ numeric: true }),
+                        roles: { Y: true }
                     }
                 ]
             };
@@ -131,20 +134,22 @@ module powerbi.visuals.sampleDataViews {
                     {
                         displayName: 'Day',
                         queryName: 'Day',
-                        type: powerbi.ValueType.fromDescriptor({ text: true })
+                        type: powerbi.ValueType.fromDescriptor({ text: true }),
+                        roles: { Category: true }
                     },
                     {
                         displayName: 'Previous week temperature',
                         isMeasure: true,
                         queryName: 'temp1',
                         type: powerbi.ValueType.fromDescriptor({ numeric: true }),
-                        //objects: { dataPoint: { fill: { solid: { color: 'purple' } } } },
+                        roles: { Y: true }
                     },
                     {
                         displayName: 'This week temperature',
                         isMeasure: true,
                         queryName: 'temp2',
-                        type: powerbi.ValueType.fromDescriptor({ numeric: true })
+                        type: powerbi.ValueType.fromDescriptor({ numeric: true }),
+                        roles: { Y2: true }
                     }
                 ]
             };

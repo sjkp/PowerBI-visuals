@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -38,32 +38,17 @@ module powerbi {
     export interface FillRule extends FillRuleGeneric<string, number> {
     }
 
-    export interface FillRuleGeneric<TColor, TValue> {
-        linearGradient2?: LinearGradient2Generic<TColor, TValue>;
-        linearGradient3?: LinearGradient3Generic<TColor, TValue>;
-        // stepped2?
-        // ...
-    }
-
     export type LinearGradient2 = LinearGradient2Generic<string, number>;
-    export type LinearGradient3 = LinearGradient3Generic < string, number>;
+    export type LinearGradient3 = LinearGradient3Generic<string, number>;
 
-    export interface LinearGradient2Generic<TColor, TValue> {
-        max: RuleColorStopGeneric<TColor, TValue>;
-        min: RuleColorStopGeneric<TColor, TValue>;
-    }
-
-    export interface LinearGradient3Generic<TColor, TValue> {
-        max: RuleColorStopGeneric<TColor, TValue>;
-        mid: RuleColorStopGeneric<TColor, TValue>;
-        min: RuleColorStopGeneric<TColor, TValue>;
-    }
+    export type LinearGradient2Definition = LinearGradient2Generic<SQExpr, SQExpr>;
+    export type LinearGradient3Definition = LinearGradient3Generic<SQExpr, SQExpr>;
 
     export type RuleColorStopDefinition = RuleColorStopGeneric<SQExpr, SQExpr>;
     export type RuleColorStop = RuleColorStopGeneric<string, number>;
 
-    export interface RuleColorStopGeneric<TColor, TValue> {
-        color: TColor;
-        value?: TValue;
+    export interface IFillRuleDefinitionVisitor<T2, T3> {
+        visitLinearGradient2(linearGradient2: LinearGradient2Definition, arg?: any): T2;
+        visitLinearGradient3(linearGradient3: LinearGradient3Definition, arg?: any): T3;
     }
 }

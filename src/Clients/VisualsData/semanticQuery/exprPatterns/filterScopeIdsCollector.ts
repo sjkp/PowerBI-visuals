@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -53,7 +53,7 @@ module powerbi.data {
         export function getFirstComparandValue(identity: DataViewScopeIdentity): any {
             debug.assertValue(identity, 'identity');
 
-            let comparandExpr = identity.expr.accept(new FindComparandVisitor());
+            let comparandExpr = (<SQExpr>identity.expr).accept(new FindComparandVisitor());
             if (comparandExpr)
                 return comparandExpr.value;
         }
@@ -73,6 +73,7 @@ module powerbi.data {
             this.isNot = false;
             this.keyExprsCount = null;
             this.valueExprs = [];
+
             // Need to drop the entitylet before create the scopeIdentity. The ScopeIdentity created on the client is used to
             // compare the ScopeIdentity came from the server. But server doesn't have the entity variable concept, so we will
             // need to drop it in order to use JsonComparer.
@@ -91,7 +92,11 @@ module powerbi.data {
 
             for (let startIndex = 0, endIndex = valueCount, len = valueExprs.length; startIndex < len && endIndex <= len;) {
                 let values = valueExprs.slice(startIndex, endIndex);
-                scopeIds.push(FilterScopeIdsCollectorVisitor.getScopeIdentity(this.fieldExprs, values));
+                let scopeId = FilterScopeIdsCollectorVisitor.getScopeIdentity(this.fieldExprs, values);
+
+                if (!jsCommon.ArrayExtensions.isInArray(scopeIds, scopeId, DataViewScopeIdentity.equals))
+                    scopeIds.push(scopeId);
+
                 startIndex += valueCount;
                 endIndex += valueCount;
             }
@@ -148,7 +153,7 @@ module powerbi.data {
 
             this.isRoot = false;
 
-            if (expr.kind !== QueryComparisonKind.Equal)
+            if (expr.comparison !== QueryComparisonKind.Equal)
                 return this.unsupportedSQExpr();
 
             return expr.left.accept(this) && expr.right.accept(this);
@@ -226,7 +231,7 @@ module powerbi.data {
         }
 
         public visitCompare(expr: SQCompareExpr): SQConstantExpr {
-            if (expr.kind === QueryComparisonKind.Equal) {
+            if (expr.comparison === QueryComparisonKind.Equal) {
                 if (expr.right instanceof SQConstantExpr)
                     return <SQConstantExpr>expr.right;
                 if (expr.left instanceof SQConstantExpr)

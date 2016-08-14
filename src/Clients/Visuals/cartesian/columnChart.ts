@@ -2,7 +2,7 @@
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,23 +11,24 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
 
- /// <reference path="../_references.ts"/>
+/// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
     import EnumExtensions = jsCommon.EnumExtensions;
+    import DataRoleHelper = powerbi.data.DataRoleHelper;
 
     export interface ColumnChartConstructorOptions extends CartesianVisualConstructorOptions {
         chartType: ColumnChartType;
@@ -35,7 +36,6 @@ module powerbi.visuals {
     }
 
     export interface ColumnChartData extends CartesianData {
-        categories: any[];
         categoryFormatter: IValueFormatter;
         series: ColumnChartSeries[];
         valuesMetadata: DataViewMetadataColumn[];
@@ -79,9 +79,9 @@ module powerbi.visuals {
         originalPosition: number;
         originalValueAbsolute: number;
 
-        /** 
+        /**
          * True if this data point is a highlighted portion and overflows (whether due to the highlight
-         * being greater than original or of a different sign), so it needs to be thinner to accomodate. 
+         * being greater than original or of a different sign), so it needs to be thinner to accomodate.
          */
         drawThinner?: boolean;
         key: string;
@@ -140,9 +140,12 @@ module powerbi.visuals {
         height: number;
         width: number;
         duration: number;
+        hostService: IVisualHostServices;
         margin: IMargin;
+        /** A group for graphics can be placed that won't be clipped to the data area of the chart. */
+        unclippedGraphicsContext: D3.Selection;
+        /** A SVG for graphics that should be clipped to the data area, e.g. data bars, columns, lines */
         mainGraphicsContext: D3.Selection;
-        labelGraphicsContext: D3.Selection;
         layout: CategoryLayout;
         animator: IColumnChartAnimator;
         onDragStart?: (datum: ColumnChartDataPoint) => void;
@@ -150,13 +153,14 @@ module powerbi.visuals {
         viewportHeight: number;
         viewportWidth: number;
         is100Pct: boolean;
+        isComboChart: boolean;
     }
 
     export interface IColumnChartStrategy {
         setData(data: ColumnChartData): void;
         setupVisualProps(columnChartProps: ColumnChartContext): void;
-        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
-        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number): IAxisProperties;
+        setXScale(is100Pct: boolean, forcedTickCount?: number, forcedXDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureXDomain?: NumberRange): IAxisProperties;
+        setYScale(is100Pct: boolean, forcedTickCount?: number, forcedYDomain?: any[], axisScaleType?: string, axisDisplayUnits?: number, axisPrecision?: number, ensureYDomain?: NumberRange): IAxisProperties;
         drawColumns(useAnimation: boolean): ColumnChartDrawInfo;
         selectColumn(selectedColumnIndex: number, lastSelectedColumnIndex: number): void;
         getClosestColumnIndex(x: number, y: number): number;
@@ -167,7 +171,7 @@ module powerbi.visuals {
         getValueBySeriesAndCategory(series: number, category: number): number;
         getMeasureNameByIndex(series: number, category: number): string;
         hasHighlightValues(series: number): boolean;
-        getHighlightBySeriesAndCategory(series: number, category: number): number;
+        getHighlightBySeriesAndCategory(series: number, category: number): PrimitiveValue;
     }
 
     export interface LegendSeriesInfo {
@@ -177,6 +181,7 @@ module powerbi.visuals {
     }
 
     export interface ColumnChartDrawInfo {
+        eventGroup: D3.Selection;
         shapesSelection: D3.Selection;
         viewport: IViewport;
         axisOptions: ColumnAxisOptions;
@@ -198,8 +203,8 @@ module powerbi.visuals {
         public static SeriesClasses: jsCommon.CssConstants.ClassAndSelector = jsCommon.CssConstants.createClassAndSelector('series');
 
         private svg: D3.Selection;
+        private unclippedGraphicsContext: D3.Selection;
         private mainGraphicsContext: D3.Selection;
-        private labelGraphicsContext: D3.Selection;
         private xAxisProperties: IAxisProperties;
         private yAxisProperties: IAxisProperties;
         private currentViewport: IViewport;
@@ -214,14 +219,15 @@ module powerbi.visuals {
         private margin: IMargin;
         private options: CartesianVisualInitOptions;
         private lastInteractiveSelectedColumnIndex: number;
-        private supportsOverflow: boolean;
         private interactivityService: IInteractivityService;
-        private dataViewCat: DataViewCategorical;
+        private dataView: DataView;
         private categoryAxisType: string;
         private animator: IColumnChartAnimator;
         private isScrollable: boolean;
+        private tooltipsEnabled: boolean;
+        private tooltipBucketEnabled: boolean;
         private element: JQuery;
-        private seriesLabelFormattingEnabled: boolean;
+        private isComboChart: boolean;
 
         constructor(options: ColumnChartConstructorOptions) {
             debug.assertValue(options, 'options');
@@ -232,8 +238,9 @@ module powerbi.visuals {
             this.categoryAxisType = null;
             this.animator = options.animator;
             this.isScrollable = options.isScrollable;
+            this.tooltipsEnabled = options.tooltipsEnabled;
+            this.tooltipBucketEnabled = options.tooltipBucketEnabled;
             this.interactivityService = options.interactivityService;
-            this.seriesLabelFormattingEnabled = options.seriesLabelFormattingEnabled;
         }
 
         public static customizeQuery(options: CustomizeQueryOptions): void {
@@ -243,18 +250,18 @@ module powerbi.visuals {
 
             dataViewMapping.categorical.dataVolume = 4;
 
-            let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
-            let categoryItems = dataViewCategories.for.in.items;
-            if (!_.isEmpty(categoryItems)) {
-                let categoryType = categoryItems[0].type;
+            if (CartesianChart.detectScalarMapping(dataViewMapping)) {
+                let dataViewCategories = <data.CompiledDataViewRoleForMappingWithReduction>dataViewMapping.categorical.categories;
+                dataViewCategories.dataReductionAlgorithm = { sample: {} };
 
-                let objects: DataViewObjects;
-                if (dataViewMapping.metadata)
-                    objects = dataViewMapping.metadata.objects;
+                let values = <data.CompiledDataViewGroupedRoleMapping>dataViewMapping.categorical.values;
 
-                if (CartesianChart.getIsScalar(objects, columnChartProps.categoryAxis.axisType, categoryType)) {
-                    dataViewCategories.dataReductionAlgorithm = { sample: {} };
+                if(values && values.group){
+                    values.group.dataReductionAlgorithm = { top: {} };
                 }
+            }
+            else {
+                CartesianChart.expandCategoryWindow([dataViewMapping]);
             }
         }
 
@@ -291,8 +298,10 @@ module powerbi.visuals {
 
         public init(options: CartesianVisualInitOptions) {
             this.svg = options.svg;
-            this.mainGraphicsContext = this.svg.append('g').classed('columnChartMainGraphicsContext', true);
-            this.labelGraphicsContext = this.svg.append('g').classed(NewDataLabelUtils.labelGraphicsContextClass.class, true);
+            this.svg.classed(ColumnChart.ColumnChartClassName, true);
+
+            this.unclippedGraphicsContext = this.svg.append('g').classed('columnChartUnclippedGraphicsContext', true);
+            this.mainGraphicsContext = this.unclippedGraphicsContext.append('svg').classed('mainGraphicsContext', true);
             this.style = options.style;
             this.currentViewport = options.viewport;
             this.hostService = options.host;
@@ -300,32 +309,13 @@ module powerbi.visuals {
             this.colors = this.style.colorPalette.dataColors;
             this.cartesianVisualHost = options.cartesianHost;
             this.options = options;
-            this.supportsOverflow = !EnumExtensions.hasFlag(this.chartType, flagStacked);
-            let element = this.element = options.element;
-            element.addClass(ColumnChart.ColumnChartClassName);
-
-            switch (this.chartType) {
-                case ColumnChartType.clusteredBar:
-                    this.columnChart = new ClusteredBarChartStrategy();
-                    break;
-                case ColumnChartType.clusteredColumn:
-                    this.columnChart = new ClusteredColumnChartStrategy();
-                    break;
-                case ColumnChartType.stackedBar:
-                case ColumnChartType.hundredPercentStackedBar:
-                    this.columnChart = new StackedBarChartStrategy();
-                    break;
-                case ColumnChartType.stackedColumn:
-                case ColumnChartType.hundredPercentStackedColumn:
-                default:
-                    this.columnChart = new StackedColumnChartStrategy();
-                    break;
-            }
+            this.isComboChart = ComboChart.isComboChart(options.chartType);
+            this.element = options.element;
         }
 
         private getCategoryLayout(numCategoryValues: number, options: CalculateScaleAndDomainOptions): CategoryLayout {
             let availableWidth: number;
-            if (EnumExtensions.hasFlag(this.chartType, flagBar)) {
+            if (ColumnChart.isBar(this.chartType)) {
                 availableWidth = this.currentViewport.height - (this.margin.top + this.margin.bottom);
             }
             else {
@@ -333,9 +323,9 @@ module powerbi.visuals {
             }
 
             let metaDataColumn = this.data ? this.data.categoryMetadata : undefined;
-            let categoryDataType: ValueType = AxisHelper.getCategoryValueType(metaDataColumn);
+            let categoryDataType: ValueTypeDescriptor = AxisHelper.getCategoryValueType(metaDataColumn);
             let isScalar = this.data ? this.data.scalarCategoryAxis : false;
-            let domain = AxisHelper.createDomain(this.data.series, categoryDataType, isScalar, options.forcedXDomain);
+            let domain = AxisHelper.createDomain(this.data.series, categoryDataType, isScalar, options.forcedXDomain, options.ensureXDomain);
             return CartesianChart.getLayout(
                 this.data,
                 {
@@ -343,41 +333,42 @@ module powerbi.visuals {
                     categoryCount: numCategoryValues,
                     domain: domain,
                     isScalar: isScalar,
-                    isScrollable: this.isScrollable
+                    isScrollable: this.isScrollable,
+                    trimOrdinalDataOnOverflow: options.trimOrdinalDataOnOverflow
                 });
         }
 
         public static converter(
-            dataView: DataViewCategorical,
+            dataView: DataView,
             colors: IDataColorPalette,
             is100PercentStacked: boolean = false,
             isScalar: boolean = false,
-            supportsOverflow: boolean = false,
             dataViewMetadata: DataViewMetadata = null,
             chartType?: ColumnChartType,
-            interactivityService?: IInteractivityService
-        ): ColumnChartData {
+            interactivityService?: IInteractivityService,
+            tooltipsEnabled: boolean = true,
+            tooltipBucketEnabled?: boolean): ColumnChartData {
             debug.assertValue(dataView, 'dataView');
             debug.assertValue(colors, 'colors');
 
             let xAxisCardProperties = CartesianHelper.getCategoryAxisProperties(dataViewMetadata);
             let valueAxisProperties = CartesianHelper.getValueAxisProperties(dataViewMetadata);
             isScalar = CartesianHelper.isScalar(isScalar, xAxisCardProperties);
-            dataView = ColumnUtil.applyUserMinMax(isScalar, dataView, xAxisCardProperties);
+            let dataViewCat = ColumnUtil.applyUserMinMax(isScalar, dataView.categorical, xAxisCardProperties);
 
             let converterStrategy = new ColumnChartConverterHelper(dataView);
 
-            let categoryInfo = converterHelper.getPivotedCategories(dataView, columnChartProps.general.formatString);
+            let categoryInfo = converterHelper.getPivotedCategories(dataViewCat, columnChartProps.general.formatString);
             let categories = categoryInfo.categories,
                 categoryFormatter: IValueFormatter = categoryInfo.categoryFormatter,
                 categoryIdentities: DataViewScopeIdentity[] = categoryInfo.categoryIdentities,
-                categoryMetadata: DataViewMetadataColumn = dataView.categories && dataView.categories.length > 0 ? dataView.categories[0].source : undefined;
+                categoryMetadata: DataViewMetadataColumn = dataViewCat && dataViewCat.categories && dataViewCat.categories.length > 0 ? dataViewCat.categories[0].source : undefined;
 
-            let labelSettings: VisualDataLabelsSettings = dataLabelUtils.getDefaultColumnLabelSettings(is100PercentStacked || EnumExtensions.hasFlag(chartType, flagStacked));
+            let labelSettings: VisualDataLabelsSettings = dataLabelUtils.getDefaultColumnLabelSettings(is100PercentStacked || ColumnChart.isStacked(chartType));
             let defaultLegendLabelColor = LegendData.DefaultLegendLabelFillColor;
             let defaultDataPointColor = undefined;
             let showAllDataPoints = undefined;
-            if (dataViewMetadata && dataViewMetadata.objects){
+            if (dataViewMetadata && dataViewMetadata.objects) {
                 let objects = dataViewMetadata.objects;
 
                 defaultDataPointColor = DataViewObjects.getFillColor(objects, columnChartProps.dataPoint.defaultColor);
@@ -404,12 +395,13 @@ module powerbi.visuals {
                 labelSettings,
                 is100PercentStacked,
                 isScalar,
-                supportsOverflow,
                 converterHelper.categoryIsAlsoSeriesRole(dataView, RoleNames.series, RoleNames.category),
                 categoryInfo.categoryObjects,
                 defaultDataPointColor,
                 chartType,
-                categoryMetadata);
+                categoryMetadata,
+                tooltipsEnabled,
+                tooltipBucketEnabled);
             let columnSeries: ColumnChartSeries[] = result.series;
 
             let valuesMetadata: DataViewMetadataColumn[] = [];
@@ -419,7 +411,7 @@ module powerbi.visuals {
 
             let labels = converterHelper.createAxesLabels(xAxisCardProperties, valueAxisProperties, categoryMetadata, valuesMetadata);
 
-            if (!EnumExtensions.hasFlag(chartType, flagColumn)) {
+            if (!ColumnChart.isColumn(chartType)) {
                 // Replace between x and y axes
                 let temp = labels.xAxisLabel;
                 labels.xAxisLabel = labels.yAxisLabel;
@@ -452,8 +444,12 @@ module powerbi.visuals {
             };
         }
 
+        private static canSupportOverflow(chartType: ColumnChartType, seriesCount: number): boolean {
+            return !ColumnChart.isStacked(chartType) || seriesCount === 1;
+        }
+
         private static createDataPoints(
-            dataViewCat: DataViewCategorical,
+            dataView: DataView,
             categories: any[],
             categoryIdentities: DataViewScopeIdentity[],
             legend: LegendDataPoint[],
@@ -462,25 +458,26 @@ module powerbi.visuals {
             defaultLabelSettings: VisualDataLabelsSettings,
             is100PercentStacked: boolean = false,
             isScalar: boolean = false,
-            supportsOverflow: boolean = false,
             isCategoryAlsoSeries?: boolean,
             categoryObjectsList?: DataViewObjects[],
             defaultDataPointColor?: string,
             chartType?: ColumnChartType,
-            categoryMetadata?: DataViewMetadataColumn): { series: ColumnChartSeries[]; hasHighlights: boolean; hasDynamicSeries: boolean; isMultiMeasure: boolean } {
+            categoryMetadata?: DataViewMetadataColumn,
+            tooltipsEnabled?: boolean,
+            tooltipBucketEnabled?: boolean): { series: ColumnChartSeries[]; hasHighlights: boolean; hasDynamicSeries: boolean; isMultiMeasure: boolean } {
+            let dataViewCat = dataView.categorical;
 
+            let reader = powerbi.data.createIDataViewCategoricalReader(dataView);
             let grouped = dataViewCat && dataViewCat.values ? dataViewCat.values.grouped() : undefined;
             let categoryCount = categories.length;
-            let seriesCount = legend.length;
+            let seriesCount = reader.hasValues('Y') ? reader.getSeriesCount('Y') : undefined;
             let columnSeries: ColumnChartSeries[] = [];
 
             if (seriesCount < 1 || categoryCount < 1)
                 return { series: columnSeries, hasHighlights: false, hasDynamicSeries: false, isMultiMeasure: false };
 
             let dvCategories = dataViewCat.categories;
-            categoryMetadata = (dvCategories && dvCategories.length > 0)
-                ? dvCategories[0].source
-                : null;
+            categoryMetadata = !_.isEmpty(dvCategories) ? dvCategories[0].source : null;
             let categoryType = AxisHelper.getCategoryValueType(categoryMetadata);
             let isDateTime = AxisHelper.isDateTime(categoryType);
             let baseValuesPos = [], baseValuesNeg = [];
@@ -515,7 +512,7 @@ module powerbi.visuals {
                 }
             }
 
-            if (highlightsOverflow && !supportsOverflow) {
+            if (highlightsOverflow && !ColumnChart.canSupportOverflow(chartType, seriesCount)) {
                 highlightsOverflow = false;
                 hasHighlights = false;
                 rawValues = rawHighlightValues;
@@ -529,8 +526,8 @@ module powerbi.visuals {
                     seriesLabelSettings: VisualDataLabelsSettings;
 
                 if (!hasDynamicSeries) {
-                    let labelsSeriesGroup = grouped && grouped.length > 0 && grouped[0].values ? grouped[0].values[seriesIndex] : null;
-                    let labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject> labelsSeriesGroup.source.objects['labels'] : null;
+                    let labelsSeriesGroup = !_.isEmpty(grouped) && grouped[0].values ? grouped[0].values[seriesIndex] : null;
+                    let labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject>labelsSeriesGroup.source.objects['labels'] : null;
                     if (labelObjects) {
                         seriesLabelSettings = Prototype.inherit(defaultLabelSettings);
                         dataLabelUtils.updateLabelSettingsFromLabelsObject(labelObjects, seriesLabelSettings);
@@ -549,7 +546,11 @@ module powerbi.visuals {
 
                 if (seriesCount > 1)
                     dataPointObjects = seriesObjectsList[seriesIndex];
-                let metadata = dataViewCat.values[seriesIndex].source;
+                let valueColumnMetadata = reader.getValueMetadataColumn('Y', seriesIndex);
+                let gradientMeasureIndex: number = GradientUtils.getGradientMeasureIndex(dataViewCat);
+                let gradientValueColumn: DataViewValueColumn = GradientUtils.getGradientValueColumn(dataViewCat);
+                let valueMeasureIndex: number = DataRoleHelper.getMeasureIndexOfRole(grouped, "Y");
+                let pctFormatString = valueFormatter.getLocalizedString('Percentage');
 
                 for (let categoryIndex = 0; categoryIndex < categoryCount; categoryIndex++) {
                     if (seriesIndex === 0) {
@@ -567,6 +568,11 @@ module powerbi.visuals {
 
                     let originalValue: number = value;
                     let categoryValue = categories[categoryIndex];
+
+                    // ignore variant measures
+                    if (isDateTime && categoryValue != null && !(categoryValue instanceof Date))
+                        continue;
+
                     if (isDateTime && categoryValue)
                         categoryValue = categoryValue.getTime();
                     if (isScalar && (categoryValue == null || isNaN(categoryValue)))
@@ -601,23 +607,126 @@ module powerbi.visuals {
                         position = baseValuesPos[categoryIndex];
                     }
 
-                    let seriesGroup = grouped && grouped.length > seriesIndex && grouped[seriesIndex].values ? grouped[seriesIndex].values[0] : null;
-                    let category = dataViewCat.categories && dataViewCat.categories.length > 0 ? dataViewCat.categories[0] : null;
+                    let seriesGroup = grouped && grouped.length > seriesIndex && grouped[seriesIndex].values ? grouped[seriesIndex].values[valueMeasureIndex] : null;
+                    let category = !_.isEmpty(dataViewCat.categories) ? dataViewCat.categories[0] : null;
                     let identity = SelectionIdBuilder.builder()
                         .withCategory(category, categoryIndex)
                         .withSeries(dataViewCat.values, seriesGroup)
                         .withMeasure(converterStrategy.getMeasureNameByIndex(seriesIndex))
                         .createSelectionId();
 
-                    let rawCategoryValue = categories[categoryIndex];
+                    let rawCategoryValue = reader.getCategoryValue('Category', categoryIndex);
                     let color = ColumnChart.getDataPointColor(legendItem, categoryIndex, dataPointObjects);
-                    let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, dataViewCat, rawCategoryValue, originalValue, null, null, seriesIndex, categoryIndex);
+                    let gradientColumnForTooltip = gradientMeasureIndex === 0 ? null : gradientValueColumn;
+
+                    let valueHighlight: any;
+                    let unadjustedValueHighlight: any;
+                    let absoluteValueHighlight: number;
+                    let highlightValue: string;
+                    let highlightPosition: number;
+                    let highlightIdentity: SelectionId;
+                    if (hasHighlights) {
+                        valueHighlight = reader.getHighlight('Y', categoryIndex, seriesIndex);
+                        unadjustedValueHighlight = valueHighlight;
+
+                        let highlightedTooltip: boolean = true;
+                        if (valueHighlight === null) {
+                            valueHighlight = 0;
+                            highlightedTooltip = false;
+                        }
+
+                        if (is100PercentStacked) {
+                            valueHighlight *= multipliers.pos;
+                        }
+                        absoluteValueHighlight = Math.abs(valueHighlight);
+                        highlightPosition = position;
+
+                        if (valueHighlight > 0) {
+                            highlightPosition -= valueAbsolute - absoluteValueHighlight;
+                        }
+                        else if (valueHighlight === 0 && value > 0) {
+                            highlightPosition -= valueAbsolute;
+                        }
+
+                        highlightIdentity = SelectionId.createWithHighlight(identity);
+
+                        let highlightedValueAndPct: string;
+                        let highlightedValueFormat: string;
+                        if (highlightedTooltip && unadjustedValueHighlight != null && valueHighlight != null) {
+                            let highlightedPct: string = valueFormatter.format(valueHighlight, pctFormatString);
+                            highlightedValueFormat = converterHelper.formatFromMetadataColumn(unadjustedValueHighlight, valueColumnMetadata, formatStringProp);
+                            highlightedValueAndPct = highlightedValueFormat + ' (' + highlightedPct + ')';
+                        }
+                        if (is100PercentStacked) {
+                            highlightValue = highlightedValueAndPct;
+                        }
+                        else {
+                            highlightValue = highlightedValueFormat;
+                        }
+                    }
+
+                    let tooltipInfo: TooltipDataItem[];
+
+                    if (tooltipsEnabled) {
+                        tooltipInfo = [];
+                        if (category) {
+                            tooltipInfo.push({
+                                displayName: reader.getCategoryDisplayName('Category'),
+                                value: converterHelper.formatFromMetadataColumn(rawCategoryValue, category.source, formatStringProp),
+                            });
+                        }
+
+                        if (hasDynamicSeries) {
+                            if (!category || category.source !== dataViewCat.values.source) {
+                                // Category/series on the same column -- don't repeat its value in the tooltip.
+                                tooltipInfo.push({
+                                    displayName: dataViewCat.values.source.displayName,
+                                    value: converterHelper.formatFromMetadataColumn(grouped[seriesIndex].name, dataViewCat.values.source, formatStringProp),
+                                });
+                            }
+                        }
+
+                        if (originalValue != null) {
+                            let valueString: string;
+                            let formattedOriginalValue = converterHelper.formatFromMetadataColumn(originalValue, valueColumnMetadata, formatStringProp);
+                            if (is100PercentStacked) {
+                                let originalPct: string = valueFormatter.format(valueAbsolute, pctFormatString);
+                                valueString = formattedOriginalValue + ' (' + originalPct + ')';
+                            }
+                            else {
+                                valueString = formattedOriginalValue;
+                            }
+                            tooltipInfo.push({
+                                displayName: valueColumnMetadata.displayName,
+                                value: valueString,
+                            });
+                        }
+
+                        if (highlightValue != null) {
+                            tooltipInfo.push({
+                                displayName: ToolTipComponent.localizationOptions.highlightedValueDisplayName,
+                                value: highlightValue,
+                            });
+                        }
+
+                        if (gradientColumnForTooltip && gradientColumnForTooltip.values[categoryIndex] != null) {
+                            tooltipInfo.push({
+                                displayName: gradientColumnForTooltip.source.displayName,
+                                value: converterHelper.formatFromMetadataColumn(gradientColumnForTooltip.values[categoryIndex], gradientColumnForTooltip.source, formatStringProp),
+                            });
+                        }
+
+                        if (tooltipBucketEnabled) {
+                            TooltipBuilder.addTooltipBucketItem(reader, tooltipInfo, categoryIndex, hasDynamicSeries ? seriesIndex : undefined);
+                        }
+                    }
+
                     let series = columnSeries[seriesIndex];
                     let dataPointLabelSettings = (series.labelSettings) ? series.labelSettings : defaultLabelSettings;
                     let labelColor = dataPointLabelSettings.labelColor;
                     let lastValue = undefined;
                     //Stacked column/bar label color is white by default (except last series)
-                    if ((EnumExtensions.hasFlag(chartType, flagStacked))) {
+                    if ((ColumnChart.isStacked(chartType))) {
                         lastValue = this.getStackedLabelColor(isNegative, seriesIndex, seriesCount, categoryIndex, rawValues);
                         labelColor = (lastValue || (seriesIndex === seriesCount - 1 && !isNegative)) ? labelColor : dataLabelUtils.defaultInsideLabelColor;
                     }
@@ -640,7 +749,7 @@ module powerbi.visuals {
                         key: identity.getKey(),
                         tooltipInfo: tooltipInfo,
                         labelFill: labelColor,
-                        labelFormatString: metadata.format,
+                        labelFormatString: valueColumnMetadata.format,
                         lastSeries: lastValue,
                         chartType: chartType
                     };
@@ -648,38 +757,6 @@ module powerbi.visuals {
                     seriesDataPoints.push(dataPoint);
 
                     if (hasHighlights) {
-                        let valueHighlight = rawHighlightValues[seriesIndex][categoryIndex];
-                        let unadjustedValueHighlight = valueHighlight;
-
-                        let highlightedTooltip: boolean = true;
-                        if (valueHighlight === null) {
-                            valueHighlight = 0;
-                            highlightedTooltip = false;
-                        }
-
-                        if (is100PercentStacked) {
-                            valueHighlight *= multipliers.pos;
-                        }
-                        let absoluteValueHighlight = Math.abs(valueHighlight);
-                        let highlightPosition = position;
-
-                        if (valueHighlight > 0) {
-                            highlightPosition -= valueAbsolute - absoluteValueHighlight;
-                        }
-                        else if (valueHighlight === 0 && value > 0) {
-                            highlightPosition -= valueAbsolute;
-                        }
-
-                        let highlightIdentity = SelectionId.createWithHighlight(identity);
-                        let rawCategoryValue = categories[categoryIndex];
-                        let highlightedValue: number = highlightedTooltip ? valueHighlight : undefined;
-                        let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, dataViewCat, rawCategoryValue, originalValue, null, null, seriesIndex, categoryIndex, highlightedValue);
-
-                        if (highlightedTooltip) {
-                            // Override non highlighted data point
-                            dataPoint.tooltipInfo = tooltipInfo;
-                        }
-
                         let highlightDataPoint: ColumnChartDataPoint = {
                             categoryValue: categoryValue,
                             value: valueHighlight,
@@ -699,7 +776,7 @@ module powerbi.visuals {
                             identity: highlightIdentity,
                             key: highlightIdentity.getKey(),
                             tooltipInfo: tooltipInfo,
-                            labelFormatString: metadata.format,
+                            labelFormatString: valueColumnMetadata.format,
                             labelFill: labelColor,
                             lastSeries: lastValue,
                             chartType: chartType
@@ -762,45 +839,13 @@ module powerbi.visuals {
             return newSeries;
         }
 
-        public static getForcedTickValues(min: number, max: number, forcedTickCount: number): number[] {
-            debug.assert(min <= max, "min must be less or equal to max");
-            debug.assert(forcedTickCount >= 0, "forcedTickCount must be greater or equal to zero");
-            if (forcedTickCount <= 1)
-                return [];
-
-            let tickValues = [];
-            let interval = (max - min) / (forcedTickCount - 1);
-            for (let i = 0; i < forcedTickCount - 1; i++) {
-                tickValues.push(min + i * interval);
-            }
-            tickValues.push(max);
-
-            if (tickValues.indexOf(0) === -1)
-                tickValues.push(0);
-
-            // It's not needed to sort the array here since when we pass tick value array to D3,
-            // D3 does not care whether the elements in the array are in order or not.
-            return tickValues;
-        }
-
-        public static getTickInterval(tickValues: number[]): number {
-            if (tickValues.length === 0)
-                return 0;
-
-            if (tickValues.length === 1)
-                return tickValues[0];
-
-            tickValues.sort((a, b) => (a - b));
-            return tickValues[1] - tickValues[0];
-        }
-
         public static getInteractiveColumnChartDomElement(element: JQuery): HTMLElement {
             return element.children("svg").get(0);
         }
 
         public setData(dataViews: DataView[]): void {
             debug.assertValue(dataViews, "dataViews");
-            let is100PctStacked = EnumExtensions.hasFlag(this.chartType, flagStacked100);
+            let is100PctStacked = ColumnChart.isStacked100(this.chartType);
             this.data = {
                 categories: [],
                 categoryFormatter: null,
@@ -810,7 +855,7 @@ module powerbi.visuals {
                 hasHighlights: false,
                 categoryMetadata: null,
                 scalarCategoryAxis: false,
-                labelSettings: dataLabelUtils.getDefaultColumnLabelSettings(is100PctStacked || EnumExtensions.hasFlag(this.chartType, flagStacked)),
+                labelSettings: dataLabelUtils.getDefaultColumnLabelSettings(is100PctStacked || ColumnChart.isStacked(this.chartType)),
                 axesLabels: { x: null, y: null },
                 hasDynamicSeries: false,
                 defaultDataPointColor: null,
@@ -818,31 +863,65 @@ module powerbi.visuals {
             };
 
             if (dataViews.length > 0) {
-                let dataView = dataViews[0];
+                let dataView = this.dataView = dataViews[0];
 
                 if (dataView && dataView.categorical) {
-                    let dataViewCat = this.dataViewCat = dataView.categorical;
-                    let dvCategories = dataViewCat.categories;
+                    let dvCategories = dataView.categorical.categories;
                     let categoryMetadata = (dvCategories && dvCategories.length > 0)
                         ? dvCategories[0].source
                         : null;
                     let categoryType = AxisHelper.getCategoryValueType(categoryMetadata);
 
                     this.data = ColumnChart.converter(
-                        dataViewCat,
+                        dataView,
                         this.cartesianVisualHost.getSharedColors(),
                         is100PctStacked,
                         CartesianChart.getIsScalar(dataView.metadata ? dataView.metadata.objects : null, columnChartProps.categoryAxis.axisType, categoryType),
-                        this.supportsOverflow,
                         dataView.metadata,
                         this.chartType,
-                        this.interactivityService);
+                        this.interactivityService,
+                        this.tooltipsEnabled,
+                        this.tooltipBucketEnabled);
+                }
+            }
+
+            this.setChartStrategy();
+        }
+
+        private setChartStrategy(): void {
+            switch (this.chartType) {
+                case ColumnChartType.clusteredBar:
+                    this.columnChart = new ClusteredBarChartStrategy();
+                    break;
+                case ColumnChartType.clusteredColumn:
+                    this.columnChart = new ClusteredColumnChartStrategy();
+                    break;
+                case ColumnChartType.stackedBar:
+                case ColumnChartType.hundredPercentStackedBar:
+                    this.columnChart = new StackedBarChartStrategy();
+                    break;
+                case ColumnChartType.stackedColumn:
+                case ColumnChartType.hundredPercentStackedColumn:
+                default:
+                    this.columnChart = new StackedColumnChartStrategy();
+                    break;
+            }
+
+            // For single series, render stacked as a clustered
+            if (ColumnChart.isStacked(this.chartType) && this.data.series.length === 1) {
+                switch (this.chartType) {
+                    case (ColumnChartType.stackedBar):
+                        this.columnChart = new ClusteredBarChartStrategy();
+                        break;
+                    case (ColumnChartType.stackedColumn):
+                        this.columnChart = new ClusteredColumnChartStrategy();
+                        break;
                 }
             }
         }
 
         public calculateLegend(): LegendData {
-            // if we're in interactive mode, return the interactive legend 
+            // if we're in interactive mode, return the interactive legend
             if (this.interactivity && this.interactivity.isInteractiveLegend) {
                 return this.createInteractiveLegendDataPoints(0);
             }
@@ -862,7 +941,7 @@ module powerbi.visuals {
         public enumerateObjectInstances(enumeration: ObjectEnumerationBuilder, options: EnumerateVisualObjectInstancesOptions): void {
             switch (options.objectName) {
                 case 'dataPoint':
-                    if (!GradientUtils.hasGradientRole(this.dataViewCat))
+                    if (this.dataView && !GradientUtils.hasGradientRole(this.dataView.categorical))
                         this.enumerateDataPoints(enumeration);
                     break;
                 case 'labels':
@@ -875,7 +954,7 @@ module powerbi.visuals {
             let data = this.data,
                 labelSettings = this.data.labelSettings,
                 seriesCount = data.series.length,
-                showLabelPerSeries = !data.hasDynamicSeries && (seriesCount > 1 || !data.categoryMetadata) && this.seriesLabelFormattingEnabled;
+                showLabelPerSeries = !data.hasDynamicSeries && (seriesCount > 1 || !data.categoryMetadata);
 
             //Draw default settings
             dataLabelUtils.enumerateDataLabels(this.getLabelSettingsOptions(enumeration, labelSettings, null, showLabelPerSeries));
@@ -901,7 +980,7 @@ module powerbi.visuals {
                 enumeration: enumeration,
                 dataLabelsSettings: labelSettings,
                 show: true,
-                displayUnits: !EnumExtensions.hasFlag(this.chartType, flagStacked100),
+                displayUnits: !ColumnChart.isStacked100(this.chartType),
                 precision: true,
                 selector: series && series.identity ? series.identity.getSelector() : null,
                 showAll: showAll,
@@ -945,24 +1024,26 @@ module powerbi.visuals {
                         defaultColor: { solid: { color: data.defaultDataPointColor || this.colors.getColorByIndex(0).value } }
                     }
                 }).pushInstance({
-                        objectName: 'dataPoint',
-                        selector: null,
-                        properties: {
-                            showAllDataPoints: !!data.showAllDataPoints
-                        }
-                    });
+                    objectName: 'dataPoint',
+                    selector: null,
+                    properties: {
+                        showAllDataPoints: !!data.showAllDataPoints
+                    }
+                });
 
-                for (let i = 0; i < singleSeriesData.length; i++) {
-                    let singleSeriesDataPoints = singleSeriesData[i],
-                        categoryValue: any = data.categories[i];
-                    enumeration.pushInstance({
-                        objectName: 'dataPoint',
-                        displayName: categoryFormatter ? categoryFormatter.format(categoryValue) : categoryValue,
-                        selector: ColorHelper.normalizeSelector(singleSeriesDataPoints.identity.getSelector(), /*isSingleSeries*/true),
-                        properties: {
-                            fill: { solid: { color: singleSeriesDataPoints.color } }
-                        },
-                    });
+                if (data.showAllDataPoints) {
+                    for (let i = 0; i < singleSeriesData.length; i++) {
+                        let singleSeriesDataPoints = singleSeriesData[i],
+                            categoryValue: any = data.categories[i];
+                        enumeration.pushInstance({
+                            objectName: 'dataPoint',
+                            displayName: categoryFormatter ? categoryFormatter.format(categoryValue) : categoryValue,
+                            selector: ColorHelper.normalizeSelector(singleSeriesDataPoints.identity.getSelector(), /*isSingleSeries*/true),
+                            properties: {
+                                fill: { solid: { color: singleSeriesDataPoints.color } }
+                            },
+                        });
+                    }
                 }
             }
         }
@@ -981,7 +1062,7 @@ module powerbi.visuals {
             };
             this.categoryAxisType = chartLayout.isScalar ? axisType.scalar : null;
 
-            if (data && !chartLayout.isScalar && !this.isScrollable) {
+            if (data && !chartLayout.isScalar && !this.isScrollable && options.trimOrdinalDataOnOverflow) {
                 // trim data that doesn't fit on dashboard
                 let catgSize = Math.min(origCatgSize, chartLayout.categoryCount);
                 if (catgSize !== origCatgSize) {
@@ -993,25 +1074,15 @@ module powerbi.visuals {
             this.columnChart.setData(data);
 
             let preferredPlotArea = this.getPreferredPlotArea(chartLayout.isScalar, chartLayout.categoryCount, chartLayout.categoryThickness);
+            let is100Pct = ColumnChart.isStacked100(this.chartType);
 
-            /* preferredPlotArea would be same as currentViewport width when there is no scrollbar. 
-             In that case we want to calculate the available plot area for the shapes by subtracting the margin from available viewport */
-            if (preferredPlotArea.width === this.currentViewport.width) {
-                preferredPlotArea.width -= (margin.left + margin.right);
-            }
-            preferredPlotArea.height -= (margin.top + margin.bottom);
-
-            let is100Pct = EnumExtensions.hasFlag(this.chartType, flagStacked100); 
-
-            // When the category axis is scrollable the height of the category axis and value axis will be different
-            // The height of the value axis would be same as viewportHeight 
             let chartContext: ColumnChartContext = {
                 height: preferredPlotArea.height,
                 width: preferredPlotArea.width,
                 duration: 0,
                 hostService: this.hostService,
+                unclippedGraphicsContext: this.unclippedGraphicsContext,
                 mainGraphicsContext: this.mainGraphicsContext,
-                labelGraphicsContext: this.labelGraphicsContext,
                 margin: this.margin,
                 layout: chartLayout,
                 animator: this.animator,
@@ -1019,16 +1090,26 @@ module powerbi.visuals {
                 viewportHeight: this.currentViewport.height - (margin.top + margin.bottom),
                 viewportWidth: this.currentViewport.width - (margin.left + margin.right),
                 is100Pct: is100Pct,
+                isComboChart: this.isComboChart,
             };
             this.ApplyInteractivity(chartContext);
             this.columnChart.setupVisualProps(chartContext);
 
-            let isBarChart = EnumExtensions.hasFlag(this.chartType, flagBar);
+            let ensureXDomain: NumberRange;
+            let ensureYDomain: NumberRange;
+
+            let isBarChart = ColumnChart.isBar(this.chartType);
 
             if (isBarChart) {
                 let temp = options.forcedXDomain;
                 options.forcedXDomain = options.forcedYDomain;
                 options.forcedYDomain = temp;
+
+                // In the case of clustered and stacked bar charts, the y1 reference line is a vertical line
+                ensureXDomain = options.ensureYDomain;
+            }
+            else {
+                ensureYDomain = options.ensureYDomain;
             }
 
             this.xAxisProperties = this.columnChart.setXScale(
@@ -1037,7 +1118,8 @@ module powerbi.visuals {
                 options.forcedXDomain,
                 isBarChart ? options.valueAxisScaleType : options.categoryAxisScaleType,
                 isBarChart ? options.valueAxisDisplayUnits : options.categoryAxisDisplayUnits,
-                isBarChart ? options.valueAxisPrecision : options.categoryAxisPrecision);
+                isBarChart ? options.valueAxisPrecision : options.categoryAxisPrecision,
+                ensureXDomain);
 
             this.yAxisProperties = this.columnChart.setYScale(
                 is100Pct,
@@ -1045,7 +1127,8 @@ module powerbi.visuals {
                 options.forcedYDomain,
                 isBarChart ? options.categoryAxisScaleType : options.valueAxisScaleType,
                 isBarChart ? options.categoryAxisDisplayUnits : options.valueAxisDisplayUnits,
-                isBarChart ? options.categoryAxisPrecision : options.valueAxisPrecision);
+                isBarChart ? options.categoryAxisPrecision : options.valueAxisPrecision,
+                ensureYDomain);
 
             if (options.showCategoryAxisLabel && this.xAxisProperties.isCategoryAxis || options.showValueAxisLabel && !this.xAxisProperties.isCategoryAxis) {
                 this.xAxisProperties.axisLabel = data.axesLabels.x;
@@ -1064,20 +1147,20 @@ module powerbi.visuals {
         }
 
         public getPreferredPlotArea(isScalar: boolean, categoryCount: number, categoryThickness: number): IViewport {
-            let viewport: IViewport = {
-                height: this.currentViewport.height,
-                width: this.currentViewport.width
+            let plotArea: IViewport = {
+                height: this.currentViewport.height - this.margin.top - this.margin.bottom,
+                width: this.currentViewport.width - this.margin.left - this.margin.right
             };
 
             if (this.isScrollable && !isScalar) {
-                let preferredWidth = CartesianChart.getPreferredCategorySpan(categoryCount, categoryThickness);
-                if (EnumExtensions.hasFlag(this.chartType, flagBar)) {
-                    viewport.height = Math.max(preferredWidth, viewport.height);
+                let preferredCategorySpan = CartesianChart.getPreferredCategorySpan(categoryCount, categoryThickness);
+                if (ColumnChart.isBar(this.chartType)) {
+                    plotArea.height = Math.max(preferredCategorySpan, plotArea.height);
                 }
                 else
-                    viewport.width = Math.max(preferredWidth, viewport.width);
+                    plotArea.width = Math.max(preferredCategorySpan, plotArea.width);
             }
-            return viewport;
+            return plotArea;
         }
 
         private ApplyInteractivity(chartContext: ColumnChartContext): void {
@@ -1111,7 +1194,9 @@ module powerbi.visuals {
                     //set click interaction on the visual
                     this.svg.on('click', dragMove);
                     //set click interaction on the background
-                    d3.select(ColumnChartSvg).on('click', dragMove);
+                    d3.select(ColumnChartSvg)
+                        .on('click', dragMove)
+                        .style('touch-action', 'none');
                     let drag = d3.behavior.drag()
                         .origin(Object)
                         .on("drag", dragMove);
@@ -1145,12 +1230,12 @@ module powerbi.visuals {
             let category = data.categories && data.categories[columnIndex];
             let allSeries = data.series;
             let dataPoints = data.legendData && data.legendData.dataPoints;
-            let converterStrategy = new ColumnChartConverterHelper(this.dataViewCat);
+            let converterStrategy = new ColumnChartConverterHelper(this.dataView);
 
             for (let i = 0, len = allSeries.length; i < len; i++) {
                 let measure = converterStrategy.getValueBySeriesAndCategory(i, columnIndex);
                 let valueMetadata = data.valuesMetadata[i];
-                let formattedLabel = converterHelper.getFormattedLegendLabel(valueMetadata, this.dataViewCat.values, formatStringProp);
+                let formattedLabel = converterHelper.getFormattedLegendLabel(valueMetadata, this.dataView.categorical.values, formatStringProp);
                 let dataPointColor: string;
                 if (allSeries.length === 1) {
                     let series = allSeries[0];
@@ -1181,7 +1266,18 @@ module powerbi.visuals {
             let columnChartDrawInfo = this.columnChart.drawColumns(!suppressAnimations /* useAnimations */);
             let data = this.data;
 
-            TooltipManager.addTooltip(columnChartDrawInfo.shapesSelection, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo);
+            let margin = this.margin;
+            let viewport = this.currentViewport;
+            let height = viewport.height - (margin.top + margin.bottom);
+            let width = viewport.width - (margin.left + margin.right);
+
+            this.mainGraphicsContext
+                .attr('height', height)
+                .attr('width', width);
+
+            if (this.tooltipsEnabled)
+                TooltipManager.addTooltip(columnChartDrawInfo.eventGroup, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo);
+
             let allDataPoints: ColumnChartDataPoint[] = [];
             let behaviorOptions: ColumnBehaviorOptions = undefined;
             if (this.interactivityService) {
@@ -1190,6 +1286,7 @@ module powerbi.visuals {
                 }
                 behaviorOptions = {
                     datapoints: allDataPoints,
+                    eventGroup: columnChartDrawInfo.eventGroup,
                     bars: columnChartDrawInfo.shapesSelection,
                     hasHighlights: data.hasHighlights,
                     mainGraphicsContext: this.mainGraphicsContext,
@@ -1201,7 +1298,7 @@ module powerbi.visuals {
 
             if (this.interactivity && this.interactivity.isInteractiveLegend) {
                 if (this.data.series.length > 0) {
-                    this.selectColumn(0, true); // start with the first column
+                    this.selectColumn(CartesianHelper.findMaxCategoryIndex(this.data.series), true); // start with the last column
                 }
             }
             SVGUtil.flushAllD3TransitionsIfNeeded(this.options);
@@ -1232,13 +1329,56 @@ module powerbi.visuals {
             this.columnChart.setData(data);
             return data;
         }
+
+        public static getLabelFill(labelColor: string, isInside: boolean, isCombo: boolean): string {
+            if (labelColor) {
+                return labelColor;
+            }
+            if (isInside && !isCombo) {
+                return NewDataLabelUtils.defaultInsideLabelColor;
+            }
+            return NewDataLabelUtils.defaultLabelColor;
+        }
+
+        public supportsTrendLine(): boolean {
+            let dataView = this.dataView;
+            let reader = powerbi.data.createIDataViewCategoricalReader(dataView);
+            let isScalar = this.data ? this.data.scalarCategoryAxis : false;
+            return this.chartType === ColumnChartType.clusteredColumn && isScalar && reader.hasValues("Y");
+        }
+
+        public isStacked(): boolean {
+            return ColumnChart.isStacked(this.chartType);
+        }
+
+        public static isBar(chartType: ColumnChartType): boolean {
+            return EnumExtensions.hasFlag(chartType, flagBar);
+        }
+
+        public static isColumn(chartType: ColumnChartType): boolean {
+            return EnumExtensions.hasFlag(chartType, flagColumn);
+        }
+
+        public static isClustered(chartType: ColumnChartType): boolean {
+            return EnumExtensions.hasFlag(chartType, flagClustered);
+        }
+
+        public static isStacked(chartType: ColumnChartType): boolean {
+            return EnumExtensions.hasFlag(chartType, flagStacked);
+        }
+
+        public static isStacked100(chartType: ColumnChartType): boolean {
+            return EnumExtensions.hasFlag(chartType, flagStacked100);
+        }
     }
 
     class ColumnChartConverterHelper implements IColumnChartConverterStrategy {
         private dataView: DataViewCategorical;
+        private reader: powerbi.data.IDataViewCategoricalReader;
 
-        constructor(dataView: DataViewCategorical) {
-            this.dataView = dataView;
+        constructor(dataView: DataView) {
+            this.dataView = dataView && dataView.categorical;
+            this.reader = powerbi.data.createIDataViewCategoricalReader(dataView);
         }
 
         public getLegend(colors: IDataColorPalette, defaultLegendLabelColor: string, defaultColor?: string): LegendSeriesInfo {
@@ -1246,6 +1386,7 @@ module powerbi.visuals {
             let seriesSources: DataViewMetadataColumn[] = [];
             let seriesObjects: DataViewObjects[][] = [];
             let grouped: boolean = false;
+            let reader = this.reader;
 
             let colorHelper = new ColorHelper(colors, columnChartProps.dataPoint.fill, defaultColor);
             let legendTitle = undefined;
@@ -1264,22 +1405,26 @@ module powerbi.visuals {
                     for (let valueIndex = 0, valuesLen = values.length; valueIndex < valuesLen; valueIndex++) {
                         let series = values[valueIndex];
                         let source = series.source;
-                        // Gradient measures do not create series.
-                        if (DataRoleHelper.hasRole(source, 'Gradient') && !DataRoleHelper.hasRole(source, 'Y'))
+                        // Gradient and tooltips measures do not create series.
+                        if ((DataRoleHelper.hasRole(source, 'Gradient') || DataRoleHelper.hasRole(source, 'Tooltips')) && !DataRoleHelper.hasRole(source, 'Y'))
                             continue;
 
                         seriesSources.push(source);
                         seriesObjects.push(series.objects);
 
-                        let selectionId = series.identity ?
-                            SelectionId.createWithIdAndMeasure(series.identity, source.queryName) :
-                            SelectionId.createWithMeasure(this.getMeasureNameByIndex(valueIndex));
+                        let selectionIdBuilder = new SelectionIdBuilder();
+                        selectionIdBuilder = selectionIdBuilder.withMeasure(this.getMeasureNameByIndex(valueIndex));
+                        if (reader.hasDynamicSeries()) {
+                            selectionIdBuilder = selectionIdBuilder.withSeries(reader.getSeriesValueColumns(), reader.getSeriesValueColumnGroup(valueGroupsIndex));
+                        }
+
+                        let selectionId = selectionIdBuilder.createSelectionId();
 
                         let label = converterHelper.getFormattedLegendLabel(source, allValues, formatStringProp);
 
                         let color = hasDynamicSeries
-                            ? colorHelper.getColorForSeriesValue(valueGroupObjects || source.objects, allValues.identityFields, source.groupName)
-                            : colorHelper.getColorForMeasure(valueGroupObjects || source.objects, source.queryName);
+                            ? colorHelper.getColorForSeriesValue(valueGroupObjects, allValues.identityFields, source.groupName)
+                            : colorHelper.getColorForMeasure(source.objects, source.queryName);
 
                         legend.push({
                             icon: LegendIcon.Box,
@@ -1314,7 +1459,7 @@ module powerbi.visuals {
         }
 
         public getValueBySeriesAndCategory(series: number, category: number): number {
-            return this.dataView.values[series].values[category];
+            return this.reader.getValue('Y', category, series);
         }
 
         public getMeasureNameByIndex(index: number): string {
@@ -1326,7 +1471,7 @@ module powerbi.visuals {
             return column && !!column.highlights;
         }
 
-        public getHighlightBySeriesAndCategory(series: number, category: number): number {
+        public getHighlightBySeriesAndCategory(series: number, category: number): PrimitiveValue {
             return this.dataView.values[series].highlights[category];
         }
     }

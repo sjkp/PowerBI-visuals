@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -51,6 +51,7 @@ module powerbi.visuals {
         rowHeight: number;
         viewport: IViewport;
         scrollEnabled: boolean;
+        isReadMode: () => boolean;
     }
 
     /**
@@ -65,6 +66,7 @@ module powerbi.visuals {
         private options: ListViewOptions;
         private visibleGroupContainer: D3.Selection;
         private scrollContainer: D3.Selection;
+        private scrollbarInner: D3.Selection;
         private cancelMeasurePass: () => void;
         private renderTimeoutId: number;
         
@@ -79,15 +81,22 @@ module powerbi.visuals {
             // make a copy of options so that it is not modified later by caller
             this.options = $.extend(true, {}, options);
 
-            this.options.baseContainer
-                .style('overflow-y', 'auto')
-                .on('scroll', () => this.renderImpl(this.options.rowHeight));
-            this.scrollContainer = options.baseContainer
+            this.scrollbarInner = options.baseContainer
                 .append('div')
-                .attr('class', 'scrollRegion');
+                .classed('scrollbar-inner', true)
+                .on('scroll', () => this.renderImpl(this.options.rowHeight));
+
+            this.scrollContainer = this.scrollbarInner
+                .append('div')
+                .classed('scrollRegion', true)
+                .on('touchstart', () => this.stopTouchPropagation())
+                .on('touchmove', () => this.stopTouchPropagation());
+
             this.visibleGroupContainer = this.scrollContainer
                 .append('div')
-                .attr('class', 'visibleGroup');
+                .classed('visibleGroup', true);
+
+            $(options.baseContainer.node()).find('.scroll-element').attr('drag-resize-disabled', 'true');
 
             ListView.SetDefaultOptions(options);
         }
@@ -105,9 +114,9 @@ module powerbi.visuals {
             this._data = data;
             this.getDatumIndex = getDatumIndex;
             this.setTotalRows();
-            if (dataReset) {
-                $(this.options.baseContainer.node()).scrollTop(0);
-            }
+            if (dataReset)
+                $(this.scrollbarInner.node()).scrollTop(0);
+
             this.render();
             return this;
         }
@@ -133,7 +142,7 @@ module powerbi.visuals {
                 });
                 this.renderTimeoutId = undefined;
             },0);
-            }
+        }
 
         private renderImpl(rowHeight: number): void {
             let totalHeight = this.options.scrollEnabled ? Math.max(0, (this._totalRows * rowHeight)) : this.options.viewport.height;
@@ -144,13 +153,36 @@ module powerbi.visuals {
             this.scrollToFrame(true /*loadMoreData*/);
         }
 
+        /*
+         *  This method is called in order to prevent a bug found in the Interact.js.
+         *  The bug is caused when finishing a scroll outside the scroll area.
+         *  In that case the Interact doesn't process a touchcancel event and thinks a touch point still exists.
+         *  since the Interact listens on the visualContainer, by stoping the propagation we prevent the bug from taking place.
+         */
+        private stopTouchPropagation(): void {
+            //Stop the propagation only in read mode so the drag won't be affected.
+            if (this.options.isReadMode()) {
+                if (d3.event.type === "touchstart") {
+                    let event: TouchEvent = <any>d3.event;
+                    //If there is another touch point outside this visual than the event should be propagated.
+                    //This way the pinch to zoom will not be affected.
+                    if (event.touches && event.touches.length === 1) {
+                        d3.event.stopPropagation();
+                    }
+                }
+                if (d3.event.type === "touchmove") {
+                    d3.event.stopPropagation();
+                }
+            }
+        }
+
         private scrollToFrame(loadMoreData: boolean): void {
             let options = this.options;
             let visibleGroupContainer = this.visibleGroupContainer;
             let totalRows = this._totalRows;
             let rowHeight = options.rowHeight || ListView.defaultRowHeight;
-            let visibleRows = this.getVisibleRows() || 1;
-            let scrollTop: number = options.baseContainer.node().scrollTop;
+            let visibleRows = this.getVisibleRows();
+            let scrollTop: number = this.scrollbarInner.node().scrollTop;
             let scrollPosition = (scrollTop === 0) ? 0 : Math.floor(scrollTop / rowHeight);
             let transformAttr = SVGUtil.translateWithPixels(0, scrollPosition * rowHeight);
 
@@ -162,6 +194,7 @@ module powerbi.visuals {
 
             let position0 = Math.max(0, Math.min(scrollPosition, totalRows - visibleRows + 1)),
                 position1 = position0 + visibleRows;
+            
             let rowSelection = visibleGroupContainer.selectAll(".row")
                 .data(this._data.slice(position0, Math.min(position1, totalRows)), this.getDatumIndex);
 
@@ -192,16 +225,29 @@ module powerbi.visuals {
 
         private getVisibleRows(): number {
             const minimumVisibleRows = 1;
-            let rowHeight = this.options.rowHeight;
-            let viewportHeight = this.options.viewport.height;
+            let options = this.options;
+            let rowHeight = options.rowHeight;
+            let viewportHeight = options.viewport.height;
 
             if (!rowHeight || rowHeight < 1)
                 return minimumVisibleRows;
-            
-            if (this.options.scrollEnabled)
-                return Math.min(Math.ceil(viewportHeight / rowHeight) + 1, this._totalRows) || minimumVisibleRows;
 
-            return Math.min(Math.floor(viewportHeight / rowHeight), this._totalRows) || minimumVisibleRows;
+            // How many rows of space the viewport can hold (not the number of rows it can display).
+            let viewportRowCount = viewportHeight / rowHeight;
+            
+            if (this.options.scrollEnabled) {
+                // Ceiling the count since we can have items be partially displayed when scrolling.
+                // Add 1 to make sure we always render enough rows to cover the entire viewport (handles when rows are partially visible when scrolling).
+                // Ex. If you have a viewport that can show 280 (viewport height) / 100 (row height) = 2.8 rows, you need to have up to Math.ceil(2.8) + 1 = 4 rows of data to cover the viewport.
+                // If you only had Math.ceil(2.8) = 3 rows of data, and the top rows was 50% visible (scrolled up), you'd only be able to cover .5 + 1 + 1 = 2.5 rows of the viewport.
+                // This makes a gap at the bottom of the listview.
+                // Add an extra row of data and we can cover .5 + 1 + 1 + 1 = 3.5 rows of the viewport. 3.5 is enough to cover the entire viewport as only 2.8 is needed.
+                // 1 is always added, even if not needed, to keep logic simple. Advanced logic would figure out what % of the top row is visible and use that to add 1 if needed.
+                return Math.min(Math.ceil(viewportRowCount) + 1, this._totalRows) || minimumVisibleRows;
+            }
+
+            // Floor the count since that's the maximum number of entire rows we can display without scrolling.
+            return Math.min(Math.floor(viewportRowCount), this._totalRows) || minimumVisibleRows;
         }
 
         private getRowHeight(): JQueryPromise<number> {
@@ -221,10 +267,17 @@ module powerbi.visuals {
             this.scrollToFrame(false /*loadMoreData*/);
             let requestAnimationFrameId = window.requestAnimationFrame(() => {
                 //measure row height
-                let firstRow = listView.visibleGroupContainer.select(".row").node().firstChild;
-                let rowHeight: number = $(firstRow).outerHeight(true);
-                listView.rowHeight(rowHeight);
-                deferred.resolve(rowHeight);
+                let rows = listView.visibleGroupContainer.select(".row");
+                if (!rows.empty()) {
+                    let firstRow = rows.node();
+                    // If the container (child) has margins amd the row (parent) doesn't, the child's margins will collapse into the parent.
+                    // outerHeight doesn't report the correct height for the parent in this case, but it does measure the child properly.
+                    // Fix for #7497261 Measures both and take the max to work around this issue.
+                    let rowHeight: number = Math.max($(firstRow).outerHeight(true), $(firstRow).children().first().outerHeight(true));
+                    listView.rowHeight(rowHeight);
+                    deferred.resolve(rowHeight);
+                }
+
                 listView.cancelMeasurePass = undefined;
                 window.cancelAnimationFrame(requestAnimationFrameId);
             });

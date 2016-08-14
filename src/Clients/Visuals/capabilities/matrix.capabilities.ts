@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -38,44 +38,151 @@ module powerbi.visuals {
             {
                 name: matrixRoleNames.rows,
                 kind: VisualDataRoleKind.Grouping,
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Rows'),
                 description: data.createDisplayNameGetter('Role_DisplayName_RowsDescription')
             }, {
                 name: matrixRoleNames.columns,
                 kind: VisualDataRoleKind.Grouping,
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Columns'),
                 description: data.createDisplayNameGetter('Role_DisplayName_ColumnsDescription')
             }, {
                 name: matrixRoleNames.values,
-                kind: VisualDataRoleKind.Measure
+                kind: VisualDataRoleKind.Measure,
+                displayName: data.createDisplayNameGetter('Role_DisplayName_Values')
             }
         ],
         objects: {
             general: {
                 displayName: data.createDisplayNameGetter('Visual_General'),
                 properties: {
-                    formatString: {
-                        type: { formatting: { formatString: true } },
-                    },
+                    formatString: StandardObjectProperties.formatString,
                     columnWidth: {
                         type: { numeric: true }
                     },
                     rowSubtotals: {
                         type: { bool: true },
-                        displayName: data.createDisplayNameGetter('Visual_RowTotals')
+                        displayName: data.createDisplayNameGetter('Visual_TotalRow'),
+                        suppressFormatPainterCopy: true,
                     },
                     columnSubtotals: {
                         type: { bool: true },
-                        displayName: data.createDisplayNameGetter('Visual_ColumnTotals')
+                        displayName: data.createDisplayNameGetter('Visual_TotalColumn'),
+                        suppressFormatPainterCopy: true,
                     },
                     autoSizeColumnWidth: {
                         type: { bool: true },
-                        displayName: data.createDisplayNameGetter('Visual_Adjust_Column_Width')
+                        displayName: data.createDisplayNameGetter('Visual_Adjust_Column_Width'),
+                        suppressFormatPainterCopy: true,
                     },
                     textSize: {
                         displayName: data.createDisplayNameGetter('Visual_TextSize'),
                         type: { numeric: true }
                     },
                 },
-            }
+            },
+
+            grid: {
+                displayName: data.createDisplayNameGetter('Visual_Grid'),
+                properties: {
+                    outlineColor: StandardObjectProperties.outlineColor,
+                    outlineWeight: StandardObjectProperties.outlineWeight,
+                    gridVertical: {
+                        displayName: data.createDisplayNameGetter('Visual_GridVertical'),
+                        description: data.createDisplayNameGetter('Visual_GridVertical_Desc'),
+                        type: { bool: true }
+                    },
+                    gridVerticalColor: {
+                        displayName: data.createDisplayNameGetter('Visual_GridVertical_Color'),
+                        description: data.createDisplayNameGetter('Visual_GridVertical_Color_Desc'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                    gridVerticalWeight: {
+                        displayName: data.createDisplayNameGetter('Visual_GridVertical_Weight'),
+                        description: data.createDisplayNameGetter('Visual_GridVertical_Weight_Desc'),
+                        type: { numeric: true }
+                    },
+                    gridHorizontal: {
+                        displayName: data.createDisplayNameGetter('Visual_GridHorizontal'),
+                        description: data.createDisplayNameGetter('Visual_GridHorizontal_Desc'),
+                        type: { bool: true }
+                    },
+                    gridHorizontalColor: {
+                        displayName: data.createDisplayNameGetter('Visual_GridHorizontal_Color'),
+                        description: data.createDisplayNameGetter('Visual_GridHorizontal_Color_Desc'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                    gridHorizontalWeight: {
+                        displayName: data.createDisplayNameGetter('Visual_GridHorizontal_Weight'),
+                        description: data.createDisplayNameGetter('Visual_GridHorizontal_Weight_Desc'),
+                        type: { numeric: true }
+                    },
+                    rowPadding: {
+                        displayName: data.createDisplayNameGetter('Visual_RowPadding'),
+                        description: data.createDisplayNameGetter('Visual_RowPadding_Desc'),
+                        type: { numeric: true }
+                    },
+                    imageHeight: {
+                        displayName: data.createDisplayNameGetter('Visual_Tablix_ImageHeight'),
+                        description: data.createDisplayNameGetter('Visual_Tablix_ImageHeight_Desc'),
+                        type: { numeric: true }
+                    },
+                },
+            },
+
+            columnHeaders: {
+                displayName: data.createDisplayNameGetter('Visual_Tablix_ColumnHeaders'),
+                properties: {
+                    outline: StandardObjectProperties.outline,
+                    fontColor: StandardObjectProperties.fontColor,
+                    backColor: StandardObjectProperties.backColor,
+                }
+            },
+
+            rowHeaders:
+            {
+                displayName: data.createDisplayNameGetter('Visual_Tablix_RowHeaders'),
+                properties: {
+                    outline: StandardObjectProperties.outline,
+                    fontColor: StandardObjectProperties.fontColor,
+                    backColor: StandardObjectProperties.backColor,
+                }
+            },
+            values:
+            {
+                displayName: data.createDisplayNameGetter('Visual_Tablix_Values'),
+                properties: {
+                    outline: StandardObjectProperties.outline,
+                    fontColorPrimary: {
+                        displayName: data.createDisplayNameGetter('Visual_Tablix_FontColorPrimary'),
+                        description: data.createDisplayNameGetter('Visual_Tablix_FontColorPrimary_Desc'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                    backColorPrimary: {
+                        displayName: data.createDisplayNameGetter('Visual_Tablix_BackColorPrimary'),
+                        description: data.createDisplayNameGetter('Visual_Tablix_BackColorPrimary_Desc'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                    fontColorSecondary: {
+                        displayName: data.createDisplayNameGetter('Visual_Tablix_FontColorSecondary'),
+                        description: data.createDisplayNameGetter('Visual_Tablix_FontColorSecondary_Desc'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                    backColorSecondary: {
+                        displayName: data.createDisplayNameGetter('Visual_Tablix_BackColorSecondary'),
+                        description: data.createDisplayNameGetter('Visual_Tablix_BackColorSecondary_Desc'),
+                        type: { fill: { solid: { color: true } } }
+                    },
+                }
+            },
+            subTotals:
+            {
+                displayName: data.createDisplayNameGetter('Visual_Tablix_TotalSub'),
+                properties: {
+                    outline: StandardObjectProperties.outline,
+                    fontColor: StandardObjectProperties.fontColor,
+                    backColor: StandardObjectProperties.backColor,
+                }
+            },
         },
         dataViewMappings: [{
             conditions: [
@@ -109,5 +216,6 @@ module powerbi.visuals {
         },
         suppressDefaultTitle: true,
         supportsSelection: false,
+        disableVisualDetails: true,
     };
 }

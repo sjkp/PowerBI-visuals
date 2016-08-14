@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Power BI Visualizations
 *
 *  Copyright (c) Microsoft Corporation
@@ -50,8 +50,10 @@ module powerbi.data {
 
     export module DataViewObjectEvaluationUtils {
         export function evaluateDataViewObjects(
+            evalContext: IEvalContext,
             objectDescriptors: DataViewObjectDescriptors,
             objectDefns: DataViewNamedObjectDefinition[]): DataViewObjects {
+            debug.assertValue(evalContext, 'evalContext');
             debug.assertValue(objectDescriptors, 'objectDescriptors');
             debug.assertValue(objectDefns, 'objectDefns');
 
@@ -61,7 +63,11 @@ module powerbi.data {
                 let objectDefinition = objectDefns[j],
                     objectName = objectDefinition.name;
 
-                let evaluatedObject: DataViewObject = DataViewObjectEvaluator.run(objectDescriptors[objectName], objectDefinition.properties);
+                let evaluatedObject: DataViewObject = DataViewObjectEvaluator.run(
+                    evalContext,
+                    objectDescriptors[objectName],
+                    objectDefinition.properties);
+
                 if (!evaluatedObject)
                     continue;
 
@@ -127,8 +133,7 @@ module powerbi.data {
 
             debug.assert(!!groupedObjects, 'GroupedObjects is not defined.  Indicates malformed selector.');
 
-            for (let i = 0, len = groupedObjects.length; i < len; i++) {
-                let item = groupedObjects[i];
+            for (let item of groupedObjects) {
                 if (Selector.equals(selector, item.selector))
                     return item;
             }

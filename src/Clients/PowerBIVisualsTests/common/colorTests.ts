@@ -145,43 +145,137 @@ module powerbitests {
 
         describe('rotate', () => {
             it("zero", () => {
-                var originalColor = "#45D0E8";
+                let originalColor = "#45D0E8";
                 expect(Color.rotate(originalColor, 0)).toBe(originalColor);
             });
 
             it("360 return original", () => {
-                var originalColor = "#45D0E8";
+                let originalColor = "#45D0E8";
                 expect(Color.rotate(originalColor, 1)).toBe(originalColor);
             });
 
             it("multiple times", () => {
-                var originalColor = "#45D0E8";
-                var color90degrees = Color.rotate(originalColor, 0.25);
+                let originalColor = "#45D0E8";
+                let color90degrees = Color.rotate(originalColor, 0.25);
                 expect(color90degrees).toBe("#AE45E8");
-                var color180degrees = Color.rotate(color90degrees, 0.25);
+                let color180degrees = Color.rotate(color90degrees, 0.25);
                 expect(color180degrees).toBe("#E85C45");
-                var color270degrees = Color.rotate(color180degrees, 0.25);
+                let color270degrees = Color.rotate(color180degrees, 0.25);
                 expect(color270degrees).toBe("#7FE845");
-                var color360degrees = Color.rotate(color270degrees, 0.25);
+                let color360degrees = Color.rotate(color270degrees, 0.25);
                 expect(color360degrees).toBe(originalColor);
             });
         });
 
         describe('darken', () => {
             it("basic", () => {
-                var originalColorString = "#FFFFFF";
-                var originalColor = Color.parseColorString(originalColorString);
-                var darkenValue = Color.darken(originalColor, 255 * 0.25);
-                var darkenValueString = Color.hexString(darkenValue);
+                let originalColorString = "#FFFFFF";
+                let originalColor = Color.parseColorString(originalColorString);
+                let darkenValue = Color.darken(originalColor, 255 * 0.25);
+                let darkenValueString = Color.hexString(darkenValue);
                 expect(darkenValueString).toBe("#C0C0C0");
             });
 
             it("edge case", () => {
-                var originalColorString = "#000000";
-                var originalColor = Color.parseColorString(originalColorString);
-                var darkenValue = Color.darken(originalColor, 255 * 0.25);
-                var darkenValueString = Color.hexString(darkenValue);
+                let originalColorString = "#000000";
+                let originalColor = Color.parseColorString(originalColorString);
+                let darkenValue = Color.darken(originalColor, 255 * 0.25);
+                let darkenValueString = Color.hexString(darkenValue);
                 expect(darkenValueString).toBe(originalColorString);
+            });
+        });
+
+        describe('overlay', () => {
+            describe('channel', () => {
+                it('with opacity=1 returns foreColor', () => {
+                    expect(Color.channelBlend(0, 1, 255)).toBe(0);
+                    expect(Color.channelBlend(128, 1, 255)).toBe(128);
+                    expect(Color.channelBlend(255, 1, 0)).toBe(255);
+                    expect(Color.channelBlend(88, 1, 88)).toBe(88);
+                });
+
+                it('with opacity=0 returns backColor', () => {
+                    expect(Color.channelBlend(0, 0, 255)).toBe(255);
+                    expect(Color.channelBlend(128, 0, 255)).toBe(255);
+                    expect(Color.channelBlend(255, 0, 0)).toBe(0);
+                    expect(Color.channelBlend(88, 0, 88)).toBe(88);
+                });
+
+                it('with opacity=0.5 returns midpoint', () => {
+                    expect(Color.channelBlend(0, 0.5, 255)).toBe(128);
+                    expect(Color.channelBlend(255, 0.5, 0)).toBe(128);
+                    expect(Color.channelBlend(99, 0.5, 101)).toBe(100);
+                    expect(Color.channelBlend(101, 0.5, 99)).toBe(100);
+                });
+
+                it('with two similar colors returns the same color', () => {
+                    expect(Color.channelBlend(128, 0, 128)).toBe(128);
+                    expect(Color.channelBlend(128, 1, 128)).toBe(128);
+                    expect(Color.channelBlend(128, 0.4, 128)).toBe(128);
+                });
+
+                it('ensures opacity is valid', () => {
+                    expect(Color.channelBlend(88, -1, 255)).toBe(255);
+                    expect(Color.channelBlend(88, 2, 255)).toBe(88);
+                });
+
+                it('ensures foreChannel is valid', () => {
+                    expect(Color.channelBlend(-1, 1, 88)).toBe(0);
+                    expect(Color.channelBlend(256, 1, 88)).toBe(255);
+                });
+
+                it('ensures backChannel is valid', () => {
+                    expect(Color.channelBlend(88, 0, -1)).toBe(0);
+                    expect(Color.channelBlend(88, 0, 256)).toBe(255);
+                });
+            });
+
+            describe('hex colors', () => {
+                let yellow = "#FFFF00";
+                let black = "#000000";
+                let white = "#FFFFFF";
+
+                it('with opacity=1 gives foreColor', () => {
+                    expect(Color.hexBlend(yellow,1, white)).toEqual(yellow);
+                    expect(Color.hexBlend(yellow, 1, black)).toEqual(yellow);
+                });
+
+                it('with opacity=0 gives backColor', () => {
+                    expect(Color.hexBlend(yellow, 0, white)).toEqual(white);
+                    expect(Color.hexBlend(yellow, 0, black)).toEqual(black);
+                });
+
+                it('with opacity=0.5 gives midpoint', () => {
+                    expect(Color.hexBlend(yellow, 0.5, white)).toEqual("#FFFF80");
+                    expect(Color.hexBlend(white, 0.5, yellow)).toEqual("#FFFF80");
+
+                    expect(Color.hexBlend(yellow, 0.5, black)).toEqual("#808000");
+                    expect(Color.hexBlend(black, 0.5, yellow)).toEqual("#808000");
+                });
+
+                it('works with various opacity values', () => {
+                    let color1 = "#FF33FF";
+                    let color2 = "#6699FF";
+
+                    let opacity = [1, 0.75, 0.5, 0.25, 0];
+                    let colors = [
+                        "#FF33FF",
+                        "#D94DFF",
+                        "#B366FF",
+                        "#8C80FF",
+                        "#6699FF"];
+
+                    for (let i = 0, len = colors.length; i < len; i++) {
+                        expect(Color.hexBlend(color1, opacity[i], color2)).toEqual(colors[i]);
+                    }
+                });
+
+                it('calculateHighlightColor', () => {
+                    let yellowRGB = Color.parseColorString(yellow);
+                    expect(Color.calculateHighlightColor(yellowRGB, 0.8, 0.2)).toEqual('#CCCC00');
+                    let blackRGB = Color.parseColorString(black);
+                    expect(Color.calculateHighlightColor(blackRGB, 0.8, 0.2)).toEqual('#333333');
+                });
             });
         });
     });

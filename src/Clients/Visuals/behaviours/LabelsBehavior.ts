@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -39,9 +39,7 @@ module powerbi.visuals {
         public bindEvents(options: LabelsBehaviorOptions, selectionHandler: ISelectionHandler): void {
             this.labelItems = options.labelItems;
 
-            this.labelItems.on('click', (d: Label) => {
-                selectionHandler.handleSelection(d, d3.event.ctrlKey);
-            });
+            InteractivityUtils.registerStandardSelectionHandler(this.labelItems, selectionHandler);
         }
 
         public renderSelection(hasSelection: boolean): void {
@@ -51,7 +49,7 @@ module powerbi.visuals {
                         if (!d.selected)
                             return LabelsBehavior.DimmedLabelOpacity;
                         else
-                            return LabelsBehavior.DefaultLabelOpacity;;
+                            return LabelsBehavior.DefaultLabelOpacity;
                     }
                 });
             }

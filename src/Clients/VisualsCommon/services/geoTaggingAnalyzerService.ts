@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -80,6 +80,7 @@ module powerbi {
         GeotaggingString_Streets: "streets",
         GeotaggingString_Longitude: "longitude",
         GeotaggingString_Longitude_Short: "lon",
+        GeotaggingString_Longitude_Short2: "long",
         GeotaggingString_Latitude: "latitude",
         GeotaggingString_Latitude_Short: "lat",
         GeotaggingString_PostalCode: "postal code",
@@ -120,6 +121,7 @@ module powerbi {
         private GeotaggingString_Streets;
         private GeotaggingString_Longitude;
         private GeotaggingString_Longitude_Short;
+        private GeotaggingString_Longitude_Short2;
         private GeotaggingString_Latitude;
         private GeotaggingString_Latitude_Short;
         private GeotaggingString_PostalCode;
@@ -159,6 +161,7 @@ module powerbi {
             this.GeotaggingString_Streets = getLocalized("GeotaggingString_Streets").toLowerCase();
             this.GeotaggingString_Longitude = getLocalized("GeotaggingString_Longitude").toLowerCase();
             this.GeotaggingString_Longitude_Short = getLocalized("GeotaggingString_Longitude_Short").toLowerCase();
+            this.GeotaggingString_Longitude_Short2 = getLocalized("GeotaggingString_Longitude_Short2").toLowerCase();
             this.GeotaggingString_Latitude = getLocalized("GeotaggingString_Latitude").toLowerCase();
             this.GeotaggingString_Latitude_Short = getLocalized("GeotaggingString_Latitude_Short").toLowerCase();
             this.GeotaggingString_PostalCode = getLocalized("GeotaggingString_PostalCode").toLowerCase();
@@ -197,7 +200,17 @@ module powerbi {
                 this.isCounty(fieldRefName) ||
                 this.isStateOrProvince(fieldRefName) ||
                 this.isPostalCode(fieldRefName) ||
-                this.isTerritory(fieldRefName);
+                this.isTerritory(fieldRefName) ||
+                this.isGeoshapableEnglish(fieldRefName);
+        }
+
+        private isGeoshapableEnglish(fieldRefName: string): boolean {
+            return this.isEnglishCity(fieldRefName) ||
+                this.isEnglishCountry(fieldRefName) ||
+                this.isEnglishCounty(fieldRefName) ||
+                this.isEnglishStateOrProvince(fieldRefName) ||
+                this.isEnglishPostalCode(fieldRefName) ||
+                this.isEnglishTerritory(fieldRefName);
         }
 
         private isAddress(fieldRefName: string): boolean {
@@ -289,7 +302,8 @@ module powerbi {
 
         private isLongitude(fieldRefName: string): boolean {
             return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Longitude])
-                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Longitude_Short], true /* useStrict */);
+                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Longitude_Short], true /* useStrict */)
+                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Longitude_Short2], true /* useStrict */);
         }
 
         private isLatitude(fieldRefName: string): boolean {
@@ -443,17 +457,14 @@ module powerbi {
         }
 
         private isEnglishLongitude(fieldRefName: string): boolean {
-            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [
-                EnglishBackup.GeotaggingString_Longitude,
-                EnglishBackup.GeotaggingString_Longitude_Short
-            ]);
+            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [EnglishBackup.GeotaggingString_Longitude])
+                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [EnglishBackup.GeotaggingString_Longitude_Short], true /* useStrict */)
+                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [EnglishBackup.GeotaggingString_Longitude_Short2], true /* useStrict */);
         }
 
         private isEnglishLatitude(fieldRefName: string): boolean {
-            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [
-                EnglishBackup.GeotaggingString_Latitude,
-                EnglishBackup.GeotaggingString_Latitude_Short
-            ]);
+            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [EnglishBackup.GeotaggingString_Latitude])
+                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [EnglishBackup.GeotaggingString_Latitude_Short], true /* useStrict */);
         }
 
         protected isEnglishTerritory(fieldRefName: string): boolean {

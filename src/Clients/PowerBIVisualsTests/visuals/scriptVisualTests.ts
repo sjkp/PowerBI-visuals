@@ -50,12 +50,26 @@ module powerbitests {
 
             return options;
         };
+
+        export function buildInitOptions(element: JQuery, viewport: powerbi.IViewport, hostServices: powerbi.IVisualHostServices) {            
+            let options = {
+                element: $(element[0]),
+                host: hostServices,
+                style: powerbi.visuals.visualStyles.create(),
+                viewport: viewport,
+                animation: {
+                    transitionImmediate: true
+                },
+            };
+
+            return options;
+        }
     }
 
     describe("scriptVisual Tests", () => {
 
         it('registered capabilities', () => {
-            let pluginCapabilities = powerbi.visuals.visualPluginFactory.create().getPlugin('scriptVisual').capabilities;
+            let pluginCapabilities = powerbi.visuals.plugins.scriptVisual.capabilities;
             expect(pluginCapabilities.toString()).toBe(scriptVisualCapabilities.toString());
         });
 
@@ -68,7 +82,6 @@ module powerbitests {
             expect(scriptVisualCapabilities.dataViewMappings[0].scriptResult.script).toBeDefined();
             expect(scriptVisualCapabilities.dataViewMappings[0].scriptResult.script.source).toBeDefined();
             expect(scriptVisualCapabilities.dataViewMappings[0].scriptResult.script.provider).toBeDefined();
-            expect(scriptVisualCapabilities.dataViewMappings[0].scriptResult.script.imageFormat).toBe('svg');
         });
 
         it("Capabilities should include dataRoles", () => {
@@ -78,33 +91,24 @@ module powerbitests {
         });
 
         it('registered capabilities: objects', () => {
-            expect(powerbi.visuals.visualPluginFactory.create().getPlugin('scriptVisual').capabilities.objects).toBeDefined();
+            expect(powerbi.visuals.plugins.scriptVisual.capabilities.objects).toBeDefined();
         });
 
         describe('rendering', () => {
             let element: JQuery;
             let viewport: powerbi.IViewport;
-            let options: powerbi.VisualInitOptions;
             let scriptVisual: ScriptVisual;
 
             beforeEach(() => {
                 element = powerbitests.helpers.testDom('200', '300');
                 viewport = {
                     height: element.height(),
-                    width: element.width()
+                    width: element.width() 
                 };
-                options = {
-                    element: $(element[0]),
-                    host: mocks.createVisualHostServices(),
-                    style: powerbi.visuals.visualStyles.create(),
-                    viewport: viewport,
-                    animation: {
-                        transitionImmediate: true
-                    },
-                };
-
-                scriptVisual = new ScriptVisual();
-                scriptVisual.init(options);
+                let hostServices = mocks.createVisualHostServices();
+                let initOptions = ScriptVisualHelpers.buildInitOptions(element, viewport, hostServices);
+                scriptVisual = new ScriptVisual({ canRefresh: true });
+                scriptVisual.init(initOptions);
             });
 
             it('no visual configuration', () => {
@@ -116,34 +120,54 @@ module powerbitests {
                 scriptVisual.update(visualUpdateOptions);
 
                 //Verifying the DOM
-                let imageDiv = element.find('.imageBackground');
-                expect(imageDiv.css('background-image')).toBe('none');
-            });
-
-            it('visual shows last saved image from objects', () => {
-                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {
-                    lastSavedImage: { imageUrl: 'data:image/svg+xml;base64,datadatadata' }
-                });
-                scriptVisual.update(visualUpdateOptions);
-
-                //Verifying the DOM
-                let imageDiv = element.find('.imageBackground');
-                expect(imageDiv.css('background-image')).toBe('url(data:image/svg+xml;base64,datadatadata)');
-                expect(imageDiv.css('height')).toBe(viewport.height + 'px');
-                expect(imageDiv.css('width')).toBe(viewport.width + 'px');
+                let imageElement = element.find('.autoScaleImage');
+                expect(imageElement.attr('src')).toBeUndefined();
             });
 
             it('visual shows the image from the dataView result', () => {
-                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {
-                    lastSavedImage: { imageUrl: 'data:image/svg+xml;base64,datadatadata' }
-                }, 'imageimageimage');
+                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ');
                 scriptVisual.update(visualUpdateOptions);
 
                 //Verifying the DOM
-                let imageDiv = element.find('.imageBackground');
-                expect(imageDiv.css('background-image')).toBe('url(data:image/svg+xml;base64,imageimageimage)');
+                let imageDiv = element.find('.autoScaleImageContainer');
+                let imageElement = element.find('.autoScaleImage');
+                let imageUrl = imageElement.attr('src');
+                let isUrlEqual = (imageUrl === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ') || (imageUrl === '"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ"');
+                expect(isUrlEqual).toBeTruthy();
                 expect(imageDiv.css('height')).toBe(viewport.height + 'px');
                 expect(imageDiv.css('width')).toBe(viewport.width + 'px');
+            });
+
+            it('visual with static image shows a warning', () => {
+                let warningSpy = jasmine.createSpy('setWarnings');
+                let hostServices = mocks.createVisualHostServices();
+                hostServices.setWarnings = warningSpy;
+
+                scriptVisual = new ScriptVisual({ canRefresh: false });
+                let visualInitOptions = ScriptVisualHelpers.buildInitOptions(element, viewport, hostServices);
+                scriptVisual.init(visualInitOptions);
+
+                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ');
+                scriptVisual.update(visualUpdateOptions);
+
+                expect(warningSpy).toHaveBeenCalled();
+                expect(warningSpy.calls.count()).toBe(1);
+                expect(warningSpy.calls.argsFor(0)[0][0].code).toBe('ScriptVisualNotRefreshed');
+            });
+
+            it('non-static visual should not show a warning', () => {
+                let warningSpy = jasmine.createSpy('setWarnings');
+                let hostServices = mocks.createVisualHostServices();
+                hostServices.setWarnings = warningSpy;
+
+                scriptVisual = new ScriptVisual({ canRefresh: true });
+                let visualInitOptions = ScriptVisualHelpers.buildInitOptions(element, viewport, hostServices);
+                scriptVisual.init(visualInitOptions);
+
+                let visualUpdateOptions = ScriptVisualHelpers.buildUpdateOptions(viewport, {}, 'iVBORw0KGgoAAAANSUhEUgAAA3gAAAIQ');
+                scriptVisual.update(visualUpdateOptions);
+
+                expect(warningSpy).not.toHaveBeenCalled();
             });
         });
     });

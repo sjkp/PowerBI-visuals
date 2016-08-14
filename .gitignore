@@ -20,12 +20,12 @@ coverage
 .lock-wscript
 
 # Compiled binary addons (http://nodejs.org/api/addons.html)
-build/Release
-build
+/build/Release
+
+node_modules/
 
 # Dependency directory
 # https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git
-node_modules
 Docs
 /src/.vs
 
@@ -36,16 +36,40 @@ src/Clients/Externals/ThirdPartyIP/JasmineJQuery/jasmine-jquery.js
 src/Clients/Visuals/images/visuals.sprites.png
 src/Clients/Visuals/styles/sprites.less
 src/Clients/PowerBIVisualsPlayground/**/*.js
+!src/Clients/PowerBIVisualsPlayground/gulpProject.js
 src/Clients/PowerBIVisualsPlayground/**/*.d.ts
 src/Clients/PowerBIVisualsPlayground/visuals.min.css
 src/Clients/PowerBIVisualsPlayground/visuals.css
 src/Clients/PowerBIVisualsPlayground/images/visuals.sprites.png
+src/Clients/PowerBIVisualsPlayground/.vs
+src/Clients/PowerBIVisualsPlayground/bin
 
 # Test Files
 VisualsTests
+src/Clients/PowerBIVisualsTests/obj/**/*.css
+src/Clients/PowerBIVisualsTests/**/*.js
+!src/Clients/PowerBIVisualsTests/karma.conf.js
+!src/Clients/PowerBIVisualsTests/webpack.config.js
+
+# CustomVisuals packages
+src/Clients/CustomVisuals/services/*.js
+src/Clients/CustomVisuals/visuals/*/release
+src/Clients/CustomVisuals/visuals/*/package/package.json
+src/Clients/CustomVisuals/visuals/*/package/**/*.ts
+src/Clients/CustomVisuals/visuals/**/*.js
+src/Clients/CustomVisuals/visuals/**/*.css
+
+# Dont ignore telemetry files
+!**/telemetry/*.ts
 
 # Obj dirs
 src/Clients/**/obj/*.*
 
 # IDE temp data
 .sublime-gulp.cache
+
+# Images
+lib/images/ui-icons_222222_256x240.png
+
+# Package
+lib/tests

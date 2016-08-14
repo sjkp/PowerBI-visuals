@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -27,8 +27,10 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.data {
+    import ArrayNamedItems = jsCommon.ArrayNamedItems;
+
     export class ConceptualSchema {
-        public entities: jsCommon.ArrayNamedItems<ConceptualEntity>;
+        public entities: ArrayNamedItems<ConceptualEntity>;
         public capabilities: ConceptualCapabilities;
 
         /** Indicates whether the user can edit this ConceptualSchema.  This is used to enable/disable model authoring UX. */
@@ -56,6 +58,18 @@ module powerbi.data {
             variationName: string,
             hierarchyName: string): ConceptualHierarchy {
 
+            let targetEntity = this.findTargetEntityOfVariation(variationEntityName, variationColumnName, variationName);
+            if (!targetEntity || _.isEmpty(targetEntity.hierarchies))
+                return;
+
+            return targetEntity.hierarchies.withName(hierarchyName);
+        }
+
+        public findTargetEntityOfVariation(
+            variationEntityName: string,
+            variationColumnName: string,
+            variationName: string): ConceptualEntity {
+
             let variationEntity = this.entities.withName(variationEntityName);
             if (!variationEntity || _.isEmpty(variationEntity.properties))
                 return;
@@ -69,11 +83,8 @@ module powerbi.data {
                 return;
 
             let variation = variationColumn.variations.withName(variationName);
-            let targetEntity = variation && variation.navigationProperty && variation.navigationProperty.targetEntity;
-            if (!targetEntity || _.isEmpty(targetEntity.hierarchies))
-                return;
-
-            return targetEntity.hierarchies.withName(hierarchyName);
+            if (variation)
+                return variation.navigationProperty ? variation.navigationProperty.targetEntity : variationEntity;
         }
 
         /**
@@ -103,44 +114,49 @@ module powerbi.data {
         normalizedFiveStateKpiRange: boolean;
         supportsMedian: boolean;
         supportsPercentile: boolean;
+        supportsScopedEval: boolean;
     }
 
-    export interface ConceptualEntity {
+    export interface ConceptualPropertyItemContainer {
+        properties: ArrayNamedItems<ConceptualProperty>;
+        hierarchies?: ArrayNamedItems<ConceptualHierarchy>;
+        displayFolders?: ArrayNamedItems<ConceptualDisplayFolder>;
+    }
+
+    export interface ConceptualPropertyItem {
+        name: string;
+        displayName: string;
+        hidden?: boolean;
+    }
+
+    export interface ConceptualEntity extends ConceptualPropertyItemContainer {
         name: string;
         displayName: string;
         visibility?: ConceptualVisibility;
         calculated?: boolean;
         queryable?: ConceptualQueryableState;
-        properties: jsCommon.ArrayNamedItems<ConceptualProperty>;
-        hierarchies: jsCommon.ArrayNamedItems<ConceptualHierarchy>;
-        navigationProperties: jsCommon.ArrayNamedItems<ConceptualNavigationProperty>;
+        navigationProperties?: ArrayNamedItems<ConceptualNavigationProperty>;
     }
 
-    export interface ConceptualProperty {
-        name: string;
-        displayName: string;
+    export interface ConceptualDisplayFolder extends ConceptualPropertyItem, ConceptualPropertyItemContainer {
+    }
+
+    export interface ConceptualProperty extends ConceptualPropertyItem {
         type: ValueType;
         kind: ConceptualPropertyKind;
-        hidden?: boolean;
         format?: string;
         column?: ConceptualColumn;
         queryable?: ConceptualQueryableState;
         measure?: ConceptualMeasure;
-        kpi?: ConceptualProperty;
+        kpiValue?: ConceptualProperty;
     }
 
-    export interface ConceptualHierarchy {
-        name: string;
-        displayName: string;
-        levels: jsCommon.ArrayNamedItems<ConceptualHierarchyLevel>;
-        hidden?: boolean;
+    export interface ConceptualHierarchy extends ConceptualPropertyItem {
+        levels: ArrayNamedItems<ConceptualHierarchyLevel>;
     }
 
-    export interface ConceptualHierarchyLevel {
-        name: string;
-        displayName: string;
+    export interface ConceptualHierarchyLevel extends ConceptualPropertyItem {
         column: ConceptualProperty;
-        hidden?: boolean;
     }
 
     export interface ConceptualNavigationProperty {
@@ -162,11 +178,26 @@ module powerbi.data {
 
     export interface ConceptualColumn {
         defaultAggregate?: ConceptualDefaultAggregate;
-        keys?: jsCommon.ArrayNamedItems<ConceptualProperty>;
+        keys?: ArrayNamedItems<ConceptualProperty>;
         idOnEntityKey?: boolean;
         calculated?: boolean;
         defaultValue?: SQConstantExpr;
-        variations?: jsCommon.ArrayNamedItems<ConceptualVariationSource>;
+        variations?: ArrayNamedItems<ConceptualVariationSource>;
+        aggregateBehavior?: ConceptualAggregateBehavior;
+        groupingDefinition?: ConceptualGroupingDefinition;
+    }
+        
+    export interface ConceptualGroupingDefinition {
+        binningDefinition?: ConceptualBinningDefinition;
+    }
+
+    export interface ConceptualBinningDefinition {
+        binSize?: ConceptualBinSize;
+    }
+
+    export interface ConceptualBinSize {
+        value: number;
+        unit: ConceptualBinUnit;
     }
 
     export interface ConceptualMeasure {
@@ -175,8 +206,10 @@ module powerbi.data {
 
     export interface ConceptualPropertyKpi {
         statusMetadata: DataViewKpiColumnMetadata;
+        trendMetadata?: DataViewKpiColumnMetadata;
         status?: ConceptualProperty;
         goal?: ConceptualProperty;
+        trend?: ConceptualProperty;
     }
 
     export const enum ConceptualVisibility {
@@ -189,6 +222,21 @@ module powerbi.data {
     export const enum ConceptualQueryableState {
         Queryable = 0,
         Error = 1,
+    }
+
+    export const enum ConceptualBinUnit {
+        Number = 0,
+        Percent = 1,
+        Log = 2,
+        Percentile = 3,
+        Year = 4,
+        Quarter = 5,
+        Month = 6,
+        Week = 7,
+        Day = 8,
+        Hour = 9,
+        Minute = 10,
+        Second = 11,
     }
 
     export const enum ConceptualMultiplicity {
@@ -234,5 +282,10 @@ module powerbi.data {
         Product,
         StateOrProvince,
         WebUrl,
+    }
+
+    export const enum ConceptualAggregateBehavior {
+        Default,
+        DiscourageAcrossGroups,
     }
 }

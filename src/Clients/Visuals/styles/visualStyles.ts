@@ -34,17 +34,20 @@ module powerbi.visuals {
 
             return {
                 titleText: {
-                    color: { value: 'rgba(51,51,51,1)' }
+                    color: { value: '#333' }
                 },
                 subTitleText: {
-                    color: { value: 'rgba(145,145,145,1)' }
+                    color: { value: '#919191' }
                 },
                 colorPalette: {
+                    foreground: { value: '#333' },
+                    background: { value: '#fff' },
+                    tableAccent: { value: dataColors.getColorByIndex(0).value },
                     dataColors: dataColors,
                 },
                 labelText: {
                     color: {
-                        value: 'rgba(51,51,51,1)',
+                        value: '#333',
                     },
                     fontSize: '11px'
                 },

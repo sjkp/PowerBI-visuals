@@ -47,22 +47,26 @@ module powerbi.visuals {
         public static capabilities: VisualCapabilities = {
             dataRoles: [
                 {
+                    displayName: 'Category',
                     name: 'Category',
                     kind: powerbi.VisualDataRoleKind.Grouping,
                 },
                 {
+                    displayName: 'Y Axis',
                     name: 'Y',
                     kind: powerbi.VisualDataRoleKind.Measure,
                 },
             ],
             dataViewMappings: [{
-                categories: {
-                    for: { in: 'Category' },
-                    dataReductionAlgorithm: { top: {} }
-                },
-                values: {
-                    select: [{ bind: { to: 'Y' } }]
-                },
+                categorical: {
+                    categories: {
+                        for: { in: 'Category' },
+                        dataReductionAlgorithm: { top: {} }
+                    },
+                    values: {
+                        select: [{ bind: { to: 'Y' } }]
+                    },
+                }
             }]
         };
 
@@ -75,7 +79,7 @@ module powerbi.visuals {
                 max: 100,
                 min: 0,
                 target: undefined,
-                total: 0,
+                value: 0,
                 tooltipItems: []
             };
 
@@ -87,12 +91,12 @@ module powerbi.visuals {
 
                 for (var i = 0; i < values.length; i++) {
                     var col = metadataColumns[i],
-                        value = values[i].values[0] || 0;
+                        value = <number>values[i].values[0] || 0;
                     if (col && col.roles) {
                         if (col.roles[gaugeRoleNames.y]) {
-                            settings.total = value;
+                            settings.value = value;
                             if (value)
-                                settings.tooltipItems.push({ value: value, metadata: values[i] });
+                                settings.tooltipItems.push({ displayName: values[i].source.displayName, value: converterHelper.formatFromMetadataColumn(value, values[i].source, Gauge.formatStringProp) });
                         } else if (col.roles[gaugeRoleNames.minValue]) {
                             settings.min = value;
                         } else if (col.roles[gaugeRoleNames.maxValue]) {
@@ -100,7 +104,7 @@ module powerbi.visuals {
                         } else if (col.roles[gaugeRoleNames.targetValue]) {
                             settings.target = value;
                             if (value)
-                                settings.tooltipItems.push({ value: value, metadata: values[i] });
+                                settings.tooltipItems.push({ displayName: values[i].source.displayName, value: converterHelper.formatFromMetadataColumn(value, values[i].source, Gauge.formatStringProp) });
                         }
                     }
                 }
@@ -142,7 +146,7 @@ module powerbi.visuals {
             if (dataView) {
                 var gaugeData = OwlGauge.getGaugeData(options.dataViews[0]);
 
-                var percentage = (gaugeData.total - gaugeData.min) / (gaugeData.max - gaugeData.min);
+                var percentage = (gaugeData.value - gaugeData.min) / (gaugeData.max - gaugeData.min);
                 this.updateGauge(percentage * 100 | 0);
             }
             else this.updateGauge(0);
@@ -150,7 +154,7 @@ module powerbi.visuals {
 
         private updateGauge(percentage: number) {
             if (percentage >= 0 && percentage <= 100) {
-                var rotationDeg = -180 + (180 * percentage/100);
+                var rotationDeg = -180 + (180 * percentage / 100);
                 this.svgBgElem.css({ transform: 'rotate(' + rotationDeg + 'deg)' });
 
                 if (percentage >= 66) {

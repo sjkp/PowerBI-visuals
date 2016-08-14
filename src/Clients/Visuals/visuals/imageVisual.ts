@@ -95,7 +95,7 @@ module powerbi.visuals {
                 this.scalingType = imageScalingType.normal;
 
             let imageUrl = objects.general.imageUrl;
-            if (Utility.isValidImageDataUrl(imageUrl))
+            if (Utility.isLocalUrl(imageUrl))
                 div.css("backgroundImage", "url(" + imageUrl + ")");
 
             if (this.scalingType === imageScalingType.fit)

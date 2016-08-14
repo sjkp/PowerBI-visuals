@@ -1,8 +1,8 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+ *  All rights reserved.
  *  MIT License
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -11,14 +11,14 @@
  *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  *  copies of the Software, and to permit persons to whom the Software is
  *  furnished to do so, subject to the following conditions:
- *   
- *  The above copyright notice and this permission notice shall be included in 
+ *
+ *  The above copyright notice and this permission notice shall be included in
  *  all copies or substantial portions of the Software.
- *   
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ *
+ *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
@@ -30,6 +30,7 @@ module powerbi {
 
     import StringExtensions = jsCommon.StringExtensions;
     import Formatting = jsCommon.Formatting;
+    import RegExpExtensions = jsCommon.RegExpExtensions;
 
     /** Culture interfaces. These match the Globalize library interfaces intentionally. */
     export interface Culture {
@@ -55,55 +56,79 @@ module powerbi {
         positiveInfinity: string;
     }
 
+    /**
+     *  Creating a dummy module to declare cultureInfo string, so we could do a strongly typed usage in Visuals
+     */
+    declare module powerbi.common {
+        let cultureInfo: string;
+    }
+
     /** Formatting Encoder */
     module FormattingEncoder {
-        export function preserveEscaped(format: string, specialChars: string): string {
-            // Unicode U+E000 - U+F8FF is a private area and so we can use the chars from the range to encode the escaped sequences
-            let length = specialChars.length;
-            for (let i = 0; i < length; i++) {
-                let oldText = "\\" + specialChars[i];
-                let newText = String.fromCharCode(0xE000 + i);
-                format = StringExtensions.replaceAll(format, oldText, newText);
-            }
-            return format;
-        }
+        // quoted and escaped literal patterns
+        // NOTE: the final three cases match .NET behavior
+        const literalPatterns: string[] = [
+            "'[^']*'",      // single-quoted literal
+            '"[^"]*"',      // double-quoted literal
+            "\\\\.",        // escaped character
+            "'[^']*$",      // unmatched single-quote
+            '"[^"]*$',      // unmatched double-quote
+            "\\\\$",        // backslash at end of string
+        ];
 
-        export function restoreEscaped(format: string, specialChars: string): string {
-            // After formatting is complete we should restore the encoded escaped chars into the unescaped chars
-            let length = specialChars.length;
-            for (let i = 0; i < length; i++) {
-                let oldText = String.fromCharCode(0xE000 + i);
-                let newText = specialChars[i];
-                format = StringExtensions.replaceAll(format, oldText, newText);
-            }
-            return StringExtensions.replaceAll(format, "\\", "");
+        const literalMatcher = new RegExp(literalPatterns.join("|"), "g");
+
+        // Unicode U+E000 - U+F8FF is a private area and so we can use the chars from the range to encode the escaped sequences
+
+        export function removeLiterals(format: string): string {
+            literalMatcher.lastIndex = 0;
+
+            // just in case consecutive non-literals have some meaning
+            return format.replace(literalMatcher, "\uE100");
         }
 
         export function preserveLiterals(format: string, literals: string[]): string {
-            // Unicode U+E000 - U+F8FF is a private area and so we can use the chars from the range to encode the escaped sequences
-            format = StringExtensions.replaceAll(format, "\"", "'");
-            for (let i = 0; ; i++) {
-                let fromIndex = format.indexOf("'");
-                if (fromIndex < 0) {
+            literalMatcher.lastIndex = 0;
+
+            for (; ;) {
+                let match = literalMatcher.exec(format);
+                if (!match)
                     break;
-                }
-                let toIndex = format.indexOf("'", fromIndex + 1);
-                if (toIndex < 0) {
-                    break;
-                }
-                let literal = format.substring(fromIndex, toIndex + 1);
-                literals.push(literal.substring(1, toIndex - fromIndex));
-                let token = String.fromCharCode(0xE100 + i);
-                format = format.replace(literal, token);
+
+                let literal = match[0];
+                let literalOffset = literalMatcher.lastIndex - literal.length;
+
+                let token = String.fromCharCode(0xE100 + literals.length);
+
+                literals.push(literal);
+
+                format = format.substr(0, literalOffset) + token + format.substr(literalMatcher.lastIndex);
+
+                // back to avoid skipping due to removed literal substring
+                literalMatcher.lastIndex = literalOffset + 1;
             }
+
             return format;
         }
 
-        export function restoreLiterals(format: string, literals: string[]): string {
+        export function restoreLiterals(format: string, literals: string[], quoted: boolean = true): string {
             let count = literals.length;
             for (let i = 0; i < count; i++) {
                 let token = String.fromCharCode(0xE100 + i);
                 let literal = literals[i];
+                if (!quoted) {
+                    // caller wants literals to be re-inserted without escaping
+                    let firstChar = literal[0];
+                    if (firstChar === "\\" || literal.length === 1 || literal[literal.length - 1] !== firstChar) {
+                        // either escaped literal OR quoted literal that's missing the trailing quote
+                        // in either case we only remove the leading character
+                        literal = literal.substring(1);
+                    }
+                    else {
+                        // so must be a quoted literal with both starting and ending quote
+                        literal = literal.substring(1, literal.length - 1);
+                    }
+                }
                 format = format.replace(token, literal);
             }
             return format;
@@ -111,8 +136,13 @@ module powerbi {
     }
 
     const IndexedTokensRegex = /({{)|(}})|{(\d+[^}]*)}/g;
+    const ZeroPlaceholder = '0';
+    const DigitPlaceholder = '#';
+    const ExponentialFormatChar = 'E';
+    const NumericPlaceholders = [ZeroPlaceholder, DigitPlaceholder];
+    const NumericPlaceholderRegex = new RegExp(NumericPlaceholders.join('|'), 'g');
 
-    /** Formatting Service */ 
+    /** Formatting Service */
     class FormattingService implements IFormattingService {
 
         _currentCultureSelector: string;
@@ -153,7 +183,6 @@ module powerbi {
                     let argFormat = parts[1];
                     return this.formatValue(args[argIndex], argFormat, culture);
                 }
-                return "";
             });
 
             return result;
@@ -170,10 +199,12 @@ module powerbi {
         }
 
         public dateFormatString(unit: DateTimeUnit): string {
+            if (!this._dateTimeScaleFormatInfo)
+                this.initialize();
             return this._dateTimeScaleFormatInfo.getFormatString(unit);
         }
 
-        /** 
+        /**
          * Sets the current localization culture
          * @param cultureSelector - name of a culture: "en", "en-UK", "fr-FR" etc. (See National Language Support (NLS) for full lists. Use "default" for invariant culture).
          */
@@ -185,10 +216,10 @@ module powerbi {
             }
         }
 
-        /** 
-         * Gets the culture assotiated with the specified cultureSelector ("en", "en-US", "fr-FR" etc). 
+        /**
+         * Gets the culture assotiated with the specified cultureSelector ("en", "en-US", "fr-FR" etc).
          * @param cultureSelector - name of a culture: "en", "en-UK", "fr-FR" etc. (See National Language Support (NLS) for full lists. Use "default" for invariant culture).
-         * Exposing this function for testability of unsupported cultures 
+         * Exposing this function for testability of unsupported cultures
          */
         public getCulture(cultureSelector?: string): Culture {
             if (cultureSelector == null) {
@@ -206,7 +237,7 @@ module powerbi {
 
         /** By default the Globalization module initializes to the culture/calendar provided in the language/culture URL params */
         private initialize() {
-            let cultureName = this.getUrlParam("language") || window["cultureInfo"] || window.navigator.userLanguage || window.navigator["language"] || Globalize.culture().name;
+            let cultureName = this.getCurrentCulture();
             this.setCurrentCulture(cultureName);
             let calendarName = this.getUrlParam("calendar");
             if (calendarName) {
@@ -218,15 +249,37 @@ module powerbi {
             }
         }
 
-        private getUrlParam(name: string): string {
+        /**
+         *  Exposing this function for testability 
+         */
+        public getCurrentCulture(): string {
+            let urlParam = this.getUrlParam("language");
+
+            if (urlParam) {
+                return urlParam;
+            }
+
+            if (powerbi && powerbi.common && powerbi.common.cultureInfo) {
+                // Get cultureInfo set in powerbi
+                return powerbi.common.cultureInfo;
+            }
+
+            return window.navigator.userLanguage || window.navigator["language"] || Globalize.culture().name;
+        }
+
+        /**
+         *  Exposing this function for testability
+         *  @param name: queryString name
+         */
+        public getUrlParam(name: string): string {
             let param = window.location.search.match(RegExp("[?&]" + name + "=([^&]*)"));
             return param ? param[1] : undefined;
         }
     }
 
     /**
-     * DateTimeFormat module contains the static methods for formatting the DateTimes. 
-     * It extends the JQuery.Globalize functionality to support complete set of .NET 
+     * DateTimeFormat module contains the static methods for formatting the DateTimes.
+     * It extends the JQuery.Globalize functionality to support complete set of .NET
      * formatting expressions for dates.
      */
     module DateTimeFormat {
@@ -276,11 +329,9 @@ module powerbi {
         function formatDateCustom(value: Date, format: string, culture: Culture): string {
             let result: string;
             let literals: string[] = [];
-            format = FormattingEncoder.preserveEscaped(format, "\\dfFghHKmstyz:/%'\"");
             format = FormattingEncoder.preserveLiterals(format, literals);
-            format = StringExtensions.replaceAll(format, "\"", "'");
             if (format.indexOf("F") > -1) {
-                // F is not supported so we need to replace the F with f based on the milliseconds                        
+                // F is not supported so we need to replace the F with f based on the milliseconds
                 // Replace all sequences of F longer than 3 with "FFF"
                 format = StringExtensions.replaceAll(format, "FFFF", "FFF");
                 // Based on milliseconds update the format to use fff
@@ -303,8 +354,7 @@ module powerbi {
             format = processCustomDateTimeFormat(format);
             result = Globalize.format(value, format, culture);
             result = localize(result, culture.calendar);
-            result = FormattingEncoder.restoreLiterals(result, literals);
-            result = FormattingEncoder.restoreEscaped(result, "\\dfFghHKmstyz:/%'\"");
+            result = FormattingEncoder.restoreLiterals(result, literals, false);
             return result;
         }
 
@@ -351,23 +401,32 @@ module powerbi {
 
     }
 
-    /** 
-     * NumberFormat module contains the static methods for formatting the numbers. 
-     * It extends the JQuery.Globalize functionality to support complete set of .NET 
+    /**
+     * NumberFormat module contains the static methods for formatting the numbers.
+     * It extends the JQuery.Globalize functionality to support complete set of .NET
      * formatting expressions for numeric types including custom formats.
      */
     export module NumberFormat {
 
         const NonScientificFormatRegex = /^\{.+\}.*/;
         const NumericalPlaceHolderRegex = /\{.+\}/;
-        const ScientificFormatRegex = /e[+-]*0+/i;
+        const ScientificFormatRegex = /e[+-]*[0#]+/i;
         const StandardFormatRegex = /^[a-z]\d{0,2}$/i; // a letter + up to 2 digits for precision specifier
         const TrailingZerosRegex = /0+$/;
+        const DecimalFormatRegex = /\.([0#]*)/g;
+        const NumericFormatRegex = /[0#,\.]+[0,#]*/g;
+        // (?=...) is a positive lookahead assertion. The RE is asking for the last digit placeholder, [0#],
+        // which is followed by non-digit placeholders and the end of string, [^0#]*$. But it only matches
+        // the last digit placeholder, not anything that follows because the positive lookahead isn't included
+        // in the match - it is only a condition.
+        const LastNumericPlaceholderRegex = /([0#])(?=[^0#]*$)/;
+        const DecimalFormatCharacter = '.';
+
+        export const NumberFormatComponentsDelimeter = ';';
 
         export interface NumericFormatMetadata {
             format: string;
-            hasEscapes: boolean;
-            hasQuotes: boolean;
+            hasLiterals: boolean;
             hasE: boolean;
             hasCommas: boolean;
             hasDots: boolean;
@@ -384,6 +443,113 @@ module powerbi {
             zero: string;
         }
 
+        function getNonScientificFormatWithPrecision(baseFormat: string, numericFormat: string): string {
+            if (!numericFormat || baseFormat === undefined)
+                return baseFormat;
+
+            let newFormat = "{0:" + numericFormat + "}";
+
+            return baseFormat.replace("{0}", newFormat);
+        }
+
+        export function getNumericFormat(value: number, baseFormat: string): string {
+            if (baseFormat == null)
+                return baseFormat;
+
+            if (hasFormatComponents(baseFormat)) {
+                let {positive, negative, zero} = NumberFormat.getComponents(baseFormat);
+
+                if (value > 0)
+                    return getNumericFormatFromComponent(value, positive);
+                else if (value === 0)
+                    return getNumericFormatFromComponent(value, zero);
+
+                return getNumericFormatFromComponent(value, negative);
+            }
+
+            return getNumericFormatFromComponent(value, baseFormat);
+        }
+
+        function getNumericFormatFromComponent(value: number, format: string): string {
+            let match = RegExpExtensions.run(NumericFormatRegex, format);
+            if (match)
+                return match[0];
+
+            return format;
+        }
+
+        export function addDecimalsToFormat(baseFormat: string, decimals: number, trailingZeros: boolean): string {
+            if (decimals == null)
+                return baseFormat;
+
+            // Default format string
+            if (baseFormat == null)
+                baseFormat = ZeroPlaceholder;
+
+            if (hasFormatComponents(baseFormat)) {
+                let {positive, negative, zero} = NumberFormat.getComponents(baseFormat);
+                let formats = [positive, negative, zero];
+                for (let i = 0; i < formats.length; i++) {
+                    // Update format in formats array
+                    formats[i] = addDecimalsToFormatComponent(formats[i], decimals, trailingZeros);
+                }
+
+                return formats.join(NumberFormat.NumberFormatComponentsDelimeter);
+            }
+
+            return addDecimalsToFormatComponent(baseFormat, decimals, trailingZeros);
+        }
+
+        function addDecimalsToFormatComponent(format: string, decimals: number, trailingZeros: boolean): string {
+            decimals = Math.abs(decimals);
+
+            if (decimals >= 0) {
+                let literals: string[] = [];
+                format = FormattingEncoder.preserveLiterals(format, literals);
+
+                let placeholder = trailingZeros ? ZeroPlaceholder : DigitPlaceholder;
+                let decimalPlaceholders = StringExtensions.repeat(placeholder, Math.abs(decimals));
+
+                let match = RegExpExtensions.run(DecimalFormatRegex, format);
+                if (match) {
+                    let beforeDecimal = format.substr(0, match.index);
+                    let formatDecimal = format.substr(match.index + 1, match[1].length);
+                    let afterDecimal = format.substr(match.index + match[0].length);
+
+                    if (trailingZeros)
+                        // Use explicit decimals argument as placeholders
+                        formatDecimal = decimalPlaceholders;
+                    else {
+                        let decimalChange = decimalPlaceholders.length - formatDecimal.length;
+                        if (decimalChange > 0)
+                            // Append decimalPlaceholders to existing decimal portion of format string
+                            formatDecimal = formatDecimal + decimalPlaceholders.slice(-decimalChange);
+                        else if (decimalChange < 0)
+                            // Remove decimals from formatDecimal
+                            formatDecimal = formatDecimal.slice(0, decimalChange);
+                    }
+
+                    if (formatDecimal.length > 0)
+                        formatDecimal = DecimalFormatCharacter + formatDecimal;
+
+                    format = beforeDecimal + formatDecimal + afterDecimal;
+                }
+                else if (decimalPlaceholders.length > 0) {
+                    // Replace last numeric placeholder with decimal portion
+                    format = format.replace(LastNumericPlaceholderRegex, '$1' + DecimalFormatCharacter + decimalPlaceholders);
+                }
+
+                if (literals.length !== 0)
+                    format = FormattingEncoder.restoreLiterals(format, literals);
+            }
+
+            return format;
+        }
+
+        export function hasFormatComponents(format: string): boolean {
+            return FormattingEncoder.removeLiterals(format).indexOf(NumberFormat.NumberFormatComponentsDelimeter) !== -1;
+        }
+
         export function getComponents(format: string): NumberFormatComponents {
             let signFormat: NumberFormatComponents = {
                 hasNegative: false,
@@ -392,11 +558,22 @@ module powerbi {
                 zero: format,
             };
 
-            let signSpecificFormats = format.split(";");
+            // escape literals so semi-colon in a literal isn't interpreted as a delimiter
+            // NOTE: OK to use the literals extracted here for all three components before since the literals are indexed.
+            // For example, "'pos-lit';'neg-lit'" will get preserved as "\uE000;\uE001" and the literal array will be
+            // ['pos-lit', 'neg-lit']. When the negative components is restored, its \uE001 will select the second
+            // literal.
+            let literals: string[] = [];
+            format = FormattingEncoder.preserveLiterals(format, literals);
+
+            let signSpecificFormats = format.split(NumberFormatComponentsDelimeter);
             let formatCount = signSpecificFormats.length;
             debug.assert(!(formatCount > 3), 'format string should be of form positive[;negative;zero]');
 
             if (formatCount > 1) {
+                if (literals.length !== 0)
+                    signSpecificFormats = _.map(signSpecificFormats, signSpecificFormat => FormattingEncoder.restoreLiterals(signSpecificFormat, literals));
+
                 signFormat.hasNegative = true;
 
                 signFormat.positive = signFormat.zero = signSpecificFormats[0];
@@ -482,6 +659,10 @@ module powerbi {
                         result = precision !== undefined ? value.toPrecision(precision) : value.toString();
                     } else {
                         // Otherwise use exponential
+                        // Assert that value is a number and fall back on returning value if it is not
+                        debug.assert(typeof (value) === "number", "value must be a number");
+                        if (typeof (value) !== "number")
+                            return String(value);
                         result = precision !== undefined ? value.toExponential(precision) : value.toExponential();
                         result = result.replace("e", "E");
                     }
@@ -552,26 +733,27 @@ module powerbi {
                 let formatMeta = getCustomFormatMetadata(format, true /*calculatePrecision*/);
 
                 // Preserve literals and escaped chars
-                if (formatMeta.hasEscapes) {
-                    format = FormattingEncoder.preserveEscaped(format, "\\0#.,%‰");
-                }
                 let literals: string[] = [];
-                if (formatMeta.hasQuotes) {
+                if (formatMeta.hasLiterals) {
                     format = FormattingEncoder.preserveLiterals(format, literals);
                 }
 
                 // Scientific format
                 if (formatMeta.hasE && !nonScientificOverrideFormat) {
-                    let scientificMatch = ScientificFormatRegex.exec(format);
+                    let scientificMatch = RegExpExtensions.run(ScientificFormatRegex, format);
                     if (scientificMatch) {
                         // Case 2.1. Scientific custom format
                         let formatM = format.substr(0, scientificMatch.index);
-                        let formatE = format.substr(scientificMatch.index + scientificMatch[0].indexOf("0"));
+                        let formatE = format.substr(scientificMatch.index + 2); // E(+|-)
                         let precision = getCustomFormatPrecision(formatM, formatMeta);
                         let scale = getCustomFormatScale(formatM, formatMeta);
                         if (scale !== 1) {
                             value = value * scale;
                         }
+                        // Assert that value is a number and fall back on returning value if it is not
+                        debug.assert(typeof (value) === "number", "value must be a number");
+                        if (typeof (value) !== "number")
+                            return String(value);
                         let s = value.toExponential(precision);
                         let indexOfE = s.indexOf("e");
                         let mantissa = s.substr(0, indexOfE);
@@ -590,24 +772,33 @@ module powerbi {
                 if (result === undefined) {
                     let valueFormatted: string;
                     let isValueGlobalized: boolean = false;
+                    let precision = getCustomFormatPrecision(format, formatMeta);
+                    let scale = getCustomFormatScale(format, formatMeta);
+
+                    if (scale !== 1)
+                        value = value * scale;
+
+                    // Rounding
+                    value = parseFloat(toNonScientific(value, precision));
+
                     if (nonScientificOverrideFormat) {
+                        // Get numeric format from format string
+                        let numericFormat = NumberFormat.getNumericFormat(value, format);
+
+                        // Add separators and decimalFormat to nonScientificFormat
+                        nonScientificOverrideFormat = getNonScientificFormatWithPrecision(nonScientificOverrideFormat, numericFormat);
+
+                        // Format the value
                         valueFormatted = formattingService.format(nonScientificOverrideFormat, [value], culture.name);
                         isValueGlobalized = true;
-                    } else {
-                        let precision = getCustomFormatPrecision(format, formatMeta);
-                        let scale = getCustomFormatScale(format, formatMeta);
-                        if (scale !== 1) {
-                            value = value * scale;
-                        }
-                        valueFormatted = toNonScientific(value, precision);
                     }
+                    else
+                        valueFormatted = toNonScientific(value, precision);
+
                     result = fuseNumberWithCustomFormat(valueFormatted, format, numberFormatInfo, nonScientificOverrideFormat, isValueGlobalized);
                 }
-                if (formatMeta.hasQuotes) {
-                    result = FormattingEncoder.restoreLiterals(result, literals);
-                }
-                if (formatMeta.hasEscapes) {
-                    result = FormattingEncoder.restoreEscaped(result, "\\0#.,%‰");
+                if (formatMeta.hasLiterals) {
+                    result = FormattingEncoder.restoreLiterals(result, literals, false);
                 }
 
                 _lastCustomFormatMeta = formatMeta;
@@ -643,10 +834,14 @@ module powerbi {
                     result += ".";
                 }
             } else { // digitsBeforeDecimalPoint > 16
-                // Different browsers have different implementations of the toFixed(). 
+                // Different browsers have different implementations of the toFixed().
                 // In IE it returns fixed format no matter what's the number. In FF and Chrome the method returns exponential format for numbers greater than 1E21.
-                // So we need to check for range and convert the to exponential with the max precision. 
+                // So we need to check for range and convert the to exponential with the max precision.
                 // Then we convert exponential string to fixed by removing the dot and padding with "power" zeros.
+                // Assert that value is a number and fall back on returning value if it is not
+                debug.assert(typeof (value) === "number", "value must be a number");
+                if (typeof (value) !== "number")
+                    return String(value);
                 result = value.toExponential(15);
                 let indexOfE = result.indexOf("e");
                 if (indexOfE > 0) {
@@ -679,29 +874,24 @@ module powerbi {
                 return _lastCustomFormatMeta;
             }
 
-            let result = {
+            let literals: string[] = [];
+            let escaped = FormattingEncoder.preserveLiterals(format, literals);
+
+            let result: NumericFormatMetadata = {
                 format: format,
-                hasEscapes: false,
-                hasQuotes: false,
+                hasLiterals: literals.length !== 0,
                 hasE: false,
                 hasCommas: false,
                 hasDots: false,
                 hasPercent: false,
                 hasPermile: false,
-                precision: -1,
-                scale: -1,
+                precision: undefined,
+                scale: undefined,
             };
 
-            for (let i = 0, length = format.length; i < length; i++) {
-                let c = format.charAt(i);
+            for (let i = 0, length = escaped.length; i < length; i++) {
+                let c = escaped.charAt(i);
                 switch (c) {
-                    case "\\":
-                        result.hasEscapes = true;
-                        break;
-                    case "'":
-                    case "\"":
-                        result.hasQuotes = true;
-                        break;
                     case "e":
                     case "E":
                         result.hasE = true;
@@ -723,6 +913,7 @@ module powerbi {
 
             // Use positive format for calculating these values
             let formatComponents = getComponents(format);
+
             if (calculatePrecision)
                 result.precision = getCustomFormatPrecision(formatComponents.positive, result);
             if (calculateScale)
@@ -730,7 +921,7 @@ module powerbi {
 
             return result;
         }
-    
+
         /** Returns the decimal precision of format based on the number of # and 0 chars after the decimal point
           * Important: The input format string needs to be split to the appropriate pos/neg/zero portion to work correctly */
         function getCustomFormatPrecision(format: string, formatMeta: NumericFormatMetadata): number {
@@ -739,17 +930,26 @@ module powerbi {
             }
             let result = 0;
             if (formatMeta.hasDots) {
+                if (formatMeta.hasLiterals) {
+                    format = FormattingEncoder.removeLiterals(format);
+                }
+
                 let dotIndex = format.indexOf(".");
                 if (dotIndex > -1) {
                     let count = format.length;
                     for (let i = dotIndex; i < count; i++) {
                         let char = format.charAt(i);
-                        if (char === "#" || char === "0")
+                        if (char.match(NumericPlaceholderRegex))
                             result++;
+                        // 0.00E+0 :: Break before counting 0 in
+                        // exponential portion of format string
+                        if (char === ExponentialFormatChar)
+                            break;
                     }
                     result = Math.min(19, result);
                 }
             }
+
             formatMeta.precision = result;
             return result;
         }
@@ -798,7 +998,7 @@ module powerbi {
                     displayUnit = nonScientificOverrideFormat.replace(NumericalPlaceHolderRegex, "");
                     value = value.replace(displayUnit, "");
                 }
-                
+
                 let globalizedDecimalSeparator = numberFormatInfo["."];
                 let decimalSeparator = isValueGlobalized ? globalizedDecimalSeparator : ".";
                 let valueParts = value.split(decimalSeparator, 2);
@@ -840,15 +1040,15 @@ module powerbi {
             for (let fi = format.length - 1; fi > -1; fi--) {
                 let formatChar = format.charAt(fi);
                 switch (formatChar) {
-                    case "0":
-                    case "#":
+                    case ZeroPlaceholder:
+                    case DigitPlaceholder:
                         fmtOnly = false;
                         if (leftBuffer !== "") {
                             result = leftBuffer + result;
                             leftBuffer = "";
                         }
                         if (!suppressModifyValue) {
-                            if (vi > -1 || formatChar === "0") {
+                            if (vi > -1 || formatChar === ZeroPlaceholder) {
                                 if (enableGroups) {
                                     // If the groups are enabled we'll need to keep track of the current group index and periodically insert group separator,
                                     if (groupDigitCount === groupSize) {
@@ -864,13 +1064,13 @@ module powerbi {
                                 }
                             }
                             if (vi > -1) {
-                                if (isZero && formatChar === "#") {
+                                if (isZero && formatChar === DigitPlaceholder) {
                                     // Special case - if we need to format a zero value and the # symbol is used - we don't copy it into the result)
                                 } else {
                                     result = value.charAt(vi) + result;
                                 }
                                 vi--;
-                            } else if (formatChar !== "#") {
+                            } else if (formatChar !== DigitPlaceholder) {
                                 result = formatChar + result;
                             }
                         }
@@ -921,12 +1121,14 @@ module powerbi {
             let vi = 0;
             let fCount = format.length;
             let vCount = value.length;
+
             if (suppressModifyValue) {
                 debug.assert(fCount > 0, "Empty formatting string");
 
-                if ((format.charAt(fCount - 1) !== "0") && (format.charAt(fCount - 1) !== "#"))
+                let lastChar = format.charAt(fCount - 1);
+                if (!lastChar.match(NumericPlaceholderRegex))
                     return {
-                        value: value + format.charAt(fCount - 1),
+                        value: value + lastChar,
                         fmtOnly: value === "",
                     };
 
@@ -942,8 +1144,8 @@ module powerbi {
                 let formatChar = format.charAt(fi);
                 if (vi < vCount) {
                     switch (formatChar) {
-                        case "0":
-                        case "#":
+                        case ZeroPlaceholder:
+                        case DigitPlaceholder:
                             result += value[vi++];
                             fmtOnly = false;
                             break;
@@ -951,9 +1153,9 @@ module powerbi {
                             result += formatChar;
                     }
                 } else {
-                    if (formatChar !== "#") {
+                    if (formatChar !== DigitPlaceholder) {
                         result += formatChar;
-                        fmtOnly = fmtOnly && (formatChar !== "0");
+                        fmtOnly = fmtOnly && (formatChar !== ZeroPlaceholder);
                     }
                 }
             }
@@ -1012,7 +1214,7 @@ module powerbi {
         public MillisecondPattern: string;
 
         // Constructor
-        /** 
+        /**
          * Creates new instance of the DateTimeScaleFormatInfo class.
          * @param culture - culture which calendar info is going to be used to derive the formats.
          */
@@ -1059,7 +1261,7 @@ module powerbi {
 
         // Methods
 
-        /** 
+        /**
          * Returns the format string of the provided DateTimeUnit.
          * @param unit - date or time unit
          */
@@ -1088,4 +1290,3 @@ module powerbi {
 
     export var formattingService: IFormattingService = new FormattingService();
 }
-
